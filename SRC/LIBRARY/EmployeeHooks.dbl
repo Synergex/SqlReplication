@@ -1,0 +1,194 @@
+;;*****************************************************************************
+;;
+;; File:        EmployeeSqlIO.dbl
+;;
+;; Type:        Class (EmployeeHooks)
+;;
+;; Description: An I/O Hooks class that implements SQL data replication for the
+;;              file DAT:EMPLOYEE.ISM
+;;
+;; Author:      <CODEGEN_AUTHOR>
+;;
+;;*****************************************************************************
+;;
+;; Copyright (c) 2015, Synergex International, Inc.
+;; All rights reserved.
+;;
+;; Redistribution and use in source and binary forms, with or without
+;; modification, are permitted provided that the following conditions are met:
+;;
+;; * Redistributions of source code must retain the above copyright notice,
+;;   this list of conditions and the following disclaimer.
+;;
+;; * Redistributions in binary form must reproduce the above copyright notice,
+;;   this list of conditions and the following disclaimer in the documentation
+;;   and/or other materials provided with the distribution.
+;;
+;; THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+;; AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+;; IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+;; ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+;; LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+;; CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+;; SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+;; INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+;; CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+;; ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+;; POSSIBILITY OF SUCH DAMAGE.
+;;
+;;*****************************************************************************
+
+import Synergex.SynergyDE.IOExtensions
+import Synergex.SynergyDE.Select
+
+namespace SynPSG.ReplicationDemo
+
+    ;;-------------------------------------------------------------------------
+    ;;I/O hooks class for DAT:EMPLOYEE.ISM
+    ;;
+    public sealed class EmployeeHooks extends IOHooks
+
+        private mActive, boolean
+        private mChannel, int, 0
+        private employee, strEmployee
+
+        ;;---------------------------------------------------------------------
+        ;;Constructor
+
+        public method EmployeeHooks
+            required in aChannel, n
+            endparams
+            parent(aChannel)
+            record
+                openMode, a3
+            endrecord
+        proc
+            ;;Make sure the channel is to an indexed file and open in update mode
+            xcall getfa(aChannel,"OMD",openMode)
+            if (mActive = (openMode=="U:I"))
+            begin
+                ;;Record the channel number
+                mChannel = aChannel
+                ;;Initialize the last record cache for the channel
+                LastRecordCache.Init(mChannel)
+            end
+        endmethod
+
+        ;;---------------------------------------------------------------------
+        ;;CLOSE hooks
+
+        public override method close_pre_operation_hook, void
+            required in          aFlags,  IOFlags
+            endparams
+        proc
+            if (mActive)
+                LastRecordCache.Clear(mChannel)
+        endmethod
+
+        ;;---------------------------------------------------------------------
+        ;;DELETE hooks
+
+        public override method delete_post_operation_hook, void
+            required inout       aError,  int
+            endparams
+        proc
+            if (mActive && !aError)
+            begin
+                ;;A record was just deleted. Replicate the change.
+                employee = LastRecordCache.Retrieve(mChannel)
+                xcall replicate(REPLICATION_INSTRUCTION.DELETE_ROW,"EMPLOYEE",%keyval(mChannel,employee,0))
+            end
+        endmethod
+
+        ;;---------------------------------------------------------------------
+        ;;READ hooks
+
+        public override method read_post_operation_hook, void
+            required inout       aEmployee, a
+            optional in mismatch aKey,    n
+            optional in          aRfa,    a
+            optional in          aKeynum, n
+            required in          aFlags,  IOFlags
+            required inout       aError,  int
+            endparams
+        proc
+            if (mActive && !aError)
+            begin
+                ;;Record the record that was just read (to support delete)
+                LastRecordCache.Update(mChannel,aEmployee)
+            end
+        endmethod
+
+        ;;---------------------------------------------------------------------
+        ;;READS hooks
+
+        public override method reads_post_operation_hook ,void
+            required inout       aEmployee, a
+            optional in          aRfa,    a
+            required in          aFlags,  IOFlags
+            required inout       aError,  int
+            endparams
+        proc
+            if (mActive && !aError)
+            begin
+                ;;Record the record that was just read (to support delete)
+                LastRecordCache.Update(mChannel,aEmployee)
+            end
+        endmethod
+
+        ;;---------------------------------------------------------------------
+        ;;STORE hooks
+
+        public override method store_pre_operation_hook, void
+            required inout aEmployee, a
+            required in          aFlags,  IOFlags
+            endparams
+        proc
+            if (mActive)
+            begin
+                employee = aEmployee
+                employee.replication_key = %datetime
+                aEmployee = employee
+            end
+        endmethod
+
+        public override method store_post_operation_hook, void
+            required inout       aEmployee, a
+            optional in          aRfa,    a
+            required in          aFlags,  IOFlags
+            required inout       aError,  int
+            endparams
+        proc
+            if (mActive && !aError)
+            begin
+                ;;A new record was just created. Replicate the change.
+                employee = aEmployee
+                xcall replicate(REPLICATION_INSTRUCTION.CREATE_ROW,"EMPLOYEE",%keyval(mChannel,employee,0))
+            end
+        endmethod
+
+        ;;---------------------------------------------------------------------
+        ;;WRITE hooks
+
+        public override method write_post_operation_hook, void
+            required inout       aEmployee, a
+            optional in          aRecnum, n
+            optional in          aRfa,    a
+            required in          aFlags,  IOFlags
+            required inout       aError,  int
+            endparams
+        proc
+            if (mActive && !aError)
+            begin
+                ;;A record was just updated. If it changed then replicate the change.
+                if (LastRecordCache.HasChanged(mChannel,aEmployee))
+                begin
+                    employee = aEmployee
+                    xcall replicate(REPLICATION_INSTRUCTION.UPDATE_ROW,"EMPLOYEE",%keyval(mChannel,employee,0))
+                end
+            end
+        endmethod
+
+    endclass
+
+endnamespace

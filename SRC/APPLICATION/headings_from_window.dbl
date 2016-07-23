@@ -1,0 +1,66 @@
+;*******************************************************************************
+;
+; Title:        headings_from_window.dbl
+;
+; Description:  Get list column headings from list input window
+;
+; Author:       Richard C. Morris
+;
+; Copyright:    ©Synergex International Inc.  All rights reserved.
+;
+; WARNING:      If you were given this code by a Synergex employee then you may
+;               use and modify it freely for use with your own applications.
+;               However, you may not under any circumstances distribute this
+;               code, or any modified version of this code, to any third party
+;               without first obtaining written permission to do so from
+;               Synergex.  In using this code you accept that it is provided
+;               as is, and without support or warranty.  Neither Synergex or the
+;               author accept any responsibility for any losses or damages of
+;               any nature which may arise from the use of this code.  This
+;               header information must remain, unaltered, in the code at all
+;               times.  Posession of this code, or any modified version of this
+;               code, indicates your acceptance of these terms.
+;
+;*******************************************************************************
+
+subroutine headings_from_window
+	a_window_id			,n	;input window
+	a_headings			,a	;Returned headings
+	endparams
+
+	.include 'WND:system.def'
+	.include 'WND:setinf.def'
+	.include 'WND:windows.def'
+	.include 'DBLDIR:activex.def'
+
+	stack record local_data
+		win_area,		8d3
+		  num_row,		d3 @win_area + 6
+		  num_col,		d3 @win_area + 9
+		window_text,	a1000
+	endrecord
+
+proc
+
+	init local_data
+
+	xcall w_info(WI_AREAS, a_window_id, win_area)
+	xcall w_info(WI_XFR, a_window_id, WIX_DGET, window_text)
+
+	if num_row.eq.1
+	begin
+		;No header lines found (window only 1 high)!
+		clear a_headings
+		xreturn		
+	end
+
+	a_headings = %atrim(window_text(num_col+1:num_col))
+
+    xcall w_proc(WP_RESIZE, a_window_id, 1, %w_info(WIF_COLS, a_window_id))
+	xcall w_area(a_window_id, WA_SET, 1, 1, 1, num_col)
+	xcall w_area(a_window_id, WA_COPY, WAC_PTOD)
+
+	xreturn
+
+endsubroutine
+

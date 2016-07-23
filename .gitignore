@@ -1,0 +1,58 @@
+
+# Ignore specific file extensions anywhere in the tree
+
+*.bak
+*.csproj.user
+*.dbo
+*.dbp
+*.dbr
+*.dll
+*.elb
+*.ex
+*.exe
+*.exe.config
+*.in
+*.ism
+*.is1
+*.jar
+*.log
+*.mf
+*.nupkg
+*.obj
+*.olb
+*.out
+*.pdb
+*.pubxml.user
+*.resources
+*.rptproj.user
+*.so
+*.spl
+*.suo
+*.tlb
+*.vbproj.user
+*.vpwhist
+*.vtg
+*.xap
+
+# Ignore specific files anywhere in the tree
+
+*_clslist.dat
+*_srclist.dat
+
+# Ignore specific file extensions in specific folders
+**/packages/**/*.*
+**/Service References/*/*.datasource
+**/Service References/*/*.disco
+**/Service References/*/*.wsdl
+**/Service References/*/*.xsd
+
+
+# Ignore specific folders anywhere in the tree
+
+**/.vs
+**/bin
+**/TestResults
+
+# Ignore specific folders
+
+Documentation/Web Help

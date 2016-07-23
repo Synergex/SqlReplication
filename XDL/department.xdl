@@ -1,0 +1,47 @@
+!	Synergy ISAM XDL File created Sun Mar 01 12:03:28 2009
+FILE
+	NAME		"department.ism"
+	ADDRESSING	32
+	KEYS		2
+
+RECORD
+	SIZE		71
+	FORMAT		fixed
+	COMPRESS_DATA	no
+	STATIC_RFA	no
+
+	!5ca5 magic, revision 4, 4 byte record overhead
+	!Shared index cache allowed
+	!Creation version 8.1.7d 
+	!File created on Thu May 05 15:43:44 2005
+	!15 byte longest key
+	!0 free index blocks, 0x0 free list head
+	!3 records, 0 free
+
+KEY 0
+	!Primary key
+	START		1
+	LENGTH		15
+	TYPE		alpha
+	ORDER		ascending
+	NAME		"dept_id"
+	DUPLICATES	no
+	MODIFIABLE	no
+
+	!Root 0x800, index depth 1
+	!Minimum keys per block 26
+
+KEY 1
+	!Alternate key #1
+	START		66
+	LENGTH		6
+	TYPE		alpha
+	ORDER		ascending
+	NAME		"dept_manager"
+	DUPLICATES	yes
+	DUPLICATE_ORDER	fifo
+	MODIFIABLE	yes
+
+	!Root 0xc00, index depth 1
+	!Qualifier offset 1
+	!Minimum keys per block 39

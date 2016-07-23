@@ -1,0 +1,54 @@
+!	Synergy ISAM XDL File created Sun Mar 01 12:03:35 2009
+FILE
+	NAME		"EMPLOYEE.ISM"
+	ADDRESSING	32
+	KEYS		4
+
+RECORD
+	SIZE		200
+	FORMAT		fixed
+	COMPRESS_DATA	no
+	STATIC_RFA	no
+
+KEY 0
+	!Primary key
+	START		1
+	LENGTH		6
+	TYPE		alpha
+	ORDER		ascending
+	NAME		"EMP_ID"
+	DUPLICATES	no
+	MODIFIABLE	no
+
+KEY 1
+	!Alternate key #1
+	START		67
+	LENGTH		15
+	TYPE		alpha
+	ORDER		ascending
+	NAME		"EMP_DEPT"
+	DUPLICATES	yes
+	DUPLICATE_ORDER	fifo
+	MODIFIABLE	yes
+
+KEY 2
+	!Alternate key #2
+	START		37
+	LENGTH		30
+	TYPE		alpha
+	ORDER		ascending
+	NAME		"EMP_LAST_NAME"
+	DUPLICATES	yes
+	DUPLICATE_ORDER	fifo
+	MODIFIABLE	yes
+
+KEY 3
+	!Alternate key #3
+	START		122
+	LENGTH		20
+	TYPE		alpha
+	ORDER		ascending
+	NAME		"REPLICATION_KEY"
+	DUPLICATES	no
+	MODIFIABLE	no
+

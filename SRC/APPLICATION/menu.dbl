@@ -1,0 +1,117 @@
+;******************************************************************************
+; Title:        menu.dbl
+;
+; Author:       Steve Ives, Synergex Professional Services Group
+;
+; Description:  A simple menu system to execute generated programs
+;
+;******************************************************************************
+main menu
+
+    .include "WND:tools.def"
+    .include "WND:inpctl.def"
+
+    .define APP_TITLE   "SQL Replication Demo System Menu"
+    .define APP_VERSION "V2.0"
+
+    .define SYSTEM_DATA_INIT
+    .include "INC:system.def"
+
+proc
+
+    call setup
+
+    repeat
+    begin
+        xcall m_process
+
+        using g_entnam select
+        ("EXIT"),
+            exitloop
+        ("ABOUT"),
+            xcall u_about(APP_TITLE,APP_VERSION,%datecompiled)
+        ("EMPMNT"),
+        begin
+            xcall e_enter
+            xcall m_disable(D_COLUMN,idc_apps)
+            xcall employee_maint_tab("Employee",,"ID|First Name|Last Name|Department|")
+            xcall e_exit
+        end
+        ("R_"),
+            xcall ReplicatorMenuItem(g_entnam)
+        endusing
+    end
+
+    xcall replicate(REPLICATION_INSTRUCTION.CLOSE_FILE)
+
+    xcall u_finish
+
+    stop
+
+;------------------------------------------------------------------------------
+;Get Toolkit up and running
+;
+setup,
+
+    ;Start UI Toolkit
+    xcall u_start("EXE:tkapp.ism",1,0,,30,100)
+
+    ;Configure Toolkit environment
+    xcall e_sect(APP_TITLE,D_HEADER,D_CENTER)
+    xcall e_state(D_ON,D_RETURNBTN,D_VALSTCHG)
+    xcall e_method(D_METH_ENTRST,"entrst_method")
+    xcall u_wndfont(D_SETFONT,DF_CURRENT,"MS Sans Serif",10,"A")
+    xcall u_wndfont(D_SETFONT,DF_ALTERNATE,"MS Sans Serif",10,"A")
+
+    ;Create window event mehod sets
+    wndevent_close = %u_wndevents(D_CREATE,,D_EVENT_CLOSE,"wndevent_close")
+
+    ;Create menu columns
+    begin
+        data mbcontrol, a1000, ""
+
+        ;Build file menu
+        xcall mb_column(mbcontrol,"FILE","File",D_GLOBAL)
+        xcall mb_entry(mbcontrol,"ABOUT","About",F1_KEY)
+        xcall mb_entry(mbcontrol,"EXIT","Exit",F4_KEY)
+        xcall mb_end(mbcontrol,idc_file)
+
+        ;Build edit menu
+        xcall mb_column(mbcontrol,"EDIT","Edit",D_GLOBAL)
+        xcall mb_entry(mbcontrol,"E_CUT","Cut",CTRL_X_KEY,,"T",,1)
+        xcall mb_entry(mbcontrol,"E_COPY","Copy",CTRL_C_KEY,,"C",,1)
+        xcall mb_entry(mbcontrol,"E_PASTE","Paste",CTRL_V_KEY,,"P",,1)
+        xcall mb_end(mbcontrol,idc_edit)
+
+        ;Build applications menu
+        xcall mb_column(mbcontrol,"APPS","Applications")
+        xcall mb_entry(mbcontrol,"EMPMNT","Employee Maintenance")
+        xcall mb_end(mbcontrol,idc_apps)
+
+        ;;Build the replicator menu
+        xcall mb_column(mbcontrol,"TOLS","Replicator")
+        xcall mb_entry(mbcontrol,"R_START","Start Replicator")
+        xcall mb_entry(mbcontrol,"R_START_D","Start Replicator (Debug)")
+        xcall mb_entry(mbcontrol,"R_STOP","Stop Replicator")
+        xcall mb_line(mbcontrol)
+        xcall mb_entry(mbcontrol,"R_CREATE","Create Employee Table")
+        xcall mb_entry(mbcontrol,"R_LOAD","Create and Load Employee Table")
+        xcall mb_entry(mbcontrol,"R_DELETE","Delete Employee Table")
+        xcall mb_entry(mbcontrol,"R_RELOAD","Reload Employee Table")
+        xcall mb_entry(mbcontrol,"R_TRUNCATE","Truncate Employee Table")
+        xcall mb_line(mbcontrol)
+        xcall mb_entry(mbcontrol,"R_CLEAR","Clear Replicator Instructions")
+        xcall mb_end(mbcontrol,idc_replicator)
+    end
+
+    ;Set menu dropdown mode
+    .ifdef D_GUI
+    xcall m_defcol(0)
+    .else
+    xcall m_defcol(3)
+    .endc
+
+    return
+
+endmain
+

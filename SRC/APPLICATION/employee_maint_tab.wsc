@@ -1,0 +1,60 @@
+.script
+.date_generated "04/04/2008, 12:19"
+.version "9.1.3"
+
+.input EMPLOYEE_CTA, 16, 76
+.title "0201"
+.repository_structure EMPLOYEE_CRITERIA
+.field MODE, fpos(2, 3)
+.field FIELD1, fpos(2, 18)
+.field FIELD2, fpos(3, 18), nochange_method
+.set ALL, EMPLOYEE_CRITERIA, MODE, FIELD1, FIELD2
+.set DATA, EMPLOYEE_CRITERIA, FIELD1, FIELD2
+.end
+
+.input EMPLOYEE_LUP, 1, 85
+.border on, dragbar(on)
+.repository_structure EMPLOYEE
+.field EMP_ID, noprompt, fpos(1, 1)
+.field EMP_FIRST_NAME, noprompt, fpos(1, 8)
+.field EMP_LAST_NAME, noprompt, fpos(1, 39)
+.field EMP_DEPT, noprompt, fpos(1, 70), nochange_method
+.end
+
+.input EMPLOYEE1, 16, 66
+.title "Employee"
+.repository_structure EMPLOYEE_INPUT
+.field EMP_ID, pos(2, 3), fpos(2, 16)
+.field EMP_FIRST_NAME, pos(4, 3), fpos(4, 16)
+.field EMP_LAST_NAME, pos(6, 3), fpos(6, 16)
+.field EMP_DEPT, pos(8, 3), fpos(8, 16)
+.field EMP_DEPT_DSP, fpos(9, 16)
+.field EMP_PAID, pos(11, 3), fpos(11, 16)
+.set ALL, EMPLOYEE_INPUT, EMP_ID, EMP_FIRST_NAME, EMP_LAST_NAME, -
+     EMP_DEPT, EMP_PAID
+.set KEY, EMPLOYEE_INPUT, EMP_ID
+.set DATA, EMPLOYEE_INPUT, EMP_FIRST_NAME, EMP_LAST_NAME, -
+     EMP_DEPT, EMP_PAID
+.end
+
+.input EMPLOYEE2, 16, 66
+.placement 2, 2
+.title "Dates"
+.repository_structure EMPLOYEE_INPUT
+.field EMP_HIRE_DATE, pos(2, 2), fpos(2, 17)
+.field EMP_PHONE[1], pos(4, 2), prompt("Office Phone"), fpos(4, 17)
+.field EMP_PHONE[2], pos(4, 35), prompt("Home Phone"), fpos(4, 46)
+.field EMP_PHONE[3], pos(6, 2), prompt("Cell Phone"), fpos(6, 17)
+.field EMP_HOME_OK, fpos(5, 46)
+.set ALL, EMPLOYEE_INPUT, EMP_HIRE_DATE, EMP_PHONE[1], EMP_PHONE[3], -
+     EMP_PHONE[2], EMP_HOME_OK
+.end
+
+.input DEPARTMENT_LUP, 1, 67
+.placement 2, 2
+.title "Department Lookup"
+.border on, dragbar(on)
+.repository_structure DEPARTMENT
+.field DEPT_ID, noprompt, fpos(1, 1), nochange_method
+.field DEPT_NAME, noprompt, fpos(1, 17)
+.end
