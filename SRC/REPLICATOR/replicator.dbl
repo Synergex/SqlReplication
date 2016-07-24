@@ -1,14 +1,40 @@
 ;;*****************************************************************************
 ;;
-;; Program:     Replicator
+;; File:        replicator.dbl
 ;;
-;; Desctiption: This program replicates Synergy data file changes (which have
-;;              been recorded in the replucation log file) to the relational
-;;              database.
+;; Type:        Application (Replicator)
 ;;
-;; Author:      Steve Ives, Synergex Professional Services Group
+;; Description: Replicates Synergy data file changes that have been recorded
+;;              in the replucation log file to a SQL Server database.
 ;;
-;; Created:     10th April 2008
+;; Author:      <CODEGEN_AUTHOR>
+;;
+;;*****************************************************************************
+;;
+;; Copyright (c) 2008, Synergex International, Inc.
+;; All rights reserved.
+;;
+;; Redistribution and use in source and binary forms, with or without
+;; modification, are permitted provided that the following conditions are met:
+;;
+;; * Redistributions of source code must retain the above copyright notice,
+;;   this list of conditions and the following disclaimer.
+;;
+;; * Redistributions in binary form must reproduce the above copyright notice,
+;;   this list of conditions and the following disclaimer in the documentation
+;;   and/or other materials provided with the distribution.
+;;
+;; THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+;; AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+;; IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+;; ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+;; LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+;; CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+;; SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+;; INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+;; CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+;; ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+;; POSSIBILITY OF SUCH DAMAGE.
 ;;
 ;;*****************************************************************************
 
@@ -21,7 +47,6 @@ import SynPSG.ReplicationDemo
 main Replicator
 
     .include "CONNECTDIR:ssql.def"
-    .include "DBLDIR:namspc.def"
     .include "GENSRC:structureio.def"
     .include "REPLICATION" repository, record="instruction", end
 
@@ -45,12 +70,12 @@ main Replicator
         updates             ,i4                 ;;Update operations completed
         deletes             ,i4                 ;;Delete operations completed
         fails               ,i4                 ;;Failed operations
-    runningOnTerminal   ,i4                 ;;Program is running on a terminal
+        runningOnTerminal   ,i4                 ;;Program is running on a terminal
     endcommon
 
     record local_data
         ok                  ,boolean            ;;Main status
-    db_connect          ,string     ;;Database connect string
+        db_connect          ,string             ;;Database connect string
         sleep_time          ,i4                 ;;Seconds to sleep
         errnum              ,i4                 ;;Error number
         nsptr               ,i4                 ;;Namespace pointer
@@ -64,7 +89,7 @@ main Replicator
         fullLogging         ,boolean            ;;Are we doing full logging?
         logKeys             ,boolean            ;;Include key data in debug logs
         switchMode          ,boolean            ;;Switched from INSERT to UPDATE or vice versa
-    doingLogCycle       ,boolean        ;;The log file is being cycled
+        doingLogCycle       ,boolean            ;;The log file is being cycled
         functionName        ,a40                ;;External function to call
         log_file            ,a256
         log_mode            ,a3
@@ -104,8 +129,8 @@ proc
         xcall getlog("REPLICATOR_INTERVAL",databuffer,length)
         if ((length>0)&&%IsNumeric(%atrim(databuffer)))
             sleep_time = %integer(%atrim(databuffer))
-    if (sleep_time < 1)
-        sleep_time = D_SLEEP_TIME
+        if (sleep_time < 1)
+            sleep_time = D_SLEEP_TIME
 
         ;;Set the logging level
         xcall getlog("REPLICATOR_FULL_LOG",databuffer,length)
@@ -125,7 +150,7 @@ proc
         log("Sleep interval   : " + %string(sleep_time) + " seconds.")
     end
 
-    ;;Open the instructions file
+    ;;Open the instruction file
     if (ok)
     begin
         open(tch=0,U:I,D_TRANS_FILE) [ERR=tferr]
@@ -137,18 +162,18 @@ tferr,  log("ERROR: Failed to open " + D_TRANS_FILE)
     ;;Get the database connect string from the logical REPLICATOR_DATABASE
     if (ok)
     begin
-    xcall getlog("REPLICATOR_DATABASE",databuffer,length)
-    if (length) then
-    begin
-        db_connect = databuffer(1:length)
-        log("Database connect : " + db_connect)
-    end
-    else
-    begin
-        ;;No connect string, we're dead!
-        log("ERROR: No database connect string was found. Define environment variable REPLICATOR_DATABASE.")
-        ok = false
-    end
+        xcall getlog("REPLICATOR_DATABASE",databuffer,length)
+        if (length) then
+        begin
+            db_connect = databuffer(1:length)
+            log("Database connect : " + db_connect)
+        end
+        else
+        begin
+            ;;No connect string, we're dead!
+            log("ERROR: No database connect string was found. Define environment variable REPLICATOR_DATABASE.")
+            ok = false
+        end
     end
 
     ;;Enable and Initialize SQL Connection
@@ -194,21 +219,20 @@ tferr,  log("ERROR: Failed to open " + D_TRANS_FILE)
         ;;that we have opened.
         nsid = %nspc_open(,%size(structure_data))
 
-    log("")
+        log("")
         log("Ready to process instructions...")
         log("------------------------------------------------------------")
 
         ;;Main loop
         repeat
         begin
-
             ;;Check for outstanding instructions
             call GetInstruction
 
             if (eof) then
             begin
-        if (runningOnTerminal)
-            debuglog("Sleeping for " + %string(sleep_time) + " seconds...")
+                if (runningOnTerminal)
+                    debuglog("Sleeping for " + %string(sleep_time) + " seconds...")
                 sleep sleep_time
             end
             else
@@ -265,8 +289,8 @@ tferr,  log("ERROR: Failed to open " + D_TRANS_FILE)
                 (REPLICATION_INSTRUCTION.DELETE_TABLE),
                     call DoDeleteTable
 
-        (REPLICATION_INSTRUCTION.CYCLE_LOG),
-            call DoCycleLog
+                (REPLICATION_INSTRUCTION.CYCLE_LOG),
+                    call DoCycleLog
 
                 (REPLICATION_INSTRUCTION.SHUTDOWN),
                 begin
@@ -319,7 +343,8 @@ GetInstruction,
         reads(tch,instruction,eof,LOCK:Q_AUTO_LOCK) [$err_locked=InsLocked]
         if (!instruction)
             nextloop
-        if (0)
+
+        if (false)
         begin
 eof,        eof=1
             exitloop
@@ -350,10 +375,17 @@ CheckFileTable,
             exit
 
         ;;Get the record size of the file
-        onerror FunctionFail
-        functionName = %atrim(instruction.structure_name) + "_LENGTH"
-        structure_data.structure_size = %xsubr(functionName)
-        offerror
+        try
+        begin
+            functionName = %atrim(instruction.structure_name) + "_LENGTH"
+            structure_data.structure_size = %xsubr(functionName)
+        end
+        catch (ex, @SynException)
+        begin
+            ok = %LogFunctionFail(logch,functionName,ex.Errno,ex.Message)
+            return
+        end
+        endtry
 
         ;;And save the structure name
         structure_data.structure_name = instruction.structure_name
@@ -371,10 +403,17 @@ OpenFile,
 
     debuglog("Opening file " + %atrim(instruction.structure_name))
 
-    onerror FunctionFail
-    functionName = %atrim(instruction.structure_name) + "_IO"
-    status= %xsubr(functionName,IO_OPEN_INP,structure_data.structure_chan,,,,,,dberrtxt)
-    offerror
+    try
+    begin
+        functionName = %atrim(instruction.structure_name) + "_IO"
+        status= %xsubr(functionName,IO_OPEN_INP,structure_data.structure_chan,,,,,,dberrtxt)
+    end
+    catch (ex, @SynException)
+    begin
+        ok = %LogFunctionFail(logch,functionName,ex.Errno,ex.Message)
+        return
+    end
+    endtry
 
     if (status==IO_OK) then
     begin
@@ -385,8 +424,9 @@ OpenFile,
     begin
         debuglog(" - Failed to open file!")
         clear structure_data.structure_chan
-        call FunctionError
+        xcall LogFunctionError(logch,functionName,status,dberrtxt)
     end
+
     return
 
 ;;-----------------------------------------------------------------------------
@@ -396,10 +436,17 @@ CheckTable,
 
     debuglog("Checking if table " + %atrim(instruction.structure_name) + " exists")
 
-    onerror FunctionFail
-    functionName = %atrim(instruction.structure_name) + "_EXISTS"
-    status= %xsubr(functionName,db,dberrtxt)
-    offerror
+    try
+    begin
+        functionName = %atrim(instruction.structure_name) + "_EXISTS"
+        status= %xsubr(functionName,db,dberrtxt)
+    end
+    catch (ex, @SynException)
+    begin
+        ok = %LogFunctionFail(logch,functionName,ex.Errno,ex.Message)
+        return
+    end
+    endtry
 
     using status select
     (1),
@@ -410,7 +457,7 @@ CheckTable,
         call CreateTable
     end
     (<0),;Error
-        call FunctionError
+        xcall LogFunctionError(logch,functionName,status,dberrtxt)
     endusing
 
     return
@@ -422,10 +469,17 @@ CreateTable,
 
     debuglog("Create table " + %atrim(instruction.structure_name))
 
-    onerror FunctionFail
-    functionName = %atrim(instruction.structure_name) + "_CREATE"
-    status= %xsubr(functionName,db,dberrtxt)
-    offerror
+    try
+    begin
+        functionName = %atrim(instruction.structure_name) + "_CREATE"
+        status= %xsubr(functionName,db,dberrtxt)
+    end
+    catch (ex, @SynException)
+    begin
+        ok = %LogFunctionFail(logch,functionName,ex.Errno,ex.Message)
+        return
+    end
+    endtry
 
     if (status) then
     begin
@@ -433,7 +487,9 @@ CreateTable,
         call LoadTable
     end
     else
-        call FunctionError
+    begin
+        xcall LogFunctionError(logch,functionName,status,dberrtxt)
+    end
 
     return
 
@@ -444,10 +500,17 @@ LoadTable,
 
     debuglog("Loading data to table " + %atrim(instruction.structure_name))
 
-    onerror FunctionFail
-    functionName = %atrim(instruction.structure_name) + "_LOAD"
-    status= %xsubr(functionName,db,dberrtxt,,,success_count,fail_count)
-    offerror
+    try
+    begin
+        functionName = %atrim(instruction.structure_name) + "_LOAD"
+        status= %xsubr(functionName,db,dberrtxt,,,success_count,fail_count)
+    end
+    catch (ex, @SynException)
+    begin
+        ok = %LogFunctionFail(logch,functionName,ex.Errno,ex.Message)
+        return
+    end
+    endtry
 
     if (status) then
     begin
@@ -456,7 +519,9 @@ LoadTable,
         fails   += fail_count
     end
     else
-        call FunctionError
+    begin
+        xcall LogFunctionError(logch,functionName,status,dberrtxt)
+    end
 
     return
 
@@ -478,14 +543,23 @@ DoInsert,
 
     if ((status==IO_OK)&&(databuffer))
     begin
-        onerror FunctionFail
-        functionName = %atrim(instruction.structure_name) + '_INSERT_ROW'
-        status = %xsubr(functionName,db,databuffer(1,structure_data.structure_size),dberrtxt)
-        offerror
+        try
+        begin
+            functionName = %atrim(instruction.structure_name) + '_INSERT_ROW'
+            status = %xsubr(functionName,db,databuffer(1,structure_data.structure_size),dberrtxt)
+        end
+        catch (ex, @SynException)
+        begin
+            ok = %LogFunctionFail(logch,functionName,ex.Errno,ex.Message)
+            return
+        end
+        endtry
 
         using status select
         (0),
-            call FunctionError
+        begin
+            xcall LogFunctionError(logch,functionName,status,dberrtxt)
+        end
         (1),
         begin
             debuglog(" - Row inserted")
@@ -524,10 +598,17 @@ DoUpdate,
 
     if ((status==IO_OK)&&(databuffer))
     begin
-        onerror FunctionFail
-        functionName = %atrim(instruction.structure_name) + '_UPDATE_ROW'
-        status = %xsubr(functionName,db,databuffer(1,structure_data.structure_size),rows,dberrtxt)
-        offerror
+        try
+        begin
+            functionName = %atrim(instruction.structure_name) + '_UPDATE_ROW'
+            status = %xsubr(functionName,db,databuffer(1,structure_data.structure_size),rows,dberrtxt)
+        end
+        catch (ex, @SynException)
+        begin
+            ok = %LogFunctionFail(logch,functionName,ex.Errno,ex.Message)
+            return
+        end
+        endtry
 
         if (status) then
         begin
@@ -546,7 +627,9 @@ DoUpdate,
 
         end
         else
-            call FunctionError
+        begin
+            xcall LogFunctionError(logch,functionName,status,dberrtxt)
+        end
     end
 
     return
@@ -561,10 +644,17 @@ DoDelete,
     if (logKeys)
         debugLog(" - Primary key: " + %atrim(instruction.primary_key))
 
-    onerror FunctionFail
-    functionName = %atrim(instruction.structure_name) + '_DELETE_ROW'
-    status= %xsubr(functionName,db,instruction.primary_key,dberrtxt)
-    offerror
+    try
+    begin
+        functionName = %atrim(instruction.structure_name) + '_DELETE_ROW'
+        status= %xsubr(functionName,db,instruction.primary_key,dberrtxt)
+    end
+    catch (ex, @SynException)
+    begin
+        ok = %LogFunctionFail(logch,functionName,ex.Errno,ex.Message)
+        return
+    end
+    endtry
 
     if (status) then
     begin
@@ -574,7 +664,7 @@ DoDelete,
     else
     begin
         debuglog(" - " + dberrtxt)
-        call FunctionError
+        xcall LogFunctionError(logch,functionName,status,dberrtxt)
     end
 
     return
@@ -591,10 +681,17 @@ DoCreateTable,
 
     debuglog(" - Checking if table already exists")
 
-    onerror FunctionFail
-    functionName = %atrim(instruction.structure_name) + "_EXISTS"
-    status= %xsubr(functionName,db,dberrtxt)
-    offerror
+    try
+    begin
+        functionName = %atrim(instruction.structure_name) + "_EXISTS"
+        status= %xsubr(functionName,db,dberrtxt)
+    end
+    catch (ex, @SynException)
+    begin
+        ok = %LogFunctionFail(logch,functionName,ex.Errno,ex.Message)
+        return
+    end
+    endtry
 
     using status select
     (1),
@@ -605,20 +702,25 @@ DoCreateTable,
     begin
         debuglog(" - Creating table")
 
-        onerror FunctionFail
-        functionName = %atrim(instruction.structure_name) + "_CREATE"
-        status= %xsubr(functionName,db,dberrtxt)
-        offerror
+        try
+        begin
+            functionName = %atrim(instruction.structure_name) + "_CREATE"
+            status= %xsubr(functionName,db,dberrtxt)
+        end
+        catch (ex, @SynException)
+        begin
+            ok = %LogFunctionFail(logch,functionName,ex.Errno,ex.Message)
+            return
+        end
+        endtry
 
         if (status) then
             debuglog(" - Table created")
         else
-            call FunctionError
+            xcall LogFunctionError(logch,functionName,status,dberrtxt)
     end
     (<0),
-    begin
-        call FunctionError
-    end
+        xcall LogFunctionError(logch,functionName,status,dberrtxt)
     endusing
 
     return
@@ -634,10 +736,17 @@ DoLoadTable,
     debuglog("Reload existing table " + %atrim(instruction.structure_name) + " exists")
     debuglog(" - Checking if table exists")
 
-    onerror FunctionFail
-    functionName = %atrim(instruction.structure_name) + "_EXISTS"
-    status= %xsubr(functionName,db,dberrtxt)
-    offerror
+    try
+    begin
+        functionName = %atrim(instruction.structure_name) + "_EXISTS"
+        status= %xsubr(functionName,db,dberrtxt)
+    end
+    catch (ex, @SynException)
+    begin
+        ok = %LogFunctionFail(logch,functionName,ex.Errno,ex.Message)
+        return
+    end
+    endtry
 
     using status select
     (1),
@@ -650,9 +759,7 @@ DoLoadTable,
         debuglog(" - Table does not exist!")
     end
     (<0),
-    begin
-        call FunctionError
-    end
+        xcall LogFunctionError(logch,functionName,status,dberrtxt)
     endusing
 
     return
@@ -676,15 +783,22 @@ DoDeleteAllRows,
 
     debuglog("Deleting all rows from table " + %atrim(instruction.structure_name))
 
-    onerror FunctionFail
-    functionName = %atrim(instruction.structure_name) + "_CLEAR"
-    status= %xsubr(functionName,db,dberrtxt)
-    offerror
+    try
+    begin
+        functionName = %atrim(instruction.structure_name) + "_CLEAR"
+        status= %xsubr(functionName,db,dberrtxt)
+    end
+    catch (ex, @SynException)
+    begin
+        ok = %LogFunctionFail(logch,functionName,ex.Errno,ex.Message)
+        return
+    end
+    endtry
 
     if (status) then
         debuglog(" - All rows were deleted")
     else
-        call FunctionError
+        xcall LogFunctionError(logch,functionName,status,dberrtxt)
 
     return
 
@@ -710,15 +824,22 @@ DoDeleteTable,
 
     debuglog("Deleting table " + %atrim(instruction.structure_name))
 
-    onerror FunctionFail
-    functionName = %atrim(instruction.structure_name) + "_DROP"
-    status= %xsubr(functionName,db,dberrtxt)
-    offerror
+    try
+    begin
+        functionName = %atrim(instruction.structure_name) + "_DROP"
+        status= %xsubr(functionName,db,dberrtxt)
+    end
+    catch (ex, @SynException)
+    begin
+        ok = %LogFunctionFail(logch,functionName,ex.Errno,ex.Message)
+        return
+    end
+    endtry
 
     if (status) then
         debuglog(" - Table was deleted")
     else
-        call FunctionError
+        xcall LogFunctionError(logch,functionName,status,dberrtxt)
 
     return
 
@@ -730,10 +851,17 @@ DoDeleteTable,
 ReadSynergyRecord,
 
     ;;Find the master record details
-    onerror FunctionFail
-    functionName = %atrim(instruction.structure_name) + "_IO"
-    status= %xsubr(functionName,IO_READ,structure_data.structure_chan,instruction.primary_key,0,databuffer(1,structure_data.structure_size),,,dberrtxt)
-    offerror
+    try
+    begin
+        functionName = %atrim(instruction.structure_name) + "_IO"
+        status= %xsubr(functionName,IO_READ,structure_data.structure_chan,instruction.primary_key,0,databuffer(1,structure_data.structure_size),,,dberrtxt)
+    end
+    catch (ex, @SynException)
+    begin
+        ok = %LogFunctionFail(logch,functionName,ex.Errno,ex.Message)
+        return
+    end
+    endtry
 
     using status select
     (IO_OK),
@@ -744,87 +872,66 @@ ReadSynergyRecord,
     (IO_NOT_FOUND,IO_EOF),
         debuglog(" - Record not found in ISAM file!")
     (),
-        call FunctionError
+        xcall LogFunctionError(logch,functionName,status,dberrtxt)
     endusing
 
     return
 
 
 ;;-----------------------------------------------------------------------------
-;; This routine opens the log file
+;; Open the log file
 
 OpenLogFile,
 
     ;;Are we running on a terminal?
     if (runningOnTerminal) then
     begin
-    log_file = "tt:"
-    log_mode = "o"
+        log_file = "tt:"
+        log_mode = "o"
     end
     else
     begin
-    ;;Do we have a log location specified?
-    xcall getlog("REPLICATOR_LOGDIR",databuffer,length)
-    if (length) then
-    begin
-        ;;Yes, use it
-        log_file = %atrim(databuffer)+"\replicator_"+%datetime+".log"
-    end
-    else
-    begin
-        ;;No, create one in the current directory
-        log_file = "replicator_"+%datetime+".log"
-    end
-    log_mode = "o:s"
+        ;;Do we have a log location specified?
+        xcall getlog("REPLICATOR_LOGDIR",databuffer,length)
+        if (length) then
+        begin
+            ;;Yes, use it
+            log_file = %atrim(databuffer)+"\replicator_"+%datetime+".log"
+        end
+        else
+        begin
+            ;;No, create one in the current directory
+            log_file = "replicator_"+%datetime+".log"
+        end
+        log_mode = "o:s"
     end
 
     ;;Open the log file
     if (!doingLogCycle||!runningOnTerminal)
     begin
-    open(logch=0,log_mode,log_file) [ERR=logerr]
-    exit
+        open(logch=0,log_mode,log_file) [ERR=logerr]
+        exit
     logerr,
-    .ifndef DBLNET
-    xcall syn_reportevent(D_EVENTLOG_ERROR_TYPE,"Replicator failed to open log file " + %atrim(log_file)+". Error number " + %string(%ernum))
-    .endc
-    ok = false
+        .ifndef DBLNET
+        xcall syn_reportevent(D_EVENTLOG_ERROR_TYPE,"Replicator failed to open log file " + %atrim(log_file)+". Error number " + %string(%ernum))
+        .endc
+        ok = false
     end
 
     return
 
 ;;-----------------------------------------------------------------------------
-;; This routine closes the current log file and opens a new one.
+;; Close the current log file and open a new one.
 ;;
 DoCycleLog,
 
     if (!runningOnTerminal)
     begin
-    close logch
-    doingLogCycle = true
-    call OpenLogFile
+        close logch
+        doingLogCycle = true
+        call OpenLogFile
     end
 
-    return
-
-;;-----------------------------------------------------------------------------
-;; If we get here then some routine that we tried to XSUBR encountered a
-;; an unexpected / fatal error.
-;;
-FunctionFail,
-
-    offerror
-    xcall ertxt(errnum=%error,dberrtxt)
-    log("ERROR: Function " + %atrim(functionName) + " failed with error " + %string(errnum) + ": " + %atrim(dberrtxt))
-    ok = false
-    return
-
-;;-----------------------------------------------------------------------------
-;; If we get here then some routine that we tried to XSUBR trapped an error
-;; and returned a fail status.
-;;
-FunctionError,
-
-    log("ERROR: Function" + %atrim(functionName) + " returned error " + %string(status) + ": " + %atrim(dberrtxt))
     return
 
 endmain
@@ -870,19 +977,21 @@ subroutine ReplicatorShutdown
         updates             ,i4                 ;;Number of update operations completed
         deletes             ,i4                 ;;Number of delete operations completed
         fails               ,i4                 ;;Number of failed operations
-    runningOnTerminal   ,i4                 ;;Program is running on a terminal
+        runningOnTerminal   ,i4                 ;;Program is running on a terminal
     endcommon
 
     stack record
-        idx             ,i4                     ;;Loop counter
-        access_code     ,i4                     ;;Namespace access code
-        status          ,i4                     ;;Function return status
-        functionName    ,string                 ;;External function name to call
+        idx                 ,i4                 ;;Loop counter
+        access_code         ,i4                 ;;Namespace access code
+        status              ,i4                 ;;Function return status
+        functionName        ,string             ;;External function name to call
+    endrecord
 
     record structure_data
-        structure_name  ,a30                    ;;Name of structure
-        structure_chan  ,i4                     ;;ISAM channel being used
-        structure_size  ,i4                     ;;Record length
+        structure_name      ,a30                ;;Name of structure
+        structure_chan      ,i4                 ;;ISAM channel being used
+        structure_size      ,i4                 ;;Record length
+    endrecord
 
 proc
 
@@ -912,10 +1021,16 @@ proc
             ;;Close the channel
             if ((structure_data.structure_chan)&&%chopen(structure_data.structure_chan))
             begin
-                onerror ignore
-                functionName = %atrim(structure_data.structure_name) + "_IO"
-                status= %xsubr(functionName,IO_CLOSE,structure_data.structure_chan)
-    ignore,     offerror
+                try
+                begin
+                    functionName = %atrim(structure_data.structure_name) + "_IO"
+                    status= %xsubr(functionName,IO_CLOSE,structure_data.structure_chan)
+                end
+                catch (ex)
+                begin
+                    nop
+                end
+                endtry
             end
         end
 
@@ -940,6 +1055,28 @@ proc
     xreturn
 
 endsubroutine
+
+subroutine LogFunctionError
+    required in logChannel, int
+    required in functionName, string
+    required in errorNumber, int
+    required in errorMessage, string
+    endparams
+proc
+    writes(logChannel,%TimeStamp+"ERROR: Function" + %atrim(functionName) + " returned error " + %string(errorNumber) + ": " + %atrim(errorMessage))
+    xreturn
+endsubroutine
+
+function LogFunctionFail, boolean
+    required in logChannel, int
+    required in functionName, string
+    required in errorNumber, int
+    required in errorMessage, string
+    endparams
+proc
+    writes(logChannel,%TimeStamp+"ERROR: Function " + %atrim(functionName) + " failed with error " + %string(errorNumber) + ": " + %atrim(errorMessage))
+    freturn false
+endfunction
 
 function TimeStamp, string
     external common
