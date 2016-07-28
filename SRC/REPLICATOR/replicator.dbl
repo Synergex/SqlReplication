@@ -844,9 +844,8 @@ DoDeleteTable,
     return
 
 ;;-----------------------------------------------------------------------------
-;; This routine reads the full record associated with the unique key retrieved
-;; from the instruction file.  It uses the special IO_READ_SQL mode, which knows
-;; which key is the REPLICATION_KEY key for that file.
+;; This routine reads the full record associated with the primary key obtained
+;; from the instruction file.
 ;;
 ReadSynergyRecord,
 
