@@ -19,7 +19,7 @@
 ;;
 ;; Description: Performs ISAM file I/O for the file <FILE_NAME>
 ;;
-;; Author:      <CODEGEN_AUTHOR>
+;; Author:      <AUTHOR>
 ;;
 ;;*****************************************************************************
 ;;

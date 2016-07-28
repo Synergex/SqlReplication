@@ -6,7 +6,7 @@
 ;;
 ;; Description: Various functions that performs SQL I/O for EMPLOYEE
 ;;
-;; Author:      <CODEGEN_AUTHOR>
+;; Author:      Steve Ives
 ;;
 ;;*****************************************************************************
 ;;
@@ -222,9 +222,9 @@ namespace SynPSG.ReplicationDemo
     ;;
     ;; Routine:     employee_drop
     ;;
-    ;; Author:      "Steve Ives"
+    ;; Author:      Steve Ives
     ;;
-    ;; Company:     "Synergex Professional Services Group"
+    ;; Company:     Synergex Professional Services Group
     ;;
     ;;*****************************************************************************
     ;;
@@ -353,9 +353,9 @@ namespace SynPSG.ReplicationDemo
     ;;
     ;; Routine:     employee_delete_row
     ;;
-    ;; Author:      "Steve Ives"
+    ;; Author:      Steve Ives
     ;;
-    ;; Company:     "Synergex Professional Services Group"
+    ;; Company:     Synergex Professional Services Group
     ;;
     ;;*****************************************************************************
     ;;
@@ -488,9 +488,9 @@ namespace SynPSG.ReplicationDemo
     ;;
     ;; Routine:     employee_exists
     ;;
-    ;; Author:      "Steve Ives"
+    ;; Author:      Steve Ives
     ;;
-    ;; Company:     "Synergex Professional Services Group"
+    ;; Company:     Synergex Professional Services Group
     ;;
     ;;*****************************************************************************
     ;;
@@ -585,9 +585,9 @@ namespace SynPSG.ReplicationDemo
     ;;
     ;; Routine:     employee_insert_row
     ;;
-    ;; Author:      "Steve Ives"
+    ;; Author:      Steve Ives
     ;;
-    ;; Company:     "Synergex Professional Services Group"
+    ;; Company:     Synergex Professional Services Group
     ;;
     ;;*****************************************************************************
     ;;
@@ -814,9 +814,9 @@ namespace SynPSG.ReplicationDemo
     ;;
     ;; Routine:     employee_insert_rows
     ;;
-    ;; Author:      "Steve Ives"
+    ;; Author:      Steve Ives
     ;;
-    ;; Company:     "Synergex Professional Services Group"
+    ;; Company:     Synergex Professional Services Group
     ;;
     ;;*****************************************************************************
     ;;
@@ -1072,9 +1072,9 @@ namespace SynPSG.ReplicationDemo
     ;;
     ;; Routine:     employee_load
     ;;
-    ;; Author:      "Steve Ives"
+    ;; Author:      Steve Ives
     ;;
-    ;; Company:     "Synergex Professional Services Group"
+    ;; Company:     Synergex Professional Services Group
     ;;
     ;;*****************************************************************************
     ;;
@@ -1246,9 +1246,9 @@ namespace SynPSG.ReplicationDemo
     ;;
     ;; Routine:     employee_update_row
     ;;
-    ;; Author:      "Steve Ives"
+    ;; Author:      Steve Ives
     ;;
-    ;; Company:     "Synergex Professional Services Group"
+    ;; Company:     Synergex Professional Services Group
     ;;
     ;;*****************************************************************************
     ;;
@@ -1440,9 +1440,9 @@ namespace SynPSG.ReplicationDemo
     ;;
     ;; Routine:     employee_clear
     ;;
-    ;; Author:      "Steve Ives"
+    ;; Author:      Steve Ives
     ;;
-    ;; Company:     "Synergex Professional Services Group"
+    ;; Company:     Synergex Professional Services Group
     ;;
     ;;*****************************************************************************
     ;;

@@ -7,8 +7,6 @@
 ;; Description: Replicates Synergy data file changes that have been recorded
 ;;              in the replucation log file to a SQL Server database.
 ;;
-;; Author:      <CODEGEN_AUTHOR>
-;;
 ;;*****************************************************************************
 ;;
 ;; Copyright (c) 2008, Synergex International, Inc.

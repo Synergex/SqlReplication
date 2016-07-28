@@ -19,7 +19,7 @@
 ;; Description: Track the data of the last record that was read from or written
 ;;              to each channel.
 ;;
-;; Author:      <CODEGEN_AUTHOR>
+;; Author:      <AUTHOR>
 ;;
 ;;*****************************************************************************
 ;;

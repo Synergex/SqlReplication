@@ -18,7 +18,7 @@
 ;;
 ;; Description: Adds new instructions to the replication servers instruction file.
 ;;
-;; Author:      <CODEGEN_AUTHOR>
+;; Author:      <AUTHOR>
 ;;
 ;;*****************************************************************************
 ;;

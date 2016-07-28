@@ -22,7 +22,7 @@
 ;;
 ;; Description: Various functions that performs SQL I/O for <STRUCTURE_NAME>
 ;;
-;; Author:      <CODEGEN_AUTHOR>
+;; Author:      <AUTHOR>
 ;;
 ;;*****************************************************************************
 ;;

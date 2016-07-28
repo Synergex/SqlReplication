@@ -7,7 +7,7 @@
 ;; Description: An I/O Hooks class that implements SQL data replication for the
 ;;              file DAT:EMPLOYEE.ISM
 ;;
-;; Author:      <CODEGEN_AUTHOR>
+;; Author:      Steve Ives
 ;;
 ;;*****************************************************************************
 ;;

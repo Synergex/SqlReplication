@@ -20,7 +20,7 @@
 ;; Description: Accepts a primary key value and returns an instance of the
 ;;              record containing the data of the key segments.
 ;;
-;; Author:      <CODEGEN_AUTHOR>
+;; Author:      <AUTHOR>
 ;;
 ;;*****************************************************************************
 ;;

@@ -20,7 +20,7 @@
 ;; Description: An I/O Hooks class that implements SQL data replication for the
 ;;              file <FILE_NAME>
 ;;
-;; Author:      <CODEGEN_AUTHOR>
+;; Author:      <AUTHOR>
 ;;
 ;;*****************************************************************************
 ;;

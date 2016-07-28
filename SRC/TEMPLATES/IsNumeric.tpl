@@ -19,7 +19,7 @@
 ;; Description: Determines whether the data in an alpha variable represents a
 ;;              numeric value.
 ;;
-;; Author:      <CODEGEN_AUTHOR>
+;; Author:      <AUTHOR>
 ;;
 ;;*****************************************************************************
 ;;
