@@ -1,17 +1,17 @@
 ;;*****************************************************************************
 ;;
-;; File:        IsNumeric.dbl
+;; File:        IsTime.dbl
 ;;
-;; Type:        Subroutine (IsNumeric)
+;; Type:        Function (IsTime)
 ;;
 ;; Description: Determines whether the data in an alpha variable represents a
-;;              numeric value.
+;;              time value in HHMMSS or HHMM format.
 ;;
 ;; Author:      Steve Ives
 ;;
 ;;*****************************************************************************
 ;;
-;; Copyright (c) 2009, Synergex International, Inc.
+;; Copyright (c) 2016, Synergex International, Inc.
 ;; All rights reserved.
 ;;
 ;; Redistribution and use in source and binary forms, with or without
@@ -37,33 +37,31 @@
 ;; POSSIBILITY OF SUCH DAMAGE.
 ;;
 ;;*****************************************************************************
-;; WARNING: THIS CODE WAS CODE GENERATED AND WILL BE OVERWRITTEN IF CODE
-;;          GENERATION IS RE-EXECUTED FOR THIS PROJECT.
-;;*****************************************************************************
 
 namespace SynPSG.ReplicationDemo
 
-    function IsNumeric, ^val
-
-        a_number        ,a
-        endparams
-
-        stack record
-            retval          ,i4
-            number          ,d28.10
-        endrecord
-
-    proc
-
-        retval = 1
-        onerror ($ERR_DIGIT) bad
-        number = a_number
-        if (0)
-    bad,    clear retval
-        offerror
-
-        freturn retval
-
+    function IsTime, boolean
+        required in value,	a
+	proc
+		using ^size(value) select
+		(4),
+			freturn %IsNumeric(value)
+			& && ^d(value(1:2))>=0
+			& && ^d(value(1:2))<=23
+			& && ^d(value(3:2))>=0
+			& && ^d(value(3:2))<=59
+		(6),
+			freturn %IsNumeric(value)
+			& && ^d(value(1:2))>=0
+			& && ^d(value(1:2))<=23
+			& && ^d(value(3:2))>=0
+			& && ^d(value(3:2))<=59
+			& && ^d(value(5:2))>=0
+			& && ^d(value(5:2))<=59
+		(),
+			freturn false
+		endusing
+		
     endfunction
 
 endnamespace

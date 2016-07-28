@@ -154,6 +154,7 @@
             Filters="*.tpl">
             <F N="../SRC/TEMPLATES/IsDate.tpl"/>
             <F N="../SRC/TEMPLATES/IsNumeric.tpl"/>
+            <F N="../SRC/TEMPLATES/IsTime.tpl"/>
             <F N="../SRC/TEMPLATES/KeyToRecord.tpl"/>
             <F N="../SRC/TEMPLATES/LastRecordCache.tpl"/>
             <F N="../SRC/TEMPLATES/replicate.tpl"/>
@@ -172,6 +173,7 @@
             <F N="../SRC/LIBRARY/EmployeeSqlIO.dbl"/>
             <F N="../SRC/LIBRARY/IsDate.dbl"/>
             <F N="../SRC/LIBRARY/IsNumeric.dbl"/>
+            <F N="../SRC/LIBRARY/IsTime.dbl"/>
             <F N="../SRC/LIBRARY/LastRecordCache.dbl"/>
             <F N="../SRC/LIBRARY/Replicate.dbl"/>
         </Folder>

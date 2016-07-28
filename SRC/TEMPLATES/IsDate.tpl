@@ -1,17 +1,29 @@
+<CODEGEN_FILENAME>IsDate.dbl</CODEGEN_FILENAME>
+;//*****************************************************************************
+;//
+;// Title:      IsDate.tpl
+;//
+;// Description:Template to generate a subroutine that determines whether the
+;//             data in an alpha variable represents a date value.
+;//
+;// Author:     Steve Ives, Synergex Professional Services Group
+;//
+;// Copyright   © 2016 Synergex International Corporation.  All rights reserved.
+;//
 ;;*****************************************************************************
 ;;
-;; File:        IsNumeric.dbl
+;; File:        IsDate.dbl
 ;;
-;; Type:        Subroutine (IsNumeric)
+;; Type:        Function (IsDate)
 ;;
 ;; Description: Determines whether the data in an alpha variable represents a
-;;              numeric value.
+;;              date value.
 ;;
 ;; Author:      Steve Ives
 ;;
 ;;*****************************************************************************
 ;;
-;; Copyright (c) 2009, Synergex International, Inc.
+;; Copyright (c) 2016, Synergex International, Inc.
 ;; All rights reserved.
 ;;
 ;; Redistribution and use in source and binary forms, with or without
@@ -41,29 +53,22 @@
 ;;          GENERATION IS RE-EXECUTED FOR THIS PROJECT.
 ;;*****************************************************************************
 
-namespace SynPSG.ReplicationDemo
+namespace <NAMESPACE>
 
-    function IsNumeric, ^val
-
-        a_number        ,a
+    function IsDate, boolean
+        required in value, a
         endparams
-
-        stack record
-            retval          ,i4
-            number          ,d28.10
-        endrecord
-
     proc
-
-        retval = 1
-        onerror ($ERR_DIGIT) bad
-        number = a_number
-        if (0)
-    bad,    clear retval
-        offerror
-
-        freturn retval
-
+		try 
+		begin
+			data julianDate, i4, %jperiod(^d(value))
+			freturn true
+		end
+		catch (ex)
+		begin
+			freturn false
+		end
+		endtry
     endfunction
 
 endnamespace

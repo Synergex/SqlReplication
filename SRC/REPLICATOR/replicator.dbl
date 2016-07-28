@@ -88,6 +88,7 @@ main Replicator
         logKeys             ,boolean            ;;Include key data in debug logs
         switchMode          ,boolean            ;;Switched from INSERT to UPDATE or vice versa
         doingLogCycle       ,boolean            ;;The log file is being cycled
+		logLoadExceptions	,boolean			;;Log bulk load exceptions to a log file?
         functionName        ,a40                ;;External function to call
         log_file            ,a256
         log_mode            ,a3
@@ -116,8 +117,6 @@ proc
 
     xcall flags(7004020,1)
 
-    xcall openelb("EXE:library.elb")
-
     doingLogCycle = false
     call OpenLogFile
 
@@ -132,14 +131,16 @@ proc
 
         ;;Set the logging level
         xcall getlog("REPLICATOR_FULL_LOG",databuffer,length)
-        if ((length>0)&&(databuffer.eq."YES"))
-            fullLogging = 1
+        fullLogging = ((length>0)&&(databuffer.eq."YES"))
 
         ;;Should we log keys?
         xcall getlog("REPLICATOR_LOG_KEYS",databuffer,length)
-        if ((length>0)&&(databuffer.eq."YES"))
-            logKeys = true
+        logKeys = ((length>0)&&(databuffer.eq."YES"))
 
+		;;Should we log data exceptions to a log file when doing a bulk load?
+		xcall getlog("REPLICATOR_LOG_BULK_LOAD_EXCEPTIONS",databuffer,length)
+		logLoadExceptions = ((length>0)&&(databuffer.eq."YES"))
+		
         ;;Report configuration
         log("------------------------------------------------------------")
         log("SQL Replicator Log")
@@ -501,7 +502,11 @@ LoadTable,
     try
     begin
         functionName = %atrim(instruction.structure_name) + "_LOAD"
-        status= %xsubr(functionName,db,dberrtxt,,,success_count,fail_count)
+		
+		if (runningOnTerminal) then 
+			status = %xsubr(functionName,db,dberrtxt,logLoadExceptions,logch,success_count,fail_count)
+		else
+			status= %xsubr(functionName,db,dberrtxt,logLoadExceptions,,success_count,fail_count)
     end
     catch (ex, @SynException)
     begin

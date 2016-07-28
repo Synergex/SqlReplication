@@ -15,7 +15,7 @@
 ;;
 ;; File:        <StructureName>IO.dbl
 ;;
-;; Type:        Function (<structure_noalias>_io)
+;; Type:        Function (<structure_name>_io)
 ;;
 ;; Description: Performs ISAM file I/O for the file <FILE_NAME>
 ;;
@@ -49,12 +49,15 @@
 ;; POSSIBILITY OF SUCH DAMAGE.
 ;;
 ;;*****************************************************************************
+;; WARNING: THIS CODE WAS CODE GENERATED AND WILL BE OVERWRITTEN IF CODE
+;;          GENERATION IS RE-EXECUTED FOR THIS PROJECT.
+;;*****************************************************************************
 
 namespace <NAMESPACE>
 
     .include "<STRUCTURE_NOALIAS>" repository, structure="str<StructureName>", end
 
-    function <structure_noalias>_io ,^val
+    function <structure_name>_io ,^val
 
         required in    a_mode       ,n  ;;Access type
         required inout a_channel    ,n  ;;Channel
@@ -326,7 +329,7 @@ namespace <NAMESPACE>
 
     endfunction
 
-    function <structure_noalias>_length ,^val
+    function <structure_name>_length ,^val
         endparams
     proc
         freturn <STRUCTURE_SIZE>

@@ -36,6 +36,9 @@
 ;; POSSIBILITY OF SUCH DAMAGE.
 ;;
 ;;*****************************************************************************
+;; WARNING: THIS CODE WAS CODE GENERATED AND WILL BE OVERWRITTEN IF CODE
+;;          GENERATION IS RE-EXECUTED FOR THIS PROJECT.
+;;*****************************************************************************
 
 namespace SynPSG.ReplicationDemo
 
@@ -1119,6 +1122,7 @@ namespace SynPSG.ReplicationDemo
             attempted   ,int        ;;Rows being attempted
             ttl_added   ,int        ;;Total rows added
             ttl_failed  ,int        ;;Total failed inserts
+            errnum      ,int        ;;Error number
             errtxt      ,a256       ;;Error message text
         endrecord
 
@@ -1149,8 +1153,18 @@ namespace SynPSG.ReplicationDemo
             repeat
             begin
                 ;;Get the next record from the input file
-                if (%employee_io(IO_READ_NEXT,filechn,,,tmprec)!=IO_OK)
+                using errnum = %employee_io(IO_READ_NEXT,filechn,,,tmprec) select
+                (IO_OK),
+                    nop
+                (IO_EOF),
                     exitloop
+                (),
+                begin
+                    ok = false
+                    errtxt = "Unexpected response " + %string(errnum) + " from %employee_io"
+                    exitloop
+                end
+                endusing
 
                 ;;Got one, load it into or buffer
                 ^m(employee[mc+=1],mh) = tmprec
@@ -1158,10 +1172,6 @@ namespace SynPSG.ReplicationDemo
                 ;;If the buffer is full, write it to the database
                 if (mc==ms)
                     call insert_data
-
-                if (!ok)
-                    exitloop
-
             end
 
             if (mc)

@@ -1,0 +1,26 @@
+
+.include "REPLICATION_INSTRUCTION" repository, enum, end
+
+main ReplicatorClearQueue
+	
+    .include "REPLICATION" repository, record="instruction"
+
+    record
+	ch, i4
+    endrecord
+	
+proc
+	
+    xcall flags(7004020,1)
+    open(ch=0,u:i,"DAT:replication.ism")
+
+	repeat
+	begin
+		reads(ch,instruction,eof)
+		delete(ch)
+	end
+eof,
+    close ch
+    stop
+
+endmain

@@ -109,7 +109,7 @@
                 Value="0"/>
             <SynSetting
                 Name="proto_command_line"
-                Value="dblproto %p%n%e"/>
+                Value="dblproto -platform=x86 %p%n%e"/>
             <SynSetting
                 Name="compile_command_line"
                 Value='dbl -X -T -d -qcheck -qalign -o OBJ: "%p%n%e"'/>
@@ -162,6 +162,8 @@
             Name="Source Files"
             Filters="*.dbl;*.tpl;*.dbc">
             <F N="../SRC/REPLICATOR/replicator.dbl"/>
+            <F N="../SRC/REPLICATOR/ReplicatorClearQueue.dbl"/>
+            <F N="../SRC/REPLICATOR/ReplicatorStop.dbl"/>
         </Folder>
         <Folder
             Name="Header Files"
@@ -284,7 +286,7 @@
                 Value="1"/>
             <SynSetting
                 Name="proto_command_line"
-                Value="dblproto %p%n%e"/>
+                Value="dblproto -platform=x64 %p%n%e"/>
             <SynSetting
                 Name="compile_command_line"
                 Value='dbl -X -T -d -qcheck -qalign -o OBJ: "%p%n%e"'/>
@@ -438,7 +440,7 @@
                 Value="0"/>
             <SynSetting
                 Name="proto_command_line"
-                Value="dblproto %p%n%e"/>
+                Value="dblproto -platform=x86 %p%n%e"/>
             <SynSetting
                 Name="compile_command_line"
                 Value='dbl -X -T -qstrict -qalign -o OBJ: "%p%n%e"'/>
@@ -592,7 +594,7 @@
                 Value="1"/>
             <SynSetting
                 Name="proto_command_line"
-                Value="dblproto %p%n%e"/>
+                Value="dblproto -platform=x64 %p%n%e"/>
             <SynSetting
                 Name="compile_command_line"
                 Value='dbl -X -T -qstrict -qalign -o OBJ: "%p%n%e"'/>

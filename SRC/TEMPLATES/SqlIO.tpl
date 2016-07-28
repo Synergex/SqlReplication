@@ -1,6 +1,7 @@
 <CODEGEN_FILENAME><StructureName>SqlIO.dbl</CODEGEN_FILENAME>
 <PROCESS_TEMPLATE>IsDate</PROCESS_TEMPLATE>
 <PROCESS_TEMPLATE>IsNumeric</PROCESS_TEMPLATE>
+<PROCESS_TEMPLATE>IsTime</PROCESS_TEMPLATE>
 <PROCESS_TEMPLATE>KeyToRecord</PROCESS_TEMPLATE>
 ;//*****************************************************************************
 ;//
@@ -52,6 +53,9 @@
 ;; ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 ;; POSSIBILITY OF SUCH DAMAGE.
 ;;
+;;*****************************************************************************
+;; WARNING: THIS CODE WAS CODE GENERATED AND WILL BE OVERWRITTEN IF CODE
+;;          GENERATION IS RE-EXECUTED FOR THIS PROJECT.
 ;;*****************************************************************************
 
 namespace <NAMESPACE>
@@ -417,9 +421,9 @@ namespace <NAMESPACE>
             <PRIMARY_KEY>
             <SEGMENT_LOOP>
             <IF ALPHA>
-            & + " <SegmentName>='" + %atrim(^a(<structure_name>.<segment_name>)) + "' <AND>"
+            & + " <SegmentName>='" + %atrim(^a(<structureName>.<segment_name>)) + "' <AND>"
             <ELSE>
-            & + " <SegmentName>=" + %string(<structure_name>.<segment_name>) + " <AND>"
+            & + " <SegmentName>=" + %string(<structureName>.<segment_name>) + " <AND>"
             </IF ALPHA>
             </SEGMENT_LOOP>
             </PRIMARY_KEY>
@@ -734,7 +738,7 @@ namespace <NAMESPACE>
                 ^a(<field_path>(1:1))=%char(0)
             </IF>
             <IF TIME>
-            if ((!<field_path>)||(!%IsNumeric(^a(<field_path>))))
+            if ((!<field_path>)||(!%IsTime(^a(<field_path>))))
                 ^a(<field_path>(1:1))=%char(0)
             </IF>
             </FIELD_LOOP>
@@ -978,7 +982,7 @@ namespace <NAMESPACE>
                     ^a(<field_path>(1:1))=%char(0)
                 </IF>
                 <IF TIME>
-                if ((!<field_path>)||(!%IsNumeric(^a(<field_path>))))
+                if ((!<field_path>)||(!%IsTime(^a(<field_path>))))
                     ^a(<field_path>(1:1))=%char(0)
                 </IF>
                 </FIELD_LOOP>
@@ -1132,6 +1136,7 @@ namespace <NAMESPACE>
             attempted   ,int        ;;Rows being attempted
             ttl_added   ,int        ;;Total rows added
             ttl_failed  ,int        ;;Total failed inserts
+            errnum      ,int        ;;Error number
             errtxt      ,a256       ;;Error message text
         endrecord
 
@@ -1141,7 +1146,7 @@ namespace <NAMESPACE>
         ok = true
 
         ;;Open the data file associated with the structure
-        if (%<structure_noalias>_io(IO_OPEN_INP,filechn)!=IO_OK)
+        if (%<structure_name>_io(IO_OPEN_INP,filechn)!=IO_OK)
         begin
             ok = false
             errtxt = "Failed to open file <FILE_NAME>"
@@ -1152,7 +1157,7 @@ namespace <NAMESPACE>
         begin
 
             ;;Position to the first record (needed incase the structure has a tag)
-            if (%<structure_noalias>_io(IO_FIND_FIRST,filechn)!=IO_OK)
+            if (%<structure_name>_io(IO_FIND_FIRST,filechn)!=IO_OK)
                 exit
 
             ;;Allocate memory buffer for the database rows
@@ -1162,8 +1167,18 @@ namespace <NAMESPACE>
             repeat
             begin
                 ;;Get the next record from the input file
-                if (%<structure_noalias>_io(IO_READ_NEXT,filechn,,,tmprec)!=IO_OK)
+                using errnum = %<structure_name>_io(IO_READ_NEXT,filechn,,,tmprec) select
+                (IO_OK),
+                    nop
+                (IO_EOF),
                     exitloop
+                (),
+                begin
+                    ok = false
+                    errtxt = "Unexpected response " + %string(errnum) + " from %<structure_name>_io"
+                    exitloop
+                end
+                endusing
 
                 ;;Got one, load it into or buffer
                 ^m(<structure_name>[mc+=1],mh) = tmprec
@@ -1171,10 +1186,6 @@ namespace <NAMESPACE>
                 ;;If the buffer is full, write it to the database
                 if (mc==ms)
                     call insert_data
-
-                if (!ok)
-                    exitloop
-
             end
 
             if (mc)
@@ -1190,7 +1201,7 @@ namespace <NAMESPACE>
 
         ;;Close the file
         if (filechn)
-            xcall <structure_noalias>_io(IO_CLOSE,filechn)
+            xcall <structure_name>_io(IO_CLOSE,filechn)
 
         ;;Close the exceptions log file
         if (ex_ch)
@@ -1392,7 +1403,7 @@ namespace <NAMESPACE>
                 ^a(<field_path>(1:1))=%char(0)
             </IF>
             <IF TIME>
-            if ((!<field_path>)||(!%IsNumeric(^a(<field_path>))))
+            if ((!<field_path>)||(!%IsTime(^a(<field_path>))))
                 ^a(<field_path>(1:1))=%char(0)
             </IF>
             </FIELD_LOOP>

@@ -1,0 +1,25 @@
+
+.include "REPLICATION_INSTRUCTION" repository, enum, end
+
+main ReplicatorStop
+	
+    .include "REPLICATION" repository, record="instruction"
+
+    record
+	ch, i4
+    endrecord
+	
+proc
+	
+    open(ch=0,u:i,"DAT:replication.ism")
+    xcall flags(7004020,1)
+
+    init instruction
+    instruction.transaction_id = %datetime
+    instruction.action = %integer(REPLICATION_INSTRUCTION.SHUTDOWN)
+    store(ch,instruction)
+    
+    close ch
+    stop
+	
+endmain

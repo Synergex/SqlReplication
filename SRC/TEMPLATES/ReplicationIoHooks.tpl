@@ -1,4 +1,6 @@
 <CODEGEN_FILENAME><StructureName>Hooks.dbl</CODEGEN_FILENAME>
+<PROCESS_TEMPLATE>SynIO</PROCESS_TEMPLATE>
+<PROCESS_TEMPLATE>SqlIO</PROCESS_TEMPLATE>
 <PROCESS_TEMPLATE>replicate</PROCESS_TEMPLATE>
 <PROCESS_TEMPLATE>LastRecordCache</PROCESS_TEMPLATE>
 ;//*****************************************************************************
@@ -49,6 +51,9 @@
 ;; ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 ;; POSSIBILITY OF SUCH DAMAGE.
 ;;
+;;*****************************************************************************
+;; WARNING: THIS CODE WAS CODE GENERATED AND WILL BE OVERWRITTEN IF CODE
+;;          GENERATION IS RE-EXECUTED FOR THIS PROJECT.
 ;;*****************************************************************************
 
 import Synergex.SynergyDE.IOExtensions
