@@ -1,11 +1,11 @@
  
 ;  SYNERGY DATA LANGUAGE OUTPUT
 ;
-;  REPOSITORY     : C:\DEV\PUBLIC\SqlReplicationIoHooksPrimaryKey\RPS\rpsmain.is
-;                 : C:\DEV\PUBLIC\SqlReplicationIoHooksPrimaryKey\RPS\rpstext.is
+;  REPOSITORY     : C:\DEV\TEMP\SqlReplicationIoHooksPrimaryKey\RPS\rpsmain.ism
+;                 : C:\DEV\TEMP\SqlReplicationIoHooksPrimaryKey\RPS\rpstext.ism
 ;                 : Version 10.3.3a
 ;
-;  GENERATED      : 22-JUL-2016, 14:16:29
+;  GENERATED      : 28-JUL-2016, 17:50:13
 ;                 : Version 10.3.3a
 ;  EXPORT OPTIONS : [ALL] 
  
@@ -93,11 +93,7 @@ Field EMP_HOME_OK   Type DECIMAL   Size 1
    Info Line "Is it OK to call this employee at home"   Checkbox
    Default "1"   Automatic
  
-Field REPLICATION_KEY   Type ALPHA   Size 20   Script Noview   Report Noview
-   Web Noview   Nonamelink
-   Description "SQL replication key (timestamp)"
- 
-Field NONAME_001   Type ALPHA   Size 59   Language Noview   Script Noview
+Field NONAME_001   Type ALPHA   Size 79   Language Noview   Script Noview
    Report Noview   Nonamelink
    Description "Spare space"
  
@@ -113,10 +109,6 @@ Key EMP_LAST_NAME   ACCESS   Order ASCENDING   Dups YES   Insert END
    Modifiable YES   Krf 002
    Description "Last name"
    Segment FIELD   EMP_LAST_NAME
- 
-Key REPLICATION_KEY   ACCESS   Order ASCENDING   Dups NO   Krf 003
-   Description "SQL replication timestamp"
-   Segment FIELD   REPLICATION_KEY  SegType ALPHA  SegOrder ASCENDING
  
 Structure DEPARTMENT   DBL ISAM
    Description "Department Master File"

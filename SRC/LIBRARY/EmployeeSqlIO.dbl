@@ -86,7 +86,6 @@ namespace SynPSG.ReplicationDemo
             & + "EmpPhone3 DECIMAL(10),"
             & + "EmpPaid DECIMAL(1),"
             & + "EmpHomeOk DECIMAL(1),"
-            & + "ReplicationKey VARCHAR(20),"
             & + "CONSTRAINT PK_Employee PRIMARY KEY CLUSTERED(EmpId ASC)"
             & + ")"
 
@@ -119,21 +118,6 @@ namespace SynPSG.ReplicationDemo
         begin
             sql = "CREATE  INDEX IX_Employee_EmpLastName "
             &     "ON Employee(EmpLastName ASC)"
-
-            call open_cursor
-
-            if (ok)
-            begin
-                call execute_cursor
-                call close_cursor
-            end
-        end
-
-        ;;Create index 3 (SQL replication timestamp)
-        if (ok)
-        begin
-            sql = "CREATE UNIQUE INDEX IX_Employee_ReplicationKey "
-            &     "ON Employee(ReplicationKey ASC)"
 
             call open_cursor
 
@@ -679,8 +663,7 @@ namespace SynPSG.ReplicationDemo
                 & + "EmpPhone2,"
                 & + "EmpPhone3,"
                 & + "EmpPaid,"
-                & + "EmpHomeOk,"
-                & + "ReplicationKey"
+                & + "EmpHomeOk"
                 & + ") VALUES("
                 & + ":1,"
                 & + ":2,"
@@ -691,8 +674,7 @@ namespace SynPSG.ReplicationDemo
                 & + ":7,"
                 & + ":8,"
                 & + ":9,"
-                & + ":10,"
-                & + ":11"
+                & + ":10"
                 & + ")"
             end
 
@@ -708,7 +690,7 @@ namespace SynPSG.ReplicationDemo
         ;;Bind the host variables for data to be inserted
         if (ok)
         begin
-            if (%ssc_bind(a_dbchn,cursor,11,
+            if (%ssc_bind(a_dbchn,cursor,10,
             &    employee.emp_id,
             &    employee.emp_first_name,
             &    employee.emp_last_name,
@@ -718,8 +700,7 @@ namespace SynPSG.ReplicationDemo
             &    employee.emp_phone[2],
             &    employee.emp_phone[3],
             &    employee.emp_paid,
-            &    employee.emp_home_ok,
-            &    employee.replication_key
+            &    employee.emp_home_ok
             &   )==SSQL_FAILURE)
             begin
                 ok = false
@@ -753,7 +734,6 @@ namespace SynPSG.ReplicationDemo
                 clear employee.emp_paid
             if ((!employee.emp_home_ok)||(!%IsNumeric(^a(employee.emp_home_ok))))
                 clear employee.emp_home_ok
-            employee.replication_key=%atrim(employee.replication_key)+%char(0)
 
             ;;Assign any user-defined timestamp fields
 
@@ -923,8 +903,7 @@ namespace SynPSG.ReplicationDemo
                 & + "EmpPhone2,"
                 & + "EmpPhone3,"
                 & + "EmpPaid,"
-                & + "EmpHomeOk,"
-                & + "ReplicationKey"
+                & + "EmpHomeOk"
                 & + ") VALUES("
                 & + ":1,"
                 & + ":2,"
@@ -935,8 +914,7 @@ namespace SynPSG.ReplicationDemo
                 & + ":7,"
                 & + ":8,"
                 & + ":9,"
-                & + ":10,"
-                & + ":11"
+                & + ":10"
                 & + ")"
             end
 
@@ -951,7 +929,7 @@ namespace SynPSG.ReplicationDemo
         ;;Bind the host variables for data to be inserted
         if (ok)
         begin
-            if (%ssc_bind(a_dbchn,cursor,11,
+            if (%ssc_bind(a_dbchn,cursor,10,
             &    employee.emp_id,
             &    employee.emp_first_name,
             &    employee.emp_last_name,
@@ -961,8 +939,7 @@ namespace SynPSG.ReplicationDemo
             &    employee.emp_phone[2],
             &    employee.emp_phone[3],
             &    employee.emp_paid,
-            &    employee.emp_home_ok,
-            &    employee.replication_key
+            &    employee.emp_home_ok
             &   )==SSQL_FAILURE)
             begin
                 ok = false
@@ -997,7 +974,6 @@ namespace SynPSG.ReplicationDemo
                     clear employee.emp_paid
                 if ((!employee.emp_home_ok)||(!%IsNumeric(^a(employee.emp_home_ok))))
                     clear employee.emp_home_ok
-                employee.replication_key=%atrim(employee.replication_key)+%char(0)
 
                 ;;Assign any user-defined timestamp fields
 
@@ -1342,8 +1318,7 @@ namespace SynPSG.ReplicationDemo
             & + "EmpPhone2=:7,"
             & + "EmpPhone3=:8,"
             & + "EmpPaid=:9,"
-            & + "EmpHomeOk=:10,"
-            & + "ReplicationKey=:11"
+            & + "EmpHomeOk=:10"
             & + " WHERE"
             & + " EmpId='" + %atrim(^a(employee.emp_id)) + "' "
 
@@ -1358,7 +1333,7 @@ namespace SynPSG.ReplicationDemo
         ;;Bind the host variables for the data to update
         if (ok)
         begin
-            if (%ssc_bind(a_dbchn,cursor,11,
+            if (%ssc_bind(a_dbchn,cursor,10,
             &    employee.emp_id,
             &    employee.emp_first_name,
             &    employee.emp_last_name,
@@ -1368,8 +1343,7 @@ namespace SynPSG.ReplicationDemo
             &    employee.emp_phone[2],
             &    employee.emp_phone[3],
             &    employee.emp_paid,
-            &    employee.emp_home_ok,
-            &    employee.replication_key
+            &    employee.emp_home_ok
             &   )==SSQL_FAILURE)
             begin
                 ok = false
@@ -1399,7 +1373,6 @@ namespace SynPSG.ReplicationDemo
                 clear employee.emp_paid
             if ((!employee.emp_home_ok)||(!%IsNumeric(^a(employee.emp_home_ok))))
                 clear employee.emp_home_ok
-            employee.replication_key=%atrim(employee.replication_key)+%char(0)
 
             ;;Assign any user-defined timestamp fields
 

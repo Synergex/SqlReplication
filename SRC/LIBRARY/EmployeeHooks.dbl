@@ -139,19 +139,6 @@ namespace SynPSG.ReplicationDemo
         ;;---------------------------------------------------------------------
         ;;STORE hooks
 
-        public override method store_pre_operation_hook, void
-            required inout aEmployee, a
-            required in          aFlags,  IOFlags
-            endparams
-        proc
-            if (mActive)
-            begin
-                employee = aEmployee
-                employee.replication_key = %datetime
-                aEmployee = employee
-            end
-        endmethod
-
         public override method store_post_operation_hook, void
             required inout       aEmployee, a
             optional in          aRfa,    a

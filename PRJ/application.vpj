@@ -207,7 +207,6 @@
             <F N="../DAT/EMPLOYEE.SEQ"/>
             <F N="../LICENSE.md"/>
             <F N="../README.md"/>
-            <F N="../RPS/rps.sch"/>
         </Folder>
     </Files>
     <Config

@@ -3,7 +3,6 @@
 	<Projects>
 		<Project File="PRJ/application.vpj"/>
 		<Project File="PRJ/library.vpj"/>
-		<Project File="PRJ/load.vpj"/>
 		<Project File="PRJ/replicator.vpj"/>
 	</Projects>
 </Workspace>

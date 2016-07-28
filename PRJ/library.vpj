@@ -182,6 +182,7 @@
             Name="Other Files"
             Filters="">
             <F N="../regen.bat"/>
+            <F N="../RPS/rps.sch"/>
         </Folder>
     </Files>
     <Config

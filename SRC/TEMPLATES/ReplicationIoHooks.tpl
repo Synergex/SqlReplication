@@ -198,19 +198,14 @@ namespace <NAMESPACE>
         ;;---------------------------------------------------------------------
         ;;STORE hooks
 
-        public override method store_pre_operation_hook, void
-            required inout a<StructureName>, a
-            required in          aFlags,  IOFlags
-            endparams
-        proc
-            if (mActive)
-            begin
-                <structureName> = a<StructureName>
-                <structureName>.replication_key = %datetime
-                a<StructureName> = <structureName>
-            end
-        endmethod
-
+;//     public override method store_pre_operation_hook, void
+;//         required inout a<StructureName>, a
+;//         required in          aFlags,  IOFlags
+;//         endparams
+;//     proc
+;//
+;//     endmethod
+;//
         public override method store_post_operation_hook, void
             required inout       a<StructureName>, a
             optional in          aRfa,    a
