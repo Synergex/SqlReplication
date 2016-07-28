@@ -722,7 +722,7 @@ namespace SynPSG.ReplicationDemo
             employee.emp_first_name=%atrim(employee.emp_first_name)+%char(0)
             employee.emp_last_name=%atrim(employee.emp_last_name)+%char(0)
             employee.emp_dept=%atrim(employee.emp_dept)+%char(0)
-            if ((!employee.emp_hire_date)||(!%IsNumeric(^a(employee.emp_hire_date))))
+            if ((!employee.emp_hire_date)||(!%IsDate(^a(employee.emp_hire_date))))
                 ^a(employee.emp_hire_date(1:1))=%char(0)
             if ((!employee.emp_phone[1])||(!%IsNumeric(^a(employee.emp_phone[1]))))
                 clear employee.emp_phone[1]
@@ -962,7 +962,7 @@ namespace SynPSG.ReplicationDemo
                 employee.emp_first_name=%atrim(employee.emp_first_name)+%char(0)
                 employee.emp_last_name=%atrim(employee.emp_last_name)+%char(0)
                 employee.emp_dept=%atrim(employee.emp_dept)+%char(0)
-                if ((!employee.emp_hire_date)||(!%IsNumeric(^a(employee.emp_hire_date))))
+                if ((!employee.emp_hire_date)||(!%IsDate(^a(employee.emp_hire_date))))
                     ^a(employee.emp_hire_date(1:1))=%char(0)
                 if ((!employee.emp_phone[1])||(!%IsNumeric(^a(employee.emp_phone[1]))))
                     clear employee.emp_phone[1]
@@ -1361,7 +1361,7 @@ namespace SynPSG.ReplicationDemo
             employee.emp_first_name=%atrim(employee.emp_first_name)+%char(0)
             employee.emp_last_name=%atrim(employee.emp_last_name)+%char(0)
             employee.emp_dept=%atrim(employee.emp_dept)+%char(0)
-            if ((!employee.emp_hire_date)||(!%IsNumeric(^a(employee.emp_hire_date))))
+            if ((!employee.emp_hire_date)||(!%IsDate(^a(employee.emp_hire_date))))
                 ^a(employee.emp_hire_date(1:1))=%char(0)
             if ((!employee.emp_phone[1])||(!%IsNumeric(^a(employee.emp_phone[1]))))
                 clear employee.emp_phone[1]

@@ -1,4 +1,5 @@
 <CODEGEN_FILENAME><StructureName>SqlIO.dbl</CODEGEN_FILENAME>
+<PROCESS_TEMPLATE>IsDate</PROCESS_TEMPLATE>
 <PROCESS_TEMPLATE>IsNumeric</PROCESS_TEMPLATE>
 <PROCESS_TEMPLATE>KeyToRecord</PROCESS_TEMPLATE>
 ;//*****************************************************************************
@@ -729,7 +730,7 @@ namespace <NAMESPACE>
                 clear <field_path>
             </IF>
             <IF DATE>
-            if ((!<field_path>)||(!%IsNumeric(^a(<field_path>))))
+            if ((!<field_path>)||(!%IsDate(^a(<field_path>))))
                 ^a(<field_path>(1:1))=%char(0)
             </IF>
             <IF TIME>
@@ -973,7 +974,7 @@ namespace <NAMESPACE>
                     clear <field_path>
                 </IF>
                 <IF DATE>
-                if ((!<field_path>)||(!%IsNumeric(^a(<field_path>))))
+                if ((!<field_path>)||(!%IsDate(^a(<field_path>))))
                     ^a(<field_path>(1:1))=%char(0)
                 </IF>
                 <IF TIME>
@@ -1387,7 +1388,7 @@ namespace <NAMESPACE>
                 clear <field_path>
             </IF>
             <IF DATE>
-            if ((!<field_path>)||(!%IsNumeric(^a(<field_path>))))
+            if ((!<field_path>)||(!%IsDate(^a(<field_path>))))
                 ^a(<field_path>(1:1))=%char(0)
             </IF>
             <IF TIME>
