@@ -1,9 +1,13 @@
 
 # SQL Replication via I/O Hooks and Primary Key
 
+**If some of your ISAM files do not have a unique primary keys then refer to [SqlReplicationIoHooksAddKey](https://github.com/SteveIves/SqlReplicationIoHooksAddKey) instead.**
+
 This repository contains an example of how to modify a Synergy application that stores its data in ISAM files to replicate that ISAM data to a SQL Server database in near-to real-time.
 
-The original application is first modified with the addition of an I/O hooks object to any channels that are opened for update to files that are to be replicated. If your application already uses a single subroutine to open data files then this change will be the addition of just a few lines of code in that subroutine. The code in the I/O hooks class is responsible for tracking and recording the records that change in the underlying ISAM files.
+To facilitate code generation it is a requirement that the data structures (including key definitions) and files that are to be replicated are acurately described in a Synergy repository. Once your repository definitions are complete, CodeGen is used to generate various types of code relating to the data structures and files that are to be replicated.
+
+The original application is then modified with the addition of I/O hooks objects (which were code generated) to any channels that are opened for update to files that are to be replicated. If your application already uses a single subroutine to open data files then this change will be the addition of just a few lines of code in that subroutine. The code in the I/O hooks class is responsible for tracking and recording the records that change in the underlying ISAM files.
 
 Once this change information is being recorded a single process called the "replicator" is then used to mirror those changes to matching tables in a SQL Server database.
 
