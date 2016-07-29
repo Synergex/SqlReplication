@@ -76,7 +76,7 @@ main Replicator
         dberr               ,i4                 ;;Database error
         length              ,i4                 ;;Length of buffer
         status              ,i4                 ;;General working status return
-        eof                 ,i4                 ;;End of file
+        noMoreInstructions  ,boolean            ;;End of instruction file
         rows                ,i4                 ;;Number of rows affected
         success_count       ,i4                 ;;Bulk load success count
         fail_count          ,i4                 ;;Bulk load failure count
@@ -102,7 +102,6 @@ main Replicator
 
     external function
         xsubr               ,^val
-        IsNumeric           ,boolean
     endexternal
 
 proc
@@ -148,10 +147,16 @@ proc
     ;;Open the instruction file
     if (ok)
     begin
-        open(tch=0,U:I,D_TRANS_FILE) [ERR=tferr]
-        exit
-tferr,  log("ERROR: Failed to open " + D_TRANS_FILE)
-        ok = false
+        try
+        begin
+            open(tch=0,U:I,D_TRANS_FILE)
+        end
+        catch (ex)
+        begin
+            log("ERROR: Failed to open " + D_TRANS_FILE)
+            ok = false
+        end
+        endtry
     end
 
     ;;Get the database connect string from the logical REPLICATOR_DATABASE
@@ -178,7 +183,7 @@ tferr,  log("ERROR: Failed to open " + D_TRANS_FILE)
         .ifdef OS_VMS
         xcall init_ssql
         .else
-        status=%option(48,1)
+        status = %option(48,1)
         .endc
         if (%ssc_init(db=1,D_MAX_CUR,D_MAX_COL,D_MAX_BUFFER)==SSQL_FAILURE)
         begin
@@ -224,7 +229,7 @@ tferr,  log("ERROR: Failed to open " + D_TRANS_FILE)
             ;;Check for outstanding instructions
             call GetInstruction
 
-            if (eof) then
+            if (noMoreInstructions) then
             begin
                 if (runningOnTerminal)
                     debuglog("Sleeping for " + %string(sleep_time) + " seconds...")
@@ -302,8 +307,15 @@ tferr,  log("ERROR: Failed to open " + D_TRANS_FILE)
             end
 
             ;;Go back to first record in instruction file and start over
-            find(tch,,^FIRST) [ERR=notrans]
-notrans,
+            try
+            begin
+                find(tch,,^FIRST)
+            end
+            catch (ex)
+            begin
+                nop
+            end
+            endtry
         end
     end
 
@@ -331,22 +343,25 @@ notrans,
 ;;
 GetInstruction,
 
-    clear eof
-
     repeat
     begin
-        reads(tch,instruction,eof,LOCK:Q_AUTO_LOCK) [$err_locked=InsLocked]
-        if (!instruction)
-            nextloop
-
-        if (false)
+        try
         begin
-eof,        eof=1
+            reads(tch,instruction,,LOCK:Q_AUTO_LOCK)
+            noMoreInstructions = false
             exitloop
-InsLocked,  sleep D_ERROR_TIME
+        end
+        catch (ex, @EndOfFileException)
+        begin
+            noMoreInstructions = true
+            exitloop
+        end
+        catch (ex, @RecordLockedException)
+        begin
+            sleep D_ERROR_TIME
             nextloop
         end
-        exitloop
+        endtry
     end
 
     return
@@ -401,7 +416,7 @@ OpenFile,
     try
     begin
         functionName = %atrim(instruction.structure_name) + "_IO"
-        status= %xsubr(functionName,IO_OPEN_INP,structure_data.structure_chan,,,,,,dberrtxt)
+        status = %xsubr(functionName,IO_OPEN_INP,structure_data.structure_chan,,,,,,dberrtxt)
     end
     catch (ex, @SynException)
     begin
@@ -410,7 +425,7 @@ OpenFile,
     end
     endtry
 
-    if (status==IO_OK) then
+    if (status == IO_OK) then
     begin
         debuglog(" - File opened")
         call CheckTable
@@ -434,7 +449,7 @@ CheckTable,
     try
     begin
         functionName = %atrim(instruction.structure_name) + "_EXISTS"
-        status= %xsubr(functionName,db,dberrtxt)
+        status = %xsubr(functionName,db,dberrtxt)
     end
     catch (ex, @SynException)
     begin
@@ -467,7 +482,7 @@ CreateTable,
     try
     begin
         functionName = %atrim(instruction.structure_name) + "_CREATE"
-        status= %xsubr(functionName,db,dberrtxt)
+        status = %xsubr(functionName,db,dberrtxt)
     end
     catch (ex, @SynException)
     begin
@@ -502,25 +517,24 @@ LoadTable,
         if (runningOnTerminal) then
             status = %xsubr(functionName,db,dberrtxt,logLoadExceptions,logch,success_count,fail_count)
         else
-            status= %xsubr(functionName,db,dberrtxt,logLoadExceptions,,success_count,fail_count)
+            status = %xsubr(functionName,db,dberrtxt,logLoadExceptions,,success_count,fail_count)
+
+        if (status) then
+        begin
+            debuglog(" - " + %string(success_count) + " rows inserted, " + %string(fail_count) + " rows failed")
+            inserts += success_count
+            fails   += fail_count
+        end
+        else
+        begin
+            xcall LogFunctionError(logch,functionName,status,dberrtxt)
+        end
     end
     catch (ex, @SynException)
     begin
         ok = %LogFunctionFail(logch,functionName,ex.Errno,ex.Message)
-        return
     end
     endtry
-
-    if (status) then
-    begin
-        debuglog(" - " + %string(success_count) + " rows inserted, " + %string(fail_count) + " rows failed")
-        inserts += success_count
-        fails   += fail_count
-    end
-    else
-    begin
-        xcall LogFunctionError(logch,functionName,status,dberrtxt)
-    end
 
     return
 
@@ -553,26 +567,26 @@ DoInsert,
             return
         end
         endtry
-
-        using status select
-        (0),
-        begin
-            xcall LogFunctionError(logch,functionName,status,dberrtxt)
-        end
-        (1),
-        begin
-            debuglog(" - Row inserted")
-            inserts+=1
-        end
-        (2),
-        begin
-            debuglog(" - Row already exists, switching to UPDATE")
-            status = IO_OK
-            switchMode = true
-            call DoUpdate
-        end
-        endusing
     end
+
+    using status select
+    (0),
+    begin
+        xcall LogFunctionError(logch,functionName,status,dberrtxt)
+    end
+    (1),
+    begin
+        debuglog(" - Row inserted")
+        inserts+=1
+    end
+    (2),
+    begin
+        debuglog(" - Row already exists, switching to UPDATE")
+        status = IO_OK
+        switchMode = true
+        call DoUpdate
+    end
+    endusing
 
     return
 
@@ -608,27 +622,26 @@ DoUpdate,
             return
         end
         endtry
+    end
 
-        if (status) then
+    if (status) then
+    begin
+        if (rows) then
         begin
-            if (rows) then
-            begin
-                debuglog(" - Row updated")
-                updates+=1
-            end
-            else
-            begin
-                debuglog(" - Row not found, switching to INSERT")
-                status = IO_OK
-                sWitchMode = true
-                call DoInsert
-            end
-
+            debuglog(" - Row updated")
+            updates+=1
         end
         else
         begin
-            xcall LogFunctionError(logch,functionName,status,dberrtxt)
+            debuglog(" - Row not found, switching to INSERT")
+            status = IO_OK
+            sWitchMode = true
+            call DoInsert
         end
+    end
+    else
+    begin
+        xcall LogFunctionError(logch,functionName,status,dberrtxt)
     end
 
     return
@@ -646,25 +659,23 @@ DoDelete,
     try
     begin
         functionName = %atrim(instruction.structure_name) + '_DELETE_ROW'
-        status= %xsubr(functionName,db,instruction.primary_key,dberrtxt)
+        status = %xsubr(functionName,db,instruction.primary_key,dberrtxt)
+        if (status) then
+        begin
+            debuglog(" - Row deleted")
+            deletes+=1
+        end
+        else
+        begin
+            debuglog(" - " + dberrtxt)
+            xcall LogFunctionError(logch,functionName,status,dberrtxt)
+        end
     end
     catch (ex, @SynException)
     begin
         ok = %LogFunctionFail(logch,functionName,ex.Errno,ex.Message)
-        return
     end
     endtry
-
-    if (status) then
-    begin
-        debuglog(" - Row deleted")
-        deletes+=1
-    end
-    else
-    begin
-        debuglog(" - " + dberrtxt)
-        xcall LogFunctionError(logch,functionName,status,dberrtxt)
-    end
 
     return
 
@@ -677,50 +688,47 @@ DoCreateTable,
     ;;If the table already exists, do nothing
 
     debuglog("Create table " + %atrim(instruction.structure_name))
-
     debuglog(" - Checking if table already exists")
 
     try
     begin
         functionName = %atrim(instruction.structure_name) + "_EXISTS"
-        status= %xsubr(functionName,db,dberrtxt)
+        status = %xsubr(functionName,db,dberrtxt)
+        using status select
+        (1),
+        begin
+            debuglog(" - Table already exists!")
+        end
+        (0),
+        begin
+            debuglog(" - Creating table")
+
+            try
+            begin
+                functionName = %atrim(instruction.structure_name) + "_CREATE"
+                status = %xsubr(functionName,db,dberrtxt)
+                if (status) then
+                    debuglog(" - Table created")
+                else
+                    xcall LogFunctionError(logch,functionName,status,dberrtxt)
+            end
+            catch (ex, @SynException)
+            begin
+                ok = %LogFunctionFail(logch,functionName,ex.Errno,ex.Message)
+            end
+            endtry
+        end
+        (<0),
+        begin
+            xcall LogFunctionError(logch,functionName,status,dberrtxt)
+        end
+        endusing
     end
     catch (ex, @SynException)
     begin
         ok = %LogFunctionFail(logch,functionName,ex.Errno,ex.Message)
-        return
     end
     endtry
-
-    using status select
-    (1),
-    begin
-        debuglog(" - Table already exists!")
-    end
-    (0),
-    begin
-        debuglog(" - Creating table")
-
-        try
-        begin
-            functionName = %atrim(instruction.structure_name) + "_CREATE"
-            status= %xsubr(functionName,db,dberrtxt)
-        end
-        catch (ex, @SynException)
-        begin
-            ok = %LogFunctionFail(logch,functionName,ex.Errno,ex.Message)
-            return
-        end
-        endtry
-
-        if (status) then
-            debuglog(" - Table created")
-        else
-            xcall LogFunctionError(logch,functionName,status,dberrtxt)
-    end
-    (<0),
-        xcall LogFunctionError(logch,functionName,status,dberrtxt)
-    endusing
 
     return
 
@@ -738,7 +746,7 @@ DoLoadTable,
     try
     begin
         functionName = %atrim(instruction.structure_name) + "_EXISTS"
-        status= %xsubr(functionName,db,dberrtxt)
+        status = %xsubr(functionName,db,dberrtxt)
     end
     catch (ex, @SynException)
     begin
@@ -758,7 +766,9 @@ DoLoadTable,
         debuglog(" - Table does not exist!")
     end
     (<0),
+    begin
         xcall LogFunctionError(logch,functionName,status,dberrtxt)
+    end
     endusing
 
     return
@@ -785,19 +795,17 @@ DoDeleteAllRows,
     try
     begin
         functionName = %atrim(instruction.structure_name) + "_CLEAR"
-        status= %xsubr(functionName,db,dberrtxt)
+        status = %xsubr(functionName,db,dberrtxt)
+        if (status) then
+            debuglog(" - All rows were deleted")
+        else
+            xcall LogFunctionError(logch,functionName,status,dberrtxt)
     end
     catch (ex, @SynException)
     begin
         ok = %LogFunctionFail(logch,functionName,ex.Errno,ex.Message)
-        return
     end
     endtry
-
-    if (status) then
-        debuglog(" - All rows were deleted")
-    else
-        xcall LogFunctionError(logch,functionName,status,dberrtxt)
 
     return
 
@@ -826,7 +834,11 @@ DoDeleteTable,
     try
     begin
         functionName = %atrim(instruction.structure_name) + "_DROP"
-        status= %xsubr(functionName,db,dberrtxt)
+        status = %xsubr(functionName,db,dberrtxt)
+        if (status) then
+            debuglog(" - Table was deleted")
+        else
+            xcall LogFunctionError(logch,functionName,status,dberrtxt)
     end
     catch (ex, @SynException)
     begin
@@ -834,11 +846,6 @@ DoDeleteTable,
         return
     end
     endtry
-
-    if (status) then
-        debuglog(" - Table was deleted")
-    else
-        xcall LogFunctionError(logch,functionName,status,dberrtxt)
 
     return
 
@@ -852,29 +859,26 @@ ReadSynergyRecord,
     try
     begin
         functionName = %atrim(instruction.structure_name) + "_IO"
-        status= %xsubr(functionName,IO_READ,structure_data.structure_chan,instruction.primary_key,0,databuffer(1,structure_data.structure_size),,,dberrtxt)
+        status = %xsubr(functionName,IO_READ,structure_data.structure_chan,instruction.primary_key,0,databuffer(1,structure_data.structure_size),,,dberrtxt)
+        using status select
+        (IO_OK),
+        begin
+            if (logKeys)
+                debugLog(" - Primary key: " + %atrim(instruction.primary_key))
+        end
+        (IO_NOT_FOUND,IO_EOF),
+            debuglog(" - Record not found in ISAM file!")
+        (),
+            xcall LogFunctionError(logch,functionName,status,dberrtxt)
+        endusing
     end
     catch (ex, @SynException)
     begin
         ok = %LogFunctionFail(logch,functionName,ex.Errno,ex.Message)
-        return
     end
     endtry
 
-    using status select
-    (IO_OK),
-    begin
-        if (logKeys)
-            debugLog(" - Primary key: " + %atrim(instruction.primary_key))
-    end
-    (IO_NOT_FOUND,IO_EOF),
-        debuglog(" - Record not found in ISAM file!")
-    (),
-        xcall LogFunctionError(logch,functionName,status,dberrtxt)
-    endusing
-
     return
-
 
 ;;-----------------------------------------------------------------------------
 ;; Open the log file
@@ -1022,7 +1026,7 @@ proc
                 try
                 begin
                     functionName = %atrim(structure_data.structure_name) + "_IO"
-                    status= %xsubr(functionName,IO_CLOSE,structure_data.structure_chan)
+                    status = %xsubr(functionName,IO_CLOSE,structure_data.structure_chan)
                 end
                 catch (ex)
                 begin
