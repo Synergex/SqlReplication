@@ -54,16 +54,16 @@
 
 namespace <NAMESPACE>
 
-    .include "REPLICATION_INSTRUCTION" REPOSITORY, ENUM, END
+    .include "REPLICATION_INSTRUCTION" repository, enum, end
 
     subroutine Replicate
 
-        required in a_action    ,REPLICATION_INSTRUCTION
-        optional in a_structure ,a  ;Structure name
-        optional in a_primkey   ,a  ;Primary key of record affected
+        required in a_action, REPLICATION_INSTRUCTION
+        optional in a_structure, a
+        optional in a_primkey, a
         endparams
 
-        .INCLUDE "REPLICATION" REPOSITORY, LOCAL RECORD = "INSTRUCTION"
+        .include "REPLICATION" repository, stack record="instruction", end
 
         static record
             chn ,i4

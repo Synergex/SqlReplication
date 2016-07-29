@@ -179,32 +179,55 @@ namespace <NAMESPACE>
 
         (IO_CREATE),
         begin
-            ;;Make sure zero decimals contain zeros not spaces
+            <IF DEFINED_CLEAN_DATA>
             <FIELD_LOOP>
             <IF DECIMAL>
-            if (!<field_path>)
+            if ((!<field_path>)||(!%IsNumeric(^a(<field_path>))))
                 clear <field_path>
             </IF>
             <IF DATE>
-            if (!<field_path>)
+            if (!<field_path>||!%IsDate(^a(<field_path>)))
                 clear <field_path>
             </IF>
             <IF TIME>
-            if (!<field_path>)
+            if (!<field_path>||!%IsTime(^a(<field_path>)))
                 clear <field_path>
             </IF>
             </FIELD_LOOP>
+            </IF>
             store(a_channel,<structure_name>) [$ERR_NODUPS=duplicateKey]
         end
 
         (IO_UPDATE),
+        begin
+            <IF DEFINED_CLEAN_DATA>
+            <FIELD_LOOP>
+            <IF DECIMAL>
+            if ((!<field_path>)||(!%IsNumeric(^a(<field_path>))))
+                clear <field_path>
+            </IF>
+            <IF DATE>
+            if (!<field_path>||!%IsDate(^a(<field_path>)))
+                clear <field_path>
+            </IF>
+            <IF TIME>
+            if (!<field_path>||!%IsTime(^a(<field_path>)))
+                clear <field_path>
+            </IF>
+            </FIELD_LOOP>
+            </IF>
             write(a_channel,<structure_name>) [$ERR_NOCURR=noCurrentRecord]
+        end
 
         (IO_DELETE),
+        begin
             delete(a_channel) [$ERR_NOCURR=noCurrentRecord]
+        end
 
         (IO_UNLOCK),
+        begin
             unlock a_channel
+        end
 
         (IO_CLOSE),
         begin
@@ -241,8 +264,12 @@ namespace <NAMESPACE>
         .endc
 
         if (!^passed(a_lock) || (^passed(a_lock) && !a_lock))
+        begin
             if (a_channel && %chopen(a_channel))
+            begin
                 unlock a_channel
+            end
+        end
 
         freturn IO_OK
 

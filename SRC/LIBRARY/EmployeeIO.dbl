@@ -157,32 +157,51 @@ namespace SynPSG.ReplicationDemo
 
         (IO_CREATE),
         begin
-            ;;Make sure zero decimals contain zeros not spaces
-            if (!employee.emp_id)
+            if ((!employee.emp_id)||(!%IsNumeric(^a(employee.emp_id))))
                 clear employee.emp_id
-            if (!employee.emp_hire_date)
+            if (!employee.emp_hire_date||!%IsDate(^a(employee.emp_hire_date)))
                 clear employee.emp_hire_date
-            if (!employee.emp_phone[1])
+            if ((!employee.emp_phone[1])||(!%IsNumeric(^a(employee.emp_phone[1]))))
                 clear employee.emp_phone[1]
-            if (!employee.emp_phone[2])
+            if ((!employee.emp_phone[2])||(!%IsNumeric(^a(employee.emp_phone[2]))))
                 clear employee.emp_phone[2]
-            if (!employee.emp_phone[3])
+            if ((!employee.emp_phone[3])||(!%IsNumeric(^a(employee.emp_phone[3]))))
                 clear employee.emp_phone[3]
-            if (!employee.emp_paid)
+            if ((!employee.emp_paid)||(!%IsNumeric(^a(employee.emp_paid))))
                 clear employee.emp_paid
-            if (!employee.emp_home_ok)
+            if ((!employee.emp_home_ok)||(!%IsNumeric(^a(employee.emp_home_ok))))
                 clear employee.emp_home_ok
             store(a_channel,employee) [$ERR_NODUPS=duplicateKey]
         end
 
         (IO_UPDATE),
+        begin
+            if ((!employee.emp_id)||(!%IsNumeric(^a(employee.emp_id))))
+                clear employee.emp_id
+            if (!employee.emp_hire_date||!%IsDate(^a(employee.emp_hire_date)))
+                clear employee.emp_hire_date
+            if ((!employee.emp_phone[1])||(!%IsNumeric(^a(employee.emp_phone[1]))))
+                clear employee.emp_phone[1]
+            if ((!employee.emp_phone[2])||(!%IsNumeric(^a(employee.emp_phone[2]))))
+                clear employee.emp_phone[2]
+            if ((!employee.emp_phone[3])||(!%IsNumeric(^a(employee.emp_phone[3]))))
+                clear employee.emp_phone[3]
+            if ((!employee.emp_paid)||(!%IsNumeric(^a(employee.emp_paid))))
+                clear employee.emp_paid
+            if ((!employee.emp_home_ok)||(!%IsNumeric(^a(employee.emp_home_ok))))
+                clear employee.emp_home_ok
             write(a_channel,employee) [$ERR_NOCURR=noCurrentRecord]
+        end
 
         (IO_DELETE),
+        begin
             delete(a_channel) [$ERR_NOCURR=noCurrentRecord]
+        end
 
         (IO_UNLOCK),
+        begin
             unlock a_channel
+        end
 
         (IO_CLOSE),
         begin
@@ -219,8 +238,12 @@ namespace SynPSG.ReplicationDemo
         .endc
 
         if (!^passed(a_lock) || (^passed(a_lock) && !a_lock))
+        begin
             if (a_channel && %chopen(a_channel))
+            begin
                 unlock a_channel
+            end
+        end
 
         freturn IO_OK
 

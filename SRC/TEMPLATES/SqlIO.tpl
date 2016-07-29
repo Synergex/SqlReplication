@@ -621,10 +621,6 @@ namespace <NAMESPACE>
         .INCLUDE "CONNECTDIR:ssql.def"
         .INCLUDE "<STRUCTURE_NOALIAS>" REPOSITORY, STACK RECORD="<STRUCTURE_NAME>"
 
-        external function
-            IsNumeric   ,^val
-        endexternal
-
         stack record local_data
             ok          ,boolean    ;;OK to continue
             sts         ,int        ;;Return status
@@ -855,10 +851,6 @@ namespace <NAMESPACE>
         .INCLUDE "CONNECTDIR:ssql.def"
         .INCLUDE "<STRUCTURE_NOALIAS>" REPOSITORY, STACK RECORD="<STRUCTURE_NAME>"
         .INCLUDE "<STRUCTURE_NOALIAS>" REPOSITORY, STRUCTURE="INPBUF", NOFIELDS
-
-        external function
-            IsNumeric   ,^val
-        endexternal
 
         .define EXCEPTION_BUFSZ 100
 

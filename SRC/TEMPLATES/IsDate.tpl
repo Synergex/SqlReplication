@@ -57,7 +57,6 @@ namespace <NAMESPACE>
 
     function IsDate, boolean
         required in value, a
-        endparams
     proc
 		try 
 		begin

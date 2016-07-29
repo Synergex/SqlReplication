@@ -43,27 +43,23 @@
 
 namespace SynPSG.ReplicationDemo
 
-    function IsNumeric, ^val
-
-        a_number        ,a
-        endparams
-
-        stack record
-            retval          ,i4
-            number          ,d28.10
+    function IsNumeric, boolean
+        required in valueToTest, a
+        record
+            number, d28.10
         endrecord
-
     proc
-
-        retval = 1
-        onerror ($ERR_DIGIT) bad
-        number = a_number
-        if (0)
-    bad,    clear retval
-        offerror
-
-        freturn retval
-
+        try
+        begin
+;            data number, d28.10
+            number = valueToTest
+            freturn true
+        end
+        catch (ex)
+        begin
+            freturn false
+        end
+        endtry
     endfunction
 
 endnamespace

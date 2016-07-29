@@ -615,10 +615,6 @@ namespace SynPSG.ReplicationDemo
         .INCLUDE "CONNECTDIR:ssql.def"
         .INCLUDE "EMPLOYEE" REPOSITORY, STACK RECORD="EMPLOYEE"
 
-        external function
-            IsNumeric   ,^val
-        endexternal
-
         stack record local_data
             ok          ,boolean    ;;OK to continue
             sts         ,int        ;;Return status
@@ -845,10 +841,6 @@ namespace SynPSG.ReplicationDemo
         .INCLUDE "CONNECTDIR:ssql.def"
         .INCLUDE "EMPLOYEE" REPOSITORY, STACK RECORD="EMPLOYEE"
         .INCLUDE "EMPLOYEE" REPOSITORY, STRUCTURE="INPBUF", NOFIELDS
-
-        external function
-            IsNumeric   ,^val
-        endexternal
 
         .define EXCEPTION_BUFSZ 100
 

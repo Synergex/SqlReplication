@@ -36,11 +36,7 @@
 ;;
 ;;*****************************************************************************
 
-.include "REPLICATION_INSTRUCTION" repository, enum, end
-
-.ifdef DBLNET
 import SynPSG.ReplicationDemo
-.endc
 
 main Replicator
 
@@ -88,7 +84,7 @@ main Replicator
         logKeys             ,boolean            ;;Include key data in debug logs
         switchMode          ,boolean            ;;Switched from INSERT to UPDATE or vice versa
         doingLogCycle       ,boolean            ;;The log file is being cycled
-		logLoadExceptions	,boolean			;;Log bulk load exceptions to a log file?
+        logLoadExceptions   ,boolean            ;;Log bulk load exceptions to a log file?
         functionName        ,a40                ;;External function to call
         log_file            ,a256
         log_mode            ,a3
@@ -106,7 +102,7 @@ main Replicator
 
     external function
         xsubr               ,^val
-        IsNumeric           ,^val
+        IsNumeric           ,boolean
     endexternal
 
 proc
@@ -137,10 +133,10 @@ proc
         xcall getlog("REPLICATOR_LOG_KEYS",databuffer,length)
         logKeys = ((length>0)&&(databuffer.eq."YES"))
 
-		;;Should we log data exceptions to a log file when doing a bulk load?
-		xcall getlog("REPLICATOR_LOG_BULK_LOAD_EXCEPTIONS",databuffer,length)
-		logLoadExceptions = ((length>0)&&(databuffer.eq."YES"))
-		
+        ;;Should we log data exceptions to a log file when doing a bulk load?
+        xcall getlog("REPLICATOR_LOG_BULK_LOAD_EXCEPTIONS",databuffer,length)
+        logLoadExceptions = ((length>0)&&(databuffer.eq."YES"))
+
         ;;Report configuration
         log("------------------------------------------------------------")
         log("SQL Replicator Log")
@@ -502,11 +498,11 @@ LoadTable,
     try
     begin
         functionName = %atrim(instruction.structure_name) + "_LOAD"
-		
-		if (runningOnTerminal) then 
-			status = %xsubr(functionName,db,dberrtxt,logLoadExceptions,logch,success_count,fail_count)
-		else
-			status= %xsubr(functionName,db,dberrtxt,logLoadExceptions,,success_count,fail_count)
+
+        if (runningOnTerminal) then
+            status = %xsubr(functionName,db,dberrtxt,logLoadExceptions,logch,success_count,fail_count)
+        else
+            status= %xsubr(functionName,db,dberrtxt,logLoadExceptions,,success_count,fail_count)
     end
     catch (ex, @SynException)
     begin
@@ -898,7 +894,7 @@ OpenLogFile,
         if (length) then
         begin
             ;;Yes, use it
-            log_file = %atrim(databuffer)+"\replicator_"+%datetime+".log"
+            log_file = %atrim(databuffer)+"replicator_"+%datetime+".log"
         end
         else
         begin
