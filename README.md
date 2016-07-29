@@ -1,5 +1,5 @@
 
-# SqlReplicationIoHooks
+# SQL Replication via I/O Hooks and Primary Key
 This repository contains an example of how to modify a Synergy application that stores its data in ISAM files to replicate that ISAM data to a SQL Server database in near-to real-time.
 The original application is first modified with the addition of an I/O hooks object to any channels that are opened for update to files that are to be replicated. If your application already uses a single subroutine to open data files then this change will be the addition of just a few lines of code in that subroutine. The code in the I/O hooks class is responsible for tracking and recording the records that change in the underlying ISAM files.
 Once this change information is being recorded a single process called the "replicator" is then used to mirror those changes to matching tables in a SQL Server database.
