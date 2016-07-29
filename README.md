@@ -1,6 +1,8 @@
 
 # SQL Replication via I/O Hooks and Primary Key
 
+**If some of your ISAM files do not have a unique primary keys then refer to [SqlReplicationIoHooksAddKey](https://github.com/SteveIves/SqlReplicationIoHooksAddKey) instead.**
+
 This repository contains an example of how to modify a Synergy application that stores its data in ISAM files to replicate that ISAM data to a SQL Server database in near-to real-time.
 
 To facilitate code generation it is a requirement that the data structures (including key definitions) and files that are to be replicated are acurately described in a Synergy repository. Once your repository definitions are complete, CodeGen is used to generate various types of code relating to the data structures and files that are to be replicated.
