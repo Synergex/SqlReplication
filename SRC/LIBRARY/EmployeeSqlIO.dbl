@@ -89,6 +89,8 @@ namespace SynPSG.ReplicationDemo
             & + "EmpPhone3 DECIMAL(10),"
             & + "EmpPaid DECIMAL(1),"
             & + "EmpHomeOk DECIMAL(1),"
+            & + "EmpDateOfBirth DATE NOT NULL,"
+            & + "EmpTimeOfBirth TIME(0),"
             & + "CONSTRAINT PK_Employee PRIMARY KEY CLUSTERED(EmpId ASC)"
             & + ")"
 
@@ -624,6 +626,7 @@ namespace SynPSG.ReplicationDemo
             transaction ,int        ;;Transaction in progress
             length      ,int        ;;Length of a string
             errtxt      ,a256       ;;Error message text
+            tmpEmpTimeOfBirth, a5      ;;Storage for HH:MM time field
         endrecord
 
         static record
@@ -662,7 +665,9 @@ namespace SynPSG.ReplicationDemo
                 & + "EmpPhone2,"
                 & + "EmpPhone3,"
                 & + "EmpPaid,"
-                & + "EmpHomeOk"
+                & + "EmpHomeOk,"
+                & + "EmpDateOfBirth,"
+                & + "EmpTimeOfBirth"
                 & + ") VALUES("
                 & + ":1,"
                 & + ":2,"
@@ -673,7 +678,9 @@ namespace SynPSG.ReplicationDemo
                 & + ":7,"
                 & + ":8,"
                 & + ":9,"
-                & + ":10"
+                & + ":10,"
+                & + ":11,"
+                & + ":12"
                 & + ")"
             end
 
@@ -689,7 +696,7 @@ namespace SynPSG.ReplicationDemo
         ;;Bind the host variables for data to be inserted
         if (ok)
         begin
-            if (%ssc_bind(a_dbchn,cursor,10,
+            if (%ssc_bind(a_dbchn,cursor,12,
             &    employee.emp_id,
             &    employee.emp_first_name,
             &    employee.emp_last_name,
@@ -699,7 +706,9 @@ namespace SynPSG.ReplicationDemo
             &    employee.emp_phone[2],
             &    employee.emp_phone[3],
             &    employee.emp_paid,
-            &    employee.emp_home_ok
+            &    employee.emp_home_ok,
+            &    ^a(employee.emp_date_of_birth),
+            &    tmpEmpTimeOfBirth
             &   )==SSQL_FAILURE)
             begin
                 ok = false
@@ -733,8 +742,13 @@ namespace SynPSG.ReplicationDemo
                 clear employee.emp_paid
             if ((!employee.emp_home_ok)||(!%IsNumeric(^a(employee.emp_home_ok))))
                 clear employee.emp_home_ok
+            if ((!employee.emp_date_of_birth)||(!%IsDate(^a(employee.emp_date_of_birth))))
+                ^a(employee.emp_date_of_birth(1:1))=%char(0)
+            if ((!employee.emp_time_of_birth)||(!%IsTime(^a(employee.emp_time_of_birth))))
+                ^a(employee.emp_time_of_birth(1:1))=%char(0)
 
-            ;;Assign any user-defined timestamp fields
+            ;;Assign any time or user-defined timestamp fields
+            tmpEmpTimeOfBirth = %string(employee.emp_time_of_birth,"XX:XX")
 
             ;;Execute INSERT statement
             if (%ssc_execute(a_dbchn,cursor,SSQL_STANDARD)==SSQL_FAILURE)
@@ -856,6 +870,7 @@ namespace SynPSG.ReplicationDemo
             ex_mc       ,int        ;;Items in exception array
             continue    ,int        ;;Continue after an error
             errtxt      ,a512       ;;Error message text
+            tmpEmpTimeOfBirth, a5      ;;Storage for HH:MM time field
         endrecord
 
         static record
@@ -898,7 +913,9 @@ namespace SynPSG.ReplicationDemo
                 & + "EmpPhone2,"
                 & + "EmpPhone3,"
                 & + "EmpPaid,"
-                & + "EmpHomeOk"
+                & + "EmpHomeOk,"
+                & + "EmpDateOfBirth,"
+                & + "EmpTimeOfBirth"
                 & + ") VALUES("
                 & + ":1,"
                 & + ":2,"
@@ -909,7 +926,9 @@ namespace SynPSG.ReplicationDemo
                 & + ":7,"
                 & + ":8,"
                 & + ":9,"
-                & + ":10"
+                & + ":10,"
+                & + ":11,"
+                & + ":12"
                 & + ")"
             end
 
@@ -924,7 +943,7 @@ namespace SynPSG.ReplicationDemo
         ;;Bind the host variables for data to be inserted
         if (ok)
         begin
-            if (%ssc_bind(a_dbchn,cursor,10,
+            if (%ssc_bind(a_dbchn,cursor,12,
             &    employee.emp_id,
             &    employee.emp_first_name,
             &    employee.emp_last_name,
@@ -934,7 +953,9 @@ namespace SynPSG.ReplicationDemo
             &    employee.emp_phone[2],
             &    employee.emp_phone[3],
             &    employee.emp_paid,
-            &    employee.emp_home_ok
+            &    employee.emp_home_ok,
+            &    ^a(employee.emp_date_of_birth),
+            &    tmpEmpTimeOfBirth
             &   )==SSQL_FAILURE)
             begin
                 ok = false
@@ -969,8 +990,13 @@ namespace SynPSG.ReplicationDemo
                     clear employee.emp_paid
                 if ((!employee.emp_home_ok)||(!%IsNumeric(^a(employee.emp_home_ok))))
                     clear employee.emp_home_ok
+                if ((!employee.emp_date_of_birth)||(!%IsDate(^a(employee.emp_date_of_birth))))
+                    ^a(employee.emp_date_of_birth(1:1))=%char(0)
+                if ((!employee.emp_time_of_birth)||(!%IsTime(^a(employee.emp_time_of_birth))))
+                    ^a(employee.emp_time_of_birth(1:1))=%char(0)
 
-                ;;Assign any user-defined timestamp fields
+                ;;Assign any time or user-defined timestamp fields
+                tmpEmpTimeOfBirth = %string(employee.emp_time_of_birth,"XX:XX")
 
                 ;;Execute the statement
                 if (%ssc_execute(a_dbchn,cursor,SSQL_STANDARD)==SSQL_FAILURE)
@@ -1284,6 +1310,7 @@ namespace SynPSG.ReplicationDemo
             rows        ,int        ;;Number of rows updated
             errtxt      ,a256       ;;Error message text
             sql         ,string     ;;SQL statement
+            tmpEmpTimeOfBirth, a5      ;;Storage for HH:MM time field
         endrecord
 
     proc
@@ -1320,7 +1347,9 @@ namespace SynPSG.ReplicationDemo
             & + "EmpPhone2=:7,"
             & + "EmpPhone3=:8,"
             & + "EmpPaid=:9,"
-            & + "EmpHomeOk=:10"
+            & + "EmpHomeOk=:10,"
+            & + "EmpDateOfBirth=:11,"
+            & + "EmpTimeOfBirth=:12"
             & + " WHERE"
             & + " EmpId='" + %atrim(^a(employee.emp_id)) + "' "
 
@@ -1335,7 +1364,7 @@ namespace SynPSG.ReplicationDemo
         ;;Bind the host variables for the data to update
         if (ok)
         begin
-            if (%ssc_bind(a_dbchn,cursor,10,
+            if (%ssc_bind(a_dbchn,cursor,12,
             &    employee.emp_id,
             &    employee.emp_first_name,
             &    employee.emp_last_name,
@@ -1345,7 +1374,9 @@ namespace SynPSG.ReplicationDemo
             &    employee.emp_phone[2],
             &    employee.emp_phone[3],
             &    employee.emp_paid,
-            &    employee.emp_home_ok
+            &    employee.emp_home_ok,
+            &    ^a(employee.emp_date_of_birth),
+            &    tmpEmpTimeOfBirth
             &   )==SSQL_FAILURE)
             begin
                 ok = false
@@ -1375,8 +1406,13 @@ namespace SynPSG.ReplicationDemo
                 clear employee.emp_paid
             if ((!employee.emp_home_ok)||(!%IsNumeric(^a(employee.emp_home_ok))))
                 clear employee.emp_home_ok
+            if ((!employee.emp_date_of_birth)||(!%IsDate(^a(employee.emp_date_of_birth))))
+                ^a(employee.emp_date_of_birth(1:1))=%char(0)
+            if ((!employee.emp_time_of_birth)||(!%IsTime(^a(employee.emp_time_of_birth))))
+                ^a(employee.emp_time_of_birth(1:1))=%char(0)
 
-            ;;Assign any user-defined timestamp fields
+            ;;Assign any time and user-defined timestamp fields
+            tmpEmpTimeOfBirth = %string(employee.emp_time_of_birth,"XX:XX")
 
             if (%ssc_execute(a_dbchn,cursor,SSQL_STANDARD,,rows)==SSQL_NORMAL) then
             begin

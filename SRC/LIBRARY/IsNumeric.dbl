@@ -45,13 +45,10 @@ namespace SynPSG.ReplicationDemo
 
     function IsNumeric, boolean
         required in valueToTest, a
-        record
-            number, d28.10
-        endrecord
     proc
         try
         begin
-;            data number, d28.10
+            data number, d28.10
             number = valueToTest
             freturn true
         end

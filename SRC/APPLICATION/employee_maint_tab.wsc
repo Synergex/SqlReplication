@@ -42,12 +42,14 @@
 .title "Dates"
 .repository_structure EMPLOYEE_INPUT
 .field EMP_HIRE_DATE, pos(2, 2), fpos(2, 17)
-.field EMP_PHONE[1], pos(4, 2), prompt("Office Phone"), fpos(4, 17)
-.field EMP_PHONE[2], pos(4, 35), prompt("Home Phone"), fpos(4, 46)
-.field EMP_PHONE[3], pos(6, 2), prompt("Cell Phone"), fpos(6, 17)
-.field EMP_HOME_OK, fpos(5, 46)
-.set ALL, EMPLOYEE_INPUT, EMP_HIRE_DATE, EMP_PHONE[1], EMP_PHONE[3], -
-     EMP_PHONE[2], EMP_HOME_OK
+.field EMP_DATE_OF_BIRTH, pos(4, 2), fpos(4, 17)
+.field EMP_TIME_OF_BIRTH, pos(4, 35), fpos(4, 46)
+.field EMP_PHONE[1], pos(6, 2), prompt("Office Phone"), fpos(6, 17)
+.field EMP_PHONE[2], pos(6, 35), prompt("Home Phone"), fpos(6, 46)
+.field EMP_PHONE[3], pos(8, 2), prompt("Cell Phone"), fpos(8, 17)
+.field EMP_HOME_OK, fpos(8, 46)
+.set ALL, EMPLOYEE_INPUT, EMP_HIRE_DATE, EMP_DATE_OF_BIRTH, EMP_TIME_OF_BIRTH, -
+     EMP_PHONE[1], EMP_PHONE[3], EMP_PHONE[2], EMP_HOME_OK
 .end
 
 .input DEPARTMENT_LUP, 1, 67

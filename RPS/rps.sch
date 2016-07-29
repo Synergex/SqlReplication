@@ -1,11 +1,11 @@
  
 ;  SYNERGY DATA LANGUAGE OUTPUT
 ;
-;  REPOSITORY     : C:\DEV\TEMP\SqlReplicationIoHooksPrimaryKey\RPS\rpsmain.ism
-;                 : C:\DEV\TEMP\SqlReplicationIoHooksPrimaryKey\RPS\rpstext.ism
+;  REPOSITORY     : C:\DEV\PUBLIC\SqlReplicationIoHooksPrimaryKey\RPS\rpsmain.is
+;                 : C:\DEV\PUBLIC\SqlReplicationIoHooksPrimaryKey\RPS\rpstext.is
 ;                 : Version 10.3.3a
 ;
-;  GENERATED      : 28-JUL-2016, 17:50:13
+;  GENERATED      : 29-JUL-2016, 09:55:34
 ;                 : Version 10.3.3a
 ;  EXPORT OPTIONS : [ALL] 
  
@@ -93,7 +93,16 @@ Field EMP_HOME_OK   Type DECIMAL   Size 1
    Info Line "Is it OK to call this employee at home"   Checkbox
    Default "1"   Automatic
  
-Field NONAME_001   Type ALPHA   Size 79   Language Noview   Script Noview
+Field EMP_DATE_OF_BIRTH   Type DATE   Size 8   Stored YYYYMMDD
+   Description "Date of birth"
+   Prompt "D.O.B."   Info Line "Enter the employees date of birth"
+   Required
+ 
+Field EMP_TIME_OF_BIRTH   Type TIME   Size 4   Stored HHMM
+   Description "Time of birth"
+   Prompt "T.O.B."   Info Line "Enter the employees time of birth"
+ 
+Field NONAME_001   Type ALPHA   Size 67   Language Noview   Script Noview
    Report Noview   Nonamelink
    Description "Spare space"
  
