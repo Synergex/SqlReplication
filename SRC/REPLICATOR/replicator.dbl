@@ -992,7 +992,6 @@ subroutine ReplicatorShutdown
     record structure_data
         structure_name      ,a30                ;;Name of structure
         structure_chan      ,i4                 ;;ISAM channel being used
-        structure_size      ,i4                 ;;Record length
     endrecord
 
 proc
