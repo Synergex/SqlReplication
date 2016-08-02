@@ -16,7 +16,7 @@ proc
     ("R_START "),
     begin
         data sts, i4
-        xcall setlog("REPLICATOR_INTERVAL","5",sts)
+        xcall setlog("REPLICATOR_INTERVAL","2",sts)
         xcall setlog("REPLICATOR_FULL_LOG","YES",sts)
         xcall setlog("REPLICATOR_LOG_KEYS","YES",sts)
         xcall spawn("dbr EXE:replicator.dbr",D_NOWINDOW|D_NOWAIT)
@@ -25,7 +25,7 @@ proc
     ("R_START_D"),
     begin
         data sts, i4
-        xcall setlog("REPLICATOR_INTERVAL","5",sts)
+        xcall setlog("REPLICATOR_INTERVAL","2",sts)
         xcall setlog("REPLICATOR_FULL_LOG","YES",sts)
         xcall setlog("REPLICATOR_LOG_KEYS","YES",sts)
         xcall spawn("dbr -d EXE:replicator.dbr",D_NOWINDOW|D_NOWAIT)

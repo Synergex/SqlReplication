@@ -54,27 +54,26 @@
 namespace <NAMESPACE>
 
     function IsTime, boolean
-        required in value,	a
-	proc
-		using ^size(value) select
-		(4),
-			freturn %IsNumeric(value)
-			& && ^d(value(1:2))>=0
-			& && ^d(value(1:2))<=23
-			& && ^d(value(3:2))>=0
-			& && ^d(value(3:2))<=59
-		(6),
-			freturn %IsNumeric(value)
-			& && ^d(value(1:2))>=0
-			& && ^d(value(1:2))<=23
-			& && ^d(value(3:2))>=0
-			& && ^d(value(3:2))<=59
-			& && ^d(value(5:2))>=0
-			& && ^d(value(5:2))<=59
-		(),
-			freturn false
-		endusing
-		
+        required in group value, a
+          hour, d2
+          minute, d2
+          second, d2
+        endgroup
+    proc
+        using ^size(value) select
+        (4),
+            freturn %IsNumeric(value)
+            & && (hour>=0)   && (hour<=23)
+            & && (minute>=0) && (minute<=59)
+        (6),
+            freturn %IsNumeric(value)
+            & && (hour>=0)   && (hour<=23)
+            & && (minute>=0) && (minute<=59)
+            & && (second>=0) && (second<=59)
+        (),
+            freturn false
+        endusing
+
     endfunction
 
 endnamespace
