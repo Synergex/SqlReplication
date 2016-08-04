@@ -106,6 +106,8 @@ main Replicator
 
 proc
 
+    xcall openelb("REPLICATOR_EXE:library.elb")
+
     init local_data
     ok = true
     runningOnTerminal = (%tnmbr>=0)
@@ -119,7 +121,7 @@ proc
     begin
         ;;Set the sleep time between processing runs
         xcall getlog("REPLICATOR_INTERVAL",databuffer,length)
-        if ((length>0)&&%IsNumeric(%atrim(databuffer)))
+        if ((length>0)&& %xsubr("IsNumeric",%atrim(databuffer)))
             sleep_time = %integer(%atrim(databuffer))
         if (sleep_time < 1)
             sleep_time = D_SLEEP_TIME
