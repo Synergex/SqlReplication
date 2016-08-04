@@ -114,36 +114,27 @@ proc
 
     runningOnTerminal = (%tnmbr>=0)
 
+    ;;Set the sleep time between processing runs
+    xcall getlog("REPLICATOR_INTERVAL",databuffer,length)
+    if (length) then
+        sleep_time = databuffer(1:length)
+    else
+        sleep_time = D_SLEEP_TIME
+
+    ;;Set the logging level
+    xcall getlog("REPLICATOR_FULL_LOG",databuffer,length)
+    fullLogging = ((length>0)&&(databuffer.eq."YES"))
+
+    ;;Should we log keys?
+    xcall getlog("REPLICATOR_LOG_KEYS",databuffer,length)
+    logKeys = ((length>0)&&(databuffer.eq."YES"))
+
+    ;;Should we log data exceptions to a log file when doing a bulk load?
+    xcall getlog("REPLICATOR_LOG_BULK_LOAD_EXCEPTIONS",databuffer,length)
+    logLoadExceptions = ((length>0)&&(databuffer.eq."YES"))
+
+    ;;Open the log
     call OpenLogFile
-
-    if (ok)
-    begin
-        ;;Set the sleep time between processing runs
-        xcall getlog("REPLICATOR_INTERVAL",databuffer,length)
-        if (length) then
-            sleep_time = databuffer(1:length)
-        else
-            sleep_time = D_SLEEP_TIME
-
-        ;;Set the logging level
-        xcall getlog("REPLICATOR_FULL_LOG",databuffer,length)
-        fullLogging = ((length>0)&&(databuffer.eq."YES"))
-
-        ;;Should we log keys?
-        xcall getlog("REPLICATOR_LOG_KEYS",databuffer,length)
-        logKeys = ((length>0)&&(databuffer.eq."YES"))
-
-        ;;Should we log data exceptions to a log file when doing a bulk load?
-        xcall getlog("REPLICATOR_LOG_BULK_LOAD_EXCEPTIONS",databuffer,length)
-        logLoadExceptions = ((length>0)&&(databuffer.eq."YES"))
-
-        ;;Report configuration
-        log("------------------------------------------------------------")
-        log("SQL Replicator Log")
-        log("")
-        log("Instruction file : " + D_TRANS_FILE)
-        log("Sleep interval   : " + %string(sleep_time) + " seconds.")
-    end
 
     ;;Open the instruction file
     if (ok)
@@ -180,7 +171,6 @@ proc
     ;;Enable and Initialize SQL Connection
     if (ok)
     begin
-        debuglog("Initializing SQL Connection")
         .ifdef OS_VMS
         xcall init_ssql
         .else
@@ -475,7 +465,7 @@ CheckTable,
 ;;
 CreateTable,
 
-    debuglog("Create table " + %atrim(instruction.structure_name))
+    log("Creating table " + %atrim(instruction.structure_name))
 
     try
     begin
@@ -506,7 +496,7 @@ CreateTable,
 ;;
 LoadTable,
 
-    debuglog("Loading data to table " + %atrim(instruction.structure_name))
+    log("Starting full load of table " + %atrim(instruction.structure_name))
 
     try
     begin
@@ -519,7 +509,8 @@ LoadTable,
 
         if (status) then
         begin
-            debuglog(" - " + %string(success_count) + " rows inserted, " + %string(fail_count) + " rows failed")
+            log(" - Full load of table " + %atrim(instruction.structure_name) + " complete")
+            log(" - " + %string(success_count) + " rows inserted, " + %string(fail_count) + " rows failed")
             inserts += success_count
             fails   += fail_count
         end
@@ -738,7 +729,7 @@ DoLoadTable,
     ;;Do a full load of an existing table with new data
     ;;Delete all existing data before loading new data
 
-    debuglog("Reload existing table " + %atrim(instruction.structure_name) + " exists")
+    log("Starting reload of table " + %atrim(instruction.structure_name))
     debuglog(" - Checking if table exists")
 
     try
@@ -788,7 +779,7 @@ DoCreateAndLoadTable,
 ;;
 DoDeleteAllRows,
 
-    debuglog("Deleting all rows from table " + %atrim(instruction.structure_name))
+    log("Deleting all rows from table " + %atrim(instruction.structure_name))
 
     try
     begin
@@ -827,7 +818,7 @@ DoDeleteTable,
         xcall nspc_delete(nsid,nsptr)
     end
 
-    debuglog("Deleting table " + %atrim(instruction.structure_name))
+    log("Deleting table " + %atrim(instruction.structure_name))
 
     try
     begin
@@ -905,7 +896,14 @@ OpenLogFile,
             close logch
             cycleLog = false
         end
+
         open(logch=0,log_mode,log_file)
+
+        log("------------------------------------------------------------")
+        log("SQL Replicator Log")
+        log("")
+        log("Instruction file : " + D_TRANS_FILE)
+        log("Sleep interval   : " + %string(sleep_time) + " seconds.")
     end
     catch (ex)
     begin
@@ -978,7 +976,7 @@ subroutine ReplicatorShutdown
 proc
 
     log("------------------------------------------------------------")
-    log("Replicator shutdown has been requested. Session summary:")
+    log("Normal replicator shutdown. Session summary:")
     log("INSERTS: " + %string(inserts,"ZZZ,ZZZ,ZZZ,ZZX"))
     log("UPDATES: " + %string(updates,"ZZZ,ZZZ,ZZZ,ZZX"))
     log("DELETES: " + %string(deletes,"ZZZ,ZZZ,ZZZ,ZZX"))
