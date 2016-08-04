@@ -10,7 +10,7 @@ rem REPLICATOR_INTERVAL=5
 rem REPLICATOR_FULL_LOG=YES
 rem REPLICATOR_LOG_KEYS=YES
 rem REPLICATOR_LOG_BULK_LOAD_EXCEPTIONS=YES
-rem REPLICATOR_DATABASE=VTX12_SQLNATIVE://SqlReplication/.///Trusted_connection=yes
+rem REPLICATOR_DATABASE=VTX12_SQLNATIVE://SqlReplicationPrimaryKey/.///Trusted_connection=yes
 rem REPLICATOR_LOGDIR=C:\DEV\PUBLIC\SqlReplicationIoHooksPrimaryKey
 rem
 rem By default the service that is created will be run under the NT AUTHORITY\SYSTEM account, so
@@ -23,7 +23,7 @@ rem - In the "Users mapped to this login" list, check the checkbox next to the d
 rem - In the "Database role membership for" list, check the checkbox next to db_owner
 rem - Click OK to save the information
 rem
-dbssvc -r -c SynergyReplicator -d "Synergy/DE SQL Replication Service" "%~dp0..\EXE\replicator_pk.dbr"
-sc config SynergyReplicator depend= lanmanworkstation/Eventlog/SynLM/MSSQLSERVER
-net start SynergyReplicator
+dbssvc -r -c SynergyReplicatorPrimaryKey -d "Synergy/DE SQL Replication Service (PK)" "%~dp0..\EXE\replicator_pk.dbr"
+sc config SynergyReplicatorPrimaryKey depend= lanmanworkstation/Eventlog/SynLM/MSSQLSERVER
+net start SynergyReplicatorPrimaryKey
 endlocal

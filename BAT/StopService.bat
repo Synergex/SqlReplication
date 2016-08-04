@@ -1,3 +1,3 @@
-net stop SynergyReplicator
-dbssvc -x -c SynergyReplicator
+net stop SynergyReplicatorPrimaryKey
+dbssvc -x -c SynergyReplicatorPrimaryKey
 
