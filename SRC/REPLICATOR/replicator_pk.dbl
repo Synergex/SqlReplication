@@ -1,8 +1,8 @@
 ;;*****************************************************************************
 ;;
-;; File:        replicator.dbl
+;; File:        replicator_pk.dbl
 ;;
-;; Type:        Application (Replicator)
+;; Type:        Application (replicator_pk)
 ;;
 ;; Description: Replicates Synergy data file changes that have been recorded
 ;;              in the replucation log file to a SQL Server database.
@@ -38,7 +38,7 @@
 
 import SynPSG.ReplicationDemo
 
-main Replicator
+main replicator_pk
 
     .include "CONNECTDIR:ssql.def"
     .include "GENSRC:structureio.def"
@@ -64,7 +64,7 @@ main Replicator
         updates             ,i4                 ;;Update operations completed
         deletes             ,i4                 ;;Delete operations completed
         fails               ,i4                 ;;Failed operations
-        runningOnTerminal   ,i4                 ;;Program is running on a terminal
+        runningOnTerminal   ,boolean            ;;Program is running on a terminal
     endcommon
 
     record local_data
@@ -83,10 +83,10 @@ main Replicator
         fullLogging         ,boolean            ;;Are we doing full logging?
         logKeys             ,boolean            ;;Include key data in debug logs
         switchMode          ,boolean            ;;Switched from INSERT to UPDATE or vice versa
-        doingLogCycle       ,boolean            ;;The log file is being cycled
         logLoadExceptions   ,boolean            ;;Log bulk load exceptions to a log file?
+        cycleLog            ,boolean            ;;Cycle the log file
         functionName        ,a40                ;;External function to call
-        log_file            ,a256
+        log_file            ,string             ;;Name of log file (or TT:)
         log_mode            ,a3
         databuffer          ,a(D_MAX_BUFFER)
         dberrtxt            ,a1024
@@ -106,24 +106,23 @@ main Replicator
 
 proc
 
-    xcall openelb("REPLICATOR_EXE:library.elb")
-
     init local_data
     ok = true
-    runningOnTerminal = (%tnmbr>=0)
-
     xcall flags(7004020,1)
 
-    doingLogCycle = false
+    xcall openelb("EXE:library.elb")
+
+    runningOnTerminal = (%tnmbr>=0)
+
     call OpenLogFile
 
     if (ok)
     begin
         ;;Set the sleep time between processing runs
         xcall getlog("REPLICATOR_INTERVAL",databuffer,length)
-        if ((length>0)&& %xsubr("IsNumeric",%atrim(databuffer)))
-            sleep_time = %integer(%atrim(databuffer))
-        if (sleep_time < 1)
+        if (length) then
+            sleep_time = databuffer(1:length)
+        else
             sleep_time = D_SLEEP_TIME
 
         ;;Set the logging level
@@ -209,10 +208,8 @@ proc
     end
 
     ;;Register a shutdown handler
-    .ifndef DBLNET
     if (ok && !runningOnTerminal)
         xcall syn_atexit(%xaddr("ReplicatorShutdown"))
-    .endc
 
     ;;Main processing
     if (ok)
@@ -292,7 +289,10 @@ proc
                     call DoDeleteTable
 
                 (REPLICATION_INSTRUCTION.CYCLE_LOG),
-                    call DoCycleLog
+                begin
+                    cycleLog = true
+                    call OpenLogFile
+                end
 
                 (REPLICATION_INSTRUCTION.SHUTDOWN),
                 begin
@@ -332,10 +332,6 @@ proc
     ;;Close the instructions file
     if (tch&&%chopen(tch))
         close tch
-
-    ;;If logging to tt: pause so messages can be read
-    if (log_file == "tt:")
-        sleep 10
 
     ;;All done
     stop
@@ -890,51 +886,34 @@ OpenLogFile,
     ;;Are we running on a terminal?
     if (runningOnTerminal) then
     begin
-        log_file = "tt:"
-        log_mode = "o"
+        log_file = "TT:"
+        log_mode = "O"
     end
     else
     begin
-        ;;Do we have a log location specified?
-        xcall getlog("REPLICATOR_LOGDIR",databuffer,length)
-        if (length) then
-        begin
-            ;;Yes, use it
-            log_file = %atrim(databuffer)+"replicator_"+%datetime+".log"
-        end
-        else
-        begin
-            ;;No, create one in the current directory
-            log_file = "replicator_"+%datetime+".log"
-        end
-        log_mode = "o:s"
+        ;;The logical will be used if defined, otherwise current directory will be used
+        log_file = "REPLICATOR_LOGDIR:replicator_"+%datetime+".log"
+        log_mode = "O:S"
     end
 
     ;;Open the log file
-    if (!doingLogCycle||!runningOnTerminal)
+    try
     begin
-        open(logch=0,log_mode,log_file) [ERR=logerr]
-        exit
-    logerr,
-        .ifndef DBLNET
-        xcall syn_reportevent(D_EVENTLOG_ERROR_TYPE,"Replicator failed to open log file " + %atrim(log_file)+". Error number " + %string(%ernum))
-        .endc
+        if (cycleLog)
+        begin
+            log("Log is being cycled. New log is " + log_file)
+            close logch
+            cycleLog = false
+        end
+        open(logch=0,log_mode,log_file)
+    end
+    catch (ex)
+    begin
+        if (!runningOnTerminal)
+            xcall syn_reportevent(D_EVENTLOG_ERROR_TYPE,"Replicator failed to open log file " + log_file + ". Error number " + %string(%ernum))
         ok = false
     end
-
-    return
-
-;;-----------------------------------------------------------------------------
-;; Close the current log file and open a new one.
-;;
-DoCycleLog,
-
-    if (!runningOnTerminal)
-    begin
-        close logch
-        doingLogCycle = true
-        call OpenLogFile
-    end
+    endtry
 
     return
 

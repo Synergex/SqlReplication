@@ -14,27 +14,13 @@ proc
     using menuItem select
 
     ("R_START "),
-    begin
-        data sts, i4
-        xcall setlog("REPLICATOR_INTERVAL","2",sts)
-        xcall setlog("REPLICATOR_FULL_LOG","YES",sts)
-        xcall setlog("REPLICATOR_LOG_KEYS","YES",sts)
-        xcall spawn("dbr EXE:replicator.dbr",D_NOWINDOW|D_NOWAIT)
-    end
+        xcall spawn("dbr EXE:replicator_pk.dbr",D_NOWINDOW|D_NOWAIT)
 
     ("R_START_D"),
-    begin
-        data sts, i4
-        xcall setlog("REPLICATOR_INTERVAL","2",sts)
-        xcall setlog("REPLICATOR_FULL_LOG","YES",sts)
-        xcall setlog("REPLICATOR_LOG_KEYS","YES",sts)
-        xcall spawn("dbr -d EXE:replicator.dbr",D_NOWINDOW|D_NOWAIT)
-    end
+        xcall spawn("dbr -d EXE:replicator_pk.dbr",D_NOWINDOW|D_NOWAIT)
 
     ("R_STOP"),
-    begin
         xcall replicate(REPLICATION_INSTRUCTION.SHUTDOWN)
-    end
 
     ("R_CREATE"),
         xcall replicate(REPLICATION_INSTRUCTION.CREATE_TABLE,"EMPLOYEE")
@@ -53,6 +39,9 @@ proc
 
     ("R_CLEAR"),
         xcall replicate(REPLICATION_INSTRUCTION.DELETE_ALL_INSTRUCTIONS)
+
+    ("R_CYCLE_LOG"),
+        xcall replicate(REPLICATION_INSTRUCTION.CYCLE_LOG)
 
     endusing
 

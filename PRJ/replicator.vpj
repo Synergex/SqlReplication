@@ -115,7 +115,7 @@
                 Value='dbl -X -T -d -qcheck -qalign -o OBJ: "%p%n%e"'/>
             <SynSetting
                 Name="linklibr_command_line"
-                Value="dblink -d -o EXE:%n.dbr OBJ:%n EXE:library.elb"/>
+                Value="dblink -d -o EXE:%n.dbr OBJ:%n"/>
             <SynSetting
                 Name="proto_clear_dbh"
                 Value="1"/>
@@ -161,7 +161,7 @@
         <Folder
             Name="Source Files"
             Filters="*.dbl;*.tpl;*.dbc">
-            <F N="../SRC/REPLICATOR/replicator.dbl"/>
+            <F N="../SRC/REPLICATOR/replicator_pk.dbl"/>
         </Folder>
         <Folder
             Name="Header Files"
@@ -172,10 +172,8 @@
         <Folder
             Name="Other Files"
             Filters="">
-            <F N="../BAT/register_service.bat"/>
-            <F N="../BAT/remove_service.bat"/>
-            <F N="../BAT/start_service.bat"/>
-            <F N="../BAT/stop_service.bat"/>
+            <F N="../BAT/StartService.bat"/>
+            <F N="../BAT/StopService.bat"/>
         </Folder>
     </Files>
     <Config
@@ -290,7 +288,7 @@
                 Value='dbl -X -T -d -qcheck -qalign -o OBJ: "%p%n%e"'/>
             <SynSetting
                 Name="linklibr_command_line"
-                Value="dblink -d -o EXE:%n.dbr OBJ:%n EXE:library.elb"/>
+                Value="dblink -d -o EXE:%n.dbr OBJ:%n"/>
             <SynSetting
                 Name="proto_clear_dbh"
                 Value="1"/>
@@ -444,7 +442,7 @@
                 Value='dbl -X -T -qstrict -qalign -o OBJ: "%p%n%e"'/>
             <SynSetting
                 Name="linklibr_command_line"
-                Value="dblink -o EXE:%n.dbr OBJ:%n EXE:library.elb"/>
+                Value="dblink -o EXE:%n.dbr OBJ:%n"/>
             <SynSetting
                 Name="proto_clear_dbh"
                 Value="1"/>
@@ -598,7 +596,7 @@
                 Value='dbl -X -T -qstrict -qalign -o OBJ: "%p%n%e"'/>
             <SynSetting
                 Name="linklibr_command_line"
-                Value="dblink -o EXE:%n.dbr OBJ:%n EXE:library.elb"/>
+                Value="dblink -o EXE:%n.dbr OBJ:%n"/>
             <SynSetting
                 Name="proto_clear_dbh"
                 Value="1"/>
