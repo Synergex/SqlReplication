@@ -1,8 +1,8 @@
 ;;*****************************************************************************
 ;;
-;; File:        replicator_pk.dbl
+;; File:        replicator.dbl
 ;;
-;; Type:        Application (replicator_pk)
+;; Type:        Application (replicator)
 ;;
 ;; Description: Replicates Synergy data file changes that have been recorded
 ;;              in the replucation log file to a SQL Server database.
@@ -38,7 +38,7 @@
 
 import SynPSG.ReplicationDemo
 
-main replicator_pk
+main replicator
 
     .include "CONNECTDIR:ssql.def"
     .include "GENSRC:structureio.def"
@@ -98,6 +98,7 @@ main replicator_pk
         structure_name      ,a30                ;;Name of structure
         structure_chan      ,i4                 ;;ISAM channel being used
         structure_size      ,i4                 ;;Record length
+        structure_keynum    ,i4                 ;;Key number of unique key
     endrecord
 
     external function
@@ -384,6 +385,29 @@ CheckFileTable,
             return
         end
         endtry
+
+        ;;Default to using the primary key to access ISAM records
+        structure_data.structure_keynum = 0
+
+        ;;If we have more than one key, look for "REPLICATION_KEY"
+        begin
+            data numKeys, i4
+            if ((numKeys = %isinfo(structure_data.structure_chan,"NUMKEYS")) > 1)
+            begin
+                data thisKey, i4
+                for thisKey from 1 thru numKeys - 1
+                begin
+                    if (%isinfoa(structure_data.structure_chan,"KEYNAME",thisKey)=="REPLICATION_KEY")
+                    begin
+                        structure_data.structure_keynum = thisKey
+                        exitloop
+                    end
+                end
+            end
+        end
+
+        ;;Report the key that will be used
+        debuglog(" - Key " + %string(structure_data.structure_keynum) + " will be used to access the ISAM file")
 
         ;;And save the structure name
         structure_data.structure_name = instruction.structure_name
@@ -847,7 +871,7 @@ ReadSynergyRecord,
     try
     begin
         functionName = %atrim(instruction.structure_name) + "_IO"
-        status = %xsubr(functionName,IO_READ,structure_data.structure_chan,instruction.key,0,databuffer(1,structure_data.structure_size),,,dberrtxt)
+        status = %xsubr(functionName,IO_READ,structure_data.structure_chan,instruction.key,structure_data.structure_keynum,databuffer(1,structure_data.structure_size),,,dberrtxt)
         using status select
         (IO_OK),
         begin
