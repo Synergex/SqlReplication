@@ -60,7 +60,7 @@ namespace <NAMESPACE>
 
         required in a_action, REPLICATION_INSTRUCTION
         optional in a_structure, a
-        optional in a_primkey, a
+        optional in a_key, a
         endparams
 
         .include "REPLICATION" repository, stack record="instruction", end
@@ -119,8 +119,8 @@ namespace <NAMESPACE>
             if (^passed(a_structure) && a_structure)
                 instruction.structure_name = a_structure
 
-            if (^passed(a_primkey) && a_primkey)
-                instruction.primary_key = a_primkey
+            if (^passed(a_key) && a_key)
+                instruction.key = a_key
 
             repeat
             begin

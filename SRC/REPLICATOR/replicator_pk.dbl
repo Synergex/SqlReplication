@@ -643,12 +643,12 @@ DoDelete,
     debuglog("Delete row from table " + %atrim(instruction.structure_name))
 
     if (logKeys)
-        debugLog(" - Primary key: " + %atrim(instruction.primary_key))
+        debugLog(" - Key: " + %atrim(instruction.key))
 
     try
     begin
         functionName = %atrim(instruction.structure_name) + '_DELETE_ROW'
-        status = %xsubr(functionName,db,instruction.primary_key,dberrtxt)
+        status = %xsubr(functionName,db,instruction.key,dberrtxt)
         if (status) then
         begin
             debuglog(" - Row deleted")
@@ -839,8 +839,7 @@ DoDeleteTable,
     return
 
 ;;-----------------------------------------------------------------------------
-;; This routine reads the full record associated with the primary key obtained
-;; from the instruction file.
+;; Read the record associated with the key obtained from the instruction file.
 ;;
 ReadSynergyRecord,
 
@@ -848,12 +847,12 @@ ReadSynergyRecord,
     try
     begin
         functionName = %atrim(instruction.structure_name) + "_IO"
-        status = %xsubr(functionName,IO_READ,structure_data.structure_chan,instruction.primary_key,0,databuffer(1,structure_data.structure_size),,,dberrtxt)
+        status = %xsubr(functionName,IO_READ,structure_data.structure_chan,instruction.key,0,databuffer(1,structure_data.structure_size),,,dberrtxt)
         using status select
         (IO_OK),
         begin
             if (logKeys)
-                debugLog(" - Primary key: " + %atrim(instruction.primary_key))
+                debugLog(" - Key: " + %atrim(instruction.key))
         end
         (IO_NOT_FOUND,IO_EOF),
             debuglog(" - Record not found in ISAM file!")

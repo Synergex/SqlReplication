@@ -90,6 +90,14 @@
                 SaveOption="SaveAll">
                 <Exec CmdLine="rps_import.bat"/>
             </Target>
+            <Target
+                Name="Export Repository to Schema"
+                MenuCaption="&amp;Export Repository to Schema"
+                RunFromDir="%(BAT)"
+                CaptureOutputWith="ProcessBuffer"
+                SaveOption="SaveAll">
+                <Exec CmdLine="rps_export.bat"/>
+            </Target>
         </Menu>
         <SynSettings>
             <SynSetting
@@ -276,6 +284,14 @@
                 SaveOption="SaveAll">
                 <Exec CmdLine="rps_import.bat"/>
             </Target>
+            <Target
+                Name="Export Repository to Schema"
+                MenuCaption="&amp;Export Repository to Schema"
+                RunFromDir="%(BAT)"
+                CaptureOutputWith="ProcessBuffer"
+                SaveOption="SaveAll">
+                <Exec CmdLine="rps_export.bat"/>
+            </Target>
         </Menu>
         <SynSettings>
             <SynSetting
@@ -421,6 +437,14 @@
                 SaveOption="SaveAll">
                 <Exec CmdLine="rps_import.bat"/>
             </Target>
+            <Target
+                Name="Export Repository to Schema"
+                MenuCaption="&amp;Export Repository to Schema"
+                RunFromDir="%(BAT)"
+                CaptureOutputWith="ProcessBuffer"
+                SaveOption="SaveAll">
+                <Exec CmdLine="rps_export.bat"/>
+            </Target>
         </Menu>
         <SynSettings>
             <SynSetting
@@ -565,6 +589,14 @@
                 CaptureOutputWith="ProcessBuffer"
                 SaveOption="SaveAll">
                 <Exec CmdLine="rps_import.bat"/>
+            </Target>
+            <Target
+                Name="Export Repository to Schema"
+                MenuCaption="&amp;Export Repository to Schema"
+                RunFromDir="%(BAT)"
+                CaptureOutputWith="ProcessBuffer"
+                SaveOption="SaveAll">
+                <Exec CmdLine="rps_export.bat"/>
             </Target>
         </Menu>
         <SynSettings>

@@ -5,9 +5,9 @@
 ;                 : C:\DEV\PUBLIC\SqlReplicationIoHooksPrimaryKey\RPS\rpstext.is
 ;                 : Version 10.3.3a
 ;
-;  GENERATED      : 29-JUL-2016, 09:55:34
+;  GENERATED      : 05-AUG-2016, 09:01:34
 ;                 : Version 10.3.3a
-;  EXPORT OPTIONS : [ALL] 
+;  EXPORT OPTIONS : [ALL-K-R-A] 
  
  
 Format PHONE   Type NUMERIC   "(XXX) XXX-XXXX"   Justify LEFT
@@ -182,8 +182,8 @@ Field ACTION   Type DECIMAL   Size 2
 Field STRUCTURE_NAME   Type ALPHA   Size 32
    Description "the SDMS structure name"
  
-Field PRIMARY_KEY   Type ALPHA   Size 255
-   Description "PRimary key of affected record"
+Field KEY   Type ALPHA   Size 255
+   Description "Primary key of affected record"
  
 Key TRANSACTION_ID   ACCESS   Order ASCENDING   Dups NO
    Description "Transaction ID (timestamp)"
