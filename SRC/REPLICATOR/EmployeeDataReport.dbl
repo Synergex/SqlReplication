@@ -1,37 +1,187 @@
 import Synergex.SynergyDE.Select
 
+.include "EMPLOYEE" repository, structure="strEmployee", end
+
 main EmployeeDataReport
 
-    .include "EMPLOYEE" repository, structure="strEmployee", end
+    global common
+        tt, i4
+        ch, i4
+        log, i4
+        errors, i4
+    endcommon
 
-    record
+    stack record
         employee, strEmployee
     endrecord
-
 proc
 
-    foreach employee in new Select(new From("DAT:EMPLOYEE.ISM"),employee)
+    open(tt=0,i,"tt:")
+    open(ch=0,i:i,"DAT:EMPLOYEE.ISM")
+    open(log=0,o:s,"EmployeeDataReport.log")
+
+    xcall flags(7004020,1)
+
+    foreach employee in new Select(new From(ch,employee))
     begin
         ;;Check that decimal fields contain valid numeric values
-        ;TODO: Code goes here
-        ;TODO: Code goes here
-        ;TODO: Code goes here
-        ;TODO: Code goes here
-        ;TODO: Code goes here
-        ;TODO: Code goes here
+        xcall CheckDecimal(employee,"EMP_ID",employee.emp_id,false)
+        xcall CheckDecimal(employee,"EMP_PHONE[1]",employee.emp_phone[1],false)
+        xcall CheckDecimal(employee,"EMP_PHONE[2]",employee.emp_phone[2],false)
+        xcall CheckDecimal(employee,"EMP_PHONE[3]",employee.emp_phone[3],false)
+        xcall CheckDecimal(employee,"EMP_PAID",employee.emp_paid,false)
+        xcall CheckDecimal(employee,"EMP_HOME_OK",employee.emp_home_ok,false)
 
         ;;Check that implied decimal fields contain valid numeric values
 
         ;;Check that integer fields contain valid numeric values
 
         ;;Check that date fields contain valid date values
-        ;TODO: Code goes here
-        ;TODO: Code goes here
+        xcall CheckDate(employee,"EMP_HIRE_DATE",employee.emp_hire_date,false)
+        xcall CheckDate(employee,"EMP_DATE_OF_BIRTH",employee.emp_date_of_birth,false)
 
         ;;Check that time fields contain valid date values
-        ;TODO: Code goes here
-
+        xcall CheckTime(employee,"EMP_TIME_OF_BIRTH",employee.emp_time_of_birth)
     end
 
+
+    if (errors) then
+    begin
+        writes(tt,%string(errors) + " errors were found. Check log file EmployeeDataReport.log")
+        close log
+    end
+    else
+    begin
+        writes(tt,"No problems detected")
+        purge log
+    end
+
+    close ch
+    close tt
+
+    sleep 1
+
+    stop
+
 endmain
+
+subroutine LogError
+    required in fullRecord, strEmployee
+    required in fieldName, string
+    required in errorMessage, string
+    required in fieldData, string
+    external common
+        tt, i4
+        ch, i4
+        log, i4
+        errors, i4
+    endcommon
+    stack record
+        field, a30
+    endrecord
+proc
+    field = fieldName
+    writes(log,"Record " + %keyval(ch,fullRecord,0) + " field " + field + " " + errorMessage + " " + fieldData)
+    errors += 1
+    xreturn
+endsubroutine
+
+subroutine CheckDecimal
+    required in fullRecord, strEmployee
+    required in fieldName, string
+    required in fieldData, d
+    required in allowNegative, boolean
+    endparams
+    stack record
+        ok, boolean
+    endrecord
+proc
+    ok = true
+
+    ;TODO: Add validation code
+
+    if (!ok)
+        LogError(fullRecord,fieldName,"",^a(fieldData))
+
+    xreturn
+endsubroutine
+
+subroutine CheckImpliedDecimal
+    required in fullRecord, strEmployee
+    required in fieldName, string
+    required in fieldData, d.
+    required in allowNegative, boolean
+    endparams
+    stack record
+        ok, boolean
+    endrecord
+proc
+    ok = true
+
+    ;TODO: Add validation code
+
+    if (!ok)
+        LogError(fullRecord,fieldName,"",^a(fieldData))
+
+    xreturn
+endsubroutine
+
+subroutine CheckInteger
+    required in fullRecord, strEmployee
+    required in fieldName, string
+    required in fieldData, i
+    required in allowNegative, boolean
+    endparams
+    stack record
+        ok, boolean
+    endrecord
+proc
+    ok = true
+
+    ;TODO: Add validation code
+
+    if (!ok)
+        LogError(fullRecord,fieldName,"",^a(fieldData))
+
+    xreturn
+endsubroutine
+
+subroutine CheckDate
+    required in fullRecord, strEmployee
+    required in fieldName, string
+    required in fieldData, d
+    required in allowNull, boolean
+    endparams
+    stack record
+        ok, boolean
+    endrecord
+proc
+    ok = true
+
+    ;TODO: Add validation code
+
+    if (!ok)
+        LogError(fullRecord,fieldName,"",^a(fieldData))
+
+    xreturn
+endsubroutine
+
+subroutine CheckTime
+    required in fullRecord, strEmployee
+    required in fieldName, string
+    required in fieldData, d
+    endparams
+    stack record
+        ok, boolean
+    endrecord
+proc
+    ok = true
+
+    ;TODO: Add validation code
+
+    if (!ok)
+        LogError(fullRecord,fieldName,"",^a(fieldData))
+
+    xreturn
+endsubroutine
 
