@@ -1,0 +1,37 @@
+import Synergex.SynergyDE.Select
+
+main EmployeeDataReport
+
+    .include "EMPLOYEE" repository, structure="strEmployee", end
+
+    record
+        employee, strEmployee
+    endrecord
+
+proc
+
+    foreach employee in new Select(new From("DAT:EMPLOYEE.ISM"),employee)
+    begin
+        ;;Check that decimal fields contain valid numeric values
+        ;TODO: Code goes here
+        ;TODO: Code goes here
+        ;TODO: Code goes here
+        ;TODO: Code goes here
+        ;TODO: Code goes here
+        ;TODO: Code goes here
+
+        ;;Check that implied decimal fields contain valid numeric values
+
+        ;;Check that integer fields contain valid numeric values
+
+        ;;Check that date fields contain valid date values
+        ;TODO: Code goes here
+        ;TODO: Code goes here
+
+        ;;Check that time fields contain valid date values
+        ;TODO: Code goes here
+
+    end
+
+endmain
+

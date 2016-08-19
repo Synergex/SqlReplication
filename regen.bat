@@ -12,5 +12,8 @@ codegen %OPTS% -s EMPLOYEE   -t ReplicationIoHooks -define ATTACH_IO_HOOKS CLEAN
 
 codegen %OPTS% -s DEPARTMENT -t SynIO
 
+rem Generate file data report programs
+
+codegen -e -r -lf -s EMPLOYEE   -t FileDataReport -o "%ROOT%\SRC\REPLICATOR"
 
 endlocal

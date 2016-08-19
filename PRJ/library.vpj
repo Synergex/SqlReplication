@@ -160,6 +160,7 @@
         <Folder
             Name="Templates"
             Filters="*.tpl">
+            <F N="../SRC/TEMPLATES/FileDataReport.tpl"/>
             <F N="../SRC/TEMPLATES/IsDate.tpl"/>
             <F N="../SRC/TEMPLATES/IsNumeric.tpl"/>
             <F N="../SRC/TEMPLATES/IsTime.tpl"/>
