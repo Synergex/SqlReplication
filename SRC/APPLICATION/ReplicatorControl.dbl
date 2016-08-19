@@ -14,10 +14,10 @@ proc
     using menuItem select
 
     ("R_START "),
-        xcall spawn("dbr EXE:replicator_pk.dbr",D_NOWINDOW|D_NOWAIT)
+        xcall spawn("dbr EXE:replicator.dbr",D_NOWINDOW|D_NOWAIT)
 
     ("R_START_D"),
-        xcall spawn("dbr -d EXE:replicator_pk.dbr",D_NOWINDOW|D_NOWAIT)
+        xcall spawn("dbr -d EXE:replicator.dbr",D_NOWINDOW|D_NOWAIT)
 
     ("R_STOP"),
         xcall replicate(REPLICATION_INSTRUCTION.SHUTDOWN)

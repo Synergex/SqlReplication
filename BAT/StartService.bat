@@ -3,7 +3,7 @@ setlocal
 rem
 rem You must configure settings for replicator system wide, or in your synergy.ini file, like this:
 rem
-rem [replicator_pk]
+rem [replicator]
 rem EXE=C:\DEV\PUBLIC\SqlReplicationIoHooksPrimaryKey\EXE
 rem DAT=C:\DEV\PUBLIC\SqlReplicationIoHooksPrimaryKey\DAT
 rem REPLICATOR_INTERVAL=5
@@ -23,7 +23,7 @@ rem - In the "Users mapped to this login" list, check the checkbox next to the d
 rem - In the "Database role membership for" list, check the checkbox next to db_owner
 rem - Click OK to save the information
 rem
-dbssvc -r -c SynergyReplicatorPrimaryKey -d "Synergy/DE SQL Replication Service (PK)" "%~dp0..\EXE\replicator_pk.dbr"
+dbssvc -r -c SynergyReplicatorPrimaryKey -d "Synergy/DE SQL Replication Service" "%~dp0..\EXE\replicator.dbr"
 sc config SynergyReplicatorPrimaryKey depend= lanmanworkstation/Eventlog/SynLM/MSSQLSERVER
 net start SynergyReplicatorPrimaryKey
 endlocal
