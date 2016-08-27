@@ -11,71 +11,128 @@ main <StructureName>DataReport
         ch, i4
         log, i4
         errors, i4
+        initBadData, boolean
+        saveRecord, boolean
     endcommon
 
     stack record
+        selector, @Select
+        enumerator, @AlphaEnumerator
         <structureName>, str<StructureName>
     endrecord
 proc
 
     open(tt=0,i,"tt:")
-    open(ch=0,i:i,"<FILE_NAME>")
     open(log=0,o:s,"<StructureName>DataReport.log")
 
-    xcall flags(7004020,1)
+    xcall flags(7004000,1)
 
-    foreach <structureName> in new Select(new From(ch,<structureName>))
+    repeat
     begin
-        ;;Check that decimal fields contain valid numeric values
-        <FIELD_LOOP>
-        <IF DECIMAL>
-        <IF NOPRECISION>
-        xcall CheckDecimal(<structureName>,"<FIELD_NAME>",<structureName>.<field_name>,<IF NEGATIVE_ALLOWED>true<ELSE>false</IF NEGATIVE_ALLOWED>)
-        </IF NOPRECISION>
-        </IF DECIMAL>
-        </FIELD_LOOP>
-
-        ;;Check that implied decimal fields contain valid numeric values
-        <FIELD_LOOP>
-        <IF DECIMAL>
-        <IF PRECISION>
-        xcall CheckImpliedDecimal(<structureName>,"<FIELD_NAME>",<structureName>.<field_name>,<IF NEGATIVE_ALLOWED>true<ELSE>false</IF NEGATIVE_ALLOWED>)
-        </IF PRECISION>
-        </IF DECIMAL>
-        </FIELD_LOOP>
-
-        ;;Check that integer fields contain valid numeric values
-        <FIELD_LOOP>
-        <IF INTEGER>
-        xcall CheckInteger(<structureName>,"<FIELD_NAME>",<structureName>.<field_name>,<IF NEGATIVE_ALLOWED>true<ELSE>false</IF NEGATIVE_ALLOWED>)
-        </IF INTEGER>
-        </FIELD_LOOP>
-
-        ;;Check that date fields contain valid date values
-        <FIELD_LOOP>
-        <IF DATE>
-        xcall CheckDate(<structureName>,"<FIELD_NAME>",<structureName>.<field_name>,<IF DATE_NULLABLE>true<ELSE>false</IF DATE_NULLABLE>)
-        </IF DATE>
-        </FIELD_LOOP>
-
-        ;;Check that time fields contain valid date values
-        <FIELD_LOOP>
-        <IF TIME>
-        xcall CheckTime(<structureName>,"<FIELD_NAME>",<structureName>.<field_name>)
-        </IF TIME>
-        </FIELD_LOOP>
+        data yn, a1
+        display(tt,$SCR_CLR(SCREEN),$SCR_POS(2,1),"INIT/CLEAR bad data (Y/N): ")
+        reads(tt,yn)
+        if (yn=="Y"||yn=="N")
+        begin
+            try
+            begin
+                if (initBadData = (yn=="Y")) then
+                begin
+                    writes(log,"Opening <FILE_NAME> for exclusive write access")
+                    writes(log,"Fields containing bad data WILL be initialized")
+                    open(ch=0,u:i,"<FILE_NAME>",SHARE:Q_EXCL_RW)
+                end
+                else
+                begin
+                    writes(log,"Opening <FILE_NAME> for read only access")
+                    writes(log,"Fields containing bad data will NOT be initialized")
+                    open(ch=0,i:i,"<FILE_NAME>")
+                end
+            end
+            catch (ex, @FileNameException)
+            begin
+                writes(log,"ERROR: Invalid file name")
+                init ch
+            end
+            catch (ex, @NoFileFoundException)
+            begin
+                writes(log,"ERROR: File not found")
+                init ch
+            end
+            catch (ex, @ProtectionViolationException)
+            begin
+                writes(log,"ERROR: protection violation")
+                init ch
+            end
+            catch (ex, @FileInUseException)
+            begin
+                writes(log,"ERROR: File is in use")
+                init ch
+            end
+            endtry
+            exitloop
+        end
     end
 
+    if (ch)
+    begin
+        ;;Prepare to read all records from the file
+        selector = new Select(new From(ch,<structureName>))
+        enumerator = selector.GetEnumerator()
 
-    if (errors) then
-    begin
-        writes(tt,%string(errors) + " errors were found. Check log file <StructureName>DataReport.log")
-        close log
-    end
-    else
-    begin
-        writes(tt,"No problems detected")
-        purge log
+        while (enumerator.MoveNext())
+        begin
+            <structureName> = enumerator.Current
+            saveRecord = false
+
+            ;;Check that decimal fields contain valid numeric values
+            <FIELD_LOOP>
+            <IF DECIMAL>
+            if (!CheckDecimal(<structureName>,"<FIELD_NAME>",^a(<structureName>.<field_name>),<IF NEGATIVE_ALLOWED>true<ELSE>false</IF NEGATIVE_ALLOWED>) && initBadData)
+                <IF ARRAY>clear<ELSE>init</IF ARRAY> <structureName>.<field_name>
+            </IF DECIMAL>
+            </FIELD_LOOP>
+
+            ;;Check that integer fields contain valid numeric values
+            <FIELD_LOOP>
+            <IF INTEGER>
+            if (!CheckInteger(<structureName>,"<FIELD_NAME>",^a(<structureName>.<field_name>),<IF NEGATIVE_ALLOWED>true<ELSE>false</IF NEGATIVE_ALLOWED>) && initBadData)
+                <IF ARRAY>clear<ELSE>init</IF ARRAY> <structureName>.<field_name>
+            </IF INTEGER>
+            </FIELD_LOOP>
+
+            ;;Check that date fields contain valid date values
+            <FIELD_LOOP>
+            <IF DATE>
+            if (!CheckDate(<structureName>,"<FIELD_NAME>",^a(<structureName>.<field_name>),<IF DATE_NULLABLE>true<ELSE>false</IF DATE_NULLABLE>) && initBadData)
+                <IF ARRAY>clear<ELSE>init</IF ARRAY> <structureName>.<field_name>
+            </IF DATE>
+            </FIELD_LOOP>
+
+            ;;Check that time fields contain valid time values
+            <FIELD_LOOP>
+            <IF TIME>
+            if (!CheckTime(<structureName>,"<FIELD_NAME>",^a(<structureName>.<field_name>)) && initBadData)
+                <IF ARRAY>clear<ELSE>init</IF ARRAY> <structureName>.<field_name>
+            </IF TIME>
+            </FIELD_LOOP>
+
+            ;;If necessary, update the record
+            if (initBadData&&saveRecord)
+                enumerator.Current = <structureName>
+        end
+
+        if (errors) then
+        begin
+            writes(tt,%string(errors) + " errors were found. Check log file <StructureName>DataReport.log")
+            close log
+            xcall shell(,"<StructureName>DataReport.log",D_NOWINDOW)
+        end
+        else
+        begin
+            writes(tt,"No problems detected")
+            purge log
+        end
     end
 
     close ch
@@ -97,21 +154,54 @@ subroutine LogError
         ch, i4
         log, i4
         errors, i4
+        initBadData, boolean
+        saveRecord, boolean
     endcommon
     stack record
         field, a30
     endrecord
 proc
+    if (!saveRecord)
+    begin
+        writes(log,"Record " + %keyval(ch,fullRecord,0))
+        saveRecord = true
+    end
     field = fieldName
-    writes(log,"Record " + %keyval(ch,fullRecord,0) + " field " + field + " " + errorMessage + " " + fieldData)
+    writes(log," - " + field + " " + errorMessage + " " + fieldData)
     errors += 1
     xreturn
 endsubroutine
 
-subroutine CheckDecimal
+function CheckDecimal, boolean
     required in fullRecord, str<StructureName>
     required in fieldName, string
-    required in fieldData, d
+    required in fieldData, a
+    required in allowNegative, boolean
+    endparams
+    stack record
+        ok, boolean
+    endrecord
+proc
+    try
+    begin
+        data tmpval, d28
+        tmpval = fieldData
+        ok = ((tmpval>=0)||allowNegative)
+    end
+    catch (ex, @BadDigitException)
+    begin
+        ok = false
+    end
+    endtry
+    if (!ok)
+        LogError(fullRecord,fieldName,"Invalid decimal value",fieldData)
+    freturn ok
+endfunction
+
+function CheckInteger, boolean
+    required in fullRecord, str<StructureName>
+    required in fieldName, string
+    required in fieldData, a
     required in allowNegative, boolean
     endparams
     stack record
@@ -120,90 +210,135 @@ subroutine CheckDecimal
 proc
     ok = true
 
-    ;TODO: Add validation code
+    using ^size(fieldData) select
+    (1),
+    begin
+        data ival, i1
+        ival = ^i(fieldData)
+        ok = ((ival>=0)||allowNegative)
+    end
+    (2),
+    begin
+        data ival, i2
+        ival = ^i(fieldData)
+        ok = ((ival>=0)||allowNegative)
+    end
+    (4),
+    begin
+        data ival, i4
+        ival = ^i(fieldData)
+        ok = ((ival>=0)||allowNegative)
+    end
+    (8),
+    begin
+        data ival, i8
+        ival = ^i(fieldData)
+        ok = ((ival>=0)||allowNegative)
+    end
+    (),
+    begin
+        ok = false
+    end
+    endusing
 
     if (!ok)
-        LogError(fullRecord,fieldName,"",^a(fieldData))
+        LogError(fullRecord,fieldName,"Invalid integer value",fieldData)
 
-    xreturn
-endsubroutine
+    freturn ok
+endfunction
 
-subroutine CheckImpliedDecimal
+function CheckDate, boolean
     required in fullRecord, str<StructureName>
     required in fieldName, string
-    required in fieldData, d.
-    required in allowNegative, boolean
-    endparams
-    stack record
-        ok, boolean
-    endrecord
-proc
-    ok = true
-
-    ;TODO: Add validation code
-
-    if (!ok)
-        LogError(fullRecord,fieldName,"",^a(fieldData))
-
-    xreturn
-endsubroutine
-
-subroutine CheckInteger
-    required in fullRecord, str<StructureName>
-    required in fieldName, string
-    required in fieldData, i
-    required in allowNegative, boolean
-    endparams
-    stack record
-        ok, boolean
-    endrecord
-proc
-    ok = true
-
-    ;TODO: Add validation code
-
-    if (!ok)
-        LogError(fullRecord,fieldName,"",^a(fieldData))
-
-    xreturn
-endsubroutine
-
-subroutine CheckDate
-    required in fullRecord, str<StructureName>
-    required in fieldName, string
-    required in fieldData, d
+    required in fieldData, a
     required in allowNull, boolean
     endparams
     stack record
         ok, boolean
+        dval, d28
     endrecord
 proc
     ok = true
 
-    ;TODO: Add validation code
+    ;;Check the value is a valid decimal
+    try
+    begin
+        dval = fieldData
+        ok = true
+    end
+    catch (ex, @BadDigitException)
+    begin
+        ok = false
+    end
+    endtry
+
+    ;;Only allow zero values where supported
+    ok = (ok&&((dval>0)||((dval==0)&&allowNull)))
+
+    ;;Check we have a valid date
+    if (ok)
+    begin
+        try
+        begin
+            data julian, i4
+            julian = %jperiod(^d(fieldData))
+            ok = true
+        end
+        catch (ex, @SynException)
+        begin
+            ok = false
+        end
+        endtry
+    end
 
     if (!ok)
-        LogError(fullRecord,fieldName,"",^a(fieldData))
+        LogError(fullRecord,fieldName,"Invalid date value",fieldData)
 
-    xreturn
-endsubroutine
+    freturn ok
 
-subroutine CheckTime
+endfunction
+
+function CheckTime, boolean
     required in fullRecord, str<StructureName>
     required in fieldName, string
-    required in fieldData, d
+    required in group fieldData, a
+        hour, d2
+        minute, d2
+        second, d2
+    endgroup
     endparams
     stack record
         ok, boolean
+        dval, d28
     endrecord
 proc
     ok = true
 
-    ;TODO: Add validation code
+    ;;Check the value is a valid decimal
+    try
+    begin
+        dval = fieldData
+        ok = true
+    end
+    catch (ex, @BadDigitException)
+    begin
+        ok = false
+    end
+    endtry
+
+    ;;Check the value is a valid time
+    if (ok)
+    begin
+        ;;Hour and minute
+        ok = ((hour>=0)&&(hour<=23)&&(minute>=0)&&(minute<=59))
+        ;;Second
+        if (^size(fieldData)==6)
+            ok = (ok&&((second>=0)&&(second<=59)))
+    end
 
     if (!ok)
-        LogError(fullRecord,fieldName,"",^a(fieldData))
+        LogError(fullRecord,fieldName,"Invalid time value",fieldData)
 
-    xreturn
-endsubroutine
+    freturn ok
+endfunction
 

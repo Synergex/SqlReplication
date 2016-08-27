@@ -9,51 +9,122 @@ main EmployeeDataReport
         ch, i4
         log, i4
         errors, i4
+        initBadData, boolean
+        saveRecord, boolean
     endcommon
 
     stack record
+        selector, @Select
+        enumerator, @AlphaEnumerator
         employee, strEmployee
     endrecord
 proc
 
     open(tt=0,i,"tt:")
-    open(ch=0,i:i,"DAT:EMPLOYEE.ISM")
     open(log=0,o:s,"EmployeeDataReport.log")
 
-    xcall flags(7004020,1)
+    xcall flags(7004000,1)
 
-    foreach employee in new Select(new From(ch,employee))
+    repeat
     begin
-        ;;Check that decimal fields contain valid numeric values
-        xcall CheckDecimal(employee,"EMP_ID",employee.emp_id,false)
-        xcall CheckDecimal(employee,"EMP_PHONE[1]",employee.emp_phone[1],false)
-        xcall CheckDecimal(employee,"EMP_PHONE[2]",employee.emp_phone[2],false)
-        xcall CheckDecimal(employee,"EMP_PHONE[3]",employee.emp_phone[3],false)
-        xcall CheckDecimal(employee,"EMP_PAID",employee.emp_paid,false)
-        xcall CheckDecimal(employee,"EMP_HOME_OK",employee.emp_home_ok,false)
-
-        ;;Check that implied decimal fields contain valid numeric values
-
-        ;;Check that integer fields contain valid numeric values
-
-        ;;Check that date fields contain valid date values
-        xcall CheckDate(employee,"EMP_HIRE_DATE",employee.emp_hire_date,false)
-        xcall CheckDate(employee,"EMP_DATE_OF_BIRTH",employee.emp_date_of_birth,false)
-
-        ;;Check that time fields contain valid date values
-        xcall CheckTime(employee,"EMP_TIME_OF_BIRTH",employee.emp_time_of_birth)
+        data yn, a1
+        display(tt,$SCR_CLR(SCREEN),$SCR_POS(2,1),"INIT/CLEAR bad data (Y/N): ")
+        reads(tt,yn)
+        if (yn=="Y"||yn=="N")
+        begin
+            try
+            begin
+                if (initBadData = (yn=="Y")) then
+                begin
+                    writes(log,"Opening DAT:EMPLOYEE.ISM for exclusive write access")
+                    writes(log,"Fields containing bad data WILL be initialized")
+                    open(ch=0,u:i,"DAT:EMPLOYEE.ISM",SHARE:Q_EXCL_RW)
+                end
+                else
+                begin
+                    writes(log,"Opening DAT:EMPLOYEE.ISM for read only access")
+                    writes(log,"Fields containing bad data will NOT be initialized")
+                    open(ch=0,i:i,"DAT:EMPLOYEE.ISM")
+                end
+            end
+            catch (ex, @FileNameException)
+            begin
+                writes(log,"ERROR: Invalid file name")
+                init ch
+            end
+            catch (ex, @NoFileFoundException)
+            begin
+                writes(log,"ERROR: File not found")
+                init ch
+            end
+            catch (ex, @ProtectionViolationException)
+            begin
+                writes(log,"ERROR: protection violation")
+                init ch
+            end
+            catch (ex, @FileInUseException)
+            begin
+                writes(log,"ERROR: File is in use")
+                init ch
+            end
+            endtry
+            exitloop
+        end
     end
 
+    if (ch)
+    begin
+        ;;Prepare to read all records from the file
+        selector = new Select(new From(ch,employee))
+        enumerator = selector.GetEnumerator()
 
-    if (errors) then
-    begin
-        writes(tt,%string(errors) + " errors were found. Check log file EmployeeDataReport.log")
-        close log
-    end
-    else
-    begin
-        writes(tt,"No problems detected")
-        purge log
+        while (enumerator.MoveNext())
+        begin
+            employee = enumerator.Current
+            saveRecord = false
+
+            ;;Check that decimal fields contain valid numeric values
+            if (!CheckDecimal(employee,"EMP_ID",^a(employee.emp_id),false) && initBadData)
+                init employee.emp_id
+            if (!CheckDecimal(employee,"EMP_PHONE[1]",^a(employee.emp_phone[1]),false) && initBadData)
+                clear employee.emp_phone[1]
+            if (!CheckDecimal(employee,"EMP_PHONE[2]",^a(employee.emp_phone[2]),false) && initBadData)
+                clear employee.emp_phone[2]
+            if (!CheckDecimal(employee,"EMP_PHONE[3]",^a(employee.emp_phone[3]),false) && initBadData)
+                clear employee.emp_phone[3]
+            if (!CheckDecimal(employee,"EMP_PAID",^a(employee.emp_paid),false) && initBadData)
+                init employee.emp_paid
+            if (!CheckDecimal(employee,"EMP_HOME_OK",^a(employee.emp_home_ok),false) && initBadData)
+                init employee.emp_home_ok
+
+            ;;Check that integer fields contain valid numeric values
+
+            ;;Check that date fields contain valid date values
+            if (!CheckDate(employee,"EMP_HIRE_DATE",^a(employee.emp_hire_date),false) && initBadData)
+                init employee.emp_hire_date
+            if (!CheckDate(employee,"EMP_DATE_OF_BIRTH",^a(employee.emp_date_of_birth),false) && initBadData)
+                init employee.emp_date_of_birth
+
+            ;;Check that time fields contain valid time values
+            if (!CheckTime(employee,"EMP_TIME_OF_BIRTH",^a(employee.emp_time_of_birth)) && initBadData)
+                init employee.emp_time_of_birth
+
+            ;;If necessary, update the record
+            if (initBadData&&saveRecord)
+                enumerator.Current = employee
+        end
+
+        if (errors) then
+        begin
+            writes(tt,%string(errors) + " errors were found. Check log file EmployeeDataReport.log")
+            close log
+            xcall shell(,"EmployeeDataReport.log",D_NOWINDOW)
+        end
+        else
+        begin
+            writes(tt,"No problems detected")
+            purge log
+        end
     end
 
     close ch
@@ -75,21 +146,54 @@ subroutine LogError
         ch, i4
         log, i4
         errors, i4
+        initBadData, boolean
+        saveRecord, boolean
     endcommon
     stack record
         field, a30
     endrecord
 proc
+    if (!saveRecord)
+    begin
+        writes(log,"Record " + %keyval(ch,fullRecord,0))
+        saveRecord = true
+    end
     field = fieldName
-    writes(log,"Record " + %keyval(ch,fullRecord,0) + " field " + field + " " + errorMessage + " " + fieldData)
+    writes(log," - " + field + " " + errorMessage + " " + fieldData)
     errors += 1
     xreturn
 endsubroutine
 
-subroutine CheckDecimal
+function CheckDecimal, boolean
     required in fullRecord, strEmployee
     required in fieldName, string
-    required in fieldData, d
+    required in fieldData, a
+    required in allowNegative, boolean
+    endparams
+    stack record
+        ok, boolean
+    endrecord
+proc
+    try
+    begin
+        data tmpval, d28
+        tmpval = fieldData
+        ok = ((tmpval>=0)||allowNegative)
+    end
+    catch (ex, @BadDigitException)
+    begin
+        ok = false
+    end
+    endtry
+    if (!ok)
+        LogError(fullRecord,fieldName,"Invalid decimal value",fieldData)
+    freturn ok
+endfunction
+
+function CheckInteger, boolean
+    required in fullRecord, strEmployee
+    required in fieldName, string
+    required in fieldData, a
     required in allowNegative, boolean
     endparams
     stack record
@@ -98,90 +202,135 @@ subroutine CheckDecimal
 proc
     ok = true
 
-    ;TODO: Add validation code
+    using ^size(fieldData) select
+    (1),
+    begin
+        data ival, i1
+        ival = ^i(fieldData)
+        ok = ((ival>=0)||allowNegative)
+    end
+    (2),
+    begin
+        data ival, i2
+        ival = ^i(fieldData)
+        ok = ((ival>=0)||allowNegative)
+    end
+    (4),
+    begin
+        data ival, i4
+        ival = ^i(fieldData)
+        ok = ((ival>=0)||allowNegative)
+    end
+    (8),
+    begin
+        data ival, i8
+        ival = ^i(fieldData)
+        ok = ((ival>=0)||allowNegative)
+    end
+    (),
+    begin
+        ok = false
+    end
+    endusing
 
     if (!ok)
-        LogError(fullRecord,fieldName,"",^a(fieldData))
+        LogError(fullRecord,fieldName,"Invalid integer value",fieldData)
 
-    xreturn
-endsubroutine
+    freturn ok
+endfunction
 
-subroutine CheckImpliedDecimal
+function CheckDate, boolean
     required in fullRecord, strEmployee
     required in fieldName, string
-    required in fieldData, d.
-    required in allowNegative, boolean
-    endparams
-    stack record
-        ok, boolean
-    endrecord
-proc
-    ok = true
-
-    ;TODO: Add validation code
-
-    if (!ok)
-        LogError(fullRecord,fieldName,"",^a(fieldData))
-
-    xreturn
-endsubroutine
-
-subroutine CheckInteger
-    required in fullRecord, strEmployee
-    required in fieldName, string
-    required in fieldData, i
-    required in allowNegative, boolean
-    endparams
-    stack record
-        ok, boolean
-    endrecord
-proc
-    ok = true
-
-    ;TODO: Add validation code
-
-    if (!ok)
-        LogError(fullRecord,fieldName,"",^a(fieldData))
-
-    xreturn
-endsubroutine
-
-subroutine CheckDate
-    required in fullRecord, strEmployee
-    required in fieldName, string
-    required in fieldData, d
+    required in fieldData, a
     required in allowNull, boolean
     endparams
     stack record
         ok, boolean
+        dval, d28
     endrecord
 proc
     ok = true
 
-    ;TODO: Add validation code
+    ;;Check the value is a valid decimal
+    try
+    begin
+        dval = fieldData
+        ok = true
+    end
+    catch (ex, @BadDigitException)
+    begin
+        ok = false
+    end
+    endtry
+
+    ;;Only allow zero values where supported
+    ok = (ok&&((dval>0)||((dval==0)&&allowNull)))
+
+    ;;Check we have a valid date
+    if (ok)
+    begin
+        try
+        begin
+            data julian, i4
+            julian = %jperiod(^d(fieldData))
+            ok = true
+        end
+        catch (ex, @SynException)
+        begin
+            ok = false
+        end
+        endtry
+    end
 
     if (!ok)
-        LogError(fullRecord,fieldName,"",^a(fieldData))
+        LogError(fullRecord,fieldName,"Invalid date value",fieldData)
 
-    xreturn
-endsubroutine
+    freturn ok
 
-subroutine CheckTime
+endfunction
+
+function CheckTime, boolean
     required in fullRecord, strEmployee
     required in fieldName, string
-    required in fieldData, d
+    required in group fieldData, a
+        hour, d2
+        minute, d2
+        second, d2
+    endgroup
     endparams
     stack record
         ok, boolean
+        dval, d28
     endrecord
 proc
     ok = true
 
-    ;TODO: Add validation code
+    ;;Check the value is a valid decimal
+    try
+    begin
+        dval = fieldData
+        ok = true
+    end
+    catch (ex, @BadDigitException)
+    begin
+        ok = false
+    end
+    endtry
+
+    ;;Check the value is a valid time
+    if (ok)
+    begin
+        ;;Hour and minute
+        ok = ((hour>=0)&&(hour<=23)&&(minute>=0)&&(minute<=59))
+        ;;Second
+        if (^size(fieldData)==6)
+            ok = (ok&&((second>=0)&&(second<=59)))
+    end
 
     if (!ok)
-        LogError(fullRecord,fieldName,"",^a(fieldData))
+        LogError(fullRecord,fieldName,"Invalid time value",fieldData)
 
-    xreturn
-endsubroutine
+    freturn ok
+endfunction
 

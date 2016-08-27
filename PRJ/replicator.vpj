@@ -99,6 +99,14 @@
                     CmdLine="SynSetupCompileScripts"
                     Type="Slick-C"/>
             </Target>
+            <Target
+                Name="Regenerate Code"
+                MenuCaption="&amp;Regenerate Code"
+                RunFromDir="%wp"
+                CaptureOutputWith="ProcessBuffer"
+                SaveOption="SaveAll">
+                <Exec CmdLine="regen.bat"/>
+            </Target>
         </Menu>
         <SynSettings>
             <SynSetting
@@ -273,6 +281,14 @@
                     CmdLine="SynSetupCompileScripts"
                     Type="Slick-C"/>
             </Target>
+            <Target
+                Name="Regenerate Code"
+                MenuCaption="&amp;Regenerate Code"
+                RunFromDir="%wp"
+                CaptureOutputWith="ProcessBuffer"
+                SaveOption="SaveAll">
+                <Exec CmdLine="regen.bat"/>
+            </Target>
         </Menu>
         <SynSettings>
             <SynSetting
@@ -427,6 +443,14 @@
                     CmdLine="SynSetupCompileScripts"
                     Type="Slick-C"/>
             </Target>
+            <Target
+                Name="Regenerate Code"
+                MenuCaption="&amp;Regenerate Code"
+                RunFromDir="%wp"
+                CaptureOutputWith="ProcessBuffer"
+                SaveOption="SaveAll">
+                <Exec CmdLine="regen.bat"/>
+            </Target>
         </Menu>
         <SynSettings>
             <SynSetting
@@ -580,6 +604,14 @@
                 <Exec
                     CmdLine="SynSetupCompileScripts"
                     Type="Slick-C"/>
+            </Target>
+            <Target
+                Name="Regenerate Code"
+                MenuCaption="&amp;Regenerate Code"
+                RunFromDir="%wp"
+                CaptureOutputWith="ProcessBuffer"
+                SaveOption="SaveAll">
+                <Exec CmdLine="regen.bat"/>
             </Target>
         </Menu>
         <SynSettings>
