@@ -1,13 +1,13 @@
 
-# SQL Replication via I/O Hooks and Unique Key
+# ISAM to SQL Replication via I/O Hooks
 
-This repository contains an example of how to modify a Synergy application that stores its data in ISAM files to replicate that ISAM data to a SQL Server database in near-to real-time.
+This repository contains an example of how to implement the replication of a Synergy applications ISAM data to a relational database in near-to real-time.
 
-To facilitate code generation it is a requirement that the data structures (including key definitions) and files that are to be replicated are acurately described in a Synergy repository. Once your repository definitions are complete, CodeGen is used to generate various types of code relating to the data structures and files that are to be replicated.
+The techniques demonstrated in this example are based in large part on code that is automatically generated using CodeGen. It is therefore a requirement that the data structures and files that are to be replicated, including key definitions, are acurately described in a Synergy repository.
 
-The original application is then modified with the addition of an I/O hooks object to any channels that are opened for update to files that are to be replicated. If your application already uses a single subroutine to open data files then this change will be the addition of just a few lines of code in that subroutine. The code in the I/O hooks class is responsible for tracking and recording the records that change in the underlying ISAM files.
+Once the bulk of the code that is required to achieve the replication of data has been generated, the underlying application is modified by the addition of an I/O hooks object to any channels that are opened for update to files that are to be replicated. If your application already uses one or more subroutines to open its data files then those subroutines will be the only places that you need to alter, and the required change will typically be the addition of just a few lines of code to those routines. The code in the generated I/O hooks class detects and records changes to the ISAM files that are being replicated.
 
-Once this change information is being recorded a single process called the "replicator" is then used to mirror those changes to matching tables in a SQL Server database.
+Once this change information is being recorded a single process called the "replicator" is used to cause those changes to be mirrored to corresponding tables in the relational database.
 
 There are several advantages to taking this kind of approach, some of the major ones being:
 
