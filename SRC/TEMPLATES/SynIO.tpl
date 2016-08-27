@@ -137,7 +137,7 @@ namespace <NAMESPACE>
         begin
             open(a_channel=0,u:i,"<FILE_NAME>") [ERR=openError]
             <IF DEFINED_ATTACH_IO_HOOKS>
-            new <StructureName>Hooks(a_channel)
+            new ReplicationIoHooks(a_channel,"<STRUCTURE_NAME>")
             </IF>
         end
 

@@ -176,7 +176,6 @@
             Name="Source Files"
             Filters="*.dbl;*.tpl;*.dbc">
             <F N="../SRC/LIBRARY/DepartmentIO.dbl"/>
-            <F N="../SRC/LIBRARY/EmployeeHooks.dbl"/>
             <F N="../SRC/LIBRARY/EmployeeIO.dbl"/>
             <F N="../SRC/LIBRARY/EmployeeKeyToRecord.dbl"/>
             <F N="../SRC/LIBRARY/EmployeeSqlIO.dbl"/>
@@ -185,6 +184,7 @@
             <F N="../SRC/LIBRARY/IsTime.dbl"/>
             <F N="../SRC/LIBRARY/LastRecordCache.dbl"/>
             <F N="../SRC/LIBRARY/Replicate.dbl"/>
+            <F N="../SRC/LIBRARY/ReplicationIoHooks.dbl"/>
         </Folder>
         <Folder
             Name="Header Files"

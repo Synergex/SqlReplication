@@ -116,7 +116,7 @@ namespace SynPSG.ReplicationDemo
         (IO_OPEN_UPD),
         begin
             open(a_channel=0,u:i,"DAT:EMPLOYEE.ISM") [ERR=openError]
-            new EmployeeHooks(a_channel)
+            new ReplicationIoHooks(a_channel,"EMPLOYEE")
         end
 
         (IO_FIND),

@@ -1,4 +1,4 @@
-<CODEGEN_FILENAME><StructureName>Hooks.dbl</CODEGEN_FILENAME>
+<CODEGEN_FILENAME>ReplicationIoHooks.dbl</CODEGEN_FILENAME>
 <PROCESS_TEMPLATE>SynIO</PROCESS_TEMPLATE>
 <PROCESS_TEMPLATE>SqlIO</PROCESS_TEMPLATE>
 <PROCESS_TEMPLATE>replicate</PROCESS_TEMPLATE>
@@ -15,12 +15,11 @@
 ;//
 ;;*****************************************************************************
 ;;
-;; File:        <StructureName>SqlIO.dbl
+;; File:        ReplicationIoHooks.dbl
 ;;
-;; Type:        Class (<StructureName>Hooks)
+;; Type:        Class (ReplicationIoHooks)
 ;;
-;; Description: An I/O Hooks class that implements SQL data replication for the
-;;              file <FILE_NAME>
+;; Description: An I/O Hooks class that implements SQL data replication
 ;;
 ;; Author:      <AUTHOR>
 ;;
@@ -62,33 +61,74 @@ import Synergex.SynergyDE.Select
 namespace <NAMESPACE>
 
     ;;-------------------------------------------------------------------------
-    ;;I/O hooks class for <FILE_NAME>
+    ;;I/O hooks class that implements SQL Replication
     ;;
-    public sealed class <StructureName>Hooks extends IOHooks
+    public sealed class ReplicationIoHooks extends IOHooks
 
+        private mStructureName, string
         private mActive, boolean
         private mChannel, int, 0
-        private <structureName>, str<StructureName>
+        private mKeyNum, int, -1
+        private mFillTimeStamp, boolean, false
+        private mTimeStampPos, int, 0
 
         ;;---------------------------------------------------------------------
         ;;Constructor
 
-        public method <StructureName>Hooks
+        public method ReplicationIoHooks
             required in aChannel, n
+            required in aStructureName, string
             endparams
             parent(aChannel)
             record
                 openMode, a3
+                thisKey, i4
+            endrecord
+            record keyinfo
+                keypos ,d5
+                keylen ,d3
+                keydup ,d1
+                keyasc ,d1
+                keymod ,d1
+                keynam ,a15
+                key_spos ,8d5
+                key_slen ,8d3
             endrecord
         proc
             ;;Make sure the channel is to an indexed file and open in update mode
             xcall getfa(aChannel,"OMD",openMode)
             if (mActive = (openMode=="U:I"))
             begin
-                ;;Record the channel number
+                ;;Record the structure name and channel number
+                mStructureName = aStructureName
                 mChannel = aChannel
-                ;;Initialize the last record cache for the channel
-                LastRecordCache.Init(mChannel)
+
+                ;;Search for the first unique key
+                for thisKey from 0 thru %isinfo(mChannel,"NUMKEYS") - 1
+                begin
+                    if (!%isinfoa(mChannel,"DUPS",thisKey))
+                    begin
+                        ;;Found one
+                        mKeyNum = thisKey
+
+                        ;;Is it REPLICATION_KEY and 20 long? If so we will cause the PRE STORE hook
+                        ;;to fill the key with a timestamp value for new records.
+                        xcall iskey(mChannel,mKeyNum,keyinfo)
+                        upcase keyinfo.keynam
+                        if ((mFillTimeStamp=(keyinfo.keynam=="REPLICATION_KEY"))&&(keylen==20))
+                            mTimeStampPos = keypos
+
+                        ;;Good to go
+                        exitloop
+                    end
+                end
+
+                ;;Did we find a unique key? If not, we can't enable replication.
+                if (mActive=(mKeyNum>=0))
+                begin
+                    ;;Initialize the last record cache for the channel
+                    LastRecordCache.Init(mChannel)
+                end
             end
         endmethod
 
@@ -96,7 +136,7 @@ namespace <NAMESPACE>
         ;;CLOSE hooks
 
         public override method close_pre_operation_hook, void
-            required in          aFlags,  IOFlags
+            required in aFlags, IOFlags
             endparams
         proc
             if (mActive)
@@ -113,15 +153,12 @@ namespace <NAMESPACE>
 ;//     endmethod
 ;//
         public override method delete_post_operation_hook, void
-            required inout       aError,  int
+            required inout aError, int
             endparams
         proc
+            ;;A record was just deleted. Replicate the change.
             if (mActive && !aError)
-            begin
-                ;;A record was just deleted. Replicate the change.
-                <structureName> = LastRecordCache.Retrieve(mChannel)
-                xcall replicate(REPLICATION_INSTRUCTION.DELETE_ROW,"<STRUCTURE_NAME>",%keyval(mChannel,<structureName>,0))
-            end
+                xcall replicate(REPLICATION_INSTRUCTION.DELETE_ROW,mStructureName,%keyval(mChannel,LastRecordCache.Retrieve(mChannel),mKeyNum))
         endmethod
 
 ;//     ;;---------------------------------------------------------------------
@@ -161,7 +198,7 @@ namespace <NAMESPACE>
 ;//     endmethod
 ;//
         public override method read_post_operation_hook, void
-            required inout       a<StructureName>, a
+            required inout       aRecord, a
             optional in mismatch aKey,    n
             optional in          aRfa,    a
             optional in          aKeynum, n
@@ -172,7 +209,7 @@ namespace <NAMESPACE>
             if (mActive && !aError)
             begin
                 ;;Record the record that was just read (to support delete)
-                LastRecordCache.Update(mChannel,a<StructureName>)
+                LastRecordCache.Update(mChannel,aRecord)
             end
         endmethod
 
@@ -187,43 +224,42 @@ namespace <NAMESPACE>
 ;//     endmethod
 ;//
         public override method reads_post_operation_hook ,void
-            required inout       a<StructureName>, a
-            optional in          aRfa,    a
-            required in          aFlags,  IOFlags
-            required inout       aError,  int
+            required inout aRecord, a
+            optional in    aRfa,    a
+            required in    aFlags,  IOFlags
+            required inout aError,  int
             endparams
         proc
             if (mActive && !aError)
             begin
                 ;;Record the record that was just read (to support delete)
-                LastRecordCache.Update(mChannel,a<StructureName>)
+                LastRecordCache.Update(mChannel,aRecord)
             end
         endmethod
 
         ;;---------------------------------------------------------------------
         ;;STORE hooks
 
-;//     public override method store_pre_operation_hook, void
-;//         required inout a<StructureName>, a
-;//         required in          aFlags,  IOFlags
-;//         endparams
-;//     proc
-;//
-;//     endmethod
-;//
+        public override method store_pre_operation_hook, void
+            required inout aRecord, a
+            required in    aFlags,  IOFlags
+            endparams
+        proc
+            ;;If we're using REPLICATION_KEY then add the timestamp value for the new record
+            if (mActive&&mFillTimeStamp)
+                aRecord(mTimeStampPos:20) = %datetime
+        endmethod
+
         public override method store_post_operation_hook, void
-            required inout       a<StructureName>, a
+            required inout       aRecord, a
             optional in          aRfa,    a
             required in          aFlags,  IOFlags
             required inout       aError,  int
             endparams
         proc
+            ;;A new record was just created. Replicate the change.
             if (mActive && !aError)
-            begin
-                ;;A new record was just created. Replicate the change.
-                <structureName> = a<StructureName>
-                xcall replicate(REPLICATION_INSTRUCTION.CREATE_ROW,"<STRUCTURE_NAME>",%keyval(mChannel,<structureName>,0))
-            end
+                xcall replicate(REPLICATION_INSTRUCTION.CREATE_ROW,mStructureName,%keyval(mChannel,aRecord,mKeyNum))
         endmethod
 
 ;//     ;;---------------------------------------------------------------------
@@ -259,22 +295,17 @@ namespace <NAMESPACE>
 ;//     endmethod
 ;//
         public override method write_post_operation_hook, void
-            required inout       a<StructureName>, a
+            required inout       aRecord, a
             optional in          aRecnum, n
             optional in          aRfa,    a
             required in          aFlags,  IOFlags
             required inout       aError,  int
             endparams
         proc
+            ;;A record was just updated. If it changed then replicate the change.
             if (mActive && !aError)
-            begin
-                ;;A record was just updated. If it changed then replicate the change.
-                if (LastRecordCache.HasChanged(mChannel,a<StructureName>))
-                begin
-                    <structureName> = a<StructureName>
-                    xcall replicate(REPLICATION_INSTRUCTION.UPDATE_ROW,"<STRUCTURE_NAME>",%keyval(mChannel,<structureName>,0))
-                end
-            end
+                if (LastRecordCache.HasChanged(mChannel,aRecord))
+                    xcall replicate(REPLICATION_INSTRUCTION.UPDATE_ROW,mStructureName,%keyval(mChannel,aRecord,mKeyNum))
         endmethod
 
 ;//     ;;---------------------------------------------------------------------
