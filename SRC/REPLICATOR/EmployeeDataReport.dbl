@@ -74,6 +74,29 @@ proc
 
     if (ch)
     begin
+        ;;Look for a unique key in the file
+        data uniqueKey, int, -1
+        data thisKey, int
+        for thisKey from 0 thru %isinfo(ch,"NUMKEYS") - 1
+        begin
+            if (!%isinfoa(ch,"DUPS",thisKey))
+            begin
+                ;;Found one
+                uniqueKey = thisKey
+                exitloop
+            end
+        end
+
+        ;;Did we find one
+        if (uniqueKey==-1)
+        begin
+            writes(tt,"Replication not possible - no unique key found!")
+            close ch
+        end
+    end
+
+    if (ch)
+    begin
         ;;Prepare to read all records from the file
         selector = new Select(new From(ch,employee))
         enumerator = selector.GetEnumerator()
