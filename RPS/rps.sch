@@ -1,11 +1,11 @@
  
 ;  SYNERGY DATA LANGUAGE OUTPUT
 ;
-;  REPOSITORY     : C:\DEV\PUBLIC\SqlReplicationIoHooksPrimaryKey\RPS\rpsmain.is
-;                 : C:\DEV\PUBLIC\SqlReplicationIoHooksPrimaryKey\RPS\rpstext.is
+;  REPOSITORY     : C:\DEV\PUBLIC\SqlReplicationIoHooks\RPS\rpsmain.ism
+;                 : C:\DEV\PUBLIC\SqlReplicationIoHooks\RPS\rpstext.ism
 ;                 : Version 10.3.3a
 ;
-;  GENERATED      : 05-AUG-2016, 09:01:34
+;  GENERATED      : 06-SEP-2016, 11:18:50
 ;                 : Version 10.3.3a
 ;  EXPORT OPTIONS : [ALL-K-R-A] 
  
