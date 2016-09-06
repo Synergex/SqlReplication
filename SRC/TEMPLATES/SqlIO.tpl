@@ -118,9 +118,11 @@ namespace <NAMESPACE>
         begin
             sql = "CREATE TABLE <StructureName> ("
             <FIELD_LOOP>
-            & + "<FieldSqlName> <FIELD_SQLTYPE><IF REQUIRED> NOT NULL</IF>,"
+            & + "<FieldSqlName> <FIELD_SQLTYPE><IF REQUIRED> NOT NULL</IF><IF STRUCTURE_HAS_UNIQUE_PK>,</IF STRUCTURE_HAS_UNIQUE_PK>"
             </FIELD_LOOP>
+            <IF STRUCTURE_HAS_UNIQUE_PK>
             & + "CONSTRAINT PK_<StructureName> PRIMARY KEY CLUSTERED(<PRIMARY_KEY><SEGMENT_LOOP><SegmentName> <SEGMENT_ORDER><,></SEGMENT_LOOP></PRIMARY_KEY>)"
+            </IF STRUCTURE_HAS_UNIQUE_PK>
             & + ")"
 
             call open_cursor
@@ -132,12 +134,30 @@ namespace <NAMESPACE>
             end
         end
 
+        <IF STRUCTURE_HAS_UNIQUE_PK>
+        <ELSE>
+        <PRIMARY_KEY>
+        ;;The structure has no unique primary key, so no primary key constraint was added to the table. Create an index instead.
+        if (ok)
+        begin
+            sql = "CREATE INDEX IX_<StructureName>_<KeyName> ON <StructureName>(<SEGMENT_LOOP><SegmentName> <SEGMENT_ORDER><,></SEGMENT_LOOP>)"
+
+            call open_cursor
+
+            if (ok)
+            begin
+                call execute_cursor
+                call close_cursor
+            end
+        end
+        </PRIMARY_KEY>
+
+        </IF STRUCTURE_HAS_UNIQUE_PK>
         <ALTERNATE_KEY_LOOP>
         ;;Create index <KEY_NUMBER> (<KEY_DESCRIPTION>)
         if (ok)
         begin
-            sql = "CREATE <KEY_UNIQUE> INDEX IX_<StructureName>_<KeyName> "
-            &     "ON <StructureName>(<SEGMENT_LOOP><SegmentName> <SEGMENT_ORDER><,></SEGMENT_LOOP>)"
+            sql = "CREATE <KEY_UNIQUE> INDEX IX_<StructureName>_<KeyName> ON <StructureName>(<SEGMENT_LOOP><SegmentName> <SEGMENT_ORDER><,></SEGMENT_LOOP>)"
 
             call open_cursor
 

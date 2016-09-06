@@ -126,8 +126,7 @@ namespace SynPSG.ReplicationDemo
         ;;Create index 1 (Department ID)
         if (ok)
         begin
-            sql = "CREATE  INDEX IX_Employee_EmpDept "
-            &     "ON Employee(EmpDept ASC)"
+            sql = "CREATE  INDEX IX_Employee_EmpDept ON Employee(EmpDept ASC)"
 
             call open_cursor
 
@@ -141,8 +140,7 @@ namespace SynPSG.ReplicationDemo
         ;;Create index 2 (Last name)
         if (ok)
         begin
-            sql = "CREATE  INDEX IX_Employee_EmpLastName "
-            &     "ON Employee(EmpLastName ASC)"
+            sql = "CREATE  INDEX IX_Employee_EmpLastName ON Employee(EmpLastName ASC)"
 
             call open_cursor
 
