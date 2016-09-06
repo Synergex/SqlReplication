@@ -651,16 +651,15 @@ namespace <NAMESPACE>
             length      ,int        ;;Length of a string
             errtxt      ,a256       ;;Error message text
             <FIELD_LOOP>
-            <IF NOTUSERTIMESTAMP>
+            <IF USERTIMESTAMP>
+            tmp<FieldName>, a26     ;;Storage for user-defined timestamp field
+            <ELSE>
             <IF TIME_HHMM>
             tmp<FieldName>, a5      ;;Storage for HH:MM time field
             </IF TIME_HHMM>
             <IF TIME_HHMMSS>
             tmp<FieldName>, a7      ;;Storage for HH:MM:SS time field
             </IF TIME_HHMMSS>
-            </IF NOTUSERTIMESTAMP>
-            <IF USERTIMESTAMP>
-            tmp<FieldName>, a26     ;;Storage for user-defined timestamp field
             </IF USERTIMESTAMP>
             </FIELD_LOOP>
         endrecord
@@ -697,12 +696,11 @@ namespace <NAMESPACE>
                 </FIELD_LOOP>
                 & + ") VALUES("
                 <FIELD_LOOP>
-                <IF NOTUSERTIMESTAMP>
-                & + ":<FIELD#LOGICAL><,>"
-                </IF>
                 <IF USERTIMESTAMP>
                 & + "CONVERT(DATETIME2,:<FIELD#LOGICAL>,21)<,>"
-                </IF>
+                <ELSE>
+                & + ":<FIELD#LOGICAL><,>"
+                </IF USERTIMESTAMP>
                 </FIELD_LOOP>
                 & + ")"
             end
@@ -721,7 +719,9 @@ namespace <NAMESPACE>
         begin
             if (%ssc_bind(a_dbchn,cursor,<STRUCTURE_FIELDS>,
             <FIELD_LOOP>
-            <IF NOTUSERTIMESTAMP>
+            <IF USERTIMESTAMP>
+            &    tmp<FieldName><,>
+            <ELSE>
             <IF ALPHA>
             &    <field_path><,>
             </IF ALPHA>
@@ -734,9 +734,6 @@ namespace <NAMESPACE>
             <IF TIME>
             &    tmp<FieldName><,>
             </IF TIME>
-            </IF NOTUSERTIMESTAMP>
-            <IF USERTIMESTAMP>
-            &    tmp<FieldName><,>
             </IF USERTIMESTAMP>
             </FIELD_LOOP>
             &   )==SSQL_FAILURE)
@@ -757,35 +754,36 @@ namespace <NAMESPACE>
             ;;Clean up the data
             <FIELD_LOOP>
             <IF ALPHA>
+            <IF NOTPKSEGMENT>
             <field_path>=%atrim(<field_path>)+%char(0)
-            </IF>
+            </IF NOTPKSEGMENT>
+            </IF ALPHA>
             <IF DECIMAL>
             if ((!<field_path>)||(!%IsNumeric(^a(<field_path>))))
                 clear <field_path>
-            </IF>
+            </IF DECIMAL>
             <IF DATE>
             if ((!<field_path>)||(!%IsDate(^a(<field_path>))))
                 ^a(<field_path>(1:1))=%char(0)
-            </IF>
+            </IF DATE>
             <IF TIME>
             if ((!<field_path>)||(!%IsTime(^a(<field_path>))))
                 ^a(<field_path>(1:1))=%char(0)
-            </IF>
+            </IF TIME>
             </FIELD_LOOP>
 
             ;;Assign any time or user-defined timestamp fields
             <FIELD_LOOP>
-            <IF NOTUSERTIMESTAMP>
-            <IF TIME_HHMM>
-            tmp<FieldName> = %string(<field_path>,"XX:XX")
-            </IF>
-            <IF TIME_HHMMSS>
-            tmp<FieldName> = %string(<field_path>,"XX:XX:SS")
-            </IF>
-            </IF NOTUSERTIMESTAMP>
             <IF USERTIMESTAMP>
             tmp<FieldName> = %string(^d(<field_path>),"XXXX-XX-XX XX:XX:XX.XXXXXX")
-            </IF>
+            <ELSE>
+            <IF TIME_HHMM>
+            tmp<FieldName> = %string(<field_path>,"XX:XX")
+            </IF TIME_HHMM>
+            <IF TIME_HHMMSS>
+            tmp<FieldName> = %string(<field_path>,"XX:XX:SS")
+            </IF TIME_HHMMSS>
+            </IF USERTIMESTAMP>
             </FIELD_LOOP>
 
             ;;Execute INSERT statement
@@ -909,16 +907,15 @@ namespace <NAMESPACE>
             continue    ,int        ;;Continue after an error
             errtxt      ,a512       ;;Error message text
             <FIELD_LOOP>
-            <IF NOTUSERTIMESTAMP>
+            <IF USERTIMESTAMP>
+            tmp<FieldName>, a26     ;;Storage for user-defined timestamp field
+            <ELSE>
             <IF TIME_HHMM>
             tmp<FieldName>, a5      ;;Storage for HH:MM time field
             </IF TIME_HHMM>
             <IF TIME_HHMMSS>
             tmp<FieldName>, a7      ;;Storage for HH:MM:SS time field
             </IF TIME_HHMMSS>
-            </IF NOTUSERTIMESTAMP>
-            <IF USERTIMESTAMP>
-            tmp<FieldName>, a26     ;;Storage for user-defined timestamp field
             </IF USERTIMESTAMP>
             </FIELD_LOOP>
         endrecord
@@ -959,11 +956,10 @@ namespace <NAMESPACE>
                 </FIELD_LOOP>
                 & + ") VALUES("
                 <FIELD_LOOP>
-                <IF NOTUSERTIMESTAMP>
-                & + ":<FIELD#LOGICAL><,>"
-                </IF NOTUSERTIMESTAMP>
                 <IF USERTIMESTAMP>
                 & + "CONVERT(DATETIME2,:<FIELD#LOGICAL>,21)<,>"
+                <ELSE>
+                & + ":<FIELD#LOGICAL><,>"
                 </IF USERTIMESTAMP>
                 </FIELD_LOOP>
                 & + ")"
@@ -982,7 +978,9 @@ namespace <NAMESPACE>
         begin
             if (%ssc_bind(a_dbchn,cursor,<STRUCTURE_FIELDS>,
             <FIELD_LOOP>
-            <IF NOTUSERTIMESTAMP>
+            <IF USERTIMESTAMP>
+            &    tmp<FieldName><,>
+            <ELSE>
             <IF ALPHA>
             &    <field_path><,>
             </IF ALPHA>
@@ -995,9 +993,6 @@ namespace <NAMESPACE>
             <IF TIME>
             &    tmp<FieldName><,>
             </IF TIME>
-            </IF NOTUSERTIMESTAMP>
-            <IF USERTIMESTAMP>
-            &    tmp<FieldName><,>
             </IF USERTIMESTAMP>
             </FIELD_LOOP>
             &   )==SSQL_FAILURE)
@@ -1019,35 +1014,36 @@ namespace <NAMESPACE>
                 ;;Clean up the data
                 <FIELD_LOOP>
                 <IF ALPHA>
+                <IF NOTPKSEGMENT>
                 <field_path>=%atrim(<field_path>)+%char(0)
-                </IF>
+                </IF NOTPKSEGMENT>
+                </IF ALPHA>
                 <IF DECIMAL>
                 if ((!<field_path>)||(!%IsNumeric(^a(<field_path>))))
                     clear <field_path>
-                </IF>
+                </IF DECIMAL>
                 <IF DATE>
                 if ((!<field_path>)||(!%IsDate(^a(<field_path>))))
                     ^a(<field_path>(1:1))=%char(0)
-                </IF>
+                </IF DATE>
                 <IF TIME>
                 if ((!<field_path>)||(!%IsTime(^a(<field_path>))))
                     ^a(<field_path>(1:1))=%char(0)
-                </IF>
+                </IF TIME>
                 </FIELD_LOOP>
 
                 ;;Assign any time or user-defined timestamp fields
                 <FIELD_LOOP>
-                <IF NOTUSERTIMESTAMP>
+                <IF USERTIMESTAMP>
+                tmp<FieldName> = %string(^d(<field_path>),"XXXX-XX-XX XX:XX:XX.XXXXXX")
+                <ELSE>
                 <IF TIME_HHMM>
                 tmp<FieldName> = %string(<field_path>,"XX:XX")
                 </IF TIME_HHMM>
                 <IF TIME_HHMMSS>
                 tmp<FieldName> = %string(<field_path>,"XX:XX:XX")
                 </IF TIME_HHMMSS>
-                </IF NOTUSERTIMESTAMP>
-                <IF USERTIMESTAMP>
-                tmp<FieldName> = %string(^d(<field_path>),"XXXX-XX-XX XX:XX:XX.XXXXXX")
-                </IF>
+                </IF USERTIMESTAMP>
                 </FIELD_LOOP>
 
                 ;;Execute the statement
@@ -1363,16 +1359,15 @@ namespace <NAMESPACE>
             errtxt      ,a256       ;;Error message text
             sql         ,string     ;;SQL statement
             <FIELD_LOOP>
-            <IF NOTUSERTIMESTAMP>
+            <IF USERTIMESTAMP>
+            tmp<FieldName>, a26     ;;Storage for user-defined timestamp field
+            <ELSE>
             <IF TIME_HHMM>
             tmp<FieldName>, a5      ;;Storage for HH:MM time field
             </IF TIME_HHMM>
             <IF TIME_HHMMSS>
             tmp<FieldName>, a7      ;;Storage for HH:MM:SS time field
             </IF TIME_HHMMSS>
-            </IF NOTUSERTIMESTAMP>
-            <IF USERTIMESTAMP>
-            tmp<FieldName>, a26     ;;Storage for user-defined timestamp field
             </IF USERTIMESTAMP>
             </FIELD_LOOP>
         endrecord
@@ -1403,12 +1398,11 @@ namespace <NAMESPACE>
         begin
             sql = "UPDATE <StructureName> SET "
             <FIELD_LOOP>
-            <IF NOTUSERTIMESTAMP>
-            & + "<FieldSqlName>=:<FIELD#LOGICAL><,>"
-            </IF>
             <IF USERTIMESTAMP>
             & + "<FieldSqlName>=CONVERT(DATETIME2,:<FIELD#LOGICAL>,21)<,>"
-            </IF>
+            <ELSE>
+            & + "<FieldSqlName>=:<FIELD#LOGICAL><,>"
+            </IF USERTIMESTAMP>
             </FIELD_LOOP>
             & + " WHERE"
             <PRIMARY_KEY>
@@ -1430,7 +1424,9 @@ namespace <NAMESPACE>
         begin
             if (%ssc_bind(a_dbchn,cursor,<STRUCTURE_FIELDS>,
             <FIELD_LOOP>
-            <IF NOTUSERTIMESTAMP>
+            <IF USERTIMESTAMP>
+            &    tmp<FieldName><,>
+            <ELSE>
             <IF ALPHA>
             &    <field_path><,>
             </IF ALPHA>
@@ -1443,9 +1439,6 @@ namespace <NAMESPACE>
             <IF TIME>
             &    tmp<FieldName><,>
             </IF TIME>
-            </IF NOTUSERTIMESTAMP>
-            <IF USERTIMESTAMP>
-            &    tmp<FieldName><,>
             </IF USERTIMESTAMP>
             </FIELD_LOOP>
             &   )==SSQL_FAILURE)
@@ -1462,34 +1455,35 @@ namespace <NAMESPACE>
             ;;Clean up the data
             <FIELD_LOOP>
             <IF ALPHA>
+            <IF NOTPKSEGMENT>
             <field_path>=%atrim(<field_path>)+%char(0)
-            </IF>
+            </IF NOTPKSEGMENT>
+            </IF ALPHA>
             <IF DECIMAL>
             if ((!<field_path>)||(!%IsNumeric(^a(<field_path>))))
                 clear <field_path>
-            </IF>
+            </IF DECIMAL>
             <IF DATE>
             if ((!<field_path>)||(!%IsDate(^a(<field_path>))))
                 ^a(<field_path>(1:1))=%char(0)
-            </IF>
+            </IF DATE>
             <IF TIME>
             if ((!<field_path>)||(!%IsTime(^a(<field_path>))))
                 ^a(<field_path>(1:1))=%char(0)
-            </IF>
+            </IF TIME>
             </FIELD_LOOP>
 
             ;;Assign any time and user-defined timestamp fields
             <FIELD_LOOP>
-            <IF NOTUSERTIMESTAMP>
+            <IF USERTIMESTAMP>
+            tmp<FieldName> = %string(^d(<field_path>),"XXXX-XX-XX XX:XX:XX.XXXXXX")
+            <ELSE>
             <IF TIME_HHMM>
             tmp<FieldName> = %string(<field_path>,"XX:XX")
             </IF TIME_HHMM>
             <IF TIME_HHMMSS>
             tmp<FieldName> = %string(<field_path>,"XX:XX:XX")
             </IF TIME_HHMMSS>
-            </IF NOTUSERTIMESTAMP>
-            <IF USERTIMESTAMP>
-            tmp<FieldName> = %string(^d(<field_path>),"XXXX-XX-XX XX:XX:XX.XXXXXX")
             </IF USERTIMESTAMP>
             </FIELD_LOOP>
 
