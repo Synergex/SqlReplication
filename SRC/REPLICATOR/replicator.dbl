@@ -38,6 +38,13 @@
 
 import SynPSG.ReplicationDemo
 
+structure strStructureData
+    structure_name      ,a32    ;;Name of structure
+    structure_chan      ,i4     ;;ISAM channel being used
+    structure_size      ,i4     ;;Record length
+    structure_keynum    ,i4     ;;Key number of unique key being used
+endstructure
+
 main replicator
 
     .include "CONNECTDIR:ssql.def"
@@ -87,16 +94,8 @@ main replicator
         primaryKey          ,string             ;;Primary key of current record
         db_connect          ,string             ;;Database connect string
         dberrtxt            ,a1024
+        structure_data      ,strStructureData
         databuffer          ,a65535             ;;Data buffer used to read ISAM files
-    endrecord
-
-    .align
-    record structure_data
-        structure_name      ,a32                ;;Name of structure
-        structure_chan      ,i4                 ;;ISAM channel being used
-        structure_size      ,i4                 ;;Record length
-        structure_keynum    ,i4                 ;;Key number of unique key being used
-        structure_keylen    ,i4                 ;;Ley length of key being used
     endrecord
 
     external function
@@ -999,11 +998,7 @@ subroutine ReplicatorShutdown
         access_code         ,i4                 ;;Namespace access code
         status              ,i4                 ;;Function return status
         functionName        ,string             ;;External function name to call
-    endrecord
-
-    record structure_data
-        structure_name      ,a30                ;;Name of structure
-        structure_chan      ,i4                 ;;ISAM channel being used
+        structure_data      ,strStructureData
     endrecord
 
 proc
