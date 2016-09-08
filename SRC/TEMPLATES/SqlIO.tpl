@@ -1377,7 +1377,6 @@ namespace <NAMESPACE>
             length      ,int        ;;Length of a string
             rows        ,int        ;;Number of rows updated
             errtxt      ,a256       ;;Error message text
-            sql         ,string     ;;SQL statement
             <FIELD_LOOP>
             <IF USERTIMESTAMP>
             tmp<FieldName>, a26     ;;Storage for user-defined timestamp field
@@ -1390,6 +1389,10 @@ namespace <NAMESPACE>
             </IF TIME_HHMMSS>
             </IF USERTIMESTAMP>
             </FIELD_LOOP>
+        endrecord
+
+        static record
+            sql         ,string     ;;SQL statement
         endrecord
 
     proc
@@ -1416,20 +1419,23 @@ namespace <NAMESPACE>
         ;;Open a cursor for the UPDATE statement
         if (ok)
         begin
-            sql = "UPDATE <StructureName> SET "
-            <FIELD_LOOP>
-            <IF USERTIMESTAMP>
-            & + "<FieldSqlName>=CONVERT(DATETIME2,:<FIELD#LOGICAL>,21)<,>"
-            <ELSE>
-            & + "<FieldSqlName>=:<FIELD#LOGICAL><,>"
-            </IF USERTIMESTAMP>
-            </FIELD_LOOP>
-            & + " WHERE"
-            <PRIMARY_KEY>
-            <SEGMENT_LOOP>
-            & + " <SegmentName>='" + %atrim(^a(<structure_name>.<segment_name>)) + "' <AND>"
-            </SEGMENT_LOOP>
-            </PRIMARY_KEY>
+            if (!(a)sql)
+            begin
+                sql = "UPDATE <StructureName> SET "
+                <FIELD_LOOP>
+                <IF USERTIMESTAMP>
+                & + "<FieldSqlName>=CONVERT(DATETIME2,:<FIELD#LOGICAL>,21)<,>"
+                <ELSE>
+                & + "<FieldSqlName>=:<FIELD#LOGICAL><,>"
+                </IF USERTIMESTAMP>
+                </FIELD_LOOP>
+                & + " WHERE"
+                <PRIMARY_KEY>
+                <SEGMENT_LOOP>
+                & + " <SegmentName>='" + %atrim(^a(<structure_name>.<segment_name>)) + "' <AND>"
+                </SEGMENT_LOOP>
+                </PRIMARY_KEY>
+            end
 
             if (%ssc_open(a_dbchn,cursor,(a)sql,SSQL_NONSEL,SSQL_STANDARD)==SSQL_FAILURE)
             begin

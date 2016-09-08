@@ -1327,8 +1327,11 @@ namespace SynPSG.ReplicationDemo
             length      ,int        ;;Length of a string
             rows        ,int        ;;Number of rows updated
             errtxt      ,a256       ;;Error message text
-            sql         ,string     ;;SQL statement
             tmpEmpTimeOfBirth, a5      ;;Storage for HH:MM time field
+        endrecord
+
+        static record
+            sql         ,string     ;;SQL statement
         endrecord
 
     proc
@@ -1355,21 +1358,24 @@ namespace SynPSG.ReplicationDemo
         ;;Open a cursor for the UPDATE statement
         if (ok)
         begin
-            sql = "UPDATE Employee SET "
-            & + "EmpId=:1,"
-            & + "EmpFirstName=:2,"
-            & + "EmpLastName=:3,"
-            & + "EmpDept=:4,"
-            & + "EmpHireDate=:5,"
-            & + "EmpPhone1=:6,"
-            & + "EmpPhone2=:7,"
-            & + "EmpPhone3=:8,"
-            & + "EmpPaid=:9,"
-            & + "EmpHomeOk=:10,"
-            & + "EmpDateOfBirth=:11,"
-            & + "EmpTimeOfBirth=:12"
-            & + " WHERE"
-            & + " EmpId='" + %atrim(^a(employee.emp_id)) + "' "
+            if (!(a)sql)
+            begin
+                sql = "UPDATE Employee SET "
+                & + "EmpId=:1,"
+                & + "EmpFirstName=:2,"
+                & + "EmpLastName=:3,"
+                & + "EmpDept=:4,"
+                & + "EmpHireDate=:5,"
+                & + "EmpPhone1=:6,"
+                & + "EmpPhone2=:7,"
+                & + "EmpPhone3=:8,"
+                & + "EmpPaid=:9,"
+                & + "EmpHomeOk=:10,"
+                & + "EmpDateOfBirth=:11,"
+                & + "EmpTimeOfBirth=:12"
+                & + " WHERE"
+                & + " EmpId='" + %atrim(^a(employee.emp_id)) + "' "
+            end
 
             if (%ssc_open(a_dbchn,cursor,(a)sql,SSQL_NONSEL,SSQL_STANDARD)==SSQL_FAILURE)
             begin
