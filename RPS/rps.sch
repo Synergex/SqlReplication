@@ -5,7 +5,7 @@
 ;                 : C:\DEV\PUBLIC\SqlReplicationIoHooks\RPS\rpstext.ism
 ;                 : Version 10.3.3a
 ;
-;  GENERATED      : 06-SEP-2016, 11:18:50
+;  GENERATED      : 08-SEP-2016, 16:20:02
 ;                 : Version 10.3.3a
 ;  EXPORT OPTIONS : [ALL-K-R-A] 
  
@@ -32,7 +32,7 @@ Template DEPARTMENT_NAME   Type ALPHA   Size 50
  
 Template EMPLOYEE_ID   Type DECIMAL   Size 6
    Description "Employee ID"
-   Prompt "Employee"
+   Prompt "Employee ID"
    Required
  
 Template PERSON_FIRST_NAME   Type ALPHA   Size 30
@@ -49,7 +49,7 @@ Template PERSON_LAST_NAME   Type ALPHA   Size 30
 Template PHONE_NUMBER   Type DECIMAL   Size 10
    Description "Phone Number"
    Prompt "Phone"   Info Line "Enter a telephone number"   Format PHONE
-   Blankifzero
+   Report Just LEFT   Input Just LEFT   Blankifzero
  
 Structure EMPLOYEE   DBL ISAM
    Description "Employee Master File"
@@ -71,11 +71,11 @@ Field EMP_DEPT   Template DEPARTMENT_ID
    Info Line "Enter a department ID"   ODBC Name DEPARTMENT_ID   Nodisabled
  
 Field EMP_HIRE_DATE   Type DATE   Size 8   Stored YYYYMMDD
+   Coerced Type NULLABLE_DATETIME
    Description "Date hired"
    Prompt "Hire Date"   Info Line "Enter the employees date of hire"
    ODBC Name HIRE_DATE
    Date Today
-   Required
  
 Field EMP_PHONE   Template PHONE_NUMBER   Dimension 3
    Noinfo   ODBC Name PHONE
@@ -89,18 +89,19 @@ Field EMP_PAID   Type DECIMAL   Size 1
  
 Field EMP_HOME_OK   Type DECIMAL   Size 1
    Description "OK to call at home"
-   Prompt "OK to Call Home"
-   Info Line "Is it OK to call this employee at home"   Checkbox
+   Prompt "Call home OK"   Info Line "Is it OK to call this employee at home"
+   Checkbox
    Default "1"   Automatic
  
 Field EMP_DATE_OF_BIRTH   Type DATE   Size 8   Stored YYYYMMDD
+   Coerced Type NULLABLE_DATETIME
    Description "Date of birth"
-   Prompt "D.O.B."   Info Line "Enter the employees date of birth"
-   Required
+   Prompt "Date of birth"   Info Line "Enter the employees date of birth"
  
-Field EMP_TIME_OF_BIRTH   Type TIME   Size 4   Stored HHMM
-   Description "Time of birth"
-   Prompt "T.O.B."   Info Line "Enter the employees time of birth"
+Field EMP_HIRE_TIME   Type TIME   Size 4   Stored HHMM
+   Description "Hire time"
+   Prompt "Hire time"   Info Line "Enter the time the employee was hired"
+   Time Now
  
 Field NONAME_001   Type ALPHA   Size 67   Language Noview   Script Noview
    Report Noview   Nonamelink
