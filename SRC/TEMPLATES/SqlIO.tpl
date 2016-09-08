@@ -72,6 +72,7 @@ namespace <NAMESPACE>
 
         .include "CONNECTDIR:ssql.def"
 
+        .align
         stack record local_data
             ok          ,boolean    ;;Return status
             dberror     ,int        ;;Database error number

@@ -173,8 +173,8 @@ namespace SynPSG.ReplicationDemo
                 clear employee.emp_home_ok
             if (!employee.emp_date_of_birth||!%IsDate(^a(employee.emp_date_of_birth)))
                 clear employee.emp_date_of_birth
-            if (!employee.emp_time_of_birth||!%IsTime(^a(employee.emp_time_of_birth)))
-                clear employee.emp_time_of_birth
+            if (!employee.emp_hire_time||!%IsTime(^a(employee.emp_hire_time)))
+                clear employee.emp_hire_time
             store(a_channel,employee) [$ERR_NODUPS=duplicateKey]
         end
 
@@ -196,8 +196,8 @@ namespace SynPSG.ReplicationDemo
                 clear employee.emp_home_ok
             if (!employee.emp_date_of_birth||!%IsDate(^a(employee.emp_date_of_birth)))
                 clear employee.emp_date_of_birth
-            if (!employee.emp_time_of_birth||!%IsTime(^a(employee.emp_time_of_birth)))
-                clear employee.emp_time_of_birth
+            if (!employee.emp_hire_time||!%IsTime(^a(employee.emp_hire_time)))
+                clear employee.emp_hire_time
             write(a_channel,employee) [$ERR_NOCURR=noCurrentRecord]
         end
 

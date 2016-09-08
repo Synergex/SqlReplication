@@ -1,6 +1,6 @@
 .script
-.date_generated "04/04/2008, 12:19"
-.version "9.1.3"
+.date_generated "09/08/2016, 15:55"
+.version "10.3.3a"
 
 .input EMPLOYEE_CTA, 16, 76
 .title "0201"
@@ -22,34 +22,29 @@
 .end
 
 .input EMPLOYEE1, 16, 66
+.placement 2, 2
 .title "Employee"
 .repository_structure EMPLOYEE_INPUT
-.field EMP_ID, pos(2, 3), fpos(2, 16)
-.field EMP_FIRST_NAME, pos(4, 3), fpos(4, 16)
-.field EMP_LAST_NAME, pos(6, 3), fpos(6, 16)
-.field EMP_DEPT, pos(8, 3), fpos(8, 16)
-.field EMP_DEPT_DSP, fpos(9, 16)
-.field EMP_PAID, pos(11, 3), fpos(11, 16)
+.field EMP_ID, pos(2, 2), fpos(2, 16)
+.field EMP_FIRST_NAME, pos(4, 2), fpos(4, 16)
+.field EMP_LAST_NAME, pos(5, 2), fpos(5, 16)
+.field EMP_DEPT, pos(6, 2), fpos(6, 16)
+.field EMP_DEPT_DSP, fpos(6, 35), view_length(30)
+.field EMP_PAID, pos(8, 48), fpos(8, 54)
+.field EMP_HIRE_DATE, pos(8, 2), fpos(8, 16)
+.field EMP_DATE_OF_BIRTH, pos(10, 2), fpos(10, 16)
+.field EMP_HIRE_TIME, pos(8, 30), fpos(8, 40)
+.field EMP_PHONE[1], pos(10, 37), prompt("Office Phone"), fpos(10, 50)
+.field EMP_PHONE[2], pos(11, 37), prompt("Home Phone"), fpos(11, 50)
+.field EMP_PHONE[3], pos(12, 37), prompt("Cell Phone"), fpos(12, 50)
+.field EMP_HOME_OK, fpos(13, 50)
 .set ALL, EMPLOYEE_INPUT, EMP_ID, EMP_FIRST_NAME, EMP_LAST_NAME, -
-     EMP_DEPT, EMP_PAID
+     EMP_DEPT, EMP_HIRE_DATE, EMP_HIRE_TIME, EMP_PAID, EMP_DATE_OF_BIRTH, -
+     EMP_PHONE[1], EMP_PHONE[2], EMP_PHONE[3], EMP_HOME_OK
 .set KEY, EMPLOYEE_INPUT, EMP_ID
-.set DATA, EMPLOYEE_INPUT, EMP_FIRST_NAME, EMP_LAST_NAME, -
-     EMP_DEPT, EMP_PAID
-.end
-
-.input EMPLOYEE2, 16, 66
-.placement 2, 2
-.title "Dates"
-.repository_structure EMPLOYEE_INPUT
-.field EMP_HIRE_DATE, pos(2, 2), fpos(2, 17)
-.field EMP_DATE_OF_BIRTH, pos(4, 2), fpos(4, 17)
-.field EMP_TIME_OF_BIRTH, pos(4, 35), fpos(4, 46)
-.field EMP_PHONE[1], pos(6, 2), prompt("Office Phone"), fpos(6, 17)
-.field EMP_PHONE[2], pos(6, 35), prompt("Home Phone"), fpos(6, 46)
-.field EMP_PHONE[3], pos(8, 2), prompt("Cell Phone"), fpos(8, 17)
-.field EMP_HOME_OK, fpos(8, 46)
-.set ALL, EMPLOYEE_INPUT, EMP_HIRE_DATE, EMP_DATE_OF_BIRTH, EMP_TIME_OF_BIRTH, -
-     EMP_PHONE[1], EMP_PHONE[3], EMP_PHONE[2], EMP_HOME_OK
+.set DATA, EMPLOYEE_INPUT, EMP_FIRST_NAME, EMP_LAST_NAME, EMP_DEPT, -
+     EMP_HIRE_DATE, EMP_HIRE_TIME, EMP_PAID, EMP_DATE_OF_BIRTH, -
+     EMP_PHONE[1], EMP_PHONE[2], EMP_PHONE[3], EMP_HOME_OK
 .end
 
 .input DEPARTMENT_LUP, 1, 67

@@ -123,14 +123,14 @@ proc
             ;;Check that integer fields contain valid numeric values
 
             ;;Check that date fields contain valid date values
-            if (!CheckDate(employee,"EMP_HIRE_DATE",^a(employee.emp_hire_date),false) && initBadData)
+            if (!CheckDate(employee,"EMP_HIRE_DATE",^a(employee.emp_hire_date),true) && initBadData)
                 init employee.emp_hire_date
-            if (!CheckDate(employee,"EMP_DATE_OF_BIRTH",^a(employee.emp_date_of_birth),false) && initBadData)
+            if (!CheckDate(employee,"EMP_DATE_OF_BIRTH",^a(employee.emp_date_of_birth),true) && initBadData)
                 init employee.emp_date_of_birth
 
             ;;Check that time fields contain valid time values
-            if (!CheckTime(employee,"EMP_TIME_OF_BIRTH",^a(employee.emp_time_of_birth)) && initBadData)
-                init employee.emp_time_of_birth
+            if (!CheckTime(employee,"EMP_HIRE_TIME",^a(employee.emp_hire_time)) && initBadData)
+                init employee.emp_hire_time
 
             ;;If necessary, update the record
             if (initBadData&&saveRecord)

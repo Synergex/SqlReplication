@@ -4,7 +4,7 @@ Synergy=DBL
 Subtype=APP
 
 [COMPILE SCRIPTS]
-Library_Name=\DEV\PUBLIC\SqlReplicationIoHooksPrimaryKey\EXE\tkapp.ism
+Library_Name=\DEV\PUBLIC\SqlReplicationIoHooks\EXE\tkapp.ism
 Overwrite=1
-Files=<ALL>,\DEV\PUBLIC\SqlReplicationIoHooksPrimaryKey\SRC\APPLICATION\employee_maint_tab.wsc
+Files=<ALL>,\DEV\PUBLIC\SqlReplicationIoHooks\SRC\APPLICATION\employee_maint_tab.wsc
 
