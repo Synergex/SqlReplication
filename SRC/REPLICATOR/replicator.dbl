@@ -48,7 +48,7 @@ endstructure
 main replicator
 
     .include "CONNECTDIR:ssql.def"
-    .include "GENSRC:structureio.def"
+    .include "INC:structureio.def"
     .include "REPLICATION" repository, record="instruction", end
 
     .define D_MAX_CURSORS   128
@@ -998,7 +998,7 @@ subroutine ReplicatorShutdown
 
     .include "CONNECTDIR:ssql.def"
     .include "DBLDIR:namspc.def"
-    .include "GENSRC:structureio.def"
+    .include "INC:structureio.def"
 
     external common
         db                  ,i4                 ;;Database channel

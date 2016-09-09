@@ -171,6 +171,10 @@
             <F N="../SRC/TEMPLATES/SqlIO.tpl"/>
             <F N="../SRC/TEMPLATES/structureio.def"/>
             <F N="../SRC/TEMPLATES/SynIO.tpl"/>
+            <F N="../SRC/TEMPLATES/tk_change.tpl"/>
+            <F N="../SRC/TEMPLATES/tk_drill.tpl"/>
+            <F N="../SRC/TEMPLATES/tk_lookup.tpl"/>
+            <F N="../SRC/TEMPLATES/tk_maint_tab.tpl"/>
         </Folder>
         <Folder
             Name="Source Files"
@@ -659,8 +663,7 @@
     </Config>
     <Macro>
         <ExecMacro CmdLine="syn_set ROOT=%wp"/>
-        <ExecMacro CmdLine="syn_set GENSRC=%(ROOT)SRC\LIBRARY"/>
-        <ExecMacro CmdLine="syn_set INC=%(ROOT)SRC\INC"/>
+        <ExecMacro CmdLine="syn_set INC=%(ROOT)SRC\LIBRARY"/>
         <ExecMacro CmdLine="syn_set OBJ=%(ROOT)OBJ"/>
         <ExecMacro CmdLine="syn_set EXE=%(ROOT)EXE"/>
         <ExecMacro CmdLine="syn_set FDL=%(ROOT)FDL"/>

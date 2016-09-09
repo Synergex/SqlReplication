@@ -673,8 +673,7 @@
     </Config>
     <Macro>
         <ExecMacro CmdLine="syn_set ROOT=%wp"/>
-        <ExecMacro CmdLine="syn_set GENSRC=%(ROOT)SRC\LIBRARY"/>
-        <ExecMacro CmdLine="syn_set INC=%(ROOT)SRC\INC"/>
+        <ExecMacro CmdLine="syn_set INC=%(ROOT)SRC\LIBRARY"/>
         <ExecMacro CmdLine="syn_set OBJ=%(ROOT)OBJ"/>
         <ExecMacro CmdLine="syn_set EXE=%(ROOT)EXE"/>
         <ExecMacro CmdLine="syn_set FDL=%(ROOT)FDL"/>

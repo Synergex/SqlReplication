@@ -1000,7 +1000,7 @@ namespace SynPSG.ReplicationDemo
         .include "CONNECTDIR:ssql.def"
         .include "EMPLOYEE" repository, structure="EMPLOYEE", end
         .include "EMPLOYEE" repository, stack record="TMPREC", end
-        .include "GENSRC:structureio.def"
+        .include "INC:structureio.def"
 
         .define BUFFER_ROWS     1000
         .define EXCEPTION_BUFSZ 100

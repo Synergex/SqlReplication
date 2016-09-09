@@ -1,12 +1,54 @@
+<CODEGEN_FILENAME><structure_name>_maint_tab.dbl</CODEGEN_FILENAME>
+;//****************************************************************************
+;//
+;// Title:       tk_maint_tab.tpl
+;//
+;// Type:        CodeGen Template
+;//
+;// Description: This template creates a tab-based master file maintenance
+;//              program for a structure and file defined in repository.
+;//
+;// Date:        19th March 2007
+;//
+;// Author:      Steve Ives, Synergex Professional Services Group
+;//              http://www.synergex.com
+;//
+;//****************************************************************************
+;//
+;// Copyright (c) 2012, Synergex International, Inc.
+;// All rights reserved.
+;//
+;// Redistribution and use in source and binary forms, with or without
+;// modification, are permitted provided that the following conditions are met:
+;//
+;// * Redistributions of source code must retain the above copyright notice,
+;//   this list of conditions and the following disclaimer.
+;//
+;// * Redistributions in binary form must reproduce the above copyright notice,
+;//   this list of conditions and the following disclaimer in the documentation
+;//   and/or other materials provided with the distribution.
+;//
+;// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+;// AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+;// IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+;// ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+;// LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+;// CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+;// SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+;// INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+;// CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+;// ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+;// POSSIBILITY OF SUCH DAMAGE.
+;//
 ;;*****************************************************************************
 ;;
-;; Routine:     EMPLOYEE_MAINT_TAB
+;; Routine:     <STRUCTURE_NAME>_MAINT_TAB
 ;;
-;; Description: Master file maintenance for EMPLOYEE structure
+;; Description: Master file maintenance for <STRUCTURE_NAME> structure
 ;;
-;; Author:      Steve Ives
+;; Author:      <AUTHOR>
 ;;
-;; Company:     Synergex Professional Services Group
+;; Company:     <COMPANY>
 ;;
 ;;*****************************************************************************
 ;;
@@ -35,17 +77,17 @@
 ; referred to by g_utlib. The names of those windows are constructed using a
 ; base window name which is the name of the structure:
 ;
-;    EMPLOYEE_CTA        ;Search criteria input window
-;    EMPLOYEE_LUP        ;Search results list input window
-;    EMPLOYEEn           ;Multiple input windows for the input tab set
+;    <STRUCTURE_NAME>_CTA        ;Search criteria input window
+;    <STRUCTURE_NAME>_LUP        ;Search results list input window
+;    <STRUCTURE_NAME>n           ;Multiple input windows for the input tab set
 ;
 ; In constructing these windows you must comply with the following requirements:
 ;
 ; Search criteria input window
 ; ----------------------------
 ;
-; Must be named EMPLOYEE_CTA and fields MUST be defined in a structure
-; called EMPLOYEE_CRITERIA
+; Must be named <STRUCTURE_NAME>_CTA and fields MUST be defined in a structure
+; called <STRUCTURE_NAME>_CRITERIA
 ;
 ; The size of this window will determine the size of the search tabset.
 ; The first field in the window MUST be a D1 called MODE.  This field indicates
@@ -53,7 +95,7 @@
 ; searching).  The field should normally be an enumerated selection list
 ; (displayed as radio buttons or a dropdown list).  The base enumeration value
 ; MUST be 1 and the step value MUST be 1. The field MUST specify a change method
-; name of "employee_mntmode".
+; name of "<structure_name>_mntmode".
 ;
 ; For each selectable item in the MODE field there should be an ALPHA field of
 ; the appropriate size for the key value required.  These fields MUST be named
@@ -72,23 +114,23 @@
 ;
 ; An example of a search criteria window would be:
 ;
-;       .input EMPLOYEE_CTA, 20, 88
+;       .input <STRUCTURE_NAME>_CTA, 20, 88
 ;       .title "0300040105"
-;       .repository_structure EMPLOYEE_CRITERIA
+;       .repository_structure <STRUCTURE_NAME>_CRITERIA
 ;       .field MODE, pos(2, 4), fpos(2, 14)
 ;       .field FIELD1, fpos(2, 38)
 ;       .field FIELD2, fpos(3, 38)
 ;       .field FIELD3, fpos(4, 38)
 ;       .field FIELD4, fpos(5, 38)
 ;       .field FIELD5, fpos(6, 38)
-;       .set ALL, EMPLOYEE_CRITERIA, MODE, FIELD1, FIELD2, FIELD3, FIELD4, FIELD5
-;       .set DATA, EMPLOYEE_CRITERIA, FIELD1, FIELD2, FIELD3, FIELD4, FIELD5
+;       .set ALL, <STRUCTURE_NAME>_CRITERIA, MODE, FIELD1, FIELD2, FIELD3, FIELD4, FIELD5
+;       .set DATA, <STRUCTURE_NAME>_CRITERIA, FIELD1, FIELD2, FIELD3, FIELD4, FIELD5
 ;       .end
 ;
 ; Search results list input window
 ; --------------------------------
 ;
-; MUST be named EMPLOYEE_LUP and MUST be one row high
+; MUST be named <STRUCTURE_NAME>_LUP and MUST be one row high
 ;
 ; MUST be based on the Repository structure of the master file being maintained,
 ; and should contain the fields to define the columns to view in the results
@@ -97,9 +139,9 @@
 ;
 ; An example of a search results list input window would be:
 ;
-;    .input EMPLOYEE_LUP, 1, 67
+;    .input <STRUCTURE_NAME>_LUP, 1, 67
 ;    .border on, dragbar(on)
-;    .repository_structure EMPLOYEE
+;    .repository_structure <STRUCTURE_NAME>
 ;    .field CODE, noprompt, fpos(1, 1), nochange_method, nodrill_method
 ;    .field NAME, noprompt, fpos(1, 7)
 ;    .field CITY, noprompt, fpos(1, 33)
@@ -110,7 +152,7 @@
 ; Maintenance tabset input windows
 ; --------------------------------
 ;
-; Must be named EMPLOYEEn (e.g. EMPLOYEE1, EMPLOYEE2 etc.)
+; Must be named <STRUCTURE_NAME>n (e.g. <STRUCTURE_NAME>1, <STRUCTURE_NAME>2 etc.)
 ;
 ; The size of the largest window determines the size of the maintenance tabset.
 ; The title of each window will be the selection text on that windows tab. Each
@@ -121,7 +163,7 @@
 ; super-structure, followed by the additional display fields, which MUST be
 ; named in the format <field>_DSP, and MUST have either the disabled or
 ; read-only attribute set.  The name of the super-structure MUST be defined as
-; EMPLOYEE_INPUT.
+; <STRUCTURE_NAME>_INPUT.
 ;
 ; In ALL windows the first set MUST be called ALL and must contain ALL fields
 ; (including local display fields). The FIRST window must also have 2 additional
@@ -130,7 +172,7 @@
 ;
 ;*******************************************************************************
 ;
-subroutine employee_maint_tab
+subroutine <structure_name>_maint_tab
     required in a_base_title    ,a  ;Base text for tabset titles (e.g."Customer")
     optional in a_channel       ,n  ;Master file update mode channel
     optional in a_lst_header    ,a  ;Search list column headers
@@ -150,11 +192,11 @@ subroutine employee_maint_tab
     .include "INC:structureio.def"
 
     ;Main data buffers
-    .include "EMPLOYEE" repository, stack record="employee", nofields
-    .include "EMPLOYEE" repository, stack record="employee_save", nofields
-    .include "EMPLOYEE_INPUT" repository, stack record="employee_input", nofields
-    .include "EMPLOYEE_CRITERIA" repository, stack record="criteria", nofields
-    .include "EMPLOYEE_CRITERIA" repository, stack record="last_criteria", nofields
+    .include "<STRUCTURE_NOALIAS>" repository, stack record="<structure_name>", nofields
+    .include "<STRUCTURE_NOALIAS>" repository, stack record="<structure_name>_save", nofields
+    .include "<STRUCTURE_NOALIAS>_INPUT" repository, stack record="<structure_name>_input", nofields
+    .include "<STRUCTURE_NOALIAS>_CRITERIA" repository, stack record="criteria", nofields
+    .include "<STRUCTURE_NOALIAS>_CRITERIA" repository, stack record="last_criteria", nofields
 
     stack record local_data
 
@@ -255,9 +297,9 @@ proc
     else
     begin
 
-        if (%employee_io(IO_OPEN_UPD,channel)!=IO_OK)
+        if (%<structure_name>_io(IO_OPEN_UPD,channel)!=IO_OK)
         begin
-            xcall u_msgbox("Failed to open file DAT:EMPLOYEE.ISM",D_MOK+D_MICONSTOP,"Error")
+            xcall u_msgbox("Failed to open file <FILE_NAME>",D_MOK+D_MICONSTOP,"Error")
             clear ok
         end
     end
@@ -268,10 +310,10 @@ proc
     begin
 
         ;Load search criteria input window
-        xcall i_ldinp(idi_criteria,,"EMPLOYEE_CTA",D_NOPLC,,error)
+        xcall i_ldinp(idi_criteria,,"<STRUCTURE_NAME>_CTA",D_NOPLC,,error)
         if (error) then
         begin
-            xcall u_msgbox("Failed to load input window EMPLOYEE_CTA.",D_MOK+D_MICONSTOP,"Error")
+            xcall u_msgbox("Failed to load input window <STRUCTURE_NAME>_CTA.",D_MOK+D_MICONSTOP,"Error")
             ok=false
         end
         else
@@ -295,10 +337,10 @@ proc
             ;Load list input window
             if (ok)
             begin
-                xcall i_ldinp(idi_results,,"EMPLOYEE_LUP",D_NOPLC,,error)
+                xcall i_ldinp(idi_results,,"<STRUCTURE_NAME>_LUP",D_NOPLC,,error)
                 if (error) then
                 begin
-                    xcall u_msgbox("Failed to load input window EMPLOYEE_LUP.",D_MOK+D_MICONSTOP,"Error")
+                    xcall u_msgbox("Failed to load input window <STRUCTURE_NAME>_LUP.",D_MOK+D_MICONSTOP,"Error")
                     clear ok
                 end
                 else
@@ -308,7 +350,7 @@ proc
             ;Create list class
             if (ok)
             begin
-                xcall l_class(clsid,"TKM_SRCHCLASS",2,2,15,headers,,footers,1,,,"employee_mntload","ACTIVEX",error)
+                xcall l_class(clsid,"TKM_SRCHCLASS",2,2,15,headers,,footers,1,,,"<structure_name>_mntload","ACTIVEX",error)
                 if (error)
                 begin
                     xcall u_msgbox("Failed to create list class TKM_SRCHCLASS",D_MOK+D_MICONSTOP,"Error")
@@ -319,7 +361,7 @@ proc
             ;Create list
             if (ok)
             begin
-                xcall l_create(idl_results,idi_results,employee,,"TKM_SRCHCLASS",,,D_NOPLC,,,,error)
+                xcall l_create(idl_results,idi_results,<structure_name>,,"TKM_SRCHCLASS",,,D_NOPLC,,,,error)
                 if (error)
                 begin
                     xcall u_msgbox("Failed to create search list",D_MOK+D_MICONSTOP,"Error")
@@ -358,8 +400,8 @@ proc
             ;Create tab container and add pages
 
             idt_search=%ts_tabset(DTS_CREATE,"TKM_SEARCH",rows,cols)
-            xcall ts_tabset(DTS_WINDOW,idt_search,idi_criteria,"employee_mntcta",,"Specify search criteria")
-            xcall ts_tabset(DTS_LIST,  idt_search,idl_results, "employee_mntlst",,"View search results")
+            xcall ts_tabset(DTS_WINDOW,idt_search,idi_criteria,"<structure_name>_mntcta",,"Specify search criteria")
+            xcall ts_tabset(DTS_LIST,  idt_search,idl_results, "<structure_name>_mntlst",,"View search results")
 
             ;Set tab container title
 
@@ -411,7 +453,7 @@ proc
                 exitloop
             end
 
-            wndname = "EMPLOYEE" + %string(tabcount)
+            wndname = "<STRUCTURE_NAME>" + %string(tabcount)
 
             xcall i_ldinp(idi_maint[tabcount],,wndname,,,error)
             if (error) then
@@ -495,7 +537,7 @@ proc
 
             ;Add tab pages
             for count from 1 thru tabcount
-                xcall ts_tabset(DTS_WINDOW,idt_maint,idi_maint[count],"employee_mntinp")
+                xcall ts_tabset(DTS_WINDOW,idt_maint,idi_maint[count],"<structure_name>_mntinp")
 
             ;Add buttons
             xcall ts_tabset(DTS_BUTTON,idt_maint,"OK",DSB_TEXT,"OK")
@@ -530,7 +572,7 @@ proc
         begin
 
             xcall ts_process(idt_search,idt_search,channel,criteria,
-            &                employee,keynums,keynum,keyval,last_criteria,
+            &                <structure_name>,keynums,keynum,keyval,last_criteria,
             &                no_create,no_delete)
 
             using g_entnam select
@@ -589,24 +631,24 @@ check_null,
 maintain,
 
     ok=TRUE
-    clear employee_input
+    clear <structure_name>_input
 
     ;Save data as it currently appears in search results list
-    employee_save = employee
+    <structure_name>_save = <structure_name>
 
     if (!creating)
     begin
         ;Read record from file to lock and ensure latest copy
-        if (%employee_io(IO_READ,channel,%keyval(channel,employee,0),0,employee,IO_LOCK)==IO_OK) then
+        if (%<structure_name>_io(IO_READ,channel,%keyval(channel,<structure_name>,0),0,<structure_name>,IO_LOCK)==IO_OK) then
         begin
             ;Save data as read from file
-            employee_save = employee
+            <structure_name>_save = <structure_name>
         end
         else
         begin
             ;Read failed
             xcall u_msgbox("Unable to lock record.",D_MOK+D_MICONEXCLAM)
-            employee = employee_save
+            <structure_name> = <structure_name>_save
             ok=FALSE
         end
     end
@@ -623,7 +665,7 @@ maintain,
         else
         begin
             ;Load the data into the input record
-            employee_input = employee
+            <structure_name>_input = <structure_name>
             ;Disable key set on pae 1
             xcall i_disable(D_SET,idi_maint[1],setname="KEY")
         end
@@ -634,9 +676,9 @@ maintain,
             xcall i_init(idi_maint[count],"ALL")
             if (!creating)
             begin
-                xcall i_display(idi_maint[count],"ALL",employee_input)
+                xcall i_display(idi_maint[count],"ALL",<structure_name>_input)
                 xcall i_next(idi_maint[count],"ALL","*FRST*")
-                xcall display_local_fields(idi_maint[count],employee_input)
+                xcall display_local_fields(idi_maint[count],<structure_name>_input)
                 if (no_amend)
                     xcall i_disable(D_SET,idi_maint[count],"ALL")
             end
@@ -652,7 +694,7 @@ maintain,
         repeat
         begin
 
-            xcall ts_process(idt_maint,employee_input)
+            xcall ts_process(idt_maint,<structure_name>_input)
 
             using g_entnam select
 
@@ -663,7 +705,7 @@ maintain,
                 ok=TRUE
                 for count from 1 thru tabcount
                 begin
-                    if (!%i_checkdata(idi_maint[count],"ALL",employee_input))
+                    if (!%i_checkdata(idi_maint[count],"ALL",<structure_name>_input))
                     begin
                         xcall ts_tabset(DTS_ACTIVE,idt_maint,count)
                         ok=FALSE
@@ -686,7 +728,7 @@ maintain,
             begin
                 ;Drop the record lock
                 unlock channel
-                employee = employee_save
+                <structure_name> = <structure_name>_save
                 exitloop
             end
 
@@ -708,23 +750,23 @@ save_record,
     ok=TRUE
 
     ;Load data into master file record
-    employee = employee_input
+    <structure_name> = <structure_name>_input
 
     if (creating) then
     begin
 
         ;CREATE NEW RECORD
 
-        if ((error=%employee_io(IO_CREATE,channel,,,employee))==IO_OK) then
+        if ((error=%<structure_name>_io(IO_CREATE,channel,,,<structure_name>))==IO_OK) then
         begin
 
             ;If we're on the search results list page
             if (%ts_tabset(DTS_ACTIVE,idt_search)==2)
             begin
                 ;Add the new record to the list
-                xcall l_process(idl_results,req=D_LAPPEND,employee_save)
-                xcall l_process(idl_results,req=D_LNOP,employee)
-                xcall i_display(idi_results,,employee)
+                xcall l_process(idl_results,req=D_LAPPEND,<structure_name>_save)
+                xcall l_process(idl_results,req=D_LNOP,<structure_name>)
+                xcall i_display(idi_results,,<structure_name>)
             end
 
         end
@@ -735,7 +777,7 @@ save_record,
             begin
                 ;Back to maintenance to change primary key
                 xcall u_msgbox("Record already exists",D_MOK+D_MICONINFO)
-                xcall i_init(idi_maint[1],"ALL",employee_input,keyfldname)
+                xcall i_init(idi_maint[1],"ALL",<structure_name>_input,keyfldname)
                 xcall i_next(idi_maint[1],"ALL",keyfldname)
                 xcall ts_tabset(DTS_ACTIVE,idt_maint,1)
                 ok=false
@@ -753,13 +795,13 @@ save_record,
         ;AMEND EXISTING RECORD
 
         ;Update record in file
-        if (%employee_io(IO_UPDATE,channel,,,employee)!=IO_OK) then
+        if (%<structure_name>_io(IO_UPDATE,channel,,,<structure_name>)!=IO_OK) then
         begin
             xcall u_msgbox("Unable to update record.",D_MOK+D_MICONEXCLAM)
-            employee = employee_save
+            <structure_name> = <structure_name>_save
         end
         else
-            xcall i_display(idi_results,,employee)
+            xcall i_display(idi_results,,<structure_name>)
     end
 
     return
@@ -767,26 +809,26 @@ save_record,
 delete,
 
     ;Save data as it currently appears in search results list
-    employee_save = employee
+    <structure_name>_save = <structure_name>
 
     ;Read record from file to lock and ensure latest copy
-    if (%employee_io(IO_READ,channel,%keyval(channel,employee,0),0,employee,IO_LOCK)==IO_OK) then
+    if (%<structure_name>_io(IO_READ,channel,%keyval(channel,<structure_name>,0),0,<structure_name>,IO_LOCK)==IO_OK) then
     begin
-        xcall s_bld(msgtext,,"Delete %a %d ?",a_base_title,%keyval(channel,employee,0))
+        xcall s_bld(msgtext,,"Delete %a %d ?",a_base_title,%keyval(channel,<structure_name>,0))
         if (%u_msgbox(msgtext,D_MYESNO+D_MICONQUESTION+D_MDEFBUTTON2,"Confirm")==D_MIDYES)
         begin
-            if (%employee_io(IO_DELETE,channel)==IO_OK) then
+            if (%<structure_name>_io(IO_DELETE,channel)==IO_OK) then
                 xcall l_queue(idl_results,D_LDELITEM)
             else
             begin
-                employee = employee_save
+                <structure_name> = <structure_name>_save
                 xcall u_msgbox("Failed to delete record.",D_MOK+D_MICONEXCLAM)
             end
         end
     end
     else
     begin
-        employee = employee_save
+        <structure_name> = <structure_name>_save
         xcall u_msgbox("Unable to lock record.",D_MOK+D_MICONEXCLAM)
     end
 
@@ -796,7 +838,7 @@ endsubroutine
 
 ;===================================================================================================
 ;
-subroutine employee_mntcta
+subroutine <structure_name>_mntcta
     required in    a_inpid          ,n      ;Criteria input window ID
     required in    a_tabset         ,n      ;Tabset ID
     required in    a_channel        ,n      ;Master file channel
@@ -854,7 +896,7 @@ endsubroutine
 ;method on the required MODE field.  The routine enables and disables the
 ;appropriate filter field for the currently selected search mode (key).
 
-function employee_mntmode ,^val ,reentrant
+function <structure_name>_mntmode ,^val ,reentrant
     a_data_entered      ,a      ;Data as entered by the user.
     a_data_stored       ,a      ;Data as stroed in variable
     a_pending_status    ,n      ;Result of Toolkit's field validations.
@@ -895,7 +937,7 @@ endfunction
 ;===================================================================================================
 ;This routine processes the list on the search results tab.
 ;
-subroutine employee_mntlst
+subroutine <structure_name>_mntlst
     required in    a_lstid          ,n      ;Search results list ID
     required in    a_tabset         ,n      ;Tabset ID
     required in    a_channel        ,n      ;Master file channel
@@ -934,7 +976,7 @@ proc
     if (a_criteria!=a_last_criteria)
         xcall l_restart(a_lstid)
 
-    xcall l_select(a_lstid,req=D_LNOP,a_employee,,,,,,,,,,,,,a_channel,a_keynum,a_keyval)
+    xcall l_select(a_lstid,req=D_LNOP,a_<structure_name>,,,,,,,,,,,,,a_channel,a_keynum,a_keyval)
 
     if (!g_select)
         xcall m_signal("AMEND")
@@ -950,12 +992,12 @@ endsubroutine
 ;===================================================================================================
 ;This is the load method for the search results list.
 ;
-subroutine employee_mntload
+subroutine <structure_name>_mntload
 
     ;Arguments
     a_listid        ,n      ;Search results list ID
     a_reqest        ,n      ;List processor request
-    a_employee   ,a      ;Master file record
+    a_<structure_name>   ,a      ;Master file record
     a_inpid         ,n      ;Search results list input window
     a_disable       ,n      ;Current item disabled
     a_index         ,n      ;Item index being requested
@@ -981,13 +1023,13 @@ proc
         if (a_keyval) then
         begin
             ;Position to first match in specified key
-            if (%employee_io(IO_FIND,a_channel,a_keyval,a_keynum,,,IO_PARTIAL)!=IO_OK)
+            if (%<structure_name>_io(IO_FIND,a_channel,a_keyval,a_keynum,,,IO_PARTIAL)!=IO_OK)
                 a_reqest=D_LEOF
         end
         else
         begin
             ;Position to first record in specified key
-            if (%employee_io(IO_FIND_FIRST,a_channel,,a_keynum)!=IO_OK)
+            if (%<structure_name>_io(IO_FIND_FIRST,a_channel,,a_keynum)!=IO_OK)
             begin
                 xcall u_msgbox("No records found",D_MOK+D_MICONINFO)
                 a_reqest=D_LEOF
@@ -1003,22 +1045,22 @@ proc
 
         repeat
         begin
-            if (%employee_io(IO_READ_NEXT,a_channel,,,a_employee)==IO_OK) then
+            if (%<structure_name>_io(IO_READ_NEXT,a_channel,,,a_<structure_name>)==IO_OK) then
             begin
 
                 ;Ignore MCBA deleted records
-                if (%instr(1,a_employee,']]]]'))
+                if (%instr(1,a_<structure_name>,']]]]'))
                     nextloop
 
                 ;If matching a value, make sure we're still in range
-                if (a_keyval&&(%keyval(a_channel,a_employee,a_keynum)!=%atrim(a_keyval)))
+                if (a_keyval&&(%keyval(a_channel,a_<structure_name>,a_keynum)!=%atrim(a_keyval)))
                 begin
                     a_reqest = D_LEOF
                     exitloop
                 end
 
                 ;Got a metching record, return it
-                xcall i_display(a_inpid,,a_employee)
+                xcall i_display(a_inpid,,a_<structure_name>)
 
                 exitloop
 
@@ -1040,10 +1082,10 @@ endsubroutine
 ;===================================================================================================
 ;This is the input processor for the maintenance tab pages.
 ;
-subroutine employee_mntinp
+subroutine <structure_name>_mntinp
 
     inp_wndid           ,n      ;ID of input window on current tab page
-    a_employee_input ,a      ;Input record
+    a_<structure_name>_input ,a      ;Input record
     endparams
 
     .include "WND:tools.def"
@@ -1054,7 +1096,7 @@ proc
 
     repeat
     begin
-        xcall i_input(inp_wndid,"ALL",a_employee_input,,,,D_NOTERM)
+        xcall i_input(inp_wndid,"ALL",a_<structure_name>_input,,,,D_NOTERM)
 
         if (g_setsts) then
             exitloop

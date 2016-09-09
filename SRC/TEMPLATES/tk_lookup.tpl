@@ -1,10 +1,54 @@
+<CODEGEN_FILENAME><structure_name>_lookup.dbl</CODEGEN_FILENAME>
+;//****************************************************************************
+;//
+;// Title:       tk_lookup.dbl
+;//
+;// Type:        CodeGen Template
+;//
+;// Description: This template generates a Synergy UI Toolkit lookup routine.
+;//              The routine builds and presents a simple list of all of the
+;//              records in the associated file. If a record is selected then
+;//              that record is returned, otherwise an empty record is returned
+;//
+;// Date:        19th March 2007
+;//
+;// Author:      Steve Ives, Synergex Professional Services Group
+;//              http://www.synergex.com
+;//
+;//****************************************************************************
+;//
+;// Copyright (c) 2012, Synergex International, Inc.
+;// All rights reserved.
+;//
+;// Redistribution and use in source and binary forms, with or without
+;// modification, are permitted provided that the following conditions are met:
+;//
+;// * Redistributions of source code must retain the above copyright notice,
+;//   this list of conditions and the following disclaimer.
+;//
+;// * Redistributions in binary form must reproduce the above copyright notice,
+;//   this list of conditions and the following disclaimer in the documentation
+;//   and/or other materials provided with the distribution.
+;//
+;// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+;// AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+;// IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+;// ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+;// LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+;// CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+;// SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+;// INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+;// CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+;// ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+;// POSSIBILITY OF SUCH DAMAGE.
+;//
 ;;*****************************************************************************
 ;;
-;; Routine:     department_lookup
+;; Routine:     <structure_name>_lookup
 ;;
-;; Author:      Steve Ives
+;; Author:      <AUTHOR>
 ;;
-;; Company:     Synergex Professional Services Group
+;; Company:     <COMPANY>
 ;;
 ;;*****************************************************************************
 ;;
@@ -13,7 +57,7 @@
 ;;
 ;;*****************************************************************************
 
-subroutine department_lookup, reentrant
+subroutine <structure_name>_lookup, reentrant
     required out a_department    ,a      ;Master file record (returned)
     optional in  a_icon          ,a      ;Icon file name
     optional in  a_title         ,a      ;Title for list and list report
@@ -25,10 +69,10 @@ subroutine department_lookup, reentrant
     .include "INC:system.def"
 
     external function
-        department_io, ^val
+        <structure_name>_io, ^val
     endexternal
 
-    .include "DEPARTMENT" repository, record="listdata", nofields
+    .include "<STRUCTURE_NOALIAS>" repository, record="listdata", nofields
 
     stack record local_data
         ok                  ,i4     ;OK to continue
@@ -40,7 +84,7 @@ subroutine department_lookup, reentrant
         req                 ,i4     ;List processor request
         nullitem            ,i4     ;Is the current list item null?
         headercnt           ,i4     ;List header count
-        idf_department_i   ,i4     ;Local channel for master file
+        idf_<structure_name>_i   ,i4     ;Local channel for master file
         headings            ,a80    ;List headings
         title               ,a80    ;List title
     endrecord
@@ -53,19 +97,19 @@ proc
     ok=TRUE
 
     ;Open the master file
-    if (%department_io(IO_OPEN_INP,idf_department_i)!=IO_OK)
+    if (%<structure_name>_io(IO_OPEN_INP,idf_<structure_name>_i)!=IO_OK)
     begin
-        xcall u_msgbox("Failed to open file DAT:DEPARTMENT.ISM",D_MOK+D_MICONEXCLAM,"Error")
+        xcall u_msgbox("Failed to open file <FILE_NAME>",D_MOK+D_MICONEXCLAM,"Error")
         ok=FALSE
     end
 
     ;Load list input window
     if (ok)
     begin
-        xcall i_ldinp(window_id,,"DEPARTMENT_LUP",D_NOPLC,,error)
+        xcall i_ldinp(window_id,,"<STRUCTURE_NAME>_LUP",D_NOPLC,,error)
         if (error) then
         begin
-            xcall u_msgbox("Failed to load window DEPARTMENT_LUP",D_MOK+D_MICONEXCLAM,"Error")
+            xcall u_msgbox("Failed to load window <STRUCTURE_NAME>_LUP",D_MOK+D_MICONEXCLAM,"Error")
             ok=FALSE
         end
         else
@@ -80,10 +124,10 @@ proc
     ;Create list class
     if (ok)
     begin
-        xcall l_class(lstclass,"DEPARTMENT_CLS",,,15,headercnt,,,,,,"department_lookup_load","ACTIVEX",error)
+        xcall l_class(lstclass,"<STRUCTURE_NAME>_CLS",,,15,headercnt,,,,,,"<structure_name>_lookup_load","ACTIVEX",error)
         if (error)
         begin
-            xcall u_msgbox("Failed to create list class DEPARTMENT_CLS",D_MOK+D_MICONEXCLAM,"Error")
+            xcall u_msgbox("Failed to create list class <STRUCTURE_NAME>_CLS",D_MOK+D_MICONEXCLAM,"Error")
             ok=FALSE
         end
     end
@@ -91,7 +135,7 @@ proc
     ;Create list
     if (ok)
     begin
-        xcall l_create(list_id,window_id,listdata,,"DEPARTMENT_CLS",,,D_NOPLC,,,,error)
+        xcall l_create(list_id,window_id,listdata,,"<STRUCTURE_NAME>_CLS",,,D_NOPLC,,,,error)
         if (error)
         begin
             xcall u_msgbox("Failed to create list",D_MOK+D_MICONEXCLAM,"Error")
@@ -141,7 +185,7 @@ proc
         repeat
         begin
 
-            xcall l_select(list_id,req,listdata,,,,,,,,,,,,,idf_department_i)
+            xcall l_select(list_id,req,listdata,,,,,,,,,,,,,idf_<structure_name>_i)
 
             if (g_select) then
             begin
@@ -176,10 +220,10 @@ select_record,
     if (nullitem) then
     begin
         xcall u_msgbox("No record selected.",D_MOK+D_MICONINFO)
-        clear a_department
+        clear a_<structure_name>
     end
     else
-        a_department = listdata
+        a_<structure_name> = listdata
 
     return
 
@@ -187,34 +231,34 @@ endsubroutine
 
 ;***************************************************************************************************
 ;
-subroutine department_lookup_load
+subroutine <structure_name>_lookup_load
     a_listid            ,n          ; List id
     a_req               ,n          ; Request flag
     a_data              ,a          ; Item data
     a_inpid             ,n          ; Input window id
     a_disable           ,n          ; (Optional) Disable flag
     a_index             ,n          ; Loading index
-    idf_department_i   ,n          ;Master file channel
+    idf_<structure_name>_i   ,n          ;Master file channel
     endparams
 
     .include "WND:tools.def"
     .include "INC:structureio.def"
 
     external function
-        department_io, ^val
+        <structure_name>_io, ^val
     endexternal
 
 proc
 
     if (a_index==1)
     begin
-        if (%department_io(IO_FIND_FIRST,idf_department_i,,0)!=IO_OK)
+        if (%<structure_name>_io(IO_FIND_FIRST,idf_<structure_name>_i,,0)!=IO_OK)
             a_req = D_LEOF
     end
 
     if (a_req!=D_LEOF)
     begin
-        if (%department_io(IO_READ_NEXT,idf_department_i,,,a_data)==IO_OK) then
+        if (%<structure_name>_io(IO_READ_NEXT,idf_<structure_name>_i,,,a_data)==IO_OK) then
             xcall i_display(a_inpid,,a_data)
         else
             a_req = D_LEOF

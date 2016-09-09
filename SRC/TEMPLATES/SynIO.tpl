@@ -69,7 +69,7 @@ namespace <NAMESPACE>
         optional out   a_errtxt     ,a  ;;Returned error text
         endparams
 
-        .INCLUDE "GENSRC:structureio.def"
+        .INCLUDE "INC:structureio.def"
 
         stack record localData
             keyno                   ,int    ;;Key number

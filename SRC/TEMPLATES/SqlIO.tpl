@@ -1060,7 +1060,7 @@ namespace <NAMESPACE>
         .include "CONNECTDIR:ssql.def"
         .include "<STRUCTURE_NOALIAS>" repository, structure="<STRUCTURE_NAME>", end
         .include "<STRUCTURE_NOALIAS>" repository, stack record="TMPREC", end
-        .include "GENSRC:structureio.def"
+        .include "INC:structureio.def"
 
         .define BUFFER_ROWS     1000
         .define EXCEPTION_BUFSZ 100
