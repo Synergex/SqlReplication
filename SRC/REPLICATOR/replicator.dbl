@@ -1021,14 +1021,7 @@ proc
     log("ERRORS:  " + %string(fails,  "ZZZ,ZZZ,ZZZ,ZZX"))
     log("-------------------------------------------------------------------------------")
 
-    ;;Close the database
-    if (db)
-    begin
-        xcall ssc_release(db)
-        clear db
-    end
-
-    ;;Close any data files that we have open
+    ;;Clean up any database cursors and data files that we have open
     if (nsid)
     begin
         for idx from 1 thru %nspc_stoa(nsid,9999)
@@ -1036,6 +1029,19 @@ proc
             ;;Get the item data from the namespace
             access_code = %nspc_stoa(nsid,idx)
             xcall nspc_getdata(nsid,access_code,structure_data)
+
+            ;;Hard close any soft-closed database cursors
+            try
+            begin
+                functionName = %atrim(structure_data.structure_name) + "_CLOSE_CURSORS"
+                xcall xsubr(functionName,db)
+            end
+            catch (ex)
+            begin
+                nop
+            end
+            endtry
+
             ;;Close the channel
             if ((structure_data.structure_chan)&&%chopen(structure_data.structure_chan))
             begin
@@ -1055,6 +1061,13 @@ proc
         xcall nspc_close(nsid)
         clear nsid
 
+    end
+
+    ;;Close our connection to the database
+    if (db)
+    begin
+        xcall ssc_release(db)
+        clear db
     end
 
     ;;Close the instructions file

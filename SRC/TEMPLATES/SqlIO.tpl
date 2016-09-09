@@ -190,12 +190,7 @@ namespace <NAMESPACE>
 
         ;;If there was an error message, return it to the calling routine
         if (^passed(a_errtxt))
-        begin
-            if (ok) then
-                clear a_errtxt
-            else
-                a_errtxt=errtxt
-        end
+            a_errtxt = ok ? "" : errtxt
 
         freturn ok
 
@@ -269,6 +264,9 @@ namespace <NAMESPACE>
 
         init local_data
         ok = true
+
+        ;;Hard close any soft closed cursors
+        xcall <structure_name>_close_cursors(a_dbchn)
 
         ;;Start a database transaction
         if (%ssc_commit(a_dbchn,SSQL_TXON)==SSQL_NORMAL) then
@@ -348,12 +346,7 @@ namespace <NAMESPACE>
 
         ;;If there was an error message, return it to the calling routine
         if (^passed(a_errtxt))
-        begin
-            if (ok) then
-                clear a_errtxt
-            else
-                a_errtxt=errtxt
-        end
+            a_errtxt = ok ? "" : errtxt
 
         freturn ok
 
@@ -475,12 +468,7 @@ namespace <NAMESPACE>
 
         ;;If there was an error message, return it to the calling routine
         if (^passed(a_errtxt))
-        begin
-            if (ok) then
-                clear a_errtxt
-            else
-                a_errtxt=errtxt
-        end
+            a_errtxt = ok ? "" : errtxt
 
         freturn ok
 
@@ -553,12 +541,7 @@ namespace <NAMESPACE>
 
         ;;If there was an error message, return it to the calling routine
         if (^passed(a_errtxt))
-        begin
-            if (error) then
-                a_errtxt=errtxt
-            else
-                clear a_errtxt
-        end
+            a_errtxt = error ? errtxt : ""
 
         freturn error
 
@@ -576,18 +559,21 @@ namespace <NAMESPACE>
         endparams
 
         .include "CONNECTDIR:ssql.def"
-        .include "<STRUCTURE_NOALIAS>" repository, stack record="<structure_name>", end
+        .include "<STRUCTURE_NOALIAS>" repository, static record="<structure_name>", end
 
         .align
         stack record local_data
             ok          ,boolean    ;;OK to continue
             sts         ,int        ;;Return status
             dberror     ,int        ;;Database error number
-            cursor      ,int        ;;Database cursor
             cnt         ,int        ;;Generic counter
             transaction ,int        ;;Transaction in progress
             length      ,int        ;;Length of a string
             errtxt      ,a256       ;;Error message text
+        endrecord
+
+        static record
+            sql,            string  ;;SQL statement
             <FIELD_LOOP>
             <IF USERTIMESTAMP>
             tmp<FieldName>, a26     ;;Storage for user-defined timestamp field
@@ -602,9 +588,9 @@ namespace <NAMESPACE>
             </FIELD_LOOP>
         endrecord
 
-        static record
-            sql         ,string     ;;SQL statement
-        endrecord
+        global common
+            csr_<structure_name>_insert1, i4
+        endcommon
 
     proc
 
@@ -635,7 +621,7 @@ namespace <NAMESPACE>
                 & + ") VALUES(<FIELD_LOOP><IF USERTIMESTAMP>CONVERT(DATETIME2,:<FIELD#LOGICAL>,21)<,><ELSE>:<FIELD#LOGICAL><,></IF USERTIMESTAMP></FIELD_LOOP>)"
             end
 
-            if (%ssc_open(a_dbchn,cursor,(a)sql,SSQL_NONSEL,SSQL_STANDARD)==SSQL_FAILURE)
+            if (%ssc_open(a_dbchn,csr_<structure_name>_insert1,(a)sql,SSQL_NONSEL,SSQL_STANDARD)==SSQL_FAILURE)
             begin
                 ok = false
                 sts = 0
@@ -647,7 +633,7 @@ namespace <NAMESPACE>
         ;;Bind the host variables for data to be inserted
         if (ok)
         begin
-            if (%ssc_bind(a_dbchn,cursor,<STRUCTURE_FIELDS>,
+            if (%ssc_bind(a_dbchn,csr_<structure_name>_insert1,<STRUCTURE_FIELDS>,
             <FIELD_LOOP>
             <IF USERTIMESTAMP>
             &    tmp<FieldName><,>
@@ -717,7 +703,7 @@ namespace <NAMESPACE>
             </FIELD_LOOP>
 
             ;;Execute INSERT statement
-            if (%ssc_execute(a_dbchn,cursor,SSQL_STANDARD)==SSQL_FAILURE)
+            if (%ssc_execute(a_dbchn,csr_<structure_name>_insert1,SSQL_STANDARD)==SSQL_FAILURE)
             begin
                 ok = false
                 sts = 0
@@ -740,10 +726,10 @@ namespace <NAMESPACE>
             end
         end
 
-        ;;Close the database cursor
-        if (cursor)
+        ;;Soft close the database cursor
+        if (csr_<structure_name>_insert1)
         begin
-            if (%ssc_close(a_dbchn,cursor)==SSQL_FAILURE)
+            if (%ssc_sclose(a_dbchn,csr_<structure_name>_insert1)==SSQL_FAILURE)
             begin
                 if (ok)
                 begin
@@ -778,12 +764,7 @@ namespace <NAMESPACE>
 
         ;;If there was an error message, return it to the calling routine
         if (^passed(a_errtxt))
-        begin
-            if (ok) then
-                clear a_errtxt
-            else
-                a_errtxt=errtxt
-        end
+            a_errtxt = ok ? "" : errtxt
 
         freturn sts
 
@@ -803,7 +784,7 @@ namespace <NAMESPACE>
         endparams
 
         .include "CONNECTDIR:ssql.def"
-        .include "<STRUCTURE_NOALIAS>" repository, stack record="<structure_name>", end
+        .include "<STRUCTURE_NOALIAS>" repository, static record="<structure_name>", end
         .include "<STRUCTURE_NOALIAS>" repository, structure="INPBUF", nofields, end
 
         .define EXCEPTION_BUFSZ 100
@@ -812,7 +793,6 @@ namespace <NAMESPACE>
             ok          ,boolean    ;;Return status
             dberror     ,int        ;;Database error number
             rows        ,int        ;;Number of rows to insert
-            cursor      ,int        ;;Database cursor
             cnt         ,int        ;;Generic counter
             transaction ,int        ;;Transaction in progress
             length      ,int        ;;Length of a string
@@ -820,6 +800,10 @@ namespace <NAMESPACE>
             ex_mc       ,int        ;;Items in exception array
             continue    ,int        ;;Continue after an error
             errtxt      ,a512       ;;Error message text
+        endrecord
+
+        static record
+            sql,            string  ;;SQL statement
             <FIELD_LOOP>
             <IF USERTIMESTAMP>
             tmp<FieldName>, a26     ;;Storage for user-defined timestamp field
@@ -834,9 +818,9 @@ namespace <NAMESPACE>
             </FIELD_LOOP>
         endrecord
 
-        static record
-            sql         ,string     ;;SQL statement
-        endrecord
+        global common
+            csr_<structure_name>_insert2, i4
+        endcommon
 
     proc
 
@@ -871,7 +855,7 @@ namespace <NAMESPACE>
                 & + ") VALUES(<FIELD_LOOP><IF USERTIMESTAMP>CONVERT(DATETIME2,:<FIELD#LOGICAL>,21)<,><ELSE>:<FIELD#LOGICAL><,></IF USERTIMESTAMP></FIELD_LOOP>)"
             end
 
-            if (%ssc_open(a_dbchn,cursor,(a)sql,SSQL_NONSEL,SSQL_STANDARD)==SSQL_FAILURE)
+            if (%ssc_open(a_dbchn,csr_<structure_name>_insert2,(a)sql,SSQL_NONSEL,SSQL_STANDARD)==SSQL_FAILURE)
             begin
                 ok = true
                 if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
@@ -882,7 +866,7 @@ namespace <NAMESPACE>
         ;;Bind the host variables for data to be inserted
         if (ok)
         begin
-            if (%ssc_bind(a_dbchn,cursor,<STRUCTURE_FIELDS>,
+            if (%ssc_bind(a_dbchn,csr_<structure_name>_insert2,<STRUCTURE_FIELDS>,
             <FIELD_LOOP>
             <IF USERTIMESTAMP>
             &    tmp<FieldName><,>
@@ -953,7 +937,7 @@ namespace <NAMESPACE>
                 </FIELD_LOOP>
 
                 ;;Execute the statement
-                if (%ssc_execute(a_dbchn,cursor,SSQL_STANDARD)==SSQL_FAILURE)
+                if (%ssc_execute(a_dbchn,csr_<structure_name>_insert2,SSQL_STANDARD)==SSQL_FAILURE)
                 begin
                     if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
                         errtxt="Failed to execute SQL statement"
@@ -992,10 +976,10 @@ namespace <NAMESPACE>
             end
         end
 
-        ;;Close the database cursor
-        if (cursor)
+        ;;Soft close the database cursor
+        if (csr_<structure_name>_insert2)
         begin
-            if (%ssc_close(a_dbchn,cursor)==SSQL_FAILURE)
+            if (%ssc_sclose(a_dbchn,csr_<structure_name>_insert2)==SSQL_FAILURE)
             begin
                 if (ok)
                 begin
@@ -1032,12 +1016,7 @@ namespace <NAMESPACE>
 
         ;;If there was an error message, return it to the calling routine
         if (^passed(a_errtxt))
-        begin
-            if (ok) then
-                clear a_errtxt
-            else
-                a_errtxt=%atrim(errtxt)+" [Database error "+%string(dberror)+"]"
-        end
+            a_errtxt = ok ? "" : %atrim(errtxt)+" [Database error "+%string(dberror)+"]"
 
         freturn ok
 
@@ -1221,7 +1200,7 @@ namespace <NAMESPACE>
         endparams
 
         .include "CONNECTDIR:ssql.def"
-        .include "<STRUCTURE_NOALIAS>" repository, stack record="<structure_name>", end
+        .include "<STRUCTURE_NOALIAS>" repository, static record="<structure_name>", end
 
         stack record local_data
             ok          ,boolean    ;;OK to continue
@@ -1231,6 +1210,10 @@ namespace <NAMESPACE>
             length      ,int        ;;Length of a string
             rows        ,int        ;;Number of rows updated
             errtxt      ,a256       ;;Error message text
+        endrecord
+
+        static record
+            sql,            string  ;;SQL statement
             <FIELD_LOOP>
             <IF USERTIMESTAMP>
             tmp<FieldName>, a26     ;;Storage for user-defined timestamp field
@@ -1245,10 +1228,9 @@ namespace <NAMESPACE>
             </FIELD_LOOP>
         endrecord
 
-        static record
-            sql         ,string     ;;SQL statement
-        endrecord
-
+        global common
+            csr_<structure_name>_update, i4
+        endcommon
     proc
 
         init local_data
@@ -1286,7 +1268,7 @@ namespace <NAMESPACE>
                 & + " WHERE <PRIMARY_KEY><SEGMENT_LOOP><SegmentName>='" + %atrim(^a(<structure_name>.<segment_name>)) + "' <AND></SEGMENT_LOOP></PRIMARY_KEY>"
             end
 
-            if (%ssc_open(a_dbchn,cursor,(a)sql,SSQL_NONSEL,SSQL_STANDARD)==SSQL_FAILURE)
+            if (%ssc_open(a_dbchn,csr_<structure_name>_update,(a)sql,SSQL_NONSEL,SSQL_STANDARD)==SSQL_FAILURE)
             begin
                 ok = false
                 if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
@@ -1297,7 +1279,7 @@ namespace <NAMESPACE>
         ;;Bind the host variables for the data to update
         if (ok)
         begin
-            if (%ssc_bind(a_dbchn,cursor,<STRUCTURE_FIELDS>,
+            if (%ssc_bind(a_dbchn,csr_<structure_name>_update,<STRUCTURE_FIELDS>,
             <FIELD_LOOP>
             <IF USERTIMESTAMP>
             &    tmp<FieldName><,>
@@ -1362,7 +1344,7 @@ namespace <NAMESPACE>
             </IF USERTIMESTAMP>
             </FIELD_LOOP>
 
-            if (%ssc_execute(a_dbchn,cursor,SSQL_STANDARD,,rows)==SSQL_NORMAL) then
+            if (%ssc_execute(a_dbchn,csr_<structure_name>_update,SSQL_STANDARD,,rows)==SSQL_NORMAL) then
             begin
                 if (^passed(a_rows))
                     a_rows = rows
@@ -1375,10 +1357,10 @@ namespace <NAMESPACE>
             end
         end
 
-        ;;Close the database cursor
-        if (cursor)
+        ;;Soft close the database cursor
+        if (csr_<structure_name>_update)
         begin
-            if (%ssc_close(a_dbchn,cursor)==SSQL_FAILURE)
+            if (%ssc_sclose(a_dbchn,csr_<structure_name>_update)==SSQL_FAILURE)
             begin
                 if (ok)
                 begin
@@ -1411,12 +1393,7 @@ namespace <NAMESPACE>
 
         ;;Return error message
         if (^passed(a_errtxt))
-        begin
-            if (ok) then
-                clear a_errtxt
-            else
-                a_errtxt=errtxt
-        end
+            a_errtxt = ok ? "" : errtxt
 
         freturn ok
 
@@ -1530,15 +1507,44 @@ namespace <NAMESPACE>
         ;;If there was an error message, return it to the calling routine
 
         if (^passed(a_errtxt))
-        begin
-            if (ok) then
-                clear a_errtxt
-            else
-                a_errtxt=errtxt
-        end
+            a_errtxt = ok ? "" : errtxt
 
         freturn ok
 
     endfunction
+
+    ;;*****************************************************************************
+    ;;
+    ;; Description: Hard close any soft closed cursors.
+    ;;
+    subroutine <structure_name>_close_cursors
+        required in  a_dbchn    ,i      ;;Connected database channel
+        endparams
+
+        .include "CONNECTDIR:ssql.def"
+
+        external common
+            csr_<structure_name>_insert1, i4
+            csr_<structure_name>_insert2, i4
+            csr_<structure_name>_update,  i4
+        endcommon
+
+    proc
+
+        if (csr_<structure_name>_insert1)
+            if (%ssc_close(a_dbchn,csr_<structure_name>_insert1))
+                nop
+
+        if (csr_<structure_name>_insert2)
+            if (%ssc_close(a_dbchn,csr_<structure_name>_insert2))
+                nop
+
+        if (csr_<structure_name>_update)
+            if (%ssc_close(a_dbchn,csr_<structure_name>_update))
+                nop
+
+        xreturn
+
+    endsubroutine
 
 endnamespace

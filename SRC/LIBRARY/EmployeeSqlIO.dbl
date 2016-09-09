@@ -172,12 +172,7 @@ namespace SynPSG.ReplicationDemo
 
         ;;If there was an error message, return it to the calling routine
         if (^passed(a_errtxt))
-        begin
-            if (ok) then
-                clear a_errtxt
-            else
-                a_errtxt=errtxt
-        end
+            a_errtxt = ok ? "" : errtxt
 
         freturn ok
 
@@ -251,6 +246,9 @@ namespace SynPSG.ReplicationDemo
 
         init local_data
         ok = true
+
+        ;;Hard close any soft closed cursors
+        xcall employee_close_cursors(a_dbchn)
 
         ;;Start a database transaction
         if (%ssc_commit(a_dbchn,SSQL_TXON)==SSQL_NORMAL) then
@@ -330,12 +328,7 @@ namespace SynPSG.ReplicationDemo
 
         ;;If there was an error message, return it to the calling routine
         if (^passed(a_errtxt))
-        begin
-            if (ok) then
-                clear a_errtxt
-            else
-                a_errtxt=errtxt
-        end
+            a_errtxt = ok ? "" : errtxt
 
         freturn ok
 
@@ -449,12 +442,7 @@ namespace SynPSG.ReplicationDemo
 
         ;;If there was an error message, return it to the calling routine
         if (^passed(a_errtxt))
-        begin
-            if (ok) then
-                clear a_errtxt
-            else
-                a_errtxt=errtxt
-        end
+            a_errtxt = ok ? "" : errtxt
 
         freturn ok
 
@@ -527,12 +515,7 @@ namespace SynPSG.ReplicationDemo
 
         ;;If there was an error message, return it to the calling routine
         if (^passed(a_errtxt))
-        begin
-            if (error) then
-                a_errtxt=errtxt
-            else
-                clear a_errtxt
-        end
+            a_errtxt = error ? errtxt : ""
 
         freturn error
 
@@ -550,24 +533,27 @@ namespace SynPSG.ReplicationDemo
         endparams
 
         .include "CONNECTDIR:ssql.def"
-        .include "EMPLOYEE" repository, stack record="employee", end
+        .include "EMPLOYEE" repository, static record="employee", end
 
         .align
         stack record local_data
             ok          ,boolean    ;;OK to continue
             sts         ,int        ;;Return status
             dberror     ,int        ;;Database error number
-            cursor      ,int        ;;Database cursor
             cnt         ,int        ;;Generic counter
             transaction ,int        ;;Transaction in progress
             length      ,int        ;;Length of a string
             errtxt      ,a256       ;;Error message text
-            tmpEmpHireTime, a5      ;;Storage for HH:MM time field
         endrecord
 
         static record
-            sql         ,string     ;;SQL statement
+            sql,            string  ;;SQL statement
+            tmpEmpHireTime, a5      ;;Storage for HH:MM time field
         endrecord
+
+        global common
+            csr_employee_insert1, i4
+        endcommon
 
     proc
 
@@ -607,7 +593,7 @@ namespace SynPSG.ReplicationDemo
                 & + ") VALUES(:1,:2,:3,:4,:5,:6,:7,:8,:9,:10,:11,:12)"
             end
 
-            if (%ssc_open(a_dbchn,cursor,(a)sql,SSQL_NONSEL,SSQL_STANDARD)==SSQL_FAILURE)
+            if (%ssc_open(a_dbchn,csr_employee_insert1,(a)sql,SSQL_NONSEL,SSQL_STANDARD)==SSQL_FAILURE)
             begin
                 ok = false
                 sts = 0
@@ -619,7 +605,7 @@ namespace SynPSG.ReplicationDemo
         ;;Bind the host variables for data to be inserted
         if (ok)
         begin
-            if (%ssc_bind(a_dbchn,cursor,12,
+            if (%ssc_bind(a_dbchn,csr_employee_insert1,12,
             &    employee.emp_id,
             &    employee.emp_first_name,
             &    employee.emp_last_name,
@@ -674,7 +660,7 @@ namespace SynPSG.ReplicationDemo
             tmpEmpHireTime = %string(employee.emp_hire_time,"XX:XX")
 
             ;;Execute INSERT statement
-            if (%ssc_execute(a_dbchn,cursor,SSQL_STANDARD)==SSQL_FAILURE)
+            if (%ssc_execute(a_dbchn,csr_employee_insert1,SSQL_STANDARD)==SSQL_FAILURE)
             begin
                 ok = false
                 sts = 0
@@ -697,10 +683,10 @@ namespace SynPSG.ReplicationDemo
             end
         end
 
-        ;;Close the database cursor
-        if (cursor)
+        ;;Soft close the database cursor
+        if (csr_employee_insert1)
         begin
-            if (%ssc_close(a_dbchn,cursor)==SSQL_FAILURE)
+            if (%ssc_sclose(a_dbchn,csr_employee_insert1)==SSQL_FAILURE)
             begin
                 if (ok)
                 begin
@@ -735,12 +721,7 @@ namespace SynPSG.ReplicationDemo
 
         ;;If there was an error message, return it to the calling routine
         if (^passed(a_errtxt))
-        begin
-            if (ok) then
-                clear a_errtxt
-            else
-                a_errtxt=errtxt
-        end
+            a_errtxt = ok ? "" : errtxt
 
         freturn sts
 
@@ -760,7 +741,7 @@ namespace SynPSG.ReplicationDemo
         endparams
 
         .include "CONNECTDIR:ssql.def"
-        .include "EMPLOYEE" repository, stack record="employee", end
+        .include "EMPLOYEE" repository, static record="employee", end
         .include "EMPLOYEE" repository, structure="INPBUF", nofields, end
 
         .define EXCEPTION_BUFSZ 100
@@ -769,7 +750,6 @@ namespace SynPSG.ReplicationDemo
             ok          ,boolean    ;;Return status
             dberror     ,int        ;;Database error number
             rows        ,int        ;;Number of rows to insert
-            cursor      ,int        ;;Database cursor
             cnt         ,int        ;;Generic counter
             transaction ,int        ;;Transaction in progress
             length      ,int        ;;Length of a string
@@ -777,12 +757,16 @@ namespace SynPSG.ReplicationDemo
             ex_mc       ,int        ;;Items in exception array
             continue    ,int        ;;Continue after an error
             errtxt      ,a512       ;;Error message text
-            tmpEmpHireTime, a5      ;;Storage for HH:MM time field
         endrecord
 
         static record
-            sql         ,string     ;;SQL statement
+            sql,            string  ;;SQL statement
+            tmpEmpHireTime, a5      ;;Storage for HH:MM time field
         endrecord
+
+        global common
+            csr_employee_insert2, i4
+        endcommon
 
     proc
 
@@ -826,7 +810,7 @@ namespace SynPSG.ReplicationDemo
                 & + ") VALUES(:1,:2,:3,:4,:5,:6,:7,:8,:9,:10,:11,:12)"
             end
 
-            if (%ssc_open(a_dbchn,cursor,(a)sql,SSQL_NONSEL,SSQL_STANDARD)==SSQL_FAILURE)
+            if (%ssc_open(a_dbchn,csr_employee_insert2,(a)sql,SSQL_NONSEL,SSQL_STANDARD)==SSQL_FAILURE)
             begin
                 ok = true
                 if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
@@ -837,7 +821,7 @@ namespace SynPSG.ReplicationDemo
         ;;Bind the host variables for data to be inserted
         if (ok)
         begin
-            if (%ssc_bind(a_dbchn,cursor,12,
+            if (%ssc_bind(a_dbchn,csr_employee_insert2,12,
             &    employee.emp_id,
             &    employee.emp_first_name,
             &    employee.emp_last_name,
@@ -893,7 +877,7 @@ namespace SynPSG.ReplicationDemo
                 tmpEmpHireTime = %string(employee.emp_hire_time,"XX:XX")
 
                 ;;Execute the statement
-                if (%ssc_execute(a_dbchn,cursor,SSQL_STANDARD)==SSQL_FAILURE)
+                if (%ssc_execute(a_dbchn,csr_employee_insert2,SSQL_STANDARD)==SSQL_FAILURE)
                 begin
                     if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
                         errtxt="Failed to execute SQL statement"
@@ -932,10 +916,10 @@ namespace SynPSG.ReplicationDemo
             end
         end
 
-        ;;Close the database cursor
-        if (cursor)
+        ;;Soft close the database cursor
+        if (csr_employee_insert2)
         begin
-            if (%ssc_close(a_dbchn,cursor)==SSQL_FAILURE)
+            if (%ssc_sclose(a_dbchn,csr_employee_insert2)==SSQL_FAILURE)
             begin
                 if (ok)
                 begin
@@ -972,12 +956,7 @@ namespace SynPSG.ReplicationDemo
 
         ;;If there was an error message, return it to the calling routine
         if (^passed(a_errtxt))
-        begin
-            if (ok) then
-                clear a_errtxt
-            else
-                a_errtxt=%atrim(errtxt)+" [Database error "+%string(dberror)+"]"
-        end
+            a_errtxt = ok ? "" : %atrim(errtxt)+" [Database error "+%string(dberror)+"]"
 
         freturn ok
 
@@ -1161,7 +1140,7 @@ namespace SynPSG.ReplicationDemo
         endparams
 
         .include "CONNECTDIR:ssql.def"
-        .include "EMPLOYEE" repository, stack record="employee", end
+        .include "EMPLOYEE" repository, static record="employee", end
 
         stack record local_data
             ok          ,boolean    ;;OK to continue
@@ -1171,13 +1150,16 @@ namespace SynPSG.ReplicationDemo
             length      ,int        ;;Length of a string
             rows        ,int        ;;Number of rows updated
             errtxt      ,a256       ;;Error message text
-            tmpEmpHireTime, a5      ;;Storage for HH:MM time field
         endrecord
 
         static record
-            sql         ,string     ;;SQL statement
+            sql,            string  ;;SQL statement
+            tmpEmpHireTime, a5      ;;Storage for HH:MM time field
         endrecord
 
+        global common
+            csr_employee_update, i4
+        endcommon
     proc
 
         init local_data
@@ -1220,7 +1202,7 @@ namespace SynPSG.ReplicationDemo
                 & + " WHERE EmpId='" + %atrim(^a(employee.emp_id)) + "' "
             end
 
-            if (%ssc_open(a_dbchn,cursor,(a)sql,SSQL_NONSEL,SSQL_STANDARD)==SSQL_FAILURE)
+            if (%ssc_open(a_dbchn,csr_employee_update,(a)sql,SSQL_NONSEL,SSQL_STANDARD)==SSQL_FAILURE)
             begin
                 ok = false
                 if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
@@ -1231,7 +1213,7 @@ namespace SynPSG.ReplicationDemo
         ;;Bind the host variables for the data to update
         if (ok)
         begin
-            if (%ssc_bind(a_dbchn,cursor,12,
+            if (%ssc_bind(a_dbchn,csr_employee_update,12,
             &    employee.emp_id,
             &    employee.emp_first_name,
             &    employee.emp_last_name,
@@ -1281,7 +1263,7 @@ namespace SynPSG.ReplicationDemo
             ;;Assign any time and user-defined timestamp fields
             tmpEmpHireTime = %string(employee.emp_hire_time,"XX:XX")
 
-            if (%ssc_execute(a_dbchn,cursor,SSQL_STANDARD,,rows)==SSQL_NORMAL) then
+            if (%ssc_execute(a_dbchn,csr_employee_update,SSQL_STANDARD,,rows)==SSQL_NORMAL) then
             begin
                 if (^passed(a_rows))
                     a_rows = rows
@@ -1294,10 +1276,10 @@ namespace SynPSG.ReplicationDemo
             end
         end
 
-        ;;Close the database cursor
-        if (cursor)
+        ;;Soft close the database cursor
+        if (csr_employee_update)
         begin
-            if (%ssc_close(a_dbchn,cursor)==SSQL_FAILURE)
+            if (%ssc_sclose(a_dbchn,csr_employee_update)==SSQL_FAILURE)
             begin
                 if (ok)
                 begin
@@ -1330,12 +1312,7 @@ namespace SynPSG.ReplicationDemo
 
         ;;Return error message
         if (^passed(a_errtxt))
-        begin
-            if (ok) then
-                clear a_errtxt
-            else
-                a_errtxt=errtxt
-        end
+            a_errtxt = ok ? "" : errtxt
 
         freturn ok
 
@@ -1449,15 +1426,44 @@ namespace SynPSG.ReplicationDemo
         ;;If there was an error message, return it to the calling routine
 
         if (^passed(a_errtxt))
-        begin
-            if (ok) then
-                clear a_errtxt
-            else
-                a_errtxt=errtxt
-        end
+            a_errtxt = ok ? "" : errtxt
 
         freturn ok
 
     endfunction
+
+    ;;*****************************************************************************
+    ;;
+    ;; Description: Hard close any soft closed cursors.
+    ;;
+    subroutine employee_close_cursors
+        required in  a_dbchn    ,i      ;;Connected database channel
+        endparams
+
+        .include "CONNECTDIR:ssql.def"
+
+        external common
+            csr_employee_insert1, i4
+            csr_employee_insert2, i4
+            csr_employee_update,  i4
+        endcommon
+
+    proc
+
+        if (csr_employee_insert1)
+            if (%ssc_close(a_dbchn,csr_employee_insert1))
+                nop
+
+        if (csr_employee_insert2)
+            if (%ssc_close(a_dbchn,csr_employee_insert2))
+                nop
+
+        if (csr_employee_update)
+            if (%ssc_close(a_dbchn,csr_employee_update))
+                nop
+
+        xreturn
+
+    endsubroutine
 
 endnamespace
