@@ -299,7 +299,7 @@ proc
     ok = (ok&&((dval>0)||((dval==0)&&allowNull)))
 
     ;;Check we have a valid date
-    if (ok)
+    if (ok&(dval>0))
     begin
         try
         begin
