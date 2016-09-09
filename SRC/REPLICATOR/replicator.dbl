@@ -83,6 +83,7 @@ main replicator
         switchMode          ,boolean            ;;Switched from INSERT to UPDATE or vice versa
         logLoadExceptions   ,boolean            ;;Log bulk load exceptions to a log file?
         cycleLog            ,boolean            ;;Cycle the log file
+        switchDone          ,boolean            ;;Have we tried to switch modes before?
         sleep_time          ,i4                 ;;Seconds to sleep
         errnum              ,i4                 ;;Error number
         nsptr               ,i4                 ;;Namespace pointer
@@ -223,6 +224,8 @@ proc
             end
             else
             begin
+                switchDone = false
+
                 ;;If this is a routine request (create/update/delete) then do
                 ;;file and table checks to ensure we have the file open and the
                 ;;database table exists
@@ -600,8 +603,16 @@ DoInsert,
     begin
         debuglog(" - Row already exists, switching to UPDATE")
         status = IO_OK
-        switchMode = true
-        call DoUpdate
+        if (switchDone) then
+        begin
+            Log("Too many mode switches ... we have a problem!")
+            Sleep 5
+        end
+        else
+        begin
+            switchMode = true
+            call DoUpdate
+        end
     end
     endusing
 
@@ -652,8 +663,16 @@ DoUpdate,
         begin
             debuglog(" - Row not found, switching to INSERT")
             status = IO_OK
-            sWitchMode = true
-            call DoInsert
+            if (switchDone) then
+            begin
+                Log("Too many mode switches ... we have a problem!")
+                Sleep 5
+            end
+            else
+            begin
+                switchDone = true
+                call DoInsert
+            end
         end
     end
     else
