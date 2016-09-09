@@ -258,7 +258,7 @@ proc
 
     if (!a_base_title)
     begin
-        xcall u_msgbox("Parameter 1 (base window title) was blank.",D_MOK+D_MICONSTOP,"Error")
+        xcall u_msgbox("Parameter 1 (base window title) was blank.",D_MOK+D_MICONSTOP+D_MCENTER,"Error")
         clear ok
     end
 
@@ -299,7 +299,7 @@ proc
 
         if (%<structure_name>_io(IO_OPEN_UPD,channel)!=IO_OK)
         begin
-            xcall u_msgbox("Failed to open file <FILE_NAME>",D_MOK+D_MICONSTOP,"Error")
+            xcall u_msgbox("Failed to open file <FILE_NAME>",D_MOK+D_MICONSTOP+D_MCENTER,"Error")
             clear ok
         end
     end
@@ -313,7 +313,7 @@ proc
         xcall i_ldinp(idi_criteria,,"<STRUCTURE_NAME>_CTA",D_NOPLC,,error)
         if (error) then
         begin
-            xcall u_msgbox("Failed to load input window <STRUCTURE_NAME>_CTA.",D_MOK+D_MICONSTOP,"Error")
+            xcall u_msgbox("Failed to load input window <STRUCTURE_NAME>_CTA.",D_MOK+D_MICONSTOP+D_MCENTER,"Error")
             ok=false
         end
         else
@@ -340,7 +340,7 @@ proc
                 xcall i_ldinp(idi_results,,"<STRUCTURE_NAME>_LUP",D_NOPLC,,error)
                 if (error) then
                 begin
-                    xcall u_msgbox("Failed to load input window <STRUCTURE_NAME>_LUP.",D_MOK+D_MICONSTOP,"Error")
+                    xcall u_msgbox("Failed to load input window <STRUCTURE_NAME>_LUP.",D_MOK+D_MICONSTOP+D_MCENTER,"Error")
                     clear ok
                 end
                 else
@@ -353,7 +353,7 @@ proc
                 xcall l_class(clsid,"TKM_SRCHCLASS",2,2,15,headers,,footers,1,,,"<structure_name>_mntload","ACTIVEX",error)
                 if (error)
                 begin
-                    xcall u_msgbox("Failed to create list class TKM_SRCHCLASS",D_MOK+D_MICONSTOP,"Error")
+                    xcall u_msgbox("Failed to create list class TKM_SRCHCLASS",D_MOK+D_MICONSTOP+D_MCENTER,"Error")
                     clear ok
                 end
             end
@@ -364,7 +364,7 @@ proc
                 xcall l_create(idl_results,idi_results,<structure_name>,,"TKM_SRCHCLASS",,,D_NOPLC,,,,error)
                 if (error)
                 begin
-                    xcall u_msgbox("Failed to create search list",D_MOK+D_MICONSTOP,"Error")
+                    xcall u_msgbox("Failed to create search list",D_MOK+D_MICONSTOP+D_MCENTER,"Error")
                     clear ok
                 end
 
@@ -449,7 +449,7 @@ proc
             if (tabcount>10)
             begin
                 tabcount-=1
-                xcall u_msgbox("Too many input windows, using first 10.",D_MOK+D_MICONEXCLAM,"Warning")
+                xcall u_msgbox("Too many input windows, using first 10.",D_MOK+D_MICONEXCLAM+D_MCENTER,"Warning")
                 exitloop
             end
 
@@ -462,7 +462,7 @@ proc
                 if (tabcount==1) then
                 begin
                     xcall s_bld(msgtext,,"Failed to load window %a.",wndname)
-                    xcall u_msgbox(msgtext,D_MOK+D_MICONSTOP,"Error")
+                    xcall u_msgbox(msgtext,D_MOK+D_MICONSTOP+D_MCENTER,"Error")
                     ok=false
                 end
                 else
@@ -620,7 +620,7 @@ check_null,
     xcall l_status(idl_results,D_LNULL,nullitem)
     if (nullitem)
     begin
-        xcall u_msgbox("No records match your search criteria.\nTry different search criteria.",D_MOK+D_MICONINFO,"No Matches")
+        xcall u_msgbox("No records match your search criteria.\nTry different search criteria.",D_MOK+D_MICONINFO+D_MCENTER,"No Matches")
         xcall ts_tabset(DTS_ACTIVE,idt_search,1)
     end
 
@@ -647,7 +647,7 @@ maintain,
         else
         begin
             ;Read failed
-            xcall u_msgbox("Unable to lock record.",D_MOK+D_MICONEXCLAM)
+            xcall u_msgbox("Unable to lock record.",D_MOK+D_MICONEXCLAM+D_MCENTER)
             <structure_name> = <structure_name>_save
             ok=FALSE
         end
@@ -776,7 +776,7 @@ save_record,
             if (error==IO_DUP_KEY) then
             begin
                 ;Back to maintenance to change primary key
-                xcall u_msgbox("Record already exists",D_MOK+D_MICONINFO)
+                xcall u_msgbox("Record already exists",D_MOK+D_MICONINFO+D_MCENTER)
                 xcall i_init(idi_maint[1],"ALL",<structure_name>_input,keyfldname)
                 xcall i_next(idi_maint[1],"ALL",keyfldname)
                 xcall ts_tabset(DTS_ACTIVE,idt_maint,1)
@@ -784,7 +784,7 @@ save_record,
             end
             else
             begin
-                xcall u_msgbox("Failed to save new record",D_MOK+D_MICONINFO)
+                xcall u_msgbox("Failed to save new record",D_MOK+D_MICONINFO+D_MCENTER)
             end
         end
 
@@ -797,7 +797,7 @@ save_record,
         ;Update record in file
         if (%<structure_name>_io(IO_UPDATE,channel,,,<structure_name>)!=IO_OK) then
         begin
-            xcall u_msgbox("Unable to update record.",D_MOK+D_MICONEXCLAM)
+            xcall u_msgbox("Unable to update record.",D_MOK+D_MICONEXCLAM+D_MCENTER)
             <structure_name> = <structure_name>_save
         end
         else
@@ -815,21 +815,21 @@ delete,
     if (%<structure_name>_io(IO_READ,channel,%keyval(channel,<structure_name>,0),0,<structure_name>,IO_LOCK)==IO_OK) then
     begin
         xcall s_bld(msgtext,,"Delete %a %d ?",a_base_title,%keyval(channel,<structure_name>,0))
-        if (%u_msgbox(msgtext,D_MYESNO+D_MICONQUESTION+D_MDEFBUTTON2,"Confirm")==D_MIDYES)
+        if (%u_msgbox(msgtext,D_MYESNO+D_MICONQUESTION+D_MDEFBUTTON2+D_MCENTER,"Confirm")==D_MIDYES)
         begin
             if (%<structure_name>_io(IO_DELETE,channel)==IO_OK) then
                 xcall l_queue(idl_results,D_LDELITEM)
             else
             begin
                 <structure_name> = <structure_name>_save
-                xcall u_msgbox("Failed to delete record.",D_MOK+D_MICONEXCLAM)
+                xcall u_msgbox("Failed to delete record.",D_MOK+D_MICONEXCLAM+D_MCENTER)
             end
         end
     end
     else
     begin
         <structure_name> = <structure_name>_save
-        xcall u_msgbox("Unable to lock record.",D_MOK+D_MICONEXCLAM)
+        xcall u_msgbox("Unable to lock record.",D_MOK+D_MICONEXCLAM+D_MCENTER)
     end
 
     return
@@ -1031,7 +1031,7 @@ proc
             ;Position to first record in specified key
             if (%<structure_name>_io(IO_FIND_FIRST,a_channel,,a_keynum)!=IO_OK)
             begin
-                xcall u_msgbox("No records found",D_MOK+D_MICONINFO)
+                xcall u_msgbox("No records found",D_MOK+D_MICONINFO+D_MCENTER)
                 a_reqest=D_LEOF
             end
         end
