@@ -155,10 +155,7 @@ proc
     begin
         xcall getlog("REPLICATOR_DATABASE",databuffer,length)
         if (length) then
-        begin
             db_connect = databuffer(1:length)
-            log("Database connect : " + db_connect)
-        end
         else
         begin
             ;;No connect string, we're dead!
@@ -185,7 +182,6 @@ proc
     ;;Connect to the database
     if (ok)
     begin
-        debuglog("Connecting to database")
         if (%ssc_connect(db,db_connect)==SSQL_FAILURE)
         begin
             xcall ssc_getemsg(db,dberrtxt,length)
@@ -206,9 +202,7 @@ proc
         ;;Create a namespace to record information about Synergy data files that we have opened.
         nsid = %nspc_open(,%size(structure_data))
 
-        log("")
-        log("Ready to process instructions...")
-        log("------------------------------------------------------------")
+        log("-------------------------------------------------------------------------------")
 
         ;;Main loop
         repeat
@@ -218,8 +212,8 @@ proc
 
             if (noMoreInstructions) then
             begin
-                if (runningOnTerminal)
-                    debuglog("Sleeping for " + %string(sleep_time) + " seconds...")
+                ;if (runningOnTerminal)
+                ;    debuglog("Sleeping for " + %string(sleep_time) + " seconds...")
                 sleep sleep_time
             end
             else
@@ -949,11 +943,8 @@ OpenLogFile,
 
             open(logFileChannel=0,logChannelMode,logFileSpec)
 
-            log("------------------------------------------------------------")
             log("SQL Replicator Log")
-            log("")
-            log("Instruction file : " + D_TRANS_FILE)
-            log("Sleep interval   : " + %string(sleep_time) + " seconds.")
+            log("Sleep interval is " + %string(sleep_time) + " seconds.")
         end
         catch (ex)
         begin
@@ -1022,13 +1013,13 @@ subroutine ReplicatorShutdown
 
 proc
 
-    log("------------------------------------------------------------")
+    log("-------------------------------------------------------------------------------")
     log("Normal replicator shutdown. Session summary:")
     log("INSERTS: " + %string(inserts,"ZZZ,ZZZ,ZZZ,ZZX"))
     log("UPDATES: " + %string(updates,"ZZZ,ZZZ,ZZZ,ZZX"))
     log("DELETES: " + %string(deletes,"ZZZ,ZZZ,ZZZ,ZZX"))
     log("ERRORS:  " + %string(fails,  "ZZZ,ZZZ,ZZZ,ZZX"))
-    log("------------------------------------------------------------")
+    log("-------------------------------------------------------------------------------")
 
     ;;Close the database
     if (db)
