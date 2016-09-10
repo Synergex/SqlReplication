@@ -400,6 +400,9 @@ namespace <NAMESPACE>
                 errtxt="Failed to start transaction"
         end
 
+;// THERE IS A PROBLEM HERE BECAUSE THE DELETE IS CURRENTLY ALWAYS USING PRIMARY KEY
+;// WHICH MAY NO LONGER BE APPROPRIATE!!!
+;//
         ;;Open a cursor for the DELETE statement
         if (ok)
         begin
@@ -572,8 +575,15 @@ namespace <NAMESPACE>
             errtxt      ,a256       ;;Error message text
         endrecord
 
+        literal
+            sql         ,a*, "INSERT INTO <StructureName> ("
+            <FIELD_LOOP>
+            & +              "<FieldSqlName><,>"
+            </FIELD_LOOP>
+            & +              ") VALUES(<FIELD_LOOP><IF USERTIMESTAMP>CONVERT(DATETIME2,:<FIELD#LOGICAL>,21)<,><ELSE>:<FIELD#LOGICAL><,></IF USERTIMESTAMP></FIELD_LOOP>)"
+        endliteral
+
         static record
-            sql,            string  ;;SQL statement
             <FIELD_LOOP>
             <IF USERTIMESTAMP>
             tmp<FieldName>, a26     ;;Storage for user-defined timestamp field
@@ -612,16 +622,7 @@ namespace <NAMESPACE>
         ;;Open a cursor for the INSERT statement
         if (ok)
         begin
-            if (!(a)sql)
-            begin
-                sql = "INSERT INTO <StructureName> ("
-                <FIELD_LOOP>
-                & + "<FieldSqlName><,>"
-                </FIELD_LOOP>
-                & + ") VALUES(<FIELD_LOOP><IF USERTIMESTAMP>CONVERT(DATETIME2,:<FIELD#LOGICAL>,21)<,><ELSE>:<FIELD#LOGICAL><,></IF USERTIMESTAMP></FIELD_LOOP>)"
-            end
-
-            if (%ssc_open(a_dbchn,csr_<structure_name>_insert1,(a)sql,SSQL_NONSEL,SSQL_STANDARD)==SSQL_FAILURE)
+            if (%ssc_open(a_dbchn,csr_<structure_name>_insert1,sql,SSQL_NONSEL,SSQL_STANDARD)==SSQL_FAILURE)
             begin
                 ok = false
                 sts = 0
@@ -802,8 +803,15 @@ namespace <NAMESPACE>
             errtxt      ,a512       ;;Error message text
         endrecord
 
+        literal
+            sql         ,a*, "INSERT INTO <StructureName> ("
+            <FIELD_LOOP>
+            & +              "<FieldSqlName><,>"
+            </FIELD_LOOP>
+            & +              ") VALUES(<FIELD_LOOP><IF USERTIMESTAMP>CONVERT(DATETIME2,:<FIELD#LOGICAL>,21)<,><ELSE>:<FIELD#LOGICAL><,></IF USERTIMESTAMP></FIELD_LOOP>)"
+        endliteral
+
         static record
-            sql,            string  ;;SQL statement
             <FIELD_LOOP>
             <IF USERTIMESTAMP>
             tmp<FieldName>, a26     ;;Storage for user-defined timestamp field
@@ -846,16 +854,7 @@ namespace <NAMESPACE>
         ;;Open a cursor for the INSERT statement
         if (ok)
         begin
-            if (!(a)sql)
-            begin
-                sql = "INSERT INTO <StructureName> ("
-                <FIELD_LOOP>
-                & + "<FieldSqlName><,>"
-                </FIELD_LOOP>
-                & + ") VALUES(<FIELD_LOOP><IF USERTIMESTAMP>CONVERT(DATETIME2,:<FIELD#LOGICAL>,21)<,><ELSE>:<FIELD#LOGICAL><,></IF USERTIMESTAMP></FIELD_LOOP>)"
-            end
-
-            if (%ssc_open(a_dbchn,csr_<structure_name>_insert2,(a)sql,SSQL_NONSEL,SSQL_STANDARD)==SSQL_FAILURE)
+            if (%ssc_open(a_dbchn,csr_<structure_name>_insert2,sql,SSQL_NONSEL,SSQL_STANDARD)==SSQL_FAILURE)
             begin
                 ok = true
                 if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
@@ -1194,7 +1193,7 @@ namespace <NAMESPACE>
     function <structure_name>_update_row ,^val
 
         required in  a_dbchn    ,i      ;Connected database channel
-        required in  a_data     ,a      ;Record containing data to insert
+        required in  a_data     ,a      ;Record containing data to update
         optional out a_rows     ,i      ;Number of rows affected
         optional out a_errtxt   ,a      ;Error text
         endparams
@@ -1212,8 +1211,24 @@ namespace <NAMESPACE>
             errtxt      ,a256       ;;Error message text
         endrecord
 
+;// THERE IS A PROBLEM HERE BECAUSE THE UPDATE IS CURRENTLY ALWAYS USING PRIMARY KEY
+;// WHICH MAY NO LONGER BE APPROPRIATE!!!
+;//
+        literal
+            sql         ,a*, "UPDATE <StructureName> SET "
+            <COUNTER_1_RESET>
+            <FIELD_LOOP>
+            <COUNTER_1_INCREMENT>
+            <IF USERTIMESTAMP>
+            & +              "<FieldSqlName>=CONVERT(DATETIME2,:<COUNTER_1_VALUE>,21)<,>"
+            <ELSE>
+            & +              "<FieldSqlName>=:<COUNTER_1_VALUE><,>"
+            </IF USERTIMESTAMP>
+            </FIELD_LOOP>
+            & +              " WHERE <PRIMARY_KEY><SEGMENT_LOOP><COUNTER_1_INCREMENT><SegmentName>=:<COUNTER_1_VALUE> <AND></SEGMENT_LOOP></PRIMARY_KEY>"
+        endliteral
+
         static record
-            sql,            string  ;;SQL statement
             <FIELD_LOOP>
             <IF USERTIMESTAMP>
             tmp<FieldName>, a26     ;;Storage for user-defined timestamp field
@@ -1255,20 +1270,7 @@ namespace <NAMESPACE>
         ;;Open a cursor for the UPDATE statement
         if (ok)
         begin
-            if (!(a)sql)
-            begin
-                sql = "UPDATE <StructureName> SET "
-                <FIELD_LOOP>
-                <IF USERTIMESTAMP>
-                & + "<FieldSqlName>=CONVERT(DATETIME2,:<FIELD#LOGICAL>,21)<,>"
-                <ELSE>
-                & + "<FieldSqlName>=:<FIELD#LOGICAL><,>"
-                </IF USERTIMESTAMP>
-                </FIELD_LOOP>
-                & + " WHERE <PRIMARY_KEY><SEGMENT_LOOP><SegmentName>='" + %atrim(^a(<structure_name>.<segment_name>)) + "' <AND></SEGMENT_LOOP></PRIMARY_KEY>"
-            end
-
-            if (%ssc_open(a_dbchn,csr_<structure_name>_update,(a)sql,SSQL_NONSEL,SSQL_STANDARD)==SSQL_FAILURE)
+            if (%ssc_open(a_dbchn,csr_<structure_name>_update,sql,SSQL_NONSEL,SSQL_STANDARD)==SSQL_FAILURE)
             begin
                 ok = false
                 if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
@@ -1302,7 +1304,23 @@ namespace <NAMESPACE>
             begin
                 ok = false
                 if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
-                    errtxt="Failed to bind variables"
+                    errtxt="Failed to bind data variables"
+            end
+        end
+
+;// THERE IS A PROBLEM HERE BECAUSE THE UPDATE IS CURRENTLY ALWAYS USING PRIMARY KEY
+;// WHICH MAY NO LONGER BE APPROPRIATE!!!
+;//
+        ;;Bind the host variables for the key segments / WHERE clause
+        if (ok)
+        begin
+            <PRIMARY_KEY>
+            if (%ssc_bind(a_dbchn,csr_<structure_name>_update,<KEY_SEGMENTS>,<SEGMENT_LOOP><structure_name>.<segment_name><,></SEGMENT_LOOP>)==SSQL_FAILURE)
+            </PRIMARY_KEY>
+            begin
+                ok = false
+                if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+                    errtxt="Failed to bind key variables"
             end
         end
 
