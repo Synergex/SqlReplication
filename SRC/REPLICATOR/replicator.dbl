@@ -54,7 +54,7 @@ main replicator
     .define D_MAX_CURSORS   128
     .define D_MAX_COLUMNS   254
 
-    .define D_TRANS_FILE    "DAT:replication.ism"
+    .define D_TRANS_FILE    "DAT:REPLICATION.ISM"
     .define D_SLEEP_TIME    60                  ;;Seconds to sleep
     .define D_ERROR_TIME    0.5                 ;;Time to sleep after an error
 
@@ -202,7 +202,7 @@ proc
         ;;Create a namespace to record information about Synergy data files that we have opened.
         nsid = %nspc_open(,%size(structure_data))
 
-        log("-------------------------------------------------------------------------------")
+        log("--------------------------------------------------")
 
         ;;Main loop
         repeat
@@ -1013,13 +1013,13 @@ subroutine ReplicatorShutdown
 
 proc
 
-    log("-------------------------------------------------------------------------------")
+    log("--------------------------------------------------")
     log("Normal replicator shutdown. Session summary:")
     log("INSERTS: " + %string(inserts,"ZZZ,ZZZ,ZZZ,ZZX"))
     log("UPDATES: " + %string(updates,"ZZZ,ZZZ,ZZZ,ZZX"))
     log("DELETES: " + %string(deletes,"ZZZ,ZZZ,ZZZ,ZZX"))
     log("ERRORS:  " + %string(fails,  "ZZZ,ZZZ,ZZZ,ZZX"))
-    log("-------------------------------------------------------------------------------")
+    log("--------------------------------------------------")
 
     ;;Clean up any database cursors and data files that we have open
     if (nsid)

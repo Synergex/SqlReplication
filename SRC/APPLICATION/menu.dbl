@@ -6,6 +6,9 @@
 ; Description:  A simple menu system to execute generated programs
 ;
 ;******************************************************************************
+
+import SynPSG.ReplicationDemo
+
 main menu
 
     .include "WND:tools.def"
@@ -38,7 +41,7 @@ proc
             xcall e_exit
         end
         ("R_"),
-            xcall ReplicatorMenuItem(g_entnam)
+            xcall ReplicatorControl(g_entnam)
         endusing
     end
 

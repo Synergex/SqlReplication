@@ -604,7 +604,7 @@ proc
             ("CANCEL"),
                 exitloop
             ("R_"),
-                xcall ReplicatorMenuItem(g_entnam)
+                xcall ReplicatorControl(g_entnam)
             endusing
 
         end
@@ -733,7 +733,7 @@ maintain,
             end
 
             ("R_"),
-                xcall ReplicatorMenuItem(g_entnam)
+                xcall ReplicatorControl(g_entnam)
             endusing
 
         end

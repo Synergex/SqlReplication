@@ -189,6 +189,7 @@
             <F N="../SRC/LIBRARY/LastRecordCache.dbl"/>
             <F N="../SRC/LIBRARY/Replicate.dbl"/>
             <F N="../SRC/LIBRARY/ReplicationIoHooks.dbl"/>
+            <F N="../SRC/LIBRARY/ReplicatorControl.dbl"/>
         </Folder>
         <Folder
             Name="Header Files"

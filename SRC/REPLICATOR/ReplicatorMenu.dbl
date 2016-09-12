@@ -1,0 +1,237 @@
+;;*****************************************************************************
+;;
+;; File:        ReplicatorMenu.dbl
+;;
+;; Type:        Application
+;;
+;; Description: Controls the replicator process.
+;;
+;;*****************************************************************************
+;;
+;; Copyright (c) 2008, Synergex International, Inc.
+;; All rights reserved.
+;;
+;; Redistribution and use in source and binary forms, with or without
+;; modification, are permitted provided that the following conditions are met:
+;;
+;; * Redistributions of source code must retain the above copyright notice,
+;;   this list of conditions and the following disclaimer.
+;;
+;; * Redistributions in binary form must reproduce the above copyright notice,
+;;   this list of conditions and the following disclaimer in the documentation
+;;   and/or other materials provided with the distribution.
+;;
+;; THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+;; AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+;; IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+;; ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+;; LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+;; CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+;; SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+;; INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+;; CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+;; ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+;; POSSIBILITY OF SUCH DAMAGE.
+;;
+;;*****************************************************************************
+
+import SynPSG.ReplicationDemo
+
+main ReplicatorMenu
+    record
+        tt,         i4
+        system,     d4
+        runtime,    d4
+        windows,    boolean
+        unix,       boolean
+        pid,        int
+        option,     a2
+        table,      a30
+    endrecord
+proc
+
+    xcall envrn(system,runtime)
+    windows = ((runtime==101)||(runtime==104))
+    unix = (system==8)
+
+    xcall flags(7004000,1)
+    open(tt=0,i,"tt:")
+
+    display(tt,$SCR_POS(1,1),$SCR_CLR(SCREEN))
+
+    display(tt,$SCR_POS(2,2),"Replicator Control Menu")
+
+    display(tt,$SCR_POS(2,40),"Current table: None")
+
+    repeat
+    begin
+
+        display(tt,$SCR_POS(4,1),$SCR_CLR(EOS))
+
+        if (windows) then
+        begin
+            display(tt,$SCR_POS(4,2),"1.  Start Replicator")
+            display(tt,$SCR_POS(5,2),"2.  Start Replicator (Debug)")
+        end
+        else if (unix) then
+        begin
+            display(tt,$SCR_POS(4,2),"1.  Start Replicator (Detached)")
+            display(tt,$SCR_POS(5,2),"2.  n/a")
+        end
+        else
+        begin
+            display(tt,$SCR_POS(4,2),"1.  n/a")
+            display(tt,$SCR_POS(5,2),"2.  n/a")
+        end
+
+        display(tt,$SCR_POS(6,2),"3.  Stop Replicator")
+        display(tt,$SCR_POS(7,2),"4.  Purge instructions")
+        display(tt,$SCR_POS(8,2),"5.  Cycle log")
+
+        display(tt,$SCR_POS(10,2),"T.  Set current table")
+
+        display(tt,$SCR_POS(12,2),"E.  Exit")
+
+        if (table)
+        begin
+            display(tt,$SCR_POS(4,40),"10. Create table")
+            display(tt,$SCR_POS(5,40),"11. Load table")
+            display(tt,$SCR_POS(6,40),"12. Create and load table")
+            display(tt,$SCR_POS(7,40),"13. Truncate table")
+            display(tt,$SCR_POS(8,40),"14. Delete table")
+        end
+
+        display(tt,$SCR_POS(23,2),$SCR_CLR(EOS),"Select an option: ")
+        reads(tt,option)
+
+        using option select
+
+        ("1 "),
+        begin
+            if (windows) then
+                xcall spawn("dbr EXE:replicator.dbr",D_NOWINDOW|D_NOWAIT)
+            else if (unix)
+                xcall spawn("nohup dbr EXE:replicator </dev/null >/dev/null 2>&1 &")
+        end
+
+        ("2 "),
+            if (windows)
+                xcall spawn("dbr -d EXE:replicator.dbr",D_NOWINDOW|D_NOWAIT)
+
+        ("3 "),
+        begin
+            xcall Replicate(REPLICATION_INSTRUCTION.SHUTDOWN)
+            display(tt,$scr_pos(23,20),"STOP command issued")
+        end
+
+        ("4 "),
+        begin
+            xcall Replicate(REPLICATION_INSTRUCTION.DELETE_ALL_INSTRUCTIONS)
+            display(tt,$scr_pos(23,20),"PURGE command issued")
+        end
+
+        ("5 "),
+        begin
+            xcall Replicate(REPLICATION_INSTRUCTION.CYCLE_LOG)
+            display(tt,$scr_pos(23,20),"CYCLE command issued")
+        end
+
+        ("T "),
+        begin
+            display(tt,$SCR_POS(23,2),$SCR_CLR(EOS),"Table name: ")
+            reads(tt,table)
+
+            if (table) then
+            begin
+                ;;Call the _LENGTH rotuine to make sure we have code for the table
+                try
+                begin
+                    data length, int, %xsubr(%atrim(table) + "_LENGTH")
+                    display(tt,$SCR_POS(2,55),%atrim(table))
+                    nextloop
+                end
+                catch (ex, @SynException)
+                begin
+                    display(tt,$SCR_POS(23,14),$SCR_CLR(EOS),"Table not found!")
+                    clear table
+                end
+                endtry
+            end
+            else
+            begin
+                display(tt,$SCR_POS(2,55),$SCR_CLR(EOL),"None")
+                nextloop
+            end
+        end
+
+        ("10"),
+        begin
+            if (table) then
+            begin
+                xcall Replicate(REPLICATION_INSTRUCTION.CREATE_TABLE,table)
+                display(tt,$scr_pos(23,20),"CREATE command issued")
+            end
+            else
+                display(tt,$scr_pos(23,20),"Invalid option!")
+        end
+
+        ("11"),
+        begin
+            if (table) then
+            begin
+                xcall Replicate(REPLICATION_INSTRUCTION.LOAD_TABLE,table)
+                display(tt,$scr_pos(23,20),"LOAD command issued")
+            end
+            else
+                display(tt,$scr_pos(23,20),"Invalid option!")
+        end
+
+        ("12"),
+        begin
+            if (table) then
+            begin
+                xcall Replicate(REPLICATION_INSTRUCTION.CREATE_AND_LOAD_TABLE,table)
+                display(tt,$scr_pos(23,20),"CREATE and LOAD command issued")
+            end
+            else
+                display(tt,$scr_pos(23,20),"Invalid option!")
+        end
+
+        ("13"),
+        begin
+            if (table) then
+            begin
+                xcall Replicate(REPLICATION_INSTRUCTION.DELETE_ALL_ROWS,table)
+                display(tt,$scr_pos(23,20),"TRUNCATE command issued")
+            end
+            else
+                display(tt,$scr_pos(23,20),"Invalid option!")
+        end
+
+        ("14"),
+        begin
+            if (table) then
+            begin
+                xcall Replicate(REPLICATION_INSTRUCTION.DELETE_TABLE,table)
+                display(tt,$scr_pos(23,20),"DELETE command issued")
+            end
+            else
+                display(tt,$scr_pos(23,20),"Invalid option!")
+        end
+
+        ("E "),
+            exitloop
+
+        (),
+            display(tt,$scr_pos(23,20),"Invalid option!")
+
+        endusing
+
+        sleep 0.5
+    end
+
+    display(tt,$SCR_POS(1,1),$SCR_CLR(SCREEN))
+    close tt
+    stop
+
+endmain

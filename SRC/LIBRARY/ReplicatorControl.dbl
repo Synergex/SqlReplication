@@ -1,23 +1,33 @@
 
 .include "REPLICATION_INSTRUCTION" repository, enum, end
 
-subroutine ReplicatorMenuItem
+subroutine ReplicatorControl
     required in menuItem, a
     endparams
 
-    .include "WND:tools.def"
-    .include "INC:system.def"
-    .include "REPLICATION" repository, record="instruction"
+    static record
+        system, d4
+        runtime, d4
+        windows, boolean
+    endrecord
 
 proc
+
+    if (!system)
+    begin
+        xcall envrn(system,runtime)
+        windows = ((runtime==101)||(runtime==104))
+    end
 
     using menuItem select
 
     ("R_START "),
-        xcall spawn("dbr EXE:replicator.dbr",D_NOWINDOW|D_NOWAIT)
+        if (windows)
+            xcall spawn("dbr EXE:replicator.dbr",D_NOWINDOW|D_NOWAIT)
 
     ("R_START_D"),
-        xcall spawn("dbr -d EXE:replicator.dbr",D_NOWINDOW|D_NOWAIT)
+        if (windows)
+            xcall spawn("dbr -d EXE:replicator.dbr",D_NOWINDOW|D_NOWAIT)
 
     ("R_STOP"),
         xcall replicate(REPLICATION_INSTRUCTION.SHUTDOWN)

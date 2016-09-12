@@ -172,7 +172,6 @@
             <F N="../SRC/APPLICATION/i_checkdata.dbl"/>
             <F N="../SRC/APPLICATION/menu.dbl"/>
             <F N="../SRC/APPLICATION/position_window.dbl"/>
-            <F N="../SRC/APPLICATION/ReplicatorControl.dbl"/>
             <F N="../SRC/APPLICATION/wndevent_close.dbl"/>
         </Folder>
         <Folder
