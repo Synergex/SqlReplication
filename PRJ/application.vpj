@@ -178,7 +178,7 @@
         <Folder
             Name="Header Files"
             Filters="*.def;*.dbh">
-            <F N="../SRC/INC/system.def"/>
+            <F N="../SRC/LIBRARY/system.def"/>
         </Folder>
         <Folder
             Name="Toolkit Script Files"
@@ -196,7 +196,6 @@
             Name="Batch Files"
             Filters="*.bat">
             <F N="../BAT/load_data.bat"/>
-            <F N="../BAT/remove_service.bat"/>
             <F N="../BAT/rps_export.bat"/>
             <F N="../BAT/rps_import.bat"/>
         </Folder>

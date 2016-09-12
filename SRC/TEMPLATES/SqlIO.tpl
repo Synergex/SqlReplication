@@ -98,7 +98,7 @@ namespace <NAMESPACE>
                 errtxt="Failed to start transaction"
         end
 
-        ;;Create the database table and primary key
+        ;;Create the database table and primary key constraint
         if (ok)
         begin
             sql = "CREATE TABLE <StructureName> ("
@@ -121,11 +121,10 @@ namespace <NAMESPACE>
 
         <IF STRUCTURE_HAS_UNIQUE_PK>
         <ELSE>
-        <PRIMARY_KEY>
         ;;The structure has no unique primary key, so no primary key constraint was added to the table. Create an index instead.
         if (ok)
         begin
-            sql = "CREATE INDEX IX_<StructureName>_<KeyName> ON <StructureName>(<SEGMENT_LOOP><SegmentName> <SEGMENT_ORDER><,></SEGMENT_LOOP>)"
+            sql = "<PRIMARY_KEY>CREATE INDEX IX_<StructureName>_<KeyName> ON <StructureName>(<SEGMENT_LOOP><SegmentName> <SEGMENT_ORDER><,></SEGMENT_LOOP>)</PRIMARY_KEY>"
 
             call open_cursor
 
@@ -135,7 +134,6 @@ namespace <NAMESPACE>
                 call close_cursor
             end
         end
-        </PRIMARY_KEY>
 
         </IF STRUCTURE_HAS_UNIQUE_PK>
         <ALTERNATE_KEY_LOOP>
@@ -359,11 +357,9 @@ namespace <NAMESPACE>
     function <structure_name>_delete_row ,^val
 
         required in  a_dbchn    ,i      ;;Connected database channel
-        required in  a_prikey   ,a      ;;Primary key of row to delete
+        required in  a_key      ,a      ;;Unique key of row to delete
         optional out a_errtxt   ,a      ;;Error text
         endparams
-
-        ;;Note: Primary key segments or a_where must be specified.
 
         .include "CONNECTDIR:ssql.def"
         .include "<STRUCTURE_NOALIAS>" repository, stack record="<structureName>"
@@ -387,8 +383,8 @@ namespace <NAMESPACE>
         init local_data
         ok = true
 
-        ;;Put the primary key in the record
-        <structureName> = %<StructureName>KeyToRecord(a_prikey)
+        ;;Put the unique key value into the record
+        <structureName> = %<StructureName>KeyToRecord(a_key)
 
         ;;Start a database transaction
         if (%ssc_commit(a_dbchn,SSQL_TXON)==SSQL_NORMAL) then
@@ -400,14 +396,11 @@ namespace <NAMESPACE>
                 errtxt="Failed to start transaction"
         end
 
-;// THERE IS A PROBLEM HERE BECAUSE THE DELETE IS CURRENTLY ALWAYS USING PRIMARY KEY
-;// WHICH MAY NO LONGER BE APPROPRIATE!!!
-;//
         ;;Open a cursor for the DELETE statement
         if (ok)
         begin
             sql = "DELETE FROM <StructureName> WHERE "
-            <PRIMARY_KEY>
+            <UNIQUE_KEY>
             <SEGMENT_LOOP>
             <IF ALPHA>
             & + " <SegmentName>='" + %atrim(^a(<structureName>.<segment_name>)) + "' <AND>"
@@ -415,7 +408,7 @@ namespace <NAMESPACE>
             & + " <SegmentName>=" + %string(<structureName>.<segment_name>) + " <AND>"
             </IF ALPHA>
             </SEGMENT_LOOP>
-            </PRIMARY_KEY>
+            </UNIQUE_KEY>
             if (%ssc_open(a_dbchn,cursor,(a)sql,SSQL_NONSEL)==SSQL_FAILURE)
             begin
                 ok = false
@@ -1211,9 +1204,6 @@ namespace <NAMESPACE>
             errtxt      ,a256       ;;Error message text
         endrecord
 
-;// THERE IS A PROBLEM HERE BECAUSE THE UPDATE IS CURRENTLY ALWAYS USING PRIMARY KEY
-;// WHICH MAY NO LONGER BE APPROPRIATE!!!
-;//
         literal
             sql         ,a*, "UPDATE <StructureName> SET "
             <COUNTER_1_RESET>
@@ -1225,7 +1215,7 @@ namespace <NAMESPACE>
             & +              "<FieldSqlName>=:<COUNTER_1_VALUE><,>"
             </IF USERTIMESTAMP>
             </FIELD_LOOP>
-            & +              " WHERE <PRIMARY_KEY><SEGMENT_LOOP><COUNTER_1_INCREMENT><SegmentName>=:<COUNTER_1_VALUE> <AND></SEGMENT_LOOP></PRIMARY_KEY>"
+            & +              " WHERE <UNIQUE_KEY><SEGMENT_LOOP><COUNTER_1_INCREMENT><SegmentName>=:<COUNTER_1_VALUE> <AND></SEGMENT_LOOP></UNIQUE_KEY>"
         endliteral
 
         static record
@@ -1308,15 +1298,10 @@ namespace <NAMESPACE>
             end
         end
 
-;// THERE IS A PROBLEM HERE BECAUSE THE UPDATE IS CURRENTLY ALWAYS USING PRIMARY KEY
-;// WHICH MAY NO LONGER BE APPROPRIATE!!!
-;//
         ;;Bind the host variables for the key segments / WHERE clause
         if (ok)
         begin
-            <PRIMARY_KEY>
-            if (%ssc_bind(a_dbchn,csr_<structure_name>_update,<KEY_SEGMENTS>,<SEGMENT_LOOP><structure_name>.<segment_name><,></SEGMENT_LOOP>)==SSQL_FAILURE)
-            </PRIMARY_KEY>
+            if (%ssc_bind(a_dbchn,csr_<structure_name>_update,<UNIQUE_KEY><KEY_SEGMENTS>,<SEGMENT_LOOP><structure_name>.<segment_name><,></SEGMENT_LOOP></UNIQUE_KEY>)==SSQL_FAILURE)
             begin
                 ok = false
                 if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)

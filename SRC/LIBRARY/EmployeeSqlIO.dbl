@@ -80,7 +80,7 @@ namespace SynPSG.ReplicationDemo
                 errtxt="Failed to start transaction"
         end
 
-        ;;Create the database table and primary key
+        ;;Create the database table and primary key constraint
         if (ok)
         begin
             sql = "CREATE TABLE Employee ("
@@ -341,11 +341,9 @@ namespace SynPSG.ReplicationDemo
     function employee_delete_row ,^val
 
         required in  a_dbchn    ,i      ;;Connected database channel
-        required in  a_prikey   ,a      ;;Primary key of row to delete
+        required in  a_key      ,a      ;;Unique key of row to delete
         optional out a_errtxt   ,a      ;;Error text
         endparams
-
-        ;;Note: Primary key segments or a_where must be specified.
 
         .include "CONNECTDIR:ssql.def"
         .include "EMPLOYEE" repository, stack record="employee"
@@ -369,8 +367,8 @@ namespace SynPSG.ReplicationDemo
         init local_data
         ok = true
 
-        ;;Put the primary key in the record
-        employee = %EmployeeKeyToRecord(a_prikey)
+        ;;Put the unique key value into the record
+        employee = %EmployeeKeyToRecord(a_key)
 
         ;;Start a database transaction
         if (%ssc_commit(a_dbchn,SSQL_TXON)==SSQL_NORMAL) then

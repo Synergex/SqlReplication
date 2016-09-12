@@ -44,21 +44,21 @@
 namespace SynPSG.ReplicationDemo
 
     function EmployeeKeyToRecord, a
-        required in aPrimaryKey, a
+        required in aKeyValue, a
         endparams
 
-        .include "EMPLOYEE" repository, stack record="employee"
+        .include "EMPLOYEE" repository, stack record="employee", end
 
         stack record
-            keyPos, i4
+            segPos, int
         endrecord
 
     proc
 
         clear employee
-        keyPos = 1
+        segPos = 1
 
-        ^a(employee.emp_id) = aPrimaryKey(keyPos:6)
+        ^a(employee.emp_id) = aKeyValue(segPos:6)
 
         freturn employee
 

@@ -57,32 +57,32 @@
 namespace <NAMESPACE>
 
     function <StructureName>KeyToRecord, a
-        required in aPrimaryKey, a
+        required in aKeyValue, a
         endparams
 
-        .include "<STRUCTURE_NOALIAS>" repository, stack record="<structureName>"
+        .include "<STRUCTURE_NOALIAS>" repository, stack record="<structureName>", end
 
         stack record
-            keyPos, i4
+            segPos, int
         endrecord
 
     proc
 
         clear <structureName>
-        keyPos = 1
+        segPos = 1
 
-        <PRIMARY_KEY>
+        <UNIQUE_KEY>
         <SEGMENT_LOOP>
         <IF ALPHA>
-        <structureName>.<segment_name> = aPrimaryKey(keyPos:<SEGMENT_LENGTH>)
+        <structureName>.<segment_name> = aKeyValue(segPos:<SEGMENT_LENGTH>)
         <ELSE>
-        ^a(<structureName>.<segment_name>) = aPrimaryKey(keyPos:<SEGMENT_LENGTH>)
+        ^a(<structureName>.<segment_name>) = aKeyValue(segPos:<SEGMENT_LENGTH>)
         </IF ALPHA>
         <IF MORE>
-        keyPos += <SEGMENT_LENGTH>
+        segPos += <SEGMENT_LENGTH>
         </IF MORE>
         </SEGMENT_LOOP>
-        </PRIMARY_KEY>
+        </UNIQUE_KEY>
 
         freturn <structureName>
 
