@@ -46,8 +46,17 @@ main ReplicatorMenu
         unix,       boolean
         pid,        int
         option,     a2
-        table,      a30
+        tableName,  a30
     endrecord
+    .include "REPLICATION" repository, record="instruction", end
+    record outbuf
+        operation,  a20
+        ,           a2
+        table,      a30
+        ,           a2
+        keyval,     a24
+    endrecord
+
 proc
 
     xcall envrn(system,runtime)
@@ -85,14 +94,15 @@ proc
         end
 
         display(tt,$SCR_POS(6,2),"3.  Stop Replicator")
-        display(tt,$SCR_POS(7,2),"4.  Purge instructions")
-        display(tt,$SCR_POS(8,2),"5.  Cycle log")
+        display(tt,$SCR_POS(7,2),"4.  Show instructions")
+        display(tt,$SCR_POS(8,2),"5.  Purge instructions")
+        display(tt,$SCR_POS(9,2),"6.  Cycle log")
 
-        display(tt,$SCR_POS(10,2),"T.  Set current table")
+        display(tt,$SCR_POS(11,2),"T.  Set current table")
 
-        display(tt,$SCR_POS(12,2),"E.  Exit")
+        display(tt,$SCR_POS(13,2),"E.  Exit")
 
-        if (table)
+        if (tableName)
         begin
             display(tt,$SCR_POS(4,40),"10. Create table")
             display(tt,$SCR_POS(5,40),"11. Load table")
@@ -126,11 +136,92 @@ proc
 
         ("4 "),
         begin
+            data chn, i4
+            data row, i4
+            data tmpvar, a1, " "
+            open(chn=0,"I:I","DAT:REPLICATION.ISM")
+
+            display(tt,$SCR_POS(4,2),$SCR_CLR(EOS),"Operation             Table                           Unique Key",
+            &          $SCR_POS(5,2),              "--------------------  ------------------------------  ------------------------")
+
+            find(chn,,^FIRST) [EOF=eof]
+
+            repeat
+            begin
+                for row from 6 thru 21
+                begin
+                    reads(chn,instruction,eof)
+                    clear outbuf
+
+                    using instruction.action select
+                    (REPLICATION_INSTRUCTION.CREATE_ROW),
+                        outbuf.operation = "Create row"
+                    (REPLICATION_INSTRUCTION.UPDATE_ROW),
+                        outbuf.operation = "Update row"
+                    (REPLICATION_INSTRUCTION.DELETE_ROW),
+                        outbuf.operation = "Delete row"
+                    (REPLICATION_INSTRUCTION.CREATE_TABLE),
+                        outbuf.operation = "Create table"
+                    (REPLICATION_INSTRUCTION.LOAD_TABLE),
+                        outbuf.operation = "Load table"
+                    (REPLICATION_INSTRUCTION.CREATE_AND_LOAD_TABLE),
+                        outbuf.operation = "Create & load table"
+                    (REPLICATION_INSTRUCTION.DELETE_ALL_ROWS),
+                        outbuf.operation = "Truncate table"
+                    (REPLICATION_INSTRUCTION.DELETE_TABLE),
+                        outbuf.operation = "Delete table"
+                    (REPLICATION_INSTRUCTION.SHUTDOWN),
+                        outbuf.operation = "Shutdown"
+                    (REPLICATION_INSTRUCTION.CYCLE_LOG),
+                        outbuf.operation = "Cycle log"
+                    (REPLICATION_INSTRUCTION.DELETE_ALL_INSTRUCTIONS),
+                        outbuf.operation = "Purge instructions"
+                    (REPLICATION_INSTRUCTION.CLOSE_FILE),
+                        outbuf.operation = "Close file"
+                    endusing
+
+                    outbuf.table = instruction.structure_name
+                    outbuf.keyval = instruction.key
+
+                    display(tt,$scr_pos(row,2),outbuf)
+                end
+
+                display(tt,$SCR_POS(23,2),"Press a key for more, or M for menu: ")
+
+                if (tmpvar=="M") then
+                    exitloop
+                else
+                begin
+                    accept(tt,tmpvar)
+                    while (%ttsts)
+                        accept(tt,tmpvar)
+                end
+
+                display(tt,$scr_pos(6,1),$scr_clr(EOS))
+
+            end
+
+eof,        close chn
+
+            if (tmpvar!="M")
+            begin
+                display(tt,$SCR_POS(23,2),$SCR_CLR(EOS),"No more instructions. Press a key: ")
+                begin
+                    accept(tt,tmpvar)
+                    while (%ttsts)
+                        accept(tt,tmpvar)
+                end
+            end
+            nextloop
+        end
+
+        ("5 "),
+        begin
             xcall Replicate(REPLICATION_INSTRUCTION.DELETE_ALL_INSTRUCTIONS)
             display(tt,$scr_pos(23,20),"PURGE command issued")
         end
 
-        ("5 "),
+        ("6 "),
         begin
             xcall Replicate(REPLICATION_INSTRUCTION.CYCLE_LOG)
             display(tt,$scr_pos(23,20),"CYCLE command issued")
@@ -139,21 +230,21 @@ proc
         ("T "),
         begin
             display(tt,$SCR_POS(23,2),$SCR_CLR(EOS),"Table name: ")
-            reads(tt,table)
+            reads(tt,tableName)
 
-            if (table) then
+            if (tableName) then
             begin
                 ;;Call the _LENGTH rotuine to make sure we have code for the table
                 try
                 begin
-                    data length, int, %xsubr(%atrim(table) + "_LENGTH")
-                    display(tt,$SCR_POS(2,55),%atrim(table))
+                    data length, int, %xsubr(%atrim(tableName) + "_LENGTH")
+                    display(tt,$SCR_POS(2,55),%atrim(tableName))
                     nextloop
                 end
                 catch (ex, @SynException)
                 begin
                     display(tt,$SCR_POS(23,14),$SCR_CLR(EOS),"Table not found!")
-                    clear table
+                    clear tableName
                 end
                 endtry
             end
@@ -166,9 +257,9 @@ proc
 
         ("10"),
         begin
-            if (table) then
+            if (tableName) then
             begin
-                xcall Replicate(REPLICATION_INSTRUCTION.CREATE_TABLE,table)
+                xcall Replicate(REPLICATION_INSTRUCTION.CREATE_TABLE,tableName)
                 display(tt,$scr_pos(23,20),"CREATE command issued")
             end
             else
@@ -177,9 +268,9 @@ proc
 
         ("11"),
         begin
-            if (table) then
+            if (tableName) then
             begin
-                xcall Replicate(REPLICATION_INSTRUCTION.LOAD_TABLE,table)
+                xcall Replicate(REPLICATION_INSTRUCTION.LOAD_TABLE,tableName)
                 display(tt,$scr_pos(23,20),"LOAD command issued")
             end
             else
@@ -188,9 +279,9 @@ proc
 
         ("12"),
         begin
-            if (table) then
+            if (tableName) then
             begin
-                xcall Replicate(REPLICATION_INSTRUCTION.CREATE_AND_LOAD_TABLE,table)
+                xcall Replicate(REPLICATION_INSTRUCTION.CREATE_AND_LOAD_TABLE,tableName)
                 display(tt,$scr_pos(23,20),"CREATE and LOAD command issued")
             end
             else
@@ -199,9 +290,9 @@ proc
 
         ("13"),
         begin
-            if (table) then
+            if (tableName) then
             begin
-                xcall Replicate(REPLICATION_INSTRUCTION.DELETE_ALL_ROWS,table)
+                xcall Replicate(REPLICATION_INSTRUCTION.DELETE_ALL_ROWS,tableName)
                 display(tt,$scr_pos(23,20),"TRUNCATE command issued")
             end
             else
@@ -210,9 +301,9 @@ proc
 
         ("14"),
         begin
-            if (table) then
+            if (tableName) then
             begin
-                xcall Replicate(REPLICATION_INSTRUCTION.DELETE_TABLE,table)
+                xcall Replicate(REPLICATION_INSTRUCTION.DELETE_TABLE,tableName)
                 display(tt,$scr_pos(23,20),"DELETE command issued")
             end
             else
