@@ -161,12 +161,6 @@ namespace SynPSG.ReplicationDemo
                 clear employee.emp_id
             if (!employee.emp_hire_date||!%IsDate(^a(employee.emp_hire_date)))
                 clear employee.emp_hire_date
-            if ((!employee.emp_phone[1])||(!%IsNumeric(^a(employee.emp_phone[1]))))
-                clear employee.emp_phone[1]
-            if ((!employee.emp_phone[2])||(!%IsNumeric(^a(employee.emp_phone[2]))))
-                clear employee.emp_phone[2]
-            if ((!employee.emp_phone[3])||(!%IsNumeric(^a(employee.emp_phone[3]))))
-                clear employee.emp_phone[3]
             if ((!employee.emp_paid)||(!%IsNumeric(^a(employee.emp_paid))))
                 clear employee.emp_paid
             if ((!employee.emp_home_ok)||(!%IsNumeric(^a(employee.emp_home_ok))))
@@ -184,12 +178,6 @@ namespace SynPSG.ReplicationDemo
                 clear employee.emp_id
             if (!employee.emp_hire_date||!%IsDate(^a(employee.emp_hire_date)))
                 clear employee.emp_hire_date
-            if ((!employee.emp_phone[1])||(!%IsNumeric(^a(employee.emp_phone[1]))))
-                clear employee.emp_phone[1]
-            if ((!employee.emp_phone[2])||(!%IsNumeric(^a(employee.emp_phone[2]))))
-                clear employee.emp_phone[2]
-            if ((!employee.emp_phone[3])||(!%IsNumeric(^a(employee.emp_phone[3]))))
-                clear employee.emp_phone[3]
             if ((!employee.emp_paid)||(!%IsNumeric(^a(employee.emp_paid))))
                 clear employee.emp_paid
             if ((!employee.emp_home_ok)||(!%IsNumeric(^a(employee.emp_home_ok))))
@@ -341,7 +329,7 @@ namespace SynPSG.ReplicationDemo
     function employee_length ,^val
         endparams
     proc
-        freturn 200
+        freturn 300
     endfunction
 
 endnamespace

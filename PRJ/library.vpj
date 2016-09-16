@@ -667,7 +667,6 @@
         <ExecMacro CmdLine="syn_set INC=%(ROOT)SRC\LIBRARY"/>
         <ExecMacro CmdLine="syn_set OBJ=%(ROOT)OBJ"/>
         <ExecMacro CmdLine="syn_set EXE=%(ROOT)EXE"/>
-        <ExecMacro CmdLine="syn_set FDL=%(ROOT)FDL"/>
         <ExecMacro CmdLine="syn_set DAT=%(ROOT)DAT"/>
         <ExecMacro CmdLine="syn_set BAT=%(ROOT)BAT"/>
         <ExecMacro CmdLine="syn_set XDL=%(ROOT)XDL"/>

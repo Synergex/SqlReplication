@@ -109,12 +109,6 @@ proc
             ;;Check that decimal fields contain valid numeric values
             if (!CheckDecimal(employee,"EMP_ID",^a(employee.emp_id),false) && initBadData)
                 init employee.emp_id
-            if (!CheckDecimal(employee,"EMP_PHONE[1]",^a(employee.emp_phone[1]),false) && initBadData)
-                clear employee.emp_phone[1]
-            if (!CheckDecimal(employee,"EMP_PHONE[2]",^a(employee.emp_phone[2]),false) && initBadData)
-                clear employee.emp_phone[2]
-            if (!CheckDecimal(employee,"EMP_PHONE[3]",^a(employee.emp_phone[3]),false) && initBadData)
-                clear employee.emp_phone[3]
             if (!CheckDecimal(employee,"EMP_PAID",^a(employee.emp_paid),false) && initBadData)
                 init employee.emp_paid
             if (!CheckDecimal(employee,"EMP_HOME_OK",^a(employee.emp_home_ok),false) && initBadData)

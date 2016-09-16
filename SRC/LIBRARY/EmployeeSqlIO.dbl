@@ -85,17 +85,18 @@ namespace SynPSG.ReplicationDemo
         begin
             sql = "CREATE TABLE Employee ("
             & + "EmpId DECIMAL(6) NOT NULL,"
-            & + "EmpFirstName VARCHAR(30) NOT NULL,"
-            & + "EmpLastName VARCHAR(30) NOT NULL,"
+            & + "EmpFirstName VARCHAR(20) NOT NULL,"
+            & + "EmpLastName VARCHAR(20) NOT NULL,"
             & + "EmpDept VARCHAR(15) NOT NULL,"
             & + "EmpHireDate DATE,"
-            & + "EmpPhone1 DECIMAL(10),"
-            & + "EmpPhone2 DECIMAL(10),"
-            & + "EmpPhone3 DECIMAL(10),"
+            & + "EmpPhoneWork VARCHAR(14),"
+            & + "EmpPhoneHome VARCHAR(14),"
+            & + "EmpPhoneCell VARCHAR(14),"
             & + "EmpPaid DECIMAL(1),"
             & + "EmpHomeOk DECIMAL(1),"
             & + "EmpDateOfBirth DATE,"
             & + "EmpHireTime TIME(0),"
+            & + "EmpEmail VARCHAR(40),"
             & + "CONSTRAINT PK_Employee PRIMARY KEY CLUSTERED(EmpId ASC)"
             & + ")"
 
@@ -551,14 +552,15 @@ namespace SynPSG.ReplicationDemo
             & +              "EmpLastName,"
             & +              "EmpDept,"
             & +              "EmpHireDate,"
-            & +              "EmpPhone1,"
-            & +              "EmpPhone2,"
-            & +              "EmpPhone3,"
+            & +              "EmpPhoneWork,"
+            & +              "EmpPhoneHome,"
+            & +              "EmpPhoneCell,"
             & +              "EmpPaid,"
             & +              "EmpHomeOk,"
             & +              "EmpDateOfBirth,"
-            & +              "EmpHireTime"
-            & +              ") VALUES(:1,:2,:3,:4,:5,:6,:7,:8,:9,:10,:11,:12)"
+            & +              "EmpHireTime,"
+            & +              "EmpEmail"
+            & +              ") VALUES(:1,:2,:3,:4,:5,:6,:7,:8,:9,:10,:11,:12,:13)"
         endliteral
 
         static record
@@ -601,19 +603,20 @@ namespace SynPSG.ReplicationDemo
         ;;Bind the host variables for data to be inserted
         if (ok)
         begin
-            if (%ssc_bind(a_dbchn,csr_employee_insert1,12,
+            if (%ssc_bind(a_dbchn,csr_employee_insert1,13,
             &    employee.emp_id,
             &    employee.emp_first_name,
             &    employee.emp_last_name,
             &    employee.emp_dept,
             &    ^a(employee.emp_hire_date),
-            &    employee.emp_phone[1],
-            &    employee.emp_phone[2],
-            &    employee.emp_phone[3],
+            &    employee.emp_phone_work,
+            &    employee.emp_phone_home,
+            &    employee.emp_phone_cell,
             &    employee.emp_paid,
             &    employee.emp_home_ok,
             &    ^a(employee.emp_date_of_birth),
-            &    tmpEmpHireTime
+            &    tmpEmpHireTime,
+            &    employee.emp_email
             &   )==SSQL_FAILURE)
             begin
                 ok = false
@@ -637,12 +640,9 @@ namespace SynPSG.ReplicationDemo
             employee.emp_dept=%atrim(employee.emp_dept)+%char(0)
             if ((!employee.emp_hire_date)||(!%IsDate(^a(employee.emp_hire_date))))
                 ^a(employee.emp_hire_date(1:1))=%char(0)
-            if ((!employee.emp_phone[1])||(!%IsNumeric(^a(employee.emp_phone[1]))))
-                clear employee.emp_phone[1]
-            if ((!employee.emp_phone[2])||(!%IsNumeric(^a(employee.emp_phone[2]))))
-                clear employee.emp_phone[2]
-            if ((!employee.emp_phone[3])||(!%IsNumeric(^a(employee.emp_phone[3]))))
-                clear employee.emp_phone[3]
+            employee.emp_phone_work=%atrim(employee.emp_phone_work)+%char(0)
+            employee.emp_phone_home=%atrim(employee.emp_phone_home)+%char(0)
+            employee.emp_phone_cell=%atrim(employee.emp_phone_cell)+%char(0)
             if ((!employee.emp_paid)||(!%IsNumeric(^a(employee.emp_paid))))
                 clear employee.emp_paid
             if ((!employee.emp_home_ok)||(!%IsNumeric(^a(employee.emp_home_ok))))
@@ -651,6 +651,7 @@ namespace SynPSG.ReplicationDemo
                 ^a(employee.emp_date_of_birth(1:1))=%char(0)
             if ((!employee.emp_hire_time)||(!%IsTime(^a(employee.emp_hire_time))))
                 ^a(employee.emp_hire_time(1:1))=%char(0)
+            employee.emp_email=%atrim(employee.emp_email)+%char(0)
 
             ;;Assign any time or user-defined timestamp fields
             tmpEmpHireTime = %string(employee.emp_hire_time,"XX:XX")
@@ -762,14 +763,15 @@ namespace SynPSG.ReplicationDemo
             & +              "EmpLastName,"
             & +              "EmpDept,"
             & +              "EmpHireDate,"
-            & +              "EmpPhone1,"
-            & +              "EmpPhone2,"
-            & +              "EmpPhone3,"
+            & +              "EmpPhoneWork,"
+            & +              "EmpPhoneHome,"
+            & +              "EmpPhoneCell,"
             & +              "EmpPaid,"
             & +              "EmpHomeOk,"
             & +              "EmpDateOfBirth,"
-            & +              "EmpHireTime"
-            & +              ") VALUES(:1,:2,:3,:4,:5,:6,:7,:8,:9,:10,:11,:12)"
+            & +              "EmpHireTime,"
+            & +              "EmpEmail"
+            & +              ") VALUES(:1,:2,:3,:4,:5,:6,:7,:8,:9,:10,:11,:12,:13)"
         endliteral
 
         static record
@@ -815,19 +817,20 @@ namespace SynPSG.ReplicationDemo
         ;;Bind the host variables for data to be inserted
         if (ok)
         begin
-            if (%ssc_bind(a_dbchn,csr_employee_insert2,12,
+            if (%ssc_bind(a_dbchn,csr_employee_insert2,13,
             &    employee.emp_id,
             &    employee.emp_first_name,
             &    employee.emp_last_name,
             &    employee.emp_dept,
             &    ^a(employee.emp_hire_date),
-            &    employee.emp_phone[1],
-            &    employee.emp_phone[2],
-            &    employee.emp_phone[3],
+            &    employee.emp_phone_work,
+            &    employee.emp_phone_home,
+            &    employee.emp_phone_cell,
             &    employee.emp_paid,
             &    employee.emp_home_ok,
             &    ^a(employee.emp_date_of_birth),
-            &    tmpEmpHireTime
+            &    tmpEmpHireTime,
+            &    employee.emp_email
             &   )==SSQL_FAILURE)
             begin
                 ok = false
@@ -852,12 +855,9 @@ namespace SynPSG.ReplicationDemo
                 employee.emp_dept=%atrim(employee.emp_dept)+%char(0)
                 if ((!employee.emp_hire_date)||(!%IsDate(^a(employee.emp_hire_date))))
                     ^a(employee.emp_hire_date(1:1))=%char(0)
-                if ((!employee.emp_phone[1])||(!%IsNumeric(^a(employee.emp_phone[1]))))
-                    clear employee.emp_phone[1]
-                if ((!employee.emp_phone[2])||(!%IsNumeric(^a(employee.emp_phone[2]))))
-                    clear employee.emp_phone[2]
-                if ((!employee.emp_phone[3])||(!%IsNumeric(^a(employee.emp_phone[3]))))
-                    clear employee.emp_phone[3]
+                employee.emp_phone_work=%atrim(employee.emp_phone_work)+%char(0)
+                employee.emp_phone_home=%atrim(employee.emp_phone_home)+%char(0)
+                employee.emp_phone_cell=%atrim(employee.emp_phone_cell)+%char(0)
                 if ((!employee.emp_paid)||(!%IsNumeric(^a(employee.emp_paid))))
                     clear employee.emp_paid
                 if ((!employee.emp_home_ok)||(!%IsNumeric(^a(employee.emp_home_ok))))
@@ -866,6 +866,7 @@ namespace SynPSG.ReplicationDemo
                     ^a(employee.emp_date_of_birth(1:1))=%char(0)
                 if ((!employee.emp_hire_time)||(!%IsTime(^a(employee.emp_hire_time))))
                     ^a(employee.emp_hire_time(1:1))=%char(0)
+                employee.emp_email=%atrim(employee.emp_email)+%char(0)
 
                 ;;Assign any time or user-defined timestamp fields
                 tmpEmpHireTime = %string(employee.emp_hire_time,"XX:XX")
@@ -1153,14 +1154,15 @@ namespace SynPSG.ReplicationDemo
             & +              "EmpLastName=:3,"
             & +              "EmpDept=:4,"
             & +              "EmpHireDate=:5,"
-            & +              "EmpPhone1=:6,"
-            & +              "EmpPhone2=:7,"
-            & +              "EmpPhone3=:8,"
+            & +              "EmpPhoneWork=:6,"
+            & +              "EmpPhoneHome=:7,"
+            & +              "EmpPhoneCell=:8,"
             & +              "EmpPaid=:9,"
             & +              "EmpHomeOk=:10,"
             & +              "EmpDateOfBirth=:11,"
-            & +              "EmpHireTime=:12"
-            & +              " WHERE EmpId=:13 "
+            & +              "EmpHireTime=:12,"
+            & +              "EmpEmail=:13"
+            & +              " WHERE EmpId=:14 "
         endliteral
 
         static record
@@ -1205,19 +1207,20 @@ namespace SynPSG.ReplicationDemo
         ;;Bind the host variables for the data to update
         if (ok)
         begin
-            if (%ssc_bind(a_dbchn,csr_employee_update,12,
+            if (%ssc_bind(a_dbchn,csr_employee_update,13,
             &    employee.emp_id,
             &    employee.emp_first_name,
             &    employee.emp_last_name,
             &    employee.emp_dept,
             &    ^a(employee.emp_hire_date),
-            &    employee.emp_phone[1],
-            &    employee.emp_phone[2],
-            &    employee.emp_phone[3],
+            &    employee.emp_phone_work,
+            &    employee.emp_phone_home,
+            &    employee.emp_phone_cell,
             &    employee.emp_paid,
             &    employee.emp_home_ok,
             &    ^a(employee.emp_date_of_birth),
-            &    tmpEmpHireTime
+            &    tmpEmpHireTime,
+            &    employee.emp_email
             &   )==SSQL_FAILURE)
             begin
                 ok = false
@@ -1248,12 +1251,9 @@ namespace SynPSG.ReplicationDemo
             employee.emp_dept=%atrim(employee.emp_dept)+%char(0)
             if ((!employee.emp_hire_date)||(!%IsDate(^a(employee.emp_hire_date))))
                 ^a(employee.emp_hire_date(1:1))=%char(0)
-            if ((!employee.emp_phone[1])||(!%IsNumeric(^a(employee.emp_phone[1]))))
-                clear employee.emp_phone[1]
-            if ((!employee.emp_phone[2])||(!%IsNumeric(^a(employee.emp_phone[2]))))
-                clear employee.emp_phone[2]
-            if ((!employee.emp_phone[3])||(!%IsNumeric(^a(employee.emp_phone[3]))))
-                clear employee.emp_phone[3]
+            employee.emp_phone_work=%atrim(employee.emp_phone_work)+%char(0)
+            employee.emp_phone_home=%atrim(employee.emp_phone_home)+%char(0)
+            employee.emp_phone_cell=%atrim(employee.emp_phone_cell)+%char(0)
             if ((!employee.emp_paid)||(!%IsNumeric(^a(employee.emp_paid))))
                 clear employee.emp_paid
             if ((!employee.emp_home_ok)||(!%IsNumeric(^a(employee.emp_home_ok))))
@@ -1262,6 +1262,7 @@ namespace SynPSG.ReplicationDemo
                 ^a(employee.emp_date_of_birth(1:1))=%char(0)
             if ((!employee.emp_hire_time)||(!%IsTime(^a(employee.emp_hire_time))))
                 ^a(employee.emp_hire_time(1:1))=%char(0)
+            employee.emp_email=%atrim(employee.emp_email)+%char(0)
 
             ;;Assign any time and user-defined timestamp fields
             tmpEmpHireTime = %string(employee.emp_hire_time,"XX:XX")

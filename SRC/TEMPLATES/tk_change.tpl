@@ -131,7 +131,7 @@ proc
         end
         else
         begin
-            xcall u_msgbox("Error opening file <FILE_NAME>",D_MOK+D_MICONEXCLAM,"Error")
+            xcall u_msgbox("Error opening file <FILE_NAME>",D_MOK+D_MICONEXCLAM+D_MCENTER,"Error")
             xcall <structure_name>_io(IO_SHOWERR)
             retval = D_EMITTEDERR
         end

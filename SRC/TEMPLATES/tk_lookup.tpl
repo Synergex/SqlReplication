@@ -99,7 +99,7 @@ proc
     ;Open the master file
     if (%<structure_name>_io(IO_OPEN_INP,idf_<structure_name>_i)!=IO_OK)
     begin
-        xcall u_msgbox("Failed to open file <FILE_NAME>",D_MOK+D_MICONEXCLAM,"Error")
+        xcall u_msgbox("Failed to open file <FILE_NAME>",D_MOK+D_MICONEXCLAM+D_MCENTER,"Error")
         ok=FALSE
     end
 
@@ -109,7 +109,7 @@ proc
         xcall i_ldinp(window_id,,"<STRUCTURE_NAME>_LUP",D_NOPLC,,error)
         if (error) then
         begin
-            xcall u_msgbox("Failed to load window <STRUCTURE_NAME>_LUP",D_MOK+D_MICONEXCLAM,"Error")
+            xcall u_msgbox("Failed to load window <STRUCTURE_NAME>_LUP",D_MOK+D_MICONEXCLAM+D_MCENTER,"Error")
             ok=FALSE
         end
         else
@@ -127,7 +127,7 @@ proc
         xcall l_class(lstclass,"<STRUCTURE_NAME>_CLS",,,15,headercnt,,,,,,"<structure_name>_lookup_load","ACTIVEX",error)
         if (error)
         begin
-            xcall u_msgbox("Failed to create list class <STRUCTURE_NAME>_CLS",D_MOK+D_MICONEXCLAM,"Error")
+            xcall u_msgbox("Failed to create list class <STRUCTURE_NAME>_CLS",D_MOK+D_MICONEXCLAM+D_MCENTER,"Error")
             ok=FALSE
         end
     end
@@ -138,7 +138,7 @@ proc
         xcall l_create(list_id,window_id,listdata,,"<STRUCTURE_NAME>_CLS",,,D_NOPLC,,,,error)
         if (error)
         begin
-            xcall u_msgbox("Failed to create list",D_MOK+D_MICONEXCLAM,"Error")
+            xcall u_msgbox("Failed to create list",D_MOK+D_MICONEXCLAM+D_MCENTER,"Error")
             ok=FALSE
         end
     end
@@ -219,7 +219,7 @@ select_record,
     xcall l_status(list_id,D_LNULL,nullitem)
     if (nullitem) then
     begin
-        xcall u_msgbox("No record selected.",D_MOK+D_MICONINFO)
+        xcall u_msgbox("No record selected.",D_MOK+D_MICONINFO+D_MCENTER)
         clear a_<structure_name>
     end
     else

@@ -174,7 +174,6 @@
 ;
 subroutine <structure_name>_maint_tab
     required in a_base_title    ,a  ;Base text for tabset titles (e.g."Customer")
-    optional in a_channel       ,n  ;Master file update mode channel
     optional in a_lst_header    ,a  ;Search list column headers
     optional in a_lst_footer    ,a  ;Search list footer
     optional in a_icon          ,a  ;Icon file name
@@ -290,18 +289,11 @@ proc
 
     xcall e_enter
 
-    ;Open master file (if not passed an open channel to the file)
-
-    if (^passed(a_channel)&&a_channel&&%chopen(a_channel)) then
-        channel = a_channel
-    else
+    ;Open master file
+    if (%<structure_name>_io(IO_OPEN_UPD,channel)!=IO_OK)
     begin
-
-        if (%<structure_name>_io(IO_OPEN_UPD,channel)!=IO_OK)
-        begin
-            xcall u_msgbox("Failed to open file <FILE_NAME>",D_MOK+D_MICONSTOP+D_MCENTER,"Error")
-            clear ok
-        end
+        xcall u_msgbox("Failed to open file <FILE_NAME>",D_MOK+D_MICONSTOP+D_MCENTER,"Error")
+        clear ok
     end
 
     ;Build the search tabset
@@ -612,6 +604,8 @@ proc
     end
 
     xcall e_exit
+
+    close channel
 
     xreturn
 

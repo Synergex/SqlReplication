@@ -168,6 +168,8 @@
             <F N="../SRC/APPLICATION/display_local_fields.dbl"/>
             <F N="../SRC/APPLICATION/employee_maint_tab.dbl"/>
             <F N="../SRC/APPLICATION/entrst_method.dbl"/>
+            <F N="../SRC/APPLICATION/generateDepartmentData.dbl"/>
+            <F N="../SRC/APPLICATION/generateEmployeeData.dbl"/>
             <F N="../SRC/APPLICATION/headings_from_window.dbl"/>
             <F N="../SRC/APPLICATION/i_checkdata.dbl"/>
             <F N="../SRC/APPLICATION/menu.dbl"/>
@@ -187,9 +189,9 @@
         <Folder
             Name="File Definitions"
             Filters="*.xdl">
-            <F N="../XDL/department.xdl"/>
-            <F N="../XDL/employee.xdl"/>
-            <F N="../XDL/replication.xdl"/>
+            <F N="../XDL/DEPARTMENT.XDL"/>
+            <F N="../XDL/EMPLOYEE.XDL"/>
+            <F N="../XDL/REPLICATION.XDL"/>
         </Folder>
         <Folder
             Name="Batch Files"
@@ -674,7 +676,6 @@
         <ExecMacro CmdLine="syn_set INC=%(ROOT)SRC\LIBRARY"/>
         <ExecMacro CmdLine="syn_set OBJ=%(ROOT)OBJ"/>
         <ExecMacro CmdLine="syn_set EXE=%(ROOT)EXE"/>
-        <ExecMacro CmdLine="syn_set FDL=%(ROOT)FDL"/>
         <ExecMacro CmdLine="syn_set DAT=%(ROOT)DAT"/>
         <ExecMacro CmdLine="syn_set BAT=%(ROOT)BAT"/>
         <ExecMacro CmdLine="syn_set XDL=%(ROOT)XDL"/>

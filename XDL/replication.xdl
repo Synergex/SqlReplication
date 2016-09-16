@@ -1,38 +1,38 @@
-!       Synergy ISAM XDL File created Sat Mar 22 18:59:16 2014
+!	Synergy ISAM XDL File created Fri Sep 16 12:39:07 2016
 FILE
-        NAME            "REPLICATION.ISM"
-        ADDRESSING      32
-        PAGE_SIZE       1024
-        NETWORK_ENCRYPT no
-        TRACK_CHANGES   no
-        KEYS            1
+	NAME		"REPLICATION.ISM"
+	ADDRESSING	32
+	PAGE_SIZE	1024
+	NETWORK_ENCRYPT	no
+	TRACK_CHANGES	no
+	KEYS		1
 
 RECORD
-        SIZE            309
-        FORMAT          fixed
-        COMPRESS_DATA   no
+	SIZE		309
+	FORMAT		fixed
+	COMPRESS_DATA	no
 
-        !5ca5 magic, revision 6, 1 byte record overhead
-        !Static vectoring disabled
-        !Default R6 file attributes:
-        !  Static RFAs enabled (Required)
-        !Creation version 10.1.1c {Compat Level 6.0}
-        !0 of 32 byte file text allocation in use, @0x1694
-        !File created on Sat Mar 22 14:35:58 2014
-        !20 byte longest key
-        !0 free index blocks, 0x0 free list head
-        !0 records, 1 free
+	!5ca5 magic, revision 6, 1 byte record overhead
+	!Static vectoring disabled
+	!Default R6 file attributes:
+	!  Static RFAs enabled (Required)
+	!Creation version 10.3.3a {Compat Level 6.0}
+	!0 of 32 byte file text allocation in use, @0x1694
+	!File created on Thu Sep 15 10:41:43 2016
+	!20 byte longest key
+	!0 free index blocks, 0x0 free list head
+	!0 records, 1 free
 
 KEY 0
-        !Primary key
-        START           1
-        LENGTH          20
-        TYPE            alpha
-        ORDER           ascending
-        NAME            "TRANSACTION_ID"
-        DUPLICATES      no
-        MODIFIABLE      no
-        DENSITY         50
+	!Primary key
+	START		1
+	LENGTH		20
+	TYPE		alpha
+	ORDER		ascending
+	NAME		"TRANSACTION_ID"
+	DUPLICATES	no
+	MODIFIABLE	no
+	DENSITY		50
 
-        !Root 0x2000, index depth 1
-        !Minimum keys per block 21
+	!Root 0x2000, index depth 1
+	!Minimum keys per block 21

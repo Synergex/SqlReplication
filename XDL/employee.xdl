@@ -1,44 +1,70 @@
-!       Synergy ISAM XDL File created Sun Mar 01 12:03:35 2009
+!	Synergy ISAM XDL File created Thu Sep 15 15:40:58 2016
 FILE
-        NAME            "EMPLOYEE.ISM"
-        ADDRESSING      32
-        KEYS            3
+	NAME		"EMPLOYEE.ISM"
+	ADDRESSING	32
+	PAGE_SIZE	1024
+	NETWORK_ENCRYPT	no
+	TRACK_CHANGES	no
+	KEYS		3
 
 RECORD
-        SIZE            200
-        FORMAT          fixed
-        COMPRESS_DATA   no
-        STATIC_RFA      no
+	SIZE		300
+	FORMAT		fixed
+	COMPRESS_DATA	yes
+
+	!5ca5 magic, revision 6, 15 byte record overhead
+	!Static vectoring enabled
+	!Default R6 file attributes:
+	!  Static RFAs enabled (Required)
+	!Creation version 10.3.3a {Compat Level 6.0}
+	!0 of 32 byte file text allocation in use, @0x169c
+	!File created on Thu Sep 15 15:40:44 2016
+	!23 byte longest key
+	!0 free index blocks, 0x0 free list head
+	!0 records, 0 free
 
 KEY 0
-        !Primary key
-        START           1
-        LENGTH          6
-        TYPE            alpha
-        ORDER           ascending
-        NAME            "EMP_ID"
-        DUPLICATES      no
-        MODIFIABLE      no
+	!Primary key
+	START		1
+	LENGTH		6
+	TYPE		alpha
+	ORDER		ascending
+	NAME		"EMP_ID"
+	DUPLICATES	no
+	MODIFIABLE	no
+	DENSITY		50
+
+	!Root 0x2000, index depth 1
+	!Minimum keys per block 42
 
 KEY 1
-        !Alternate key #1
-        START           67
-        LENGTH          15
-        TYPE            alpha
-        ORDER           ascending
-        NAME            "EMP_DEPT"
-        DUPLICATES      yes
-        DUPLICATE_ORDER fifo
-        MODIFIABLE      yes
+	!Alternate key #1
+	START		47
+	LENGTH		15
+	TYPE		alpha
+	ORDER		ascending
+	NAME		"EMP_DEPT"
+	DUPLICATES	yes
+	DUPLICATE_ORDER	fifo
+	MODIFIABLE	yes
+	DENSITY		50
+
+	!Root 0x2400, index depth 1
+	!Qualifier offset 9
+	!Minimum keys per block 21
 
 KEY 2
-        !Alternate key #2
-        START           37
-        LENGTH          30
-        TYPE            alpha
-        ORDER           ascending
-        NAME            "EMP_LAST_NAME"
-        DUPLICATES      yes
-        DUPLICATE_ORDER fifo
-        MODIFIABLE      yes
+	!Alternate key #2
+	START		27
+	LENGTH		20
+	TYPE		alpha
+	ORDER		ascending
+	NAME		"EMP_LAST_NAME"
+	DUPLICATES	yes
+	DUPLICATE_ORDER	fifo
+	MODIFIABLE	yes
+	DENSITY		50
 
+	!Root 0x2800, index depth 1
+	!Qualifier offset 12
+	!Minimum keys per block 17

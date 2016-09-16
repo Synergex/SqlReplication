@@ -36,12 +36,26 @@ proc
         ("EMPMNT"),
         begin
             xcall e_enter
-            xcall m_disable(D_COLUMN,idc_apps)
-            xcall employee_maint_tab("Employee",,"ID|First Name|Last Name|Department|")
+            xcall m_disable(D_COLUMN,idc_apps,idc_tools)
+            xcall employee_maint_tab("Employee","ID|First Name|Last Name|Department|Hired|")
             xcall e_exit
         end
         ("R_"),
             xcall ReplicatorControl(g_entnam)
+        ("T_GENDEP"),
+        begin
+            xcall e_enter
+            xcall m_disable(D_COLUMN,idc_apps,idc_tools,idc_replicator)
+            xcall GenerateDepartmentData()
+            xcall e_exit
+        end
+        ("T_GENEMP"),
+        begin
+            xcall e_enter
+            xcall m_disable(D_COLUMN,idc_apps,idc_tools,idc_replicator)
+            xcall GenerateEmployeeData()
+            xcall e_exit
+        end
         endusing
     end
 
@@ -91,8 +105,14 @@ setup,
         xcall mb_entry(mbcontrol,"EMPMNT","Employee Maintenance")
         xcall mb_end(mbcontrol,idc_apps)
 
+        ;;Build the tools menu
+        xcall mb_column(mbcontrol,"TOOLS","Tools")
+        xcall mb_entry(mbcontrol,"T_GENDEP","Generate Department Data")
+        xcall mb_entry(mbcontrol,"T_GENEMP","Generate Employee Data")
+        xcall mb_end(mbcontrol,idc_tools)
+
         ;;Build the replicator menu
-        xcall mb_column(mbcontrol,"TOLS","Replicator")
+        xcall mb_column(mbcontrol,"REPL","Replicator")
         xcall mb_entry(mbcontrol,"R_START","Start Replicator")
         xcall mb_entry(mbcontrol,"R_START_D","Start Replicator (Debug)")
         xcall mb_entry(mbcontrol,"R_STOP","Stop Replicator")

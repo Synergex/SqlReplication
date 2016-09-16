@@ -5,7 +5,7 @@
 ;                 : C:\DEV\PUBLIC\SqlReplicationIoHooks\RPS\rpstext.ism
 ;                 : Version 10.3.3a
 ;
-;  GENERATED      : 08-SEP-2016, 16:20:02
+;  GENERATED      : 16-SEP-2016, 12:37:01
 ;                 : Version 10.3.3a
 ;  EXPORT OPTIONS : [ALL-K-R-A] 
  
@@ -35,15 +35,14 @@ Template EMPLOYEE_ID   Type DECIMAL   Size 6
    Prompt "Employee ID"
    Required
  
-Template PERSON_FIRST_NAME   Type ALPHA   Size 30
+Template PERSON_FIRST_NAME   Type ALPHA   Size 20
    Description "First name"
    Prompt "First name"
    Required
  
-Template PERSON_LAST_NAME   Type ALPHA   Size 30
+Template PERSON_LAST_NAME   Type ALPHA   Size 20
    Description "Last name"
    Prompt "Last name"
-   Uppercase
    Required
  
 Template PHONE_NUMBER   Type DECIMAL   Size 10
@@ -77,8 +76,17 @@ Field EMP_HIRE_DATE   Type DATE   Size 8   Stored YYYYMMDD
    ODBC Name HIRE_DATE
    Date Today
  
-Field EMP_PHONE   Template PHONE_NUMBER   Dimension 3
-   Noinfo   ODBC Name PHONE
+Field EMP_PHONE_WORK   Type ALPHA   Size 14
+   Description "Work phone number"
+   Prompt "Work phone"
+ 
+Field EMP_PHONE_HOME   Type ALPHA   Size 14
+   Description "Home phone number"
+   Prompt "Home phone"
+ 
+Field EMP_PHONE_CELL   Type ALPHA   Size 14
+   Description "Cell phone number"
+   Prompt "Cell phone"
  
 Field EMP_PAID   Type DECIMAL   Size 1
    Description "Employee pay method"
@@ -103,7 +111,11 @@ Field EMP_HIRE_TIME   Type TIME   Size 4   Stored HHMM
    Prompt "Hire time"   Info Line "Enter the time the employee was hired"
    Time Now
  
-Field NONAME_001   Type ALPHA   Size 67   Language Noview   Script Noview
+Field EMP_EMAIL   Type ALPHA   Size 40
+   Description "Email address"
+   Prompt "Email"
+ 
+Field NONAME_001   Type ALPHA   Size 135   Language Noview   Script Noview
    Report Noview   Nonamelink
    Description "Spare space"
  
@@ -159,15 +171,17 @@ Structure EMPLOYEE_CRITERIA   DBL ISAM
 Field MODE   Type DECIMAL   Size 1
    Description "Search mode"
    Radio
-   Selection List 0 0 0  Entries "Last Name", "Department"
+   Selection List 0 0 0  Entries "Employee ID", "Last Name", "Department"
    Enumerated 10 1 1
    Change Method "employee_mntmode"
  
-Field FIELD1   Template PERSON_LAST_NAME
+Field FIELD1   Template EMPLOYEE_ID
+ 
+Field FIELD2   Template PERSON_LAST_NAME
    Noprompt
    Norequired
  
-Field FIELD2   Template DEPARTMENT_ID
+Field FIELD3   Template DEPARTMENT_ID
    Noprompt
    Norequired
  
