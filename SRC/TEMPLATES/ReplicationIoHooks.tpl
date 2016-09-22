@@ -106,7 +106,7 @@ namespace <NAMESPACE>
                 ;;Search for the first unique key
                 for thisKey from 0 thru %isinfo(mChannel,"NUMKEYS") - 1
                 begin
-                    if (!%isinfoa(mChannel,"DUPS",thisKey))
+                    if (!%isinfo(mChannel,"DUPS",thisKey))
                     begin
                         ;;Found one
                         mKeyNum = thisKey

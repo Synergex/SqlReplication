@@ -81,7 +81,7 @@ proc
         data thisKey, int
         for thisKey from 0 thru %isinfo(ch,"NUMKEYS") - 1
         begin
-            if (!%isinfoa(ch,"DUPS",thisKey))
+            if (!%isinfo(ch,"DUPS",thisKey))
             begin
                 ;;Found one
                 uniqueKey = thisKey

@@ -385,7 +385,7 @@ CheckFileTable,
             structure_data.structure_keynum = -1
             for thisKey from 0 thru %isinfo(structure_data.structure_chan,"NUMKEYS") - 1
             begin
-                if (!%isinfoa(structure_data.structure_chan,"DUPS",thisKey))
+                if (!%isinfo(structure_data.structure_chan,"DUPS",thisKey))
                 begin
                     ;;Found it!
                     structure_data.structure_keynum = thisKey
