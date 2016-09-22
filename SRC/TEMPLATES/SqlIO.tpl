@@ -691,7 +691,7 @@ namespace <NAMESPACE>
             tmp<FieldName> = %string(<field_path>,"XX:XX")
             </IF TIME_HHMM>
             <IF TIME_HHMMSS>
-            tmp<FieldName> = %string(<field_path>,"XX:XX:SS")
+            tmp<FieldName> = %string(<field_path>,"XX:XX:XX")
             </IF TIME_HHMMSS>
             </IF USERTIMESTAMP>
             </FIELD_LOOP>
