@@ -1,0 +1,12 @@
+
+BASEDIR=$(dirname "$0")
+cd $BASEDIR
+
+if [ -f replicator_instructions.txt ];
+then
+    rm replicator_instructions.txt
+fi
+
+fconvert -ii SYF:REPLICATION.ISM -ot replicator_instructions.txt
+
+echo Instructions exported to replicator_instructions.txt
