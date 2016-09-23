@@ -155,7 +155,10 @@ proc
     begin
         xcall getlog("REPLICATOR_DATABASE",databuffer,length)
         if (length) then
+        begin
             db_connect = databuffer(1:length)
+            log("Connect string: " + db_connect)
+        end
         else
         begin
             ;;No connect string, we're dead!
@@ -202,7 +205,7 @@ proc
         ;;Create a namespace to record information about Synergy data files that we have opened.
         nsid = %nspc_open(,%size(structure_data))
 
-        log("--------------------------------------------------")
+        log("--- Processing instructions ----------------------")
 
         ;;Main loop
         repeat
@@ -265,6 +268,9 @@ proc
                 (REPLICATION_INSTRUCTION.CREATE_AND_LOAD_TABLE),
                     call DoCreateAndLoadTable
 
+                (REPLICATION_INSTRUCTION.CREATE_CSV),
+                    call DoCreateCsv
+
                 (REPLICATION_INSTRUCTION.DELETE_ALL_ROWS),
                     call DoDeleteAllRows
 
@@ -291,7 +297,7 @@ proc
 
             end
 
-            ;;Go back to first record in instruction file and start over
+            ;;Reset to first record in instruction file and start over
             try
             begin
                 find(instructionChannel,,^FIRST)
@@ -356,14 +362,19 @@ CheckFileTable,
     if (nsptr = %nspc_find(nsid,instruction.structure_name,structure_data)) then
     begin
         ;;Yes, we're good to go!
-        nop
+        return
     end
     else
     begin
         ;;No, open the file and make sure it worked
         call OpenFile
+
+        ;;If we failed to open the file then we have a serious problem!
         if (!structure_data.structure_chan)
-            exit
+        begin
+            log("ERROR: Failed to open ISAM file for structure " + %atrim(instruction.structure_name))
+            return
+        end
 
         ;;Get the record size of the file
         try
@@ -408,10 +419,12 @@ CheckFileTable,
         end
         else
         begin
-            ;;In theory we should never get here, but just in case, this will cause the replicator to abort
+            ;;In theory we should never get here because CodeGen should not be able to create the
+            ;;required code if no unique key is present.
+            ;;But just in case, this will cause the replicator to abort
             close structure_data.structure_chan
             clear structure_data.structure_chan
-            log("ERROR: File associated with structure " + %atrim(instruction.structure_name) + " has no unique key!")
+            log("ERROR: File for structure " + %atrim(instruction.structure_name) + " has no unique key!")
         end
     end
 
@@ -519,7 +532,7 @@ CreateTable,
 ;;
 LoadTable,
 
-    log("Loading table " + %atrim(instruction.structure_name))
+    log("Load table " + %atrim(instruction.structure_name) + " starting at " + %TimeNow)
 
     try
     begin
@@ -535,7 +548,7 @@ LoadTable,
 
         if (status) then
         begin
-            log(" - Load complete. " + %string(successCount) + " rows inserted, " + %string(failCount) + " rows failed.")
+            log(" - Load complete at " + %TimeNow + " " + %string(successCount) + " rows inserted, " + %string(failCount) + " rows failed.")
             inserts += successCount
             fails   += failCount
         end
@@ -599,8 +612,7 @@ DoInsert,
         status = IO_OK
         if (switchDone) then
         begin
-            Log("Too many mode switches ... we have a problem!")
-            Sleep 5
+            Log("ERROR: Too many INSERT/UPDATE mode switches!")
         end
         else
         begin
@@ -659,8 +671,7 @@ DoUpdate,
             status = IO_OK
             if (switchDone) then
             begin
-                Log("Too many mode switches ... we have a problem!")
-                Sleep 5
+                Log("ERROR: Too many INSERT/UPDATE mode switches!")
             end
             else
             begin
@@ -812,6 +823,30 @@ DoCreateAndLoadTable,
     ;;We create the table, then do a full load of data
 
     call CheckTable
+
+    return
+
+;;-----------------------------------------------------------------------------
+;; Export ISAM file to CSV file
+;;
+DoCreateCsv,
+
+    log("Export CSV for " + %atrim(instruction.structure_name) + " starting at " + %TimeNow)
+
+    try
+    begin
+        functionName = %atrim(instruction.structure_name) + "_CREATE_CSV"
+        status = %xsubr(functionName,db,dberrtxt)
+        if (status) then
+            debuglog(" - Done at " + %TimeNow)
+        else
+            xcall LogFunctionError(logFileChannel,functionName,status,dberrtxt)
+    end
+    catch (ex, @SynException)
+    begin
+        ok = %LogFunctionFail(logFileChannel,functionName,ex.Errno,ex.Message)
+    end
+    endtry
 
     return
 
@@ -1129,8 +1164,16 @@ proc
         freturn ""
     else
     begin
-        now = %datetime
-        freturn %string(now(1:14),"XXXX-XX-XX XX:XX:XX ")
+        freturn %TimeNow
     end
+endfunction
+
+function TimeNow, string
+    record
+        now, d20
+    endrecord
+proc
+    now = %datetime
+    freturn %string(now(1:14),"XXXX-XX-XX XX:XX:XX ")
 endfunction
 

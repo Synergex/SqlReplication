@@ -2,7 +2,6 @@
 <PROCESS_TEMPLATE>IsDate</PROCESS_TEMPLATE>
 <PROCESS_TEMPLATE>IsNumeric</PROCESS_TEMPLATE>
 <PROCESS_TEMPLATE>IsTime</PROCESS_TEMPLATE>
-<PROCESS_TEMPLATE>KeyToRecord</PROCESS_TEMPLATE>
 ;//*****************************************************************************
 ;//
 ;// Title:      SqlIo.tpl
@@ -579,13 +578,13 @@ namespace <NAMESPACE>
         static record
             <FIELD_LOOP>
             <IF USERTIMESTAMP>
-            tmp<FieldName>, a26     ;;Storage for user-defined timestamp field
+            tmp<FieldSqlName>, a26     ;;Storage for user-defined timestamp field
             <ELSE>
             <IF TIME_HHMM>
-            tmp<FieldName>, a5      ;;Storage for HH:MM time field
+            tmp<FieldSqlName>, a5      ;;Storage for HH:MM time field
             </IF TIME_HHMM>
             <IF TIME_HHMMSS>
-            tmp<FieldName>, a7      ;;Storage for HH:MM:SS time field
+            tmp<FieldSqlName>, a7      ;;Storage for HH:MM:SS time field
             </IF TIME_HHMMSS>
             </IF USERTIMESTAMP>
             </FIELD_LOOP>
@@ -630,7 +629,7 @@ namespace <NAMESPACE>
             if (%ssc_bind(a_dbchn,csr_<structure_name>_insert1,<STRUCTURE_FIELDS>,
             <FIELD_LOOP>
             <IF USERTIMESTAMP>
-            &    tmp<FieldName><,>
+            &    tmp<FieldSqlName><,>
             <ELSE>
             <IF ALPHA>
             &    <field_path><,>
@@ -642,7 +641,7 @@ namespace <NAMESPACE>
             &    ^a(<field_path>)<,>
             </IF DATE>
             <IF TIME>
-            &    tmp<FieldName><,>
+            &    tmp<FieldSqlName><,>
             </IF TIME>
             </IF USERTIMESTAMP>
             </FIELD_LOOP>
@@ -685,13 +684,13 @@ namespace <NAMESPACE>
             ;;Assign any time or user-defined timestamp fields
             <FIELD_LOOP>
             <IF USERTIMESTAMP>
-            tmp<FieldName> = %string(^d(<field_path>),"XXXX-XX-XX XX:XX:XX.XXXXXX")
+            tmp<FieldSqlName> = %string(^d(<field_path>),"XXXX-XX-XX XX:XX:XX.XXXXXX")
             <ELSE>
             <IF TIME_HHMM>
-            tmp<FieldName> = %string(<field_path>,"XX:XX")
+            tmp<FieldSqlName> = %string(<field_path>,"XX:XX")
             </IF TIME_HHMM>
             <IF TIME_HHMMSS>
-            tmp<FieldName> = %string(<field_path>,"XX:XX:XX")
+            tmp<FieldSqlName> = %string(<field_path>,"XX:XX:XX")
             </IF TIME_HHMMSS>
             </IF USERTIMESTAMP>
             </FIELD_LOOP>
@@ -807,13 +806,13 @@ namespace <NAMESPACE>
         static record
             <FIELD_LOOP>
             <IF USERTIMESTAMP>
-            tmp<FieldName>, a26     ;;Storage for user-defined timestamp field
+            tmp<FieldSqlName>, a26     ;;Storage for user-defined timestamp field
             <ELSE>
             <IF TIME_HHMM>
-            tmp<FieldName>, a5      ;;Storage for HH:MM time field
+            tmp<FieldSqlName>, a5      ;;Storage for HH:MM time field
             </IF TIME_HHMM>
             <IF TIME_HHMMSS>
-            tmp<FieldName>, a7      ;;Storage for HH:MM:SS time field
+            tmp<FieldSqlName>, a7      ;;Storage for HH:MM:SS time field
             </IF TIME_HHMMSS>
             </IF USERTIMESTAMP>
             </FIELD_LOOP>
@@ -861,7 +860,7 @@ namespace <NAMESPACE>
             if (%ssc_bind(a_dbchn,csr_<structure_name>_insert2,<STRUCTURE_FIELDS>,
             <FIELD_LOOP>
             <IF USERTIMESTAMP>
-            &    tmp<FieldName><,>
+            &    tmp<FieldSqlName><,>
             <ELSE>
             <IF ALPHA>
             &    <field_path><,>
@@ -873,7 +872,7 @@ namespace <NAMESPACE>
             &    ^a(<field_path>)<,>
             </IF DATE>
             <IF TIME>
-            &    tmp<FieldName><,>
+            &    tmp<FieldSqlName><,>
             </IF TIME>
             </IF USERTIMESTAMP>
             </FIELD_LOOP>
@@ -917,13 +916,13 @@ namespace <NAMESPACE>
                 ;;Assign any time or user-defined timestamp fields
                 <FIELD_LOOP>
                 <IF USERTIMESTAMP>
-                tmp<FieldName> = %string(^d(<field_path>),"XXXX-XX-XX XX:XX:XX.XXXXXX")
+                tmp<FieldSqlName> = %string(^d(<field_path>),"XXXX-XX-XX XX:XX:XX.XXXXXX")
                 <ELSE>
                 <IF TIME_HHMM>
-                tmp<FieldName> = %string(<field_path>,"XX:XX")
+                tmp<FieldSqlName> = %string(<field_path>,"XX:XX")
                 </IF TIME_HHMM>
                 <IF TIME_HHMMSS>
-                tmp<FieldName> = %string(<field_path>,"XX:XX:XX")
+                tmp<FieldSqlName> = %string(<field_path>,"XX:XX:XX")
                 </IF TIME_HHMMSS>
                 </IF USERTIMESTAMP>
                 </FIELD_LOOP>
@@ -1038,6 +1037,7 @@ namespace <NAMESPACE>
 
         stack record local_data
             ok          ,boolean    ;;Return status
+            firstRecord ,boolean    ;;Is this the first record?
             filechn     ,int        ;;Data file channel
             mh          ,D_HANDLE   ;;Memory handle containing data to insert
             ms          ,int        ;;Size of memory buffer in rows
@@ -1068,19 +1068,23 @@ namespace <NAMESPACE>
 
         if (ok)
         begin
-
-            ;;Position to the first record (needed incase the structure has a tag)
-            if (%<structure_name>_io(IO_FIND_FIRST,filechn)!=IO_OK)
-                exit
-
             ;;Allocate memory buffer for the database rows
             mh = %mem_proc(DM_ALLOC,^size(<structure_name>)*(ms=BUFFER_ROWS))
 
             ;;Read records from the input file
+            firstRecord = true
             repeat
             begin
                 ;;Get the next record from the input file
-                using errnum = %<structure_name>_io(IO_READ_NEXT,filechn,,,tmprec) select
+                if (firstRecord) then
+                begin
+                    errnum = %<structure_name>_io(IO_READ_FIRST,filechn,,,tmprec)
+                    firstRecord = false
+                end
+                else
+                    errnum = %<structure_name>_io(IO_READ_NEXT,filechn,,,tmprec)
+
+                using errnum select
                 (IO_OK),
                     nop
                 (IO_EOF),
@@ -1221,16 +1225,17 @@ namespace <NAMESPACE>
         static record
             <FIELD_LOOP>
             <IF USERTIMESTAMP>
-            tmp<FieldName>, a26     ;;Storage for user-defined timestamp field
+            tmp<FieldSqlName>, a26     ;;Storage for user-defined timestamp field
             <ELSE>
             <IF TIME_HHMM>
-            tmp<FieldName>, a5      ;;Storage for HH:MM time field
+            tmp<FieldSqlName>, a5      ;;Storage for HH:MM time field
             </IF TIME_HHMM>
             <IF TIME_HHMMSS>
-            tmp<FieldName>, a7      ;;Storage for HH:MM:SS time field
+            tmp<FieldSqlName>, a7      ;;Storage for HH:MM:SS time field
             </IF TIME_HHMMSS>
             </IF USERTIMESTAMP>
             </FIELD_LOOP>
+            ,a1                         ;;In case there are no user timestamp, date or JJJJJJ date fields
         endrecord
 
         global common
@@ -1274,7 +1279,7 @@ namespace <NAMESPACE>
             if (%ssc_bind(a_dbchn,csr_<structure_name>_update,<STRUCTURE_FIELDS>,
             <FIELD_LOOP>
             <IF USERTIMESTAMP>
-            &    tmp<FieldName><,>
+            &    tmp<FieldSqlName><,>
             <ELSE>
             <IF ALPHA>
             &    <field_path><,>
@@ -1286,7 +1291,7 @@ namespace <NAMESPACE>
             &    ^a(<field_path>)<,>
             </IF DATE>
             <IF TIME>
-            &    tmp<FieldName><,>
+            &    tmp<FieldSqlName><,>
             </IF TIME>
             </IF USERTIMESTAMP>
             </FIELD_LOOP>
@@ -1336,13 +1341,13 @@ namespace <NAMESPACE>
             ;;Assign any time and user-defined timestamp fields
             <FIELD_LOOP>
             <IF USERTIMESTAMP>
-            tmp<FieldName> = %string(^d(<field_path>),"XXXX-XX-XX XX:XX:XX.XXXXXX")
+            tmp<FieldSqlName> = %string(^d(<field_path>),"XXXX-XX-XX XX:XX:XX.XXXXXX")
             <ELSE>
             <IF TIME_HHMM>
-            tmp<FieldName> = %string(<field_path>,"XX:XX")
+            tmp<FieldSqlName> = %string(<field_path>,"XX:XX")
             </IF TIME_HHMM>
             <IF TIME_HHMMSS>
-            tmp<FieldName> = %string(<field_path>,"XX:XX:XX")
+            tmp<FieldSqlName> = %string(<field_path>,"XX:XX:XX")
             </IF TIME_HHMMSS>
             </IF USERTIMESTAMP>
             </FIELD_LOOP>
@@ -1549,5 +1554,210 @@ namespace <NAMESPACE>
         xreturn
 
     endsubroutine
+
+    ;;*****************************************************************************
+    ;;
+    ;; Description: Export ISAM data to a CSV file.
+    ;;
+    function <structure_name>_create_csv ,^val
+
+        required in  a_dbchn    ,i      ;;Connected database channel
+        optional out a_errtxt   ,a      ;;Error text
+        endparams
+
+        .include "CONNECTDIR:ssql.def"
+        .include "<STRUCTURE_NOALIAS>" repository, record="<structure_name>", end
+        .include "INC:STRUCTUREIO.DEF"
+
+        .define EXCEPTION_BUFSZ 100
+
+        stack record local_data
+            ok          ,boolean    ;;Return status
+            firstRecord ,boolean    ;;Is this the first record
+            filechn     ,int        ;;Data file channel
+            csvchn      ,int        ;;CSV file channel
+            errnum      ,int        ;;Error number
+            attempted   ,int        ;;Number of records exported
+            errtxt      ,a256       ;;Error message text
+        endrecord
+
+    proc
+
+        init local_data
+        ok = true
+
+        ;;Open the data file associated with the structure
+        if (%<structure_name>_io(IO_OPEN_INP,filechn)!=IO_OK)
+        begin
+            ok = false
+            errtxt = "Failed to open file <FILE_NAME>"
+            clear filechn
+        end
+
+        ;;Open the CSV file
+        if (ok)
+        begin
+            open(csvchn=0,o:s,"CSV:<structure_name>.csv")
+            writes(csvchn,"<FIELD_LOOP><FieldSqlName><,></FIELD_LOOP>")
+        end
+
+        if (ok)
+        begin
+            ;;Read records from the input file
+            firstRecord = true
+            repeat
+            begin
+                ;;Get the next record from the input file
+                if (firstRecord) then
+                begin
+                    errnum = %<structure_name>_io(IO_READ_FIRST,filechn,,,<structure_name>)
+                    firstRecord = false
+                end
+                else
+                begin
+                    errnum = %<structure_name>_io(IO_READ_NEXT,filechn,,,<structure_name>)
+                end
+
+                using errnum select
+                (IO_OK),
+                begin
+                    data buff, string, ""
+                    buff = ""
+                    <FIELD_LOOP>
+                    <IF USERTIMESTAMP>
+                    &    + %string(^d(<field_path>),"XXXX-XX-XX XX:XX:XX.XXXXXX") + "<IF MORE>|</IF MORE>"
+                    <ELSE>
+                    <IF ALPHA>
+                    &    + %atrim(<field_path>) + "<IF MORE>|</IF MORE>"
+                    </IF ALPHA>
+                    <IF DECIMAL>
+                    &    + %string(<field_path>) + "<IF MORE>|</IF MORE>"
+                    </IF DECIMAL>
+                    <IF DATE>
+                    &    + %atrim(^a(<field_path>)) + "<IF MORE>|</IF MORE>"
+                    </IF DATE>
+                    <IF TIME_HHMM>
+                    &    + %string(<field_path>,"XX:XX") + "<IF MORE>|</IF MORE>"
+                    </IF TIME>
+                    <IF TIME_HHMMSS>
+                    &    + %string(<field_path>,"XX:XX:XX") + "<IF MORE>|</IF MORE>"
+                    </IF TIME>
+                    <IF USER>
+                    &    + %TmJulianToYYYYMMDD(<field_path>) - %char(0) + "<IF MORE>|</IF MORE>"
+                    </IF USER>
+                    </IF USERTIMESTAMP>
+                    </FIELD_LOOP>
+                    writes(csvchn,buff)
+                    attempted += 1
+                end
+                (IO_EOF),
+                    exitloop
+                (),
+                begin
+                    ok = false
+                    errtxt = "Unexpected response " + %string(errnum) + " from %<structure_name>_io"
+                    exitloop
+                end
+                endusing
+            end
+        end
+
+        ;;Close the CSV file
+        if (csvchn)
+            close csvchn
+
+        ;;Create the SQL command file
+        if (ok)
+        begin
+            data csvdir, a128
+            data csvlen, i4
+            data csvfile, string, ""
+
+            xcall getlog("CSV",csvdir,csvlen)
+
+            if (csvlen)
+                csvfile = %atrim(csvdir)
+
+            if (csvfile.EndsWith("\")) then
+                csvfile = csvfile + "<structure_name>.csv"
+            else
+                csvfile = csvfile + "\<structure_name>.csv"
+
+            open(csvchn=0,o:s,"CSV:<structure_name>.sql")
+
+            writes(csvchn,"")
+            writes(csvchn,"Use TireMax")
+            writes(csvchn,"GO")
+            writes(csvchn,"")
+            writes(csvchn,"TRUNCATE TABLE <StructureName>")
+            writes(csvchn,"GO")
+            writes(csvchn,"")
+            writes(csvchn,"BULK INSERT <StructureName>")
+            writes(csvchn,"    FROM '" + csvfile + "'")
+            writes(csvchn,"    WITH")
+            writes(csvchn,"    (")
+            writes(csvchn,"        FIRSTROW=2,")
+            writes(csvchn,"        FIELDTERMINATOR='|',")
+            writes(csvchn,"        ROWTERMINATOR ='\n'")
+            writes(csvchn,"    )")
+            writes(csvchn,"GO")
+            writes(csvchn,"")
+
+            close csvchn
+        end
+
+        ;;Close the file
+        if (filechn)
+            xcall <structure_name>_io(IO_CLOSE,filechn)
+
+        ;;Return the error text
+        if (^passed(a_errtxt))
+            a_errtxt = errtxt
+
+        freturn ok
+
+    endfunction
+
+    ;;*****************************************************************************
+    ;; Description: Accepts a primary key value and returns an instance of the
+    ;;              record containing the data of the key segments.
+    ;;
+
+    function <StructureName>KeyToRecord, a
+        required in aKeyValue, a
+        endparams
+
+        .include "<STRUCTURE_NOALIAS>" repository, stack record="<structureName>", end
+
+        stack record
+            segPos, int
+        endrecord
+
+    proc
+
+        clear <structureName>
+        segPos = 1
+
+        <UNIQUE_KEY>
+        <SEGMENT_LOOP>
+        <IF ALPHA>
+        <structureName>.<segment_name> = aKeyValue(segPos:<SEGMENT_LENGTH>)
+        </IF ALPHA>
+        <IF DECIMAL>
+        <structureName>.<segment_name> = ^d(aKeyValue(segPos:<SEGMENT_LENGTH>))
+        </IF DECIMAL>
+        <IF DATE>
+        <structureName>.<segment_name> = ^d(aKeyValue(segPos:<SEGMENT_LENGTH>))
+        </IF DATE>
+        <IF TIME>
+        <structureName>.<segment_name> = ^d(aKeyValue(segPos:<SEGMENT_LENGTH>))
+        </IF TIME>
+        segPos += <SEGMENT_LENGTH>
+        </SEGMENT_LOOP>
+        </UNIQUE_KEY>
+
+        freturn <structureName>
+
+    endfunction
 
 endnamespace

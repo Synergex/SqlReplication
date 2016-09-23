@@ -57,6 +57,7 @@ namespace SynPSG.ReplicationDemo
         endparams
 
         .INCLUDE "INC:structureio.def"
+        .include "INC:sqlgbl.def"
 
         stack record localData
             keyno                   ,int    ;;Key number
@@ -69,7 +70,6 @@ namespace SynPSG.ReplicationDemo
             errmsg                  ,a45    ;;Error message
             keyValue                ,a255   ;;Hold original key
         endrecord
-
 
     proc
 
@@ -111,48 +111,34 @@ namespace SynPSG.ReplicationDemo
         using a_mode select
 
         (IO_OPEN_INP),
+        begin
             open(a_channel=0,i:i,"DAT:EMPLOYEE.ISM") [ERR=openError]
+        end
 
         (IO_OPEN_UPD),
         begin
             open(a_channel=0,u:i,"DAT:EMPLOYEE.ISM") [ERR=openError]
-            new ReplicationIoHooks(a_channel,"EMPLOYEE")
+            xcall ConfigureReplication(a_channel)
         end
 
         (IO_FIND),
-            find(a_channel,,keyValue(1:keylen),KEYNUM:keyno) [$ERR_EOF=endOfFile,$ERR_LOCKED=recordLocked,$ERR_KEYNOT=keyNotFound]
-
-        (IO_FIND_FIRST),
         begin
-            .ifdef TAG_VALUE
-            find(a_channel,,TAG_VALUE,KEYNUM:keyno) [$ERR_EOF=endOfFile,$ERR_LOCKED=recordLocked,$ERR_KEYNOT=keyNotFound]
-            .else
-            find(a_channel,,^FIRST,KEYNUM:keyno)    [$ERR_EOF=endOfFile,$ERR_LOCKED=recordLocked,$ERR_KEYNOT=keyNotFound]
-            .endc
+            find(a_channel,,keyValue(1:keylen),KEYNUM:keyno) [$ERR_EOF=endOfFile,$ERR_LOCKED=recordLocked,$ERR_KEYNOT=keyNotFound]
         end
 
         (IO_READ_FIRST),
         begin
-            .ifdef TAG_VALUE
-            read(a_channel,employee,TAG_VALUE,KEYNUM:keyno) [$ERR_EOF=endOfFile,$ERR_LOCKED=recordLocked,$ERR_KEYNOT=keyNotFound]
-            .else
             read(a_channel,employee,^FIRST,KEYNUM:keyno)    [$ERR_EOF=endOfFile,$ERR_LOCKED=recordLocked,$ERR_KEYNOT=keyNotFound]
-            .endc
         end
 
         (IO_READ),
+        begin
             read(a_channel,employee,keyValue(1:keylen),KEYNUM:keyno,LOCK:lock) [$ERR_EOF=endOfFile,$ERR_LOCKED=recordLocked,$ERR_KEYNOT=keyNotFound]
+        end
 
         (IO_READ_NEXT),
         begin
             reads(a_channel,employee,LOCK:lock) [$ERR_EOF=endOfFile,$ERR_LOCKED=recordLocked,$ERR_KEYNOT=keyNotFound]
-            .ifdef TAG_VALUE
-            if (TAG_NO_MATCH)
-            begin
-                unlock a_channel
-                goto endOfFile
-            end
-            .endc
         end
 
         (IO_CREATE),
@@ -169,7 +155,21 @@ namespace SynPSG.ReplicationDemo
                 clear employee.emp_date_of_birth
             if (!employee.emp_hire_time||!%IsTime(^a(employee.emp_hire_time)))
                 clear employee.emp_hire_time
-            store(a_channel,employee) [$ERR_NODUPS=duplicateKey]
+
+            if (repkey_required[a_channel]) then
+            begin
+                repeat
+                begin
+                    xcall PopulateReplicationKey(a_channel,employee)
+                    store(a_channel,employee) [$ERR_NODUPS=timeStampClash]
+                    exitloop
+timeStampClash,     sleep 0.01
+                end
+            end
+            else
+            begin
+                store(a_channel,employee) [$ERR_NODUPS=duplicateKey]
+            end
         end
 
         (IO_UPDATE),
@@ -219,27 +219,9 @@ namespace SynPSG.ReplicationDemo
 
         offerror
 
-        ;;If we have a tag, chek it here
-        .ifdef TAG_FIELD
-        if (^passed(employee))
-        begin
-            if (^a(employee.TAG_FIELD)!=TAG_VALUE)
-            begin
-                if (!^passed(a_lock) || (^passed(a_lock) && !a_lock))
-                    if (a_channel && %chopen(a_channel))
-                        unlock a_channel
-                freturn IO_EOF
-            end
-        end
-        .endc
-
         if (!^passed(a_lock) || (^passed(a_lock) && !a_lock))
-        begin
             if (a_channel && %chopen(a_channel))
-            begin
                 unlock a_channel
-            end
-        end
 
         freturn IO_OK
 

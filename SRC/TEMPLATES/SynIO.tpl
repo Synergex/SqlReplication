@@ -70,6 +70,7 @@ namespace <NAMESPACE>
         endparams
 
         .INCLUDE "INC:structureio.def"
+        .include "INC:sqlgbl.def"
 
         stack record localData
             keyno                   ,int    ;;Key number
@@ -83,14 +84,10 @@ namespace <NAMESPACE>
             keyValue                ,a255   ;;Hold original key
         endrecord
 
-        <TAG_LOOP>
-        <IF FIRST>
-        .define TAG_VALUE "<TAGLOOP_TAG_VALUE>"
-        .define TAG_MATCH <structure_name>.<TAGLOOP_FIELD_NAME><TAGLOOP_OPERATOR_DBL><TAGLOOP_TAG_VALUE>
-        .define TAG_NO_MATCH !(<structure_name>.<TAGLOOP_FIELD_NAME><TAGLOOP_OPERATOR_DBL><TAGLOOP_TAG_VALUE>)
-        </IF FIRST>
-        </TAG_LOOP>
+        <IF STRUCTURE_TAGS>
+        .define TAG_MATCH <TAG_LOOP><TAGLOOP_CONNECTOR_C><structure_name>.<TAGLOOP_FIELD_NAME><TAGLOOP_OPERATOR_C><TAGLOOP_TAG_VALUE></TAG_LOOP>
 
+        </IF STRUCTURE_TAGS>
     proc
 
         init localData
@@ -131,50 +128,57 @@ namespace <NAMESPACE>
         using a_mode select
 
         (IO_OPEN_INP),
+        begin
             open(a_channel=0,i:i,"<FILE_NAME>") [ERR=openError]
+        end
 
         (IO_OPEN_UPD),
         begin
             open(a_channel=0,u:i,"<FILE_NAME>") [ERR=openError]
             <IF DEFINED_ATTACH_IO_HOOKS>
-            new ReplicationIoHooks(a_channel,"<STRUCTURE_NAME>")
+            xcall ConfigureReplication(a_channel)
             </IF>
         end
 
         (IO_FIND),
-            find(a_channel,,keyValue(1:keylen),KEYNUM:keyno) [$ERR_EOF=endOfFile,$ERR_LOCKED=recordLocked,$ERR_KEYNOT=keyNotFound]
-
-        (IO_FIND_FIRST),
         begin
-            .ifdef TAG_VALUE
-            find(a_channel,,TAG_VALUE,KEYNUM:keyno) [$ERR_EOF=endOfFile,$ERR_LOCKED=recordLocked,$ERR_KEYNOT=keyNotFound]
-            .else
-            find(a_channel,,^FIRST,KEYNUM:keyno)    [$ERR_EOF=endOfFile,$ERR_LOCKED=recordLocked,$ERR_KEYNOT=keyNotFound]
-            .endc
+            find(a_channel,,keyValue(1:keylen),KEYNUM:keyno) [$ERR_EOF=endOfFile,$ERR_LOCKED=recordLocked,$ERR_KEYNOT=keyNotFound]
         end
 
         (IO_READ_FIRST),
         begin
-            .ifdef TAG_VALUE
-            read(a_channel,<structure_name>,TAG_VALUE,KEYNUM:keyno) [$ERR_EOF=endOfFile,$ERR_LOCKED=recordLocked,$ERR_KEYNOT=keyNotFound]
-            .else
+            <IF STRUCTURE_TAGS>
+            find(a_channel,,^FIRST,KEYNUM:keyno,LOCK:lock) [$ERR_EOF=endOfFile,$ERR_LOCKED=recordLocked,$ERR_KEYNOT=keyNotFound]
+            repeat
+            begin
+                reads(a_channel,<structure_name>,LOCK:lock) [$ERR_EOF=endOfFile,$ERR_LOCKED=recordLocked,$ERR_KEYNOT=keyNotFound]
+                if (TAG_MATCH) then
+                    exitloop
+                else
+                    unlock a_channel
+            end
+            <ELSE>
             read(a_channel,<structure_name>,^FIRST,KEYNUM:keyno)    [$ERR_EOF=endOfFile,$ERR_LOCKED=recordLocked,$ERR_KEYNOT=keyNotFound]
-            .endc
+            </IF STRUCTURE_TAGS>
         end
 
         (IO_READ),
+        begin
             read(a_channel,<structure_name>,keyValue(1:keylen),KEYNUM:keyno,LOCK:lock) [$ERR_EOF=endOfFile,$ERR_LOCKED=recordLocked,$ERR_KEYNOT=keyNotFound]
+        end
 
         (IO_READ_NEXT),
         begin
-            reads(a_channel,<structure_name>,LOCK:lock) [$ERR_EOF=endOfFile,$ERR_LOCKED=recordLocked,$ERR_KEYNOT=keyNotFound]
-            .ifdef TAG_VALUE
-            if (TAG_NO_MATCH)
+            <IF STRUCTURE_TAGS>
+            repeat
             begin
-                unlock a_channel
-                goto endOfFile
+                reads(a_channel,<structure_name>,LOCK:lock) [$ERR_EOF=endOfFile,$ERR_LOCKED=recordLocked,$ERR_KEYNOT=keyNotFound]
+                if (TAG_MATCH)
+                    exitloop
             end
-            .endc
+            <ELSE>
+            reads(a_channel,<structure_name>,LOCK:lock) [$ERR_EOF=endOfFile,$ERR_LOCKED=recordLocked,$ERR_KEYNOT=keyNotFound]
+            </IF STRUCTURE_TAGS>
         end
 
         (IO_CREATE),
@@ -195,7 +199,21 @@ namespace <NAMESPACE>
             </IF>
             </FIELD_LOOP>
             </IF>
-            store(a_channel,<structure_name>) [$ERR_NODUPS=duplicateKey]
+
+            if (repkey_required[a_channel]) then
+            begin
+                repeat
+                begin
+                    xcall PopulateReplicationKey(a_channel,<structure_name>)
+                    store(a_channel,<structure_name>) [$ERR_NODUPS=timeStampClash]
+                    exitloop
+timeStampClash,     sleep 0.01
+                end
+            end
+            else
+            begin
+                store(a_channel,<structure_name>) [$ERR_NODUPS=duplicateKey]
+            end
         end
 
         (IO_UPDATE),
@@ -249,27 +267,9 @@ namespace <NAMESPACE>
 
         offerror
 
-        ;;If we have a tag, chek it here
-        .ifdef TAG_FIELD
-        if (^passed(<structure_name>))
-        begin
-            if (^a(<structure_name>.TAG_FIELD)!=TAG_VALUE)
-            begin
-                if (!^passed(a_lock) || (^passed(a_lock) && !a_lock))
-                    if (a_channel && %chopen(a_channel))
-                        unlock a_channel
-                freturn IO_EOF
-            end
-        end
-        .endc
-
         if (!^passed(a_lock) || (^passed(a_lock) && !a_lock))
-        begin
             if (a_channel && %chopen(a_channel))
-            begin
                 unlock a_channel
-            end
-        end
 
         freturn IO_OK
 

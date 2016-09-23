@@ -5,7 +5,7 @@
 ;                 : C:\DEV\PUBLIC\SqlReplicationIoHooks\RPS\rpstext.ism
 ;                 : Version 10.3.3a
 ;
-;  GENERATED      : 16-SEP-2016, 12:37:01
+;  GENERATED      : 22-SEP-2016, 18:47:54
 ;                 : Version 10.3.3a
 ;  EXPORT OPTIONS : [ALL-K-R-A] 
  
@@ -16,7 +16,7 @@ Enumeration REPLICATION_INSTRUCTION
    Description "SQL Replication Instruction"
    Members CREATE_ROW 1, UPDATE_ROW 2, DELETE_ROW 3, CREATE_TABLE 4,
           LOAD_TABLE 5, CREATE_AND_LOAD_TABLE 6, DELETE_ALL_ROWS 7,
-          DELETE_TABLE 8, SHUTDOWN 9, CYCLE_LOG 10,
+          DELETE_TABLE 8, SHUTDOWN 9, CYCLE_LOG 10, CREATE_CSV 11,
           DELETE_ALL_INSTRUCTIONS 20, CLOSE_FILE 21
  
 Template DEPARTMENT_ID   Type ALPHA   Size 15

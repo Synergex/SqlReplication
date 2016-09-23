@@ -1,13 +1,11 @@
 ;;*****************************************************************************
 ;;
-;; File:        EmployeeKeyToRecord.dbl
+;; File:        InstructionCount.dbl
 ;;
-;; Type:        Function (EmployeeKeyToRecord)
+;; Type:        Application
 ;;
-;; Description: Accepts a primary key value and returns an instance of the
-;;              record containing the data of the key segments.
-;;
-;; Author:      Steve Ives
+;; Description: Reports the current number of instructions in the replication
+;;              instructions file.
 ;;
 ;;*****************************************************************************
 ;;
@@ -37,32 +35,15 @@
 ;; POSSIBILITY OF SUCH DAMAGE.
 ;;
 ;;*****************************************************************************
-;; WARNING: THIS CODE WAS CODE GENERATED AND WILL BE OVERWRITTEN IF CODE
-;;          GENERATION IS RE-EXECUTED FOR THIS PROJECT.
-;;*****************************************************************************
 
-namespace SynPSG.ReplicationDemo
+main InstructionCount
 
-    function EmployeeKeyToRecord, a
-        required in aKeyValue, a
-        endparams
-
-        .include "EMPLOYEE" repository, stack record="employee", end
-
-        stack record
-            segPos, int
-        endrecord
-
-    proc
-
-        clear employee
-        segPos = 1
-
-        ^a(employee.emp_id) = aKeyValue(segPos:6)
-
-        freturn employee
-
-    endfunction
-
-endnamespace
-
+proc
+    xcall flags(7004020,1)
+    open(1,o,"tt:")
+    open(2,i:i,"DAT:REPLICATION.ISM")
+    writes(1,"Instruction count: " + %string(%isinfo(2,"NUMRECS")))
+    close 2
+    close 1
+    stop
+endmain

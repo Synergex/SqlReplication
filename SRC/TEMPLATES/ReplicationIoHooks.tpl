@@ -67,6 +67,7 @@ namespace <NAMESPACE>
 
         private mStructureName, string
         private mActive, boolean
+        private mMultiTable, boolean
         private mChannel, int, 0
         private mKeyNum, int, -1
         private mFillTimeStamp, boolean, false
@@ -100,8 +101,11 @@ namespace <NAMESPACE>
             if (mActive = (openMode=="U:I"))
             begin
                 ;;Record the structure name and channel number
-                mStructureName = aStructureName
                 mChannel = aChannel
+                if (mMultiTable = aStructureName.StartsWith("MULTI_")) then
+                    mStructureName = aStructureName - "MULTI_"
+                else
+                    mStructureName = aStructureName
 
                 ;;Search for the first unique key
                 for thisKey from 0 thru %isinfo(mChannel,"NUMKEYS") - 1
@@ -158,7 +162,7 @@ namespace <NAMESPACE>
         proc
             ;;A record was just deleted. Replicate the change.
             if (mActive && !aError)
-                xcall replicate(REPLICATION_INSTRUCTION.DELETE_ROW,mStructureName,%keyval(mChannel,LastRecordCache.Retrieve(mChannel),mKeyNum))
+                xcall replicate(REPLICATION_INSTRUCTION.DELETE_ROW,getTableName(LastRecordCache.Retrieve(mChannel)),%keyval(mChannel,LastRecordCache.Retrieve(mChannel),mKeyNum))
         endmethod
 
 ;//     ;;---------------------------------------------------------------------
@@ -206,7 +210,7 @@ namespace <NAMESPACE>
             required inout       aError,  int
             endparams
         proc
-            if (mActive && !aError)
+            if (mActive && !aError && !(aFlags&IOFlags.LOCK_NO_LOCK))
             begin
                 ;;Record the record that was just read (to support delete)
                 LastRecordCache.Update(mChannel,aRecord)
@@ -230,7 +234,7 @@ namespace <NAMESPACE>
             required inout aError,  int
             endparams
         proc
-            if (mActive && !aError)
+            if (mActive && !aError && !(aFlags&IOFlags.LOCK_NO_LOCK))
             begin
                 ;;Record the record that was just read (to support delete)
                 LastRecordCache.Update(mChannel,aRecord)
@@ -245,8 +249,11 @@ namespace <NAMESPACE>
             required in    aFlags,  IOFlags
             endparams
         proc
-            ;;If we're using REPLICATION_KEY then add the timestamp value for the new record
-            if (mActive&&mFillTimeStamp)
+            ;;If we're using REPLICATION_KEY, and the program has no populated it, then
+            ;;then add a timestamp value for the new record. This MAY NOT result in a
+            ;;unique value, which in that case will result in a duplicate key error from
+            ;; the STORE.
+            if (mActive && mFillTimeStamp && !aRecord(mTimeStampPos:20))
                 aRecord(mTimeStampPos:20) = %datetime
         endmethod
 
@@ -259,7 +266,7 @@ namespace <NAMESPACE>
         proc
             ;;A new record was just created. Replicate the change.
             if (mActive && !aError)
-                xcall replicate(REPLICATION_INSTRUCTION.CREATE_ROW,mStructureName,%keyval(mChannel,aRecord,mKeyNum))
+                xcall replicate(REPLICATION_INSTRUCTION.CREATE_ROW,getTableName(aRecord),%keyval(mChannel,aRecord,mKeyNum))
         endmethod
 
 ;//     ;;---------------------------------------------------------------------
@@ -305,7 +312,7 @@ namespace <NAMESPACE>
             ;;A record was just updated. If it changed then replicate the change.
             if (mActive && !aError)
                 if (LastRecordCache.HasChanged(mChannel,aRecord))
-                    xcall replicate(REPLICATION_INSTRUCTION.UPDATE_ROW,mStructureName,%keyval(mChannel,aRecord,mKeyNum))
+                    xcall replicate(REPLICATION_INSTRUCTION.UPDATE_ROW,getTableName(aRecord),%keyval(mChannel,aRecord,mKeyNum))
         endmethod
 
 ;//     ;;---------------------------------------------------------------------
@@ -329,6 +336,41 @@ namespace <NAMESPACE>
 ;//
 ;//     endmethod
 ;//
+        ;;-------------------------------------------------------------------------------------
+        ;;Custom code for multi-record layout files
+
+        ;.include "ONE_OF_THE_STRUCTURES" repository, structure="strSomething", end
+
+        private method getTableName, string
+            required in aRecord, a
+        proc
+;            if (mMultiTable) then
+;            begin
+;                using mStructureName select
+;                ("FILENAME"),
+;                begin
+;                    data rec, strSomething, aRecord
+;                    ;;Make sure you cover all the bases here, if not it'll be a problem!
+;                    if (rec.some_tag_field=="1") then
+;                        mreturn "STRUCTURE1"
+;                    if (rec.some_tag_field=="2") then
+;                        mreturn "STRUCTURE2"
+;                    if (rec.some_tag_field=="3")
+;                        mreturn "STRUCTURE3"
+;                end
+;               (),
+;                    mreturn "*BUG*"
+;                endusing
+;            end
+;            else
+;            begin
+                mreturn mStructureName
+;            end
+
+        endmethod
+
+        ;;-------------------------------------------------------------------------------------
+
     endclass
 
 endnamespace

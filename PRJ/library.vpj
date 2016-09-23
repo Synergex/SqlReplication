@@ -160,12 +160,13 @@
         <Folder
             Name="Templates"
             Filters="*.tpl">
+            <F N="../SRC/TEMPLATES/ConfigureReplication.tpl"/>
             <F N="../SRC/TEMPLATES/FileDataReport.tpl"/>
             <F N="../SRC/TEMPLATES/IsDate.tpl"/>
             <F N="../SRC/TEMPLATES/IsNumeric.tpl"/>
             <F N="../SRC/TEMPLATES/IsTime.tpl"/>
-            <F N="../SRC/TEMPLATES/KeyToRecord.tpl"/>
             <F N="../SRC/TEMPLATES/LastRecordCache.tpl"/>
+            <F N="../SRC/TEMPLATES/PopulateReplicationKey.tpl"/>
             <F N="../SRC/TEMPLATES/replicate.tpl"/>
             <F N="../SRC/TEMPLATES/ReplicationIoHooks.tpl"/>
             <F N="../SRC/TEMPLATES/SqlIO.tpl"/>
@@ -179,14 +180,15 @@
         <Folder
             Name="Source Files"
             Filters="*.dbl;*.tpl;*.dbc">
+            <F N="../SRC/LIBRARY/ConfigureReplication.dbl"/>
             <F N="../SRC/LIBRARY/DepartmentIO.dbl"/>
             <F N="../SRC/LIBRARY/EmployeeIO.dbl"/>
-            <F N="../SRC/LIBRARY/EmployeeKeyToRecord.dbl"/>
             <F N="../SRC/LIBRARY/EmployeeSqlIO.dbl"/>
             <F N="../SRC/LIBRARY/IsDate.dbl"/>
             <F N="../SRC/LIBRARY/IsNumeric.dbl"/>
             <F N="../SRC/LIBRARY/IsTime.dbl"/>
             <F N="../SRC/LIBRARY/LastRecordCache.dbl"/>
+            <F N="../SRC/LIBRARY/PopulateReplicationKey.dbl"/>
             <F N="../SRC/LIBRARY/Replicate.dbl"/>
             <F N="../SRC/LIBRARY/ReplicationIoHooks.dbl"/>
             <F N="../SRC/LIBRARY/ReplicatorControl.dbl"/>
@@ -194,6 +196,7 @@
         <Folder
             Name="Header Files"
             Filters="*.def;*.dbh">
+            <F N="../SRC/LIBRARY/sqlgbl.def"/>
             <F N="../SRC/LIBRARY/structureio.def"/>
         </Folder>
         <Folder

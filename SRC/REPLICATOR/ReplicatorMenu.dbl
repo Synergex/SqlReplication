@@ -109,6 +109,7 @@ proc
             display(tt,$SCR_POS(6,40),"12. Create and load table")
             display(tt,$SCR_POS(7,40),"13. Truncate table")
             display(tt,$SCR_POS(8,40),"14. Delete table")
+            display(tt,$SCR_POS(9,40),"15. Export to CSV")
         end
 
         display(tt,$SCR_POS(23,2),$SCR_CLR(EOS),"Select an option: ")
@@ -305,6 +306,17 @@ eof,        close chn
             begin
                 xcall Replicate(REPLICATION_INSTRUCTION.DELETE_TABLE,tableName)
                 display(tt,$scr_pos(23,20),"DELETE command issued")
+            end
+            else
+                display(tt,$scr_pos(23,20),"Invalid option!")
+        end
+
+        ("15"),
+        begin
+            if (tableName) then
+            begin
+                xcall Replicate(REPLICATION_INSTRUCTION.CREATE_CSV,tableName)
+                display(tt,$scr_pos(23,20),"CREATE CSV command issued")
             end
             else
                 display(tt,$scr_pos(23,20),"Invalid option!")

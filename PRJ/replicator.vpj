@@ -170,6 +170,7 @@
             Name="Source Files"
             Filters="*.dbl;*.tpl;*.dbc">
             <F N="../SRC/REPLICATOR/EmployeeDataReport.dbl"/>
+            <F N="../SRC/REPLICATOR/InstructionCount.dbl"/>
             <F N="../SRC/REPLICATOR/replicator.dbl"/>
             <F N="../SRC/REPLICATOR/ReplicatorMenu.dbl"/>
             <F N="../SRC/REPLICATOR/ReplicatorStop.dbl"/>
