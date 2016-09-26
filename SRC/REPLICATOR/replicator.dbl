@@ -63,6 +63,7 @@ main replicator
 
     .align
     global common
+        instanceName        ,a40                ;;The name of the running instance
         runningOnTerminal   ,boolean            ;;Program is running on a terminal
         db                  ,i4                 ;;Database channel
         nsid                ,i4                 ;;Name space id
@@ -115,6 +116,13 @@ proc
     ;;If we're running on a terminal we will log to the terminal, if not we will
     ;;log to a log file.
     runningOnTerminal = (%tnmbr>=0)
+
+    ;;Get the name of the instance
+    xcall getlog("REPLICATOR_INSTANCE",databuffer,length)
+    if (length) then
+        instanceName = databuffer(1:length)
+    else
+        instanceName = %string(%jbno)
 
     ;;Set the sleep time between processing runs
     xcall getlog("REPLICATOR_INTERVAL",databuffer,length)
@@ -202,6 +210,9 @@ proc
     ;;Main processing
     if (ok)
     begin
+        ;;Create the process ID file
+        call RecordProcessID
+
         ;;Create a namespace to record information about Synergy data files that we have opened.
         nsid = %nspc_open(,%size(structure_data))
 
@@ -276,6 +287,9 @@ proc
 
                 (REPLICATION_INSTRUCTION.DELETE_TABLE),
                     call DoDeleteTable
+
+                (REPLICATION_INSTRUCTION.CHANGE_INTERVAL),
+                    call ChangeInterval
 
                 (REPLICATION_INSTRUCTION.CYCLE_LOG),
                 begin
@@ -548,7 +562,8 @@ LoadTable,
 
         if (status) then
         begin
-            log(" - Load complete at " + %TimeNow + " " + %string(successCount) + " rows inserted, " + %string(failCount) + " rows failed.")
+            log(" - Load complete at " + %TimeNow)
+            log(" - " + %string(successCount) + " rows inserted, " + %string(failCount) + " rows failed.")
             inserts += successCount
             fails   += failCount
         end
@@ -974,9 +989,14 @@ OpenLogFile,
                 log("Cycling log. New log is " + logFileSpec)
                 close logFileChannel
                 cycleLog = false
+                if (runningOnTerminal)
+                    sleep 0.5
             end
 
             open(logFileChannel=0,logChannelMode,logFileSpec)
+
+            if (runningOnTerminal)
+                display(logFileChannel,$scr_pos(1,1),$scr_clr(SCREEN))
 
             log("SQL Replicator Log")
             log("Sleep interval is " + %string(sleep_time) + " seconds.")
@@ -986,6 +1006,67 @@ OpenLogFile,
             if (!runningOnTerminal)
                 xcall syn_reportevent(D_EVENTLOG_ERROR_TYPE,"Replicator failed to open log file " + logFileSpec + ". Error number " + %string(%ernum))
             ok = false
+        end
+        endtry
+    end
+
+    return
+
+;;-----------------------------------------------------------------------------
+;; Record the process ID of the running instance
+
+RecordProcessId,
+
+    if (!runningOnTerminal)
+    begin
+        data pidFileSpec, string, "REPLICATOR_LOGDIR:REPLICATOR_" + %atrim(instanceName) + ".PID"
+        data pidFileChannel, int
+
+        ;;Open the PID file
+        try
+        begin
+            xcall delet(pidFileSpec)
+            open(pidFileChannel=0,o:s,pidFileSpec)
+            writes(pidFileChannel,%string(%jbno))
+        end
+        catch (ex)
+        begin
+            log("ERROR: Failed to create or write PID file! Error was " + ex.Message)
+        end
+        finally
+        begin
+            if (pidFileChannel && %chopen(pidFileChannel))
+                close pidFileChannel
+        end
+        endtry
+    end
+
+    return
+
+;;-----------------------------------------------------------------------------
+;; Change the sleep seconds interval
+
+ChangeInterval,
+
+    begin
+        data save_time, i4, sleep_time
+        try
+        begin
+            sleep_time = %integer(instruction.key)
+            if (sleep_time >= 1) then
+            begin
+                log("Sleep time changed from " + %string(save_time) + " to " + %string(sleep_time) + " seconds")
+            end
+            else
+            begin
+                log("ERROR: Invalid sleep time " + %string(sleep_time) + " requested")
+                sleep_time = save_time
+            end
+        end
+        catch (ex)
+        begin
+            log("ERROR: Invalid sleep time " + %atrim(instruction.key) + " requested")
+            sleep_time = save_time
         end
         endtry
     end
@@ -1027,15 +1108,16 @@ subroutine ReplicatorShutdown
     .include "INC:structureio.def"
 
     external common
+        instanceName        ,a40                ;;The name of the running instance
+        runningOnTerminal   ,boolean            ;;Program is running on a terminal
         db                  ,i4                 ;;Database channel
         nsid                ,i4                 ;;Name space id
         instructionChannel  ,i4                 ;;Instruction file channel
         logFileChannel      ,i4                 ;;Log file channel
-        inserts             ,i4                 ;;Number of create operations completed
-        updates             ,i4                 ;;Number of update operations completed
-        deletes             ,i4                 ;;Number of delete operations completed
-        fails               ,i4                 ;;Number of failed operations
-        runningOnTerminal   ,i4                 ;;Program is running on a terminal
+        inserts             ,i4                 ;;Create operations completed
+        updates             ,i4                 ;;Update operations completed
+        deletes             ,i4                 ;;Delete operations completed
+        fails               ,i4                 ;;Failed operations
     endcommon
 
     stack record
@@ -1112,6 +1194,13 @@ proc
         clear instructionChannel
     end
 
+    ;;Delete the PID file
+    if (!runningOnTerminal)
+    begin
+        data pidFileSpec, string, "REPLICATOR_LOGDIR:REPLICATOR_" + %atrim(instanceName) + ".PID"
+        xcall delet(pidFileSpec)
+    end
+
     if (runningOnTerminal)
     begin
         log("Replicator will stop in 2 seconds")
@@ -1122,6 +1211,8 @@ proc
 
 endsubroutine
 
+;;*****************************************************************************
+;;
 subroutine LogFunctionError
     required in logChannel, int
     required in functionName, string
@@ -1133,6 +1224,8 @@ proc
     xreturn
 endsubroutine
 
+;;*****************************************************************************
+;;
 function LogFunctionFail, boolean
     required in logChannel, int
     required in functionName, string
@@ -1144,17 +1237,20 @@ proc
     freturn false
 endfunction
 
+;;*****************************************************************************
+;;
 function TimeStamp, string
     external common
+        instanceName        ,a40                ;;The name of the running instance
+        runningOnTerminal   ,boolean            ;;Program is running on a terminal
         db                  ,i4                 ;;Database channel
         nsid                ,i4                 ;;Name space id
         instructionChannel  ,i4                 ;;Instruction file channel
         logFileChannel      ,i4                 ;;Log file channel
-        inserts             ,i4                 ;;Number of create operations completed
-        updates             ,i4                 ;;Number of update operations completed
-        deletes             ,i4                 ;;Number of delete operations completed
-        fails               ,i4                 ;;Number of failed operations
-        runningOnTerminal   ,i4                 ;;Program is running on a terminal
+        inserts             ,i4                 ;;Create operations completed
+        updates             ,i4                 ;;Update operations completed
+        deletes             ,i4                 ;;Delete operations completed
+        fails               ,i4                 ;;Failed operations
     endcommon
     record
         now                 ,d20
@@ -1168,6 +1264,8 @@ proc
     end
 endfunction
 
+;;*****************************************************************************
+;;
 function TimeNow, string
     record
         now, d20

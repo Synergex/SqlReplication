@@ -79,37 +79,33 @@ proc
 
         if (windows) then
         begin
-            display(tt,$SCR_POS(4,2),"1.  Start Replicator")
-            display(tt,$SCR_POS(5,2),"2.  Start Replicator (Debug)")
+            display(tt,$SCR_POS(4,2),"SR. Start Replicator (Normal)")
+            display(tt,$SCR_POS(5,2),"SD. Start Replicator (Debug)")
         end
-        else if (unix) then
+        else if (unix)
         begin
-            display(tt,$SCR_POS(4,2),"1.  Start Replicator (Detached)")
-            display(tt,$SCR_POS(5,2),"2.  n/a")
-        end
-        else
-        begin
-            display(tt,$SCR_POS(4,2),"1.  n/a")
-            display(tt,$SCR_POS(5,2),"2.  n/a")
+            display(tt,$SCR_POS(4,2),"SR. Start Replicator (Detached)")
         end
 
-        display(tt,$SCR_POS(6,2),"3.  Stop Replicator")
-        display(tt,$SCR_POS(7,2),"4.  Show instructions")
-        display(tt,$SCR_POS(8,2),"5.  Purge instructions")
-        display(tt,$SCR_POS(9,2),"6.  Cycle log")
+        display(tt,$SCR_POS(6,2),"ST. Stop Replicator")
+        display(tt,$SCR_POS(7,2),"VI. View instructions")
+        display(tt,$SCR_POS(8,2),"PI. Purge instructions")
+        display(tt,$SCR_POS(9,2),"QL. Instruction count")
+        display(tt,$SCR_POS(10,2),"CL. Cycle log")
+        display(tt,$SCR_POS(11,2),"CI. Change interval")
 
-        display(tt,$SCR_POS(11,2),"T.  Set current table")
+        display(tt,$SCR_POS(13,2),"T.  Set current table")
 
-        display(tt,$SCR_POS(13,2),"E.  Exit")
+        display(tt,$SCR_POS(15,2),"E.  Exit")
 
         if (tableName)
         begin
-            display(tt,$SCR_POS(4,40),"10. Create table")
-            display(tt,$SCR_POS(5,40),"11. Load table")
-            display(tt,$SCR_POS(6,40),"12. Create and load table")
-            display(tt,$SCR_POS(7,40),"13. Truncate table")
-            display(tt,$SCR_POS(8,40),"14. Delete table")
-            display(tt,$SCR_POS(9,40),"15. Export to CSV")
+            display(tt,$SCR_POS(4,40),"1. Create table")
+            display(tt,$SCR_POS(5,40),"2. Load table")
+            display(tt,$SCR_POS(6,40),"3. Create and load table")
+            display(tt,$SCR_POS(7,40),"4. Truncate table")
+            display(tt,$SCR_POS(8,40),"5. Delete table")
+            display(tt,$SCR_POS(9,40),"6. Export to CSV")
         end
 
         display(tt,$SCR_POS(23,2),$SCR_CLR(EOS),"Select an option: ")
@@ -117,7 +113,7 @@ proc
 
         using option select
 
-        ("1 "),
+        ("SR"),
         begin
             if (windows) then
                 xcall spawn("dbr EXE:replicator.dbr",D_NOWINDOW|D_NOWAIT)
@@ -125,17 +121,17 @@ proc
                 xcall spawn("nohup dbr EXE:replicator </dev/null >/dev/null 2>&1 &")
         end
 
-        ("2 "),
+        ("SD"),
             if (windows)
                 xcall spawn("dbr -d EXE:replicator.dbr",D_NOWINDOW|D_NOWAIT)
 
-        ("3 "),
+        ("ST"),
         begin
             xcall Replicate(REPLICATION_INSTRUCTION.SHUTDOWN)
-            display(tt,$scr_pos(23,20),"STOP command issued")
+            display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Command queued")
         end
 
-        ("4 "),
+        ("VI"),
         begin
             data chn, i4
             data row, i4
@@ -216,16 +212,55 @@ eof,        close chn
             nextloop
         end
 
-        ("5 "),
+        ("QL"),
         begin
-            xcall Replicate(REPLICATION_INSTRUCTION.DELETE_ALL_INSTRUCTIONS)
-            display(tt,$scr_pos(23,20),"PURGE command issued")
+            data chn, i4
+            data msg, a50
+            open(chn=0,"I:I","DAT:REPLICATION.ISM")
+            msg = %string(%isinfo(chn,"NUMRECS"),"ZZZ,ZZZ,ZZX") [LEFT]
+            msg = %atrim(msg) + " outstanding instructions"
+            display(tt,$scr_pos(23,2),$scr_clr(EOL),%atrim(msg))
+            close chn
+            accept(tt,chn)
+            while (%ttsts)
+                accept(tt,chn)
+            nextloop
         end
 
-        ("6 "),
+        ("PI"),
+        begin
+            xcall Replicate(REPLICATION_INSTRUCTION.DELETE_ALL_INSTRUCTIONS)
+            display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Command executed")
+        end
+
+        ("CL"),
         begin
             xcall Replicate(REPLICATION_INSTRUCTION.CYCLE_LOG)
-            display(tt,$scr_pos(23,20),"CYCLE command issued")
+            display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Command queued")
+        end
+
+        ("CI"),
+        begin
+            data interval, a5
+            display(tt,$SCR_POS(23,2),$SCR_CLR(EOS),"Interval (seconds): ")
+            reads(tt,interval)
+
+            if (interval) then
+            begin
+                if (%IsNumeric(interval)) then
+                begin
+                    xcall Replicate(REPLICATION_INSTRUCTION.CHANGE_INTERVAL,,%atrim(interval))
+                    display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Command queued")
+                end
+                else
+                begin
+                    display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Invalid interval!")
+                end
+            end
+            else
+            begin
+                nextloop
+            end
         end
 
         ("T "),
@@ -239,12 +274,12 @@ eof,        close chn
                 try
                 begin
                     data length, int, %xsubr(%atrim(tableName) + "_LENGTH")
-                    display(tt,$SCR_POS(2,55),%atrim(tableName))
+                    display(tt,$SCR_POS(2,55),$SCR_CLR(EOL),%atrim(tableName))
                     nextloop
                 end
                 catch (ex, @SynException)
                 begin
-                    display(tt,$SCR_POS(23,14),$SCR_CLR(EOS),"Table not found!")
+                    display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Table not found!")
                     clear tableName
                 end
                 endtry
@@ -256,77 +291,77 @@ eof,        close chn
             end
         end
 
-        ("10"),
+        ("1 "),
         begin
             if (tableName) then
             begin
                 xcall Replicate(REPLICATION_INSTRUCTION.CREATE_TABLE,tableName)
-                display(tt,$scr_pos(23,20),"CREATE command issued")
+                display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Command queued")
             end
             else
-                display(tt,$scr_pos(23,20),"Invalid option!")
+                display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Invalid option!")
         end
 
-        ("11"),
+        ("2 "),
         begin
             if (tableName) then
             begin
                 xcall Replicate(REPLICATION_INSTRUCTION.LOAD_TABLE,tableName)
-                display(tt,$scr_pos(23,20),"LOAD command issued")
+                display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Command queued")
             end
             else
-                display(tt,$scr_pos(23,20),"Invalid option!")
+                display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Invalid option!")
         end
 
-        ("12"),
+        ("3 "),
         begin
             if (tableName) then
             begin
                 xcall Replicate(REPLICATION_INSTRUCTION.CREATE_AND_LOAD_TABLE,tableName)
-                display(tt,$scr_pos(23,20),"CREATE and LOAD command issued")
+                display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Command queued")
             end
             else
-                display(tt,$scr_pos(23,20),"Invalid option!")
+                display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Invalid option!")
         end
 
-        ("13"),
+        ("4 "),
         begin
             if (tableName) then
             begin
                 xcall Replicate(REPLICATION_INSTRUCTION.DELETE_ALL_ROWS,tableName)
-                display(tt,$scr_pos(23,20),"TRUNCATE command issued")
+                display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Command queued")
             end
             else
-                display(tt,$scr_pos(23,20),"Invalid option!")
+                display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Invalid option!")
         end
 
-        ("14"),
+        ("5 "),
         begin
             if (tableName) then
             begin
                 xcall Replicate(REPLICATION_INSTRUCTION.DELETE_TABLE,tableName)
-                display(tt,$scr_pos(23,20),"DELETE command issued")
+                display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Command queued")
             end
             else
-                display(tt,$scr_pos(23,20),"Invalid option!")
+                display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Invalid option!")
         end
 
-        ("15"),
+        ("6 "),
         begin
             if (tableName) then
             begin
                 xcall Replicate(REPLICATION_INSTRUCTION.CREATE_CSV,tableName)
-                display(tt,$scr_pos(23,20),"CREATE CSV command issued")
+                display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Command queued")
             end
             else
-                display(tt,$scr_pos(23,20),"Invalid option!")
+                display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Invalid option!")
         end
 
         ("E "),
             exitloop
 
         (),
-            display(tt,$scr_pos(23,20),"Invalid option!")
+            display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Invalid option!")
 
         endusing
 

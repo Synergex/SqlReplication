@@ -5,7 +5,7 @@
 ;                 : C:\DEV\PUBLIC\SqlReplicationIoHooks\RPS\rpstext.ism
 ;                 : Version 10.3.3a
 ;
-;  GENERATED      : 22-SEP-2016, 18:47:54
+;  GENERATED      : 23-SEP-2016, 00:25:30
 ;                 : Version 10.3.3a
 ;  EXPORT OPTIONS : [ALL-K-R-A] 
  
@@ -17,7 +17,7 @@ Enumeration REPLICATION_INSTRUCTION
    Members CREATE_ROW 1, UPDATE_ROW 2, DELETE_ROW 3, CREATE_TABLE 4,
           LOAD_TABLE 5, CREATE_AND_LOAD_TABLE 6, DELETE_ALL_ROWS 7,
           DELETE_TABLE 8, SHUTDOWN 9, CYCLE_LOG 10, CREATE_CSV 11,
-          DELETE_ALL_INSTRUCTIONS 20, CLOSE_FILE 21
+          DELETE_ALL_INSTRUCTIONS 20, CLOSE_FILE 21, CHANGE_INTERVAL 22
  
 Template DEPARTMENT_ID   Type ALPHA   Size 15
    Description "Department ID"
