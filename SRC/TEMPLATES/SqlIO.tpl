@@ -588,6 +588,7 @@ namespace <NAMESPACE>
             </IF TIME_HHMMSS>
             </IF USERTIMESTAMP>
             </FIELD_LOOP>
+            ,a1                         ;;In case there are no user timestamp, date or JJJJJJ date fields
         endrecord
 
         global common
@@ -816,6 +817,7 @@ namespace <NAMESPACE>
             </IF TIME_HHMMSS>
             </IF USERTIMESTAMP>
             </FIELD_LOOP>
+            ,a1                         ;;In case there are no user timestamp, date or JJJJJJ date fields
         endrecord
 
         global common
