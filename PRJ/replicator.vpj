@@ -184,9 +184,12 @@
         <Folder
             Name="Other Files"
             Filters="">
+            <F N="../LINUX/replicator_count"/>
             <F N="../LINUX/replicator_detach"/>
+            <F N="../LINUX/replicator_instructions"/>
             <F N="../LINUX/replicator_menu"/>
             <F N="../LINUX/replicator_run"/>
+            <F N="../LINUX/replicator_setup"/>
             <F N="../LINUX/replicator_status"/>
             <F N="../LINUX/replicator_stop"/>
             <F N="../BAT/StartService.bat"/>
