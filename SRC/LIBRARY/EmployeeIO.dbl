@@ -126,6 +126,15 @@ namespace SynPSG.ReplicationDemo
             find(a_channel,,keyValue(1:keylen),KEYNUM:keyno) [$ERR_EOF=endOfFile,$ERR_LOCKED=recordLocked,$ERR_KEYNOT=keyNotFound]
         end
 
+        (IO_FIND_FIRST),
+        begin
+            .ifdef TAG_VALUE
+            find(a_channel,,TAG_VALUE,KEYNUM:keyno) [$ERR_EOF=endOfFile,$ERR_LOCKED=recordLocked,$ERR_KEYNOT=keyNotFound]
+            .else
+            find(a_channel,,^FIRST,KEYNUM:keyno)    [$ERR_EOF=endOfFile,$ERR_LOCKED=recordLocked,$ERR_KEYNOT=keyNotFound]
+            .endc
+        end
+
         (IO_READ_FIRST),
         begin
             read(a_channel,employee,^FIRST,KEYNUM:keyno)    [$ERR_EOF=endOfFile,$ERR_LOCKED=recordLocked,$ERR_KEYNOT=keyNotFound]
@@ -155,6 +164,8 @@ namespace SynPSG.ReplicationDemo
                 clear employee.emp_date_of_birth
             if (!employee.emp_hire_time||!%IsTime(^a(employee.emp_hire_time)))
                 clear employee.emp_hire_time
+            if ((!employee.emp_address_zip)||(!%IsNumeric(^a(employee.emp_address_zip))))
+                clear employee.emp_address_zip
 
             if (repkey_required[a_channel]) then
             begin
@@ -186,6 +197,8 @@ timeStampClash,     sleep 0.01
                 clear employee.emp_date_of_birth
             if (!employee.emp_hire_time||!%IsTime(^a(employee.emp_hire_time)))
                 clear employee.emp_hire_time
+            if ((!employee.emp_address_zip)||(!%IsNumeric(^a(employee.emp_address_zip))))
+                clear employee.emp_address_zip
             write(a_channel,employee) [$ERR_NOCURR=noCurrentRecord]
         end
 
