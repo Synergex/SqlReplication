@@ -964,6 +964,10 @@ subroutine employee_mntload
     .include "WND:tools.def"
     .include "INC:structureio.def"
 
+    static record
+        noCaseKey, [5]boolean
+    endrecord
+
 proc
 
     ;If it's the first record, position to the correct starting position in
@@ -971,6 +975,12 @@ proc
 
     if (a_index==1)
     begin
+        ;;Determine if any of the keys are "nocase" keys
+        noCaseKey[1] = false
+        noCaseKey[2] = false
+        noCaseKey[3] = true
+        noCaseKey[4] = false
+        noCaseKey[5] = false
 
         if (a_keyval) then
         begin
@@ -1005,10 +1015,23 @@ proc
                     nextloop
 
                 ;If matching a value, make sure we're still in range
-                if (a_keyval&&(%keyval(a_channel,a_employee,a_keynum)!=%atrim(a_keyval)))
+                if (noCaseKey[a_keynum+1]) then
                 begin
-                    a_reqest = D_LEOF
-                    exitloop
+                    data thisKeyVal, string, %keyval(a_channel,a_employee,a_keynum)
+                    data matchTo, string, %atrim(a_keyval)
+                    if (a_keyval&&((a)(thisKeyVal.ToLower())!=(a)(matchTo.ToLower())))
+                    begin
+                        a_reqest = D_LEOF
+                        exitloop
+                    end
+                end
+                else
+                begin
+                    if (a_keyval&&(%keyval(a_channel,a_employee,a_keynum)!=%atrim(a_keyval)))
+                    begin
+                        a_reqest = D_LEOF
+                        exitloop
+                    end
                 end
 
                 ;Got a metching record, return it
