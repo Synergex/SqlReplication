@@ -113,6 +113,8 @@ proc
                 init employee.emp_paid
             if (!CheckDecimal(employee,"EMP_HOME_OK",^a(employee.emp_home_ok),false) && initBadData)
                 init employee.emp_home_ok
+            if (!CheckDecimal(employee,"EMP_ADDRESS_ZIP",^a(employee.emp_address_zip),false) && initBadData)
+                init employee.emp_address_zip
 
             ;;Check that integer fields contain valid numeric values
 

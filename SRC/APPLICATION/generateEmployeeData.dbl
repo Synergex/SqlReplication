@@ -38,7 +38,10 @@ proc
             employee.emp_phone_work = %randomPhone
             employee.emp_phone_home = %randomPhone
             employee.emp_phone_cell = %randomPhone
-            employee.emp_email = randomEmail(employee.emp_first_name,employee.emp_last_name)
+            employee.emp_email = %randomEmail(employee.emp_first_name,employee.emp_last_name)
+            employee.emp_address_street = %randomStreet
+            xcall randomCityAndState(employee.emp_address_city,employee.emp_address_state)
+            employee.emp_address_zip = %randomZipCode
             store(ch,employee)
         end
 
@@ -367,6 +370,392 @@ proc
     firstName = %atrim(aFirstName)
     lastName = %atrim(aLastName)
     freturn firstName.ToLower() + "." + lastName.ToLower() + %atrim(domain[index])
+endfunction
+
+function randomStreet, string
+    literal
+        part1Count, i4, 10000
+        part2Count, i4, 80
+        part3Count, i4, 10
+        prefix, [part2Count]a20, "1st","2nd","3rd","4th","5th","6th","7th","8th","9th","10th",
+        &                        "11th","12th","13th","14th","15th","16th","17th","18th","19th","20th",
+        &                        "Park","Main","Oak","Pine","Maple","Cedar","Elm","Washington","Lake","Hill",
+        &                        "Walnut","Spring","North","Ridge","Lincoln","Church","Willow","Mill","Runset","Railroad",
+        &                        "Jackson","Cherry","West","South","Center","Highland","Johnson","Forest","Jefferson","Hickory",
+        &                        "Wilson","River","Meadow","Valley","Smith","East","Chestnut","Franklin","Adams","Spruce",
+        &                        "Laurel","Davis","Birch","Williams","Lee","Dogwood","Green","Poplar","Locust","Woodland",
+        &                        "Taylor","Ash","Madison","Hillcrest","Sycamore","Broadway","Miller","Lakeview","College","Central"
+        suffix, [part3Count]a10, "Road","Street","Lane","Court","Place","Boulevard","Drive","Terrace","Avenue","Way"
+    endliteral
+    static record
+        randomNumber, i4, 138209537
+    endrecord
+    stack record
+        seed1, i4
+        seed2, i4
+        part1, i4
+        part2, i4
+        part3, i4
+    endrecord
+proc
+    getSeeds(randomNumber,seed1,seed2)
+    xcall randm(randomNumber,seed1,seed2)
+    part1 = %rnd(randomNumber/(32767.0/(part1Count-1)))+1
+    getSeeds(randomNumber,seed1,seed2)
+    xcall randm(randomNumber,seed1,seed2)
+    part2 = %rnd(randomNumber/(32767.0/(part2Count-1)))+1
+    getSeeds(randomNumber,seed1,seed2)
+    xcall randm(randomNumber,seed1,seed2)
+    part3 = %rnd(randomNumber/(32767.0/(part3Count-1)))+1
+    freturn %string(part1) + " " + %atrim(prefix[part2]) + " " + %atrim(suffix[part3])
+endfunction
+
+subroutine randomCityAndState
+    required out city, a
+    required out state, a
+    endparams
+
+    literal
+        itemCount, i4, 304
+        item, [itemcount]a30,   "Abilene,TX",
+        &                       "Akron,OH",
+        &                       "Albuquerque,NM",
+        &                       "Alexandria,VA",
+        &                       "Allentown,PA",
+        &                       "Amarillo,TX",
+        &                       "Anaheim,CA",
+        &                       "Anchorage,AK",
+        &                       "Ann Arbor,MI",
+        &                       "Antioch,CA",
+        &                       "Arlington,TX",
+        &                       "Arvada,CO",
+        &                       "Athens,GA",
+        &                       "Atlanta,GA",
+        &                       "Augusta,GA",
+        &                       "Aurora,CO",
+        &                       "Aurora,IL",
+        &                       "Austin,TX",
+        &                       "Bakersfield,CA",
+        &                       "Baltimore,MD",
+        &                       "Baton Rouge,LA",
+        &                       "Beaumont,TX",
+        &                       "Bellevue,WA",
+        &                       "Berkeley,CA",
+        &                       "Billings,MT",
+        &                       "Birmingham,AL",
+        &                       "Boise,ID",
+        &                       "Boston,MA",
+        &                       "Boulder,CO",
+        &                       "Bridgeport,CT",
+        &                       "Broken Arrow,OK",
+        &                       "Brownsville,TX",
+        &                       "Buffalo,NY",
+        &                       "Burbank,CA",
+        &                       "Cambridge,MA",
+        &                       "Cape Coral,FL",
+        &                       "Carlsbad,CA",
+        &                       "Carrollton,TX",
+        &                       "Cary,NC",
+        &                       "Cedar Rapids,IA",
+        &                       "Centennial,CO",
+        &                       "Chandler,AZ",
+        &                       "Charleston,SC",
+        &                       "Charlotte,NC",
+        &                       "Chattanooga,TN",
+        &                       "Chesapeake,VA",
+        &                       "Chicago,IL",
+        &                       "Chula Vista,CA",
+        &                       "Cincinnati,OH",
+        &                       "Clarksville,TN",
+        &                       "Clearwater,FL",
+        &                       "Cleveland,OH",
+        &                       "Clovis,CA",
+        &                       "College Station,TX",
+        &                       "Colorado Springs,CO",
+        &                       "Columbia,MO",
+        &                       "Columbia,SC",
+        &                       "Columbus,GA",
+        &                       "Columbus,OH",
+        &                       "Concord,CA",
+        &                       "Coral Springs,FL",
+        &                       "Corona,CA",
+        &                       "Corpus Christi,TX",
+        &                       "Costa Mesa,CA",
+        &                       "Dallas,TX",
+        &                       "Daly City,CA",
+        &                       "Davenport,IA",
+        &                       "Davie,FL",
+        &                       "Dayton,OH",
+        &                       "Denton,TX",
+        &                       "Denver,CO",
+        &                       "Des Moines,IA",
+        &                       "Detroit,MI",
+        &                       "Downey,CA",
+        &                       "Durham,NC",
+        &                       "Edison,NJ",
+        &                       "El Cajon,CA",
+        &                       "El Monte,CA",
+        &                       "El Paso,TX",
+        &                       "Elgin,IL",
+        &                       "Elizabeth,NJ",
+        &                       "Elk Grove,CA",
+        &                       "Escondido,CA",
+        &                       "Eugene,OR",
+        &                       "Evansville,IN",
+        &                       "Everett,WA",
+        &                       "Fairfield,CA",
+        &                       "Fargo,ND",
+        &                       "Fayetteville,NC",
+        &                       "Fontana,CA",
+        &                       "Fort Collins,CO",
+        &                       "Fort Lauderdale,FL",
+        &                       "Fort Wayne,IN",
+        &                       "Fort Worth,TX",
+        &                       "Fremont,CA",
+        &                       "Fresno,CA",
+        &                       "Frisco,TX",
+        &                       "Fullerton,CA",
+        &                       "Gainesville,FL",
+        &                       "Garden Grove,CA",
+        &                       "Garland,TX",
+        &                       "Gilbert,AZ",
+        &                       "Glendale,AZ",
+        &                       "Glendale,CA",
+        &                       "Grand Prairie,TX",
+        &                       "Grand Rapids,MI",
+        &                       "Greeley,CO",
+        &                       "Green Bay,WI",
+        &                       "Greensboro,NC",
+        &                       "Gresham,OR",
+        &                       "Hampton,VA",
+        &                       "Hartford,CT",
+        &                       "Hayward,CA",
+        &                       "Henderson,NV",
+        &                       "Hialeah,FL",
+        &                       "High Point,NC",
+        &                       "Hillsboro,OR",
+        &                       "Hollywood,FL",
+        &                       "Honolulu,HI",
+        &                       "Houston,TX",
+        &                       "Huntington Beach,CA",
+        &                       "Huntsville,AL",
+        &                       "Independence,MO",
+        &                       "Indianapolis,IN",
+        &                       "Inglewood,CA",
+        &                       "Irvine,CA",
+        &                       "Irving,TX",
+        &                       "Jackson,MS",
+        &                       "Jacksonville,FL",
+        &                       "Jersey City,NJ",
+        &                       "Joliet,IL",
+        &                       "Jurupa Valley,CA",
+        &                       "Kansas City,KS",
+        &                       "Kansas City,MO",
+        &                       "Kent,WA",
+        &                       "Killeen,TX",
+        &                       "Knoxville,TN",
+        &                       "Lafayette,LA",
+        &                       "Lakeland,FL",
+        &                       "Lakewood,CO",
+        &                       "Lancaster,CA",
+        &                       "Lansing,MI",
+        &                       "Laredo,TX",
+        &                       "Las Cruces,NM",
+        &                       "Las Vegas,NV",
+        &                       "Lewisville,TX",
+        &                       "Lexington,KY",
+        &                       "Lincoln,NE",
+        &                       "Little Rock,AR",
+        &                       "Long Beach,CA",
+        &                       "Los Angeles,CA",
+        &                       "Louisville,KY",
+        &                       "Lowell,MA",
+        &                       "Lubbock,TX",
+        &                       "Macon,GA",
+        &                       "Madison,WI",
+        &                       "Manchester,NH",
+        &                       "McAllen,TX",
+        &                       "McKinney,TX",
+        &                       "Memphis,TN",
+        &                       "Mesa,AZ",
+        &                       "Mesquite,TX",
+        &                       "Miami,FL",
+        &                       "Miami Gardens,FL",
+        &                       "Midland,TX",
+        &                       "Milwaukee,WI",
+        &                       "Minneapolis,MN",
+        &                       "Miramar,FL",
+        &                       "Mobile,AL",
+        &                       "Modesto,CA",
+        &                       "Montgomery,AL",
+        &                       "Moreno Valley,CA",
+        &                       "Murfreesboro,TN",
+        &                       "Murrieta,CA",
+        &                       "Naperville,IL",
+        &                       "Nashville,TN",
+        &                       "New Haven,CT",
+        &                       "New Orleans,LA",
+        &                       "New York,NY",
+        &                       "Newark,NJ",
+        &                       "Newport,News,VA",
+        &                       "Norfolk,VA",
+        &                       "Norman,OK",
+        &                       "North Charleston,SC",
+        &                       "North Las Vegas,NV",
+        &                       "Norwalk,CA",
+        &                       "Oakland,CA",
+        &                       "Oceanside,CA",
+        &                       "Odessa,TX",
+        &                       "Oklahoma City,OK",
+        &                       "Olathe,KS",
+        &                       "Omaha,NE",
+        &                       "Ontario,CA",
+        &                       "Orange,CA",
+        &                       "Orlando,FL",
+        &                       "Overland Park,KS",
+        &                       "Oxnard,CA",
+        &                       "Palm Bay,FL",
+        &                       "Palmdale,CA",
+        &                       "Pasadena,CA",
+        &                       "Pasadena,TX",
+        &                       "Paterson,NJ",
+        &                       "Pearland,TX",
+        &                       "Pembroke Pines,FL",
+        &                       "Peoria,AZ",
+        &                       "Peoria,IL",
+        &                       "Philadelphia,PA",
+        &                       "Phoenix,AZ",
+        &                       "Pittsburgh,PA",
+        &                       "Plano,TX",
+        &                       "Pomona,CA",
+        &                       "Pompano Beach,FL",
+        &                       "Port St. Lucie,FL",
+        &                       "Portland,OR",
+        &                       "Providence,RI",
+        &                       "Provo,UT",
+        &                       "Pueblo,CO",
+        &                       "Raleigh,NC",
+        &                       "Rancho Cucamonga,CA",
+        &                       "Reno,NV",
+        &                       "Renton,WA",
+        &                       "Rialto,CA",
+        &                       "Richardson,TX",
+        &                       "Richmond,CA",
+        &                       "Richmond,VA",
+        &                       "Riverside,CA",
+        &                       "Rochester,MN",
+        &                       "Rochester,NY",
+        &                       "Rockford,IL",
+        &                       "Roseville,CA",
+        &                       "Round RockTX",
+        &                       "Sacramento,CA",
+        &                       "Saint Paul,MN",
+        &                       "Salem,OR",
+        &                       "Salinas,CA",
+        &                       "Salt Lake City,UT",
+        &                       "San Angelo,TX",
+        &                       "San Antonio,TX",
+        &                       "San Bernardino,CA",
+        &                       "San Diego,CA",
+        &                       "San Francisco,CA",
+        &                       "San Jose,CA",
+        &                       "San Mateo,CA",
+        &                       "Sandy Springs,GA",
+        &                       "Santa Ana,CA",
+        &                       "Santa Clara,CA",
+        &                       "Santa Clarita,CA",
+        &                       "Santa Maria,CA",
+        &                       "Santa Rosa,CA",
+        &                       "Savannah,GA",
+        &                       "Scottsdale,AZ",
+        &                       "Seattle,WA",
+        &                       "Shreveport,LA",
+        &                       "Simi Valley,CA",
+        &                       "Sioux Falls,SD",
+        &                       "South Bend,IN",
+        &                       "Spokane,WA",
+        &                       "Springfield,IL",
+        &                       "Springfield,MA",
+        &                       "Springfield,MO",
+        &                       "St. Louis,MO",
+        &                       "St. Petersburg,FL",
+        &                       "Stamford,CT",
+        &                       "Sterling Heights,MI",
+        &                       "Stockton,CA",
+        &                       "Sunnyvale,CA",
+        &                       "Surprise,AZ",
+        &                       "Syracuse,NY",
+        &                       "Tacoma,WA",
+        &                       "Tallahassee,FL",
+        &                       "Tampa,FL",
+        &                       "Temecula,CA",
+        &                       "Tempe,AZ",
+        &                       "Thornton,CO",
+        &                       "Thousand Oaks,CA",
+        &                       "Toledo,OH",
+        &                       "Topeka,KS",
+        &                       "Torrance,CA",
+        &                       "Tucson,AZ",
+        &                       "Tulsa,OK",
+        &                       "Tyler,TX",
+        &                       "Vallejo,CA",
+        &                       "Vancouver,WA",
+        &                       "Ventura,CA",
+        &                       "Victorville,CA",
+        &                       "Virginia Beach,VA",
+        &                       "Visalia,CA",
+        &                       "Vista,CA",
+        &                       "Waco,TX",
+        &                       "Warren,MI",
+        &                       "Washington,DC",
+        &                       "Waterbury,CT",
+        &                       "West Covina,CA",
+        &                       "West Jordan,UT",
+        &                       "West Palm Beach,FL",
+        &                       "West Valley City,UT",
+        &                       "Westminster,CO",
+        &                       "Wichita,KS",
+        &                       "Wichita Falls,TX",
+        &                       "Wilmington,NC",
+        &                       "Winston–Salem,NC",
+        &                       "Woodbridge,NJ",
+        &                       "Worcester,MA",
+        &                       "Yonkers,NY"
+    endliteral
+    static record
+        randomNumber, i4, 178638639
+    endrecord
+    stack record
+        seed1, i4
+        seed2, i4
+        index, i4
+    endrecord
+proc
+    getSeeds(randomNumber,seed1,seed2)
+    xcall randm(randomNumber,seed1,seed2)
+    index = %rnd(randomNumber/(32767.0/(itemCount-1)))+1
+    city  = item[index](1:%instr(1,item[index],",")-1)
+    state = item[index](%instr(1,item[index],",")+1,%trimz(item[index]))
+    xreturn
+endsubroutine
+
+function randomZipCode, i4
+    literal
+        part1Count, i4, 99990
+    endliteral
+    static record
+        randomNumber, i4, 53887541
+    endrecord
+    stack record
+        seed1, i4
+        seed2, i4
+        part1, i4
+    endrecord
+proc
+    getSeeds(randomNumber,seed1,seed2)
+    xcall randm(randomNumber,seed1,seed2)
+    part1 = %rnd(randomNumber/(32767.0/(part1Count-1))) + 1001
+    freturn part1
 endfunction
 
 

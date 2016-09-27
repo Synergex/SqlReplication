@@ -1,24 +1,24 @@
-!	Synergy ISAM XDL File created Thu Sep 15 15:40:58 2016
+!	Synergy ISAM XDL File created Mon Sep 26 09:16:27 2016
 FILE
 	NAME		"EMPLOYEE.ISM"
 	ADDRESSING	32
 	PAGE_SIZE	1024
 	NETWORK_ENCRYPT	no
 	TRACK_CHANGES	no
-	KEYS		3
+	KEYS		5
 
 RECORD
 	SIZE		300
 	FORMAT		fixed
 	COMPRESS_DATA	yes
 
-	!5ca5 magic, revision 6, 15 byte record overhead
+	!5ca5 magic, revision 6, 21 byte record overhead
 	!Static vectoring enabled
 	!Default R6 file attributes:
 	!  Static RFAs enabled (Required)
 	!Creation version 10.3.3a {Compat Level 6.0}
-	!0 of 32 byte file text allocation in use, @0x169c
-	!File created on Thu Sep 15 15:40:44 2016
+	!0 of 32 byte file text allocation in use, @0x16a8
+	!File created on Mon Sep 26 09:16:03 2016
 	!23 byte longest key
 	!0 free index blocks, 0x0 free list head
 	!0 records, 0 free
@@ -57,7 +57,7 @@ KEY 2
 	!Alternate key #2
 	START		27
 	LENGTH		20
-	TYPE		alpha
+	TYPE		nocase
 	ORDER		ascending
 	NAME		"EMP_LAST_NAME"
 	DUPLICATES	yes
@@ -68,3 +68,35 @@ KEY 2
 	!Root 0x2800, index depth 1
 	!Qualifier offset 12
 	!Minimum keys per block 17
+
+KEY 3
+	!Alternate key #3
+	START		216
+	LENGTH		2
+	TYPE		alpha
+	ORDER		ascending
+	NAME		"STATE_CODE"
+	DUPLICATES	yes
+	DUPLICATE_ORDER	fifo
+	MODIFIABLE	yes
+	DENSITY		50
+
+	!Root 0x2c00, index depth 1
+	!Qualifier offset 15
+	!Minimum keys per block 46
+
+KEY 4
+	!Alternate key #4
+	START		218
+	LENGTH		5
+	TYPE		alpha
+	ORDER		ascending
+	NAME		"ZIP_CODE"
+	DUPLICATES	yes
+	DUPLICATE_ORDER	fifo
+	MODIFIABLE	yes
+	DENSITY		50
+
+	!Root 0x3000, index depth 1
+	!Qualifier offset 18
+	!Minimum keys per block 36

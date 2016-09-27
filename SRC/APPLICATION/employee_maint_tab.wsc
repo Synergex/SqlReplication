@@ -1,5 +1,5 @@
 .script
-.date_generated "09/15/2016, 16:23"
+.date_generated "09/26/2016, 20:43"
 .version "10.3.3a"
 
 .input EMPLOYEE_CTA, 16, 76
@@ -37,20 +37,34 @@
 .field EMP_HIRE_DATE, pos(8, 2), fpos(8, 16)
 .field EMP_DATE_OF_BIRTH, pos(12, 2), fpos(12, 16)
 .field EMP_HIRE_TIME, pos(8, 30), fpos(8, 40)
-.field EMP_PHONE_WORK, pos(12, 37), fpos(12, 50)
-.field EMP_PHONE_HOME, pos(13, 37), fpos(13, 50)
-.field EMP_PHONE_CELL, pos(14, 37), fpos(14, 50)
-.field EMP_HOME_OK, fpos(15, 50)
 .field EMP_EMAIL, pos(10, 2), fpos(10, 16)
 .set ALL, EMPLOYEE_INPUT, EMP_ID, EMP_FIRST_NAME, EMP_LAST_NAME, -
      EMP_DEPT, EMP_HIRE_DATE, EMP_HIRE_TIME, EMP_PAID, EMP_EMAIL, -
-     EMP_DATE_OF_BIRTH, EMP_PHONE_WORK, EMP_PHONE_HOME, EMP_PHONE_CELL, -
-     EMP_HOME_OK
+     EMP_DATE_OF_BIRTH
 .set KEY, EMPLOYEE_INPUT, EMP_ID
 .set DATA, EMPLOYEE_INPUT, EMP_FIRST_NAME, EMP_LAST_NAME, EMP_DEPT, -
      EMP_HIRE_DATE, EMP_HIRE_TIME, EMP_PAID, EMP_EMAIL, -
-     EMP_DATE_OF_BIRTH, EMP_PHONE_WORK, EMP_PHONE_HOME, EMP_PHONE_CELL, -
-     EMP_HOME_OK
+     EMP_DATE_OF_BIRTH
+.end
+
+.input EMPLOYEE2, 16, 66
+.placement 2, 2
+.title "Contact"
+.repository_structure EMPLOYEE_INPUT
+.field EMP_PHONE_WORK, pos(2, 4), fpos(2, 16)
+.field EMP_PHONE_HOME, pos(3, 4), fpos(3, 16)
+.field EMP_PHONE_CELL, pos(4, 4), fpos(4, 16)
+.field EMP_HOME_OK, fpos(5, 16)
+.field EMP_ADDRESS_STREET, pos(7, 7), fpos(7, 16)
+.field EMP_ADDRESS_CITY, pos(8, 10), fpos(8, 16)
+.field EMP_ADDRESS_STATE, pos(9, 9), fpos(9, 16)
+.field EMP_ADDRESS_ZIP, pos(9, 20), fpos(9, 30)
+.set ALL, EMPLOYEE_INPUT, EMP_PHONE_WORK, EMP_PHONE_HOME, EMP_PHONE_CELL, -
+     EMP_HOME_OK, EMP_ADDRESS_STREET, EMP_ADDRESS_CITY, -
+     EMP_ADDRESS_STATE, EMP_ADDRESS_ZIP
+.set DATA, EMPLOYEE_INPUT, EMP_PHONE_WORK, EMP_PHONE_HOME, -
+     EMP_PHONE_CELL, EMP_HOME_OK, EMP_ADDRESS_STREET, EMP_ADDRESS_CITY, -
+     EMP_ADDRESS_STATE, EMP_ADDRESS_ZIP
 .end
 
 .input DEPARTMENT_LUP, 1, 67

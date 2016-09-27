@@ -53,7 +53,7 @@ proc
     store(ch,department)
 
     department.dept_id = "QA"
-    department.dept_name = ""
+    department.dept_name = "Quality Assurance"
     department.dept_manager = 8
     store(ch,department)
 

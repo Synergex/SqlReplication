@@ -5,7 +5,7 @@
 ;                 : C:\DEV\PUBLIC\SqlReplicationIoHooks\RPS\rpstext.ism
 ;                 : Version 10.3.3a
 ;
-;  GENERATED      : 23-SEP-2016, 00:25:30
+;  GENERATED      : 26-SEP-2016, 20:51:37
 ;                 : Version 10.3.3a
 ;  EXPORT OPTIONS : [ALL-K-R-A] 
  
@@ -115,7 +115,24 @@ Field EMP_EMAIL   Type ALPHA   Size 40
    Description "Email address"
    Prompt "Email"
  
-Field NONAME_001   Type ALPHA   Size 135   Language Noview   Script Noview
+Field EMP_ADDRESS_STREET   Type ALPHA   Size 30
+   Description "Street address"
+   Prompt "Address"   Info Line "What is the employees street address?"
+ 
+Field EMP_ADDRESS_CITY   Type ALPHA   Size 20
+   Description "City"
+   Prompt "City"   Info Line "What city does the employee live in?"
+ 
+Field EMP_ADDRESS_STATE   Type ALPHA   Size 2
+   Description "State"
+   Prompt "State"   User Text "Which state does the employee live in?"
+   Uppercase
+ 
+Field EMP_ADDRESS_ZIP   Type DECIMAL   Size 5
+   Description "Zip code"
+   Prompt "Zip code"   Info Line "What is the employees home ZIP code?"
+ 
+Field NONAME_001   Type ALPHA   Size 78   Language Noview   Script Noview
    Report Noview   Nonamelink
    Description "Spare space"
  
@@ -130,7 +147,17 @@ Key EMP_DEPT   ACCESS   Order ASCENDING   Dups YES   Insert END
 Key EMP_LAST_NAME   ACCESS   Order ASCENDING   Dups YES   Insert END
    Modifiable YES   Krf 002
    Description "Last name"
-   Segment FIELD   EMP_LAST_NAME
+   Segment FIELD   EMP_LAST_NAME  SegType NOCASE  SegOrder ASCENDING
+ 
+Key STATE_CODE   ACCESS   Order ASCENDING   Dups YES   Insert END
+   Modifiable YES   Krf 003
+   Description "State"
+   Segment FIELD   EMP_ADDRESS_STATE  SegType ALPHA  SegOrder ASCENDING
+ 
+Key ZIP_CODE   ACCESS   Order ASCENDING   Dups YES   Insert END
+   Modifiable YES   Krf 004
+   Description "Zip code"
+   Segment FIELD   EMP_ADDRESS_ZIP  SegType ALPHA  SegOrder ASCENDING
  
 Structure DEPARTMENT   DBL ISAM
    Description "Department Master File"
