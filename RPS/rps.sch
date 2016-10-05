@@ -5,7 +5,7 @@
 ;                 : C:\DEV\PUBLIC\SqlReplicationIoHooks\RPS\rpstext.ism
 ;                 : Version 10.3.3a
 ;
-;  GENERATED      : 26-SEP-2016, 20:51:37
+;  GENERATED      : 05-OCT-2016, 11:36:54
 ;                 : Version 10.3.3a
 ;  EXPORT OPTIONS : [ALL-K-R-A] 
  
@@ -227,7 +227,7 @@ Field STRUCTURE_NAME   Type ALPHA   Size 32
 Field KEY   Type ALPHA   Size 255
    Description "Primary key of affected record"
  
-Key TRANSACTION_ID   ACCESS   Order ASCENDING   Dups NO
+Key TRANSACTION_ID   ACCESS   Order ASCENDING   Dups NO   Density 100
    Description "Transaction ID (timestamp)"
    Segment FIELD   TRANSACTION_ID
  
@@ -243,5 +243,6 @@ File EMPLOYEE   DBL ISAM   "DAT:EMPLOYEE.ISM"
  
 File REPLICATION   DBL ISAM   "DAT:REPLICATION.ISM"
    Description "SQL replication request queue file"
+   Addressing 40BIT   Compress   Terabyte
    Assign REPLICATION
  
