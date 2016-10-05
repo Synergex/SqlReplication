@@ -47,6 +47,9 @@ proc
     ("R_TRUNCATE"),
         xcall replicate(REPLICATION_INSTRUCTION.DELETE_ALL_ROWS,"EMPLOYEE")
 
+    ("R_CSV"),
+        xcall replicate(REPLICATION_INSTRUCTION.CREATE_CSV,"EMPLOYEE")
+
     ("R_CLEAR"),
         xcall replicate(REPLICATION_INSTRUCTION.DELETE_ALL_INSTRUCTIONS)
 

@@ -700,5 +700,6 @@
         <ExecMacro CmdLine="syn_set REPLICATOR_FULL_LOG=YES"/>
         <ExecMacro CmdLine="syn_set REPLICATOR_LOG_KEYS=YES"/>
         <ExecMacro CmdLine="syn_set REPLICATOR_LOG_BULK_LOAD_EXCEPTIONS=YES"/>
+        <ExecMacro CmdLine="syn_set REPLICATOR_EXPORT=%(ROOT)"/>
     </Macro>
 </Project>

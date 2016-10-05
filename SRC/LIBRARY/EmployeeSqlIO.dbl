@@ -1554,9 +1554,7 @@ namespace SynPSG.ReplicationDemo
     ;; Description: Export ISAM data to a CSV file.
     ;;
     function employee_create_csv ,^val
-
-        required in  a_dbchn    ,i      ;;Connected database channel
-        optional out a_errtxt   ,a      ;;Error text
+        optional out a_errtxt   ,a
         endparams
 
         .include "CONNECTDIR:ssql.def"
@@ -1591,8 +1589,8 @@ namespace SynPSG.ReplicationDemo
         ;;Open the CSV file
         if (ok)
         begin
-            open(csvchn=0,o:s,"CSV:employee.csv")
-            writes(csvchn,"EmpId,EmpFirstName,EmpLastName,EmpDept,EmpHireDate,EmpPhoneWork,EmpPhoneHome,EmpPhoneCell,EmpPaid,EmpHomeOk,EmpDateOfBirth,EmpHireTime,EmpEmail,EmpAddressStreet,EmpAddressCity,EmpAddressState,EmpAddressZip")
+            open(csvchn=0,o:s,"REPLICATOR_EXPORT:employee.csv")
+            writes(csvchn,"EmpId|EmpFirstName|EmpLastName|EmpDept|EmpHireDate|EmpPhoneWork|EmpPhoneHome|EmpPhoneCell|EmpPaid|EmpHomeOk|EmpDateOfBirth|EmpHireTime|EmpEmail|EmpAddressStreet|EmpAddressCity|EmpAddressState|EmpAddressZip")
         end
 
         if (ok)
@@ -1670,11 +1668,13 @@ namespace SynPSG.ReplicationDemo
             else
                 csvfile = csvfile + "\employee.csv"
 
-            open(csvchn=0,o:s,"CSV:employee.sql")
+            open(csvchn=0,o:s,"REPLICATOR_EXPORT:employee.sql")
 
             writes(csvchn,"")
-            writes(csvchn,"Use TireMax")
+            writes(csvchn,"/*")
+            writes(csvchn,"Use <put database name here>")
             writes(csvchn,"GO")
+            writes(csvchn,"*/")
             writes(csvchn,"")
             writes(csvchn,"TRUNCATE TABLE Employee")
             writes(csvchn,"GO")

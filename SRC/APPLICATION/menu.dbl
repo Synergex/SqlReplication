@@ -85,7 +85,7 @@ setup,
 
     ;Create menu columns
     begin
-        data mbcontrol, a1000, ""
+        data mbcontrol, a2048, ""
 
         ;Build file menu
         xcall mb_column(mbcontrol,"FILE","File",D_GLOBAL)
@@ -122,6 +122,8 @@ setup,
         xcall mb_entry(mbcontrol,"R_DELETE","Delete Employee Table")
         xcall mb_entry(mbcontrol,"R_RELOAD","Reload Employee Table")
         xcall mb_entry(mbcontrol,"R_TRUNCATE","Truncate Employee Table")
+        xcall mb_line(mbcontrol)
+        xcall mb_entry(mbcontrol,"R_CSV","Export Employee Bulk Upload File")
         xcall mb_line(mbcontrol)
         xcall mb_entry(mbcontrol,"R_CLEAR","Clear Replicator Instructions")
         xcall mb_entry(mbcontrol,"R_CYCLE_LOG","Cycle Replicator Log")

@@ -1562,9 +1562,7 @@ namespace <NAMESPACE>
     ;; Description: Export ISAM data to a CSV file.
     ;;
     function <structure_name>_create_csv ,^val
-
-        required in  a_dbchn    ,i      ;;Connected database channel
-        optional out a_errtxt   ,a      ;;Error text
+        optional out a_errtxt   ,a
         endparams
 
         .include "CONNECTDIR:ssql.def"
@@ -1599,8 +1597,8 @@ namespace <NAMESPACE>
         ;;Open the CSV file
         if (ok)
         begin
-            open(csvchn=0,o:s,"CSV:<structure_name>.csv")
-            writes(csvchn,"<FIELD_LOOP><FieldSqlName><,></FIELD_LOOP>")
+            open(csvchn=0,o:s,"REPLICATOR_EXPORT:<structure_name>.csv")
+            writes(csvchn,"<FIELD_LOOP><FieldSqlName><IF MORE>|</IF MORE></FIELD_LOOP>")
         end
 
         if (ok)
@@ -1685,11 +1683,13 @@ namespace <NAMESPACE>
             else
                 csvfile = csvfile + "\<structure_name>.csv"
 
-            open(csvchn=0,o:s,"CSV:<structure_name>.sql")
+            open(csvchn=0,o:s,"REPLICATOR_EXPORT:<structure_name>.sql")
 
             writes(csvchn,"")
-            writes(csvchn,"Use TireMax")
+            writes(csvchn,"/*")
+            writes(csvchn,"Use <put database name here>")
             writes(csvchn,"GO")
+            writes(csvchn,"*/")
             writes(csvchn,"")
             writes(csvchn,"TRUNCATE TABLE <StructureName>")
             writes(csvchn,"GO")

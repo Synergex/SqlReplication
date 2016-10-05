@@ -851,7 +851,7 @@ DoCreateCsv,
     try
     begin
         functionName = %atrim(instruction.structure_name) + "_CREATE_CSV"
-        status = %xsubr(functionName,db,dberrtxt)
+        status = %xsubr(functionName,dberrtxt)
         if (status) then
             debuglog(" - Done at " + %TimeNow)
         else
