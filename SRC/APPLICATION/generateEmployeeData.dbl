@@ -41,7 +41,7 @@ proc
             employee.emp_email = %randomEmail(employee.emp_first_name,employee.emp_last_name)
             employee.emp_address_street = %randomStreet
             xcall randomCityAndState(employee.emp_address_city,employee.emp_address_state)
-            employee.emp_address_zip = %randomZipCode
+            employee.emp_address_zip = %randomZipCode(employee.emp_address_state)
             store(ch,employee)
         end
 
@@ -284,18 +284,18 @@ function randomHireDate, d8
         seed2, i4
         julianDateOfBirth, i4
         julianBirthday18, i4
-        julianBirthday60, i4
+        julianYesterday, i4
         daysRange, i4
         randomDaysOver18, i4
         randomDate, d8
     endrecord
 proc
-    ;Random date between the employees 18th and 60th birthday
+    ;Random date between the employees 18th birthday and yesterday
     now = %datetime
     julianDateOfBirth = %jperiod(aDateOfBirth)
     julianBirthday18 = julianDateOfBirth+(18*365)
-    julianBirthday60 = julianDateOfBirth+(60*365)
-    daysRange = julianBirthday60 - julianBirthday18
+    julianYesterday = %jperiod(^d(now(1:8))) - 1
+    daysRange = julianYesterday - julianBirthday18
     getSeeds(randomNumber,seed1,seed2)
     xcall randm(randomNumber,seed1,seed2)
     randomDaysOver18 = %rnd(randomNumber/(32767.0/(daysRange-1)))+1
@@ -740,6 +740,7 @@ proc
 endsubroutine
 
 function randomZipCode, i4
+	required in state, a
     literal
         part1Count, i4, 99990
     endliteral
@@ -747,15 +748,282 @@ function randomZipCode, i4
         randomNumber, i4, 53887541
     endrecord
     stack record
+		stateMinZip, i4
+		stateMaxZip, i4
         seed1, i4
         seed2, i4
         part1, i4
     endrecord
 proc
+
+	;TODO: THE STATE MIN AND MAX DATA IS NOT CURRENTLY USED!
+
+	using state select
+	("AK"),
+	begin
+		stateMinZip = 99501
+		stateMaxZip = 99950
+	end
+	("AL"),
+	begin
+		stateMinZip = 35004
+		stateMaxZip = 36925
+	end
+	("AR"),
+	begin
+		stateMinZip = 71601
+		stateMaxZip = 75502
+	end
+	("AZ"),
+	begin
+		stateMinZip = 85001
+		stateMaxZip = 86556
+	end
+	("CA"),
+	begin
+		stateMinZip = 90001
+		stateMaxZip = 96162
+	end
+	("CO"),
+	begin
+		stateMinZip = 80001
+		stateMaxZip = 81658
+	end
+	("CT"),
+	begin
+		stateMinZip = 06001
+		stateMaxZip = 06928
+	end
+	("DC"),
+	begin
+		stateMinZip = 20001
+		stateMaxZip = 20799
+	end
+	("DE"),
+	begin
+		stateMinZip = 19701
+		stateMaxZip = 19980
+	end
+	("FL"),
+	begin
+		stateMinZip = 32004
+		stateMaxZip = 34997
+	end
+	("GA"),
+	begin
+		stateMinZip = 30001
+		stateMaxZip = 39901
+	end
+	("HI"),
+	begin
+		stateMinZip = 96701
+		stateMaxZip = 96898
+	end
+	("IA"),
+	begin
+		stateMinZip = 50001
+		stateMaxZip = 68120
+	end
+	("ID"),
+	begin
+		stateMinZip = 83201
+		stateMaxZip = 83876
+	end
+	("IL"),
+	begin
+		stateMinZip = 60001
+		stateMaxZip = 62999
+	end
+	("IN"),
+	begin
+		stateMinZip = 46001
+		stateMaxZip = 47997
+	end
+	("KS"),
+	begin
+		stateMinZip = 66002
+		stateMaxZip = 67954
+	end
+	("KY"),
+	begin
+		stateMinZip = 40003
+		stateMaxZip = 42788
+	end
+	("LA"),
+	begin
+		stateMinZip = 70001
+		stateMaxZip = 71497
+	end
+	("MA"),
+	begin
+		stateMinZip = 01001
+		stateMaxZip = 05544
+	end
+	("MD"),
+	begin
+		stateMinZip = 20331
+		stateMaxZip = 21930
+	end
+	("ME"),
+	begin
+		stateMinZip = 03901
+		stateMaxZip = 04992
+	end
+	("MI"),
+	begin
+		stateMinZip = 48001
+		stateMaxZip = 49971
+	end
+	("MN"),
+	begin
+		stateMinZip = 55001
+		stateMaxZip = 56763
+	end
+	("MO"),
+	begin
+		stateMinZip = 63001
+		stateMaxZip = 65899
+	end
+	("MS"),
+	begin
+		stateMinZip = 38601
+		stateMaxZip = 39776
+	end
+	("MT"),
+	begin
+		stateMinZip = 59001
+		stateMaxZip = 59937
+	end
+	("NC"),
+	begin
+		stateMinZip = 27006
+		stateMaxZip = 28909
+	end
+	("ND"),
+	begin
+		stateMinZip = 58001
+		stateMaxZip = 58856
+	end
+	("NE"),
+	begin
+		stateMinZip = 68001
+		stateMaxZip = 69367
+	end
+	("NH"),
+	begin
+		stateMinZip = 03031
+		stateMaxZip = 03897
+	end
+	("NJ"),
+	begin
+		stateMinZip = 07001
+		stateMaxZip = 08989
+	end
+	("NM"),
+	begin
+		stateMinZip = 87001
+		stateMaxZip = 88441
+	end
+	("NV"),
+	begin
+		stateMinZip = 88901
+		stateMaxZip = 89883
+	end
+	("NY"),
+	begin
+		stateMinZip = 10001
+		stateMaxZip = 14975
+	end
+	("OH"),
+	begin
+		stateMinZip = 43001
+		stateMaxZip = 45999
+	end
+	("OK"),
+	begin
+		stateMinZip = 73001
+		stateMaxZip = 74966
+	end
+	("OR"),
+	begin
+		stateMinZip = 97001
+		stateMaxZip = 97920
+	end
+	("PA"),
+	begin
+		stateMinZip = 15001
+		stateMaxZip = 19640
+	end
+	("RI"),
+	begin
+		stateMinZip = 02801
+		stateMaxZip = 02940
+	end
+	("SC"),
+	begin
+		stateMinZip = 29001
+		stateMaxZip = 29948
+	end
+	("SD"),
+	begin
+		stateMinZip = 57001
+		stateMaxZip = 57799
+	end
+	("TN"),
+	begin
+		stateMinZip = 37010
+		stateMaxZip = 38589
+	end
+	("TX"),
+	begin
+		stateMinZip = 73301
+		stateMaxZip = 79999
+	end
+	("UT"),
+	begin
+		stateMinZip = 84001
+		stateMaxZip = 84784
+	end
+	("VA"),
+	begin
+		stateMinZip = 20040
+		stateMaxZip = 24658
+	end
+	("VT"),
+	begin
+		stateMinZip = 05001
+		stateMaxZip = 05907
+	end
+	("WA"),
+	begin
+		stateMinZip = 98001
+		stateMaxZip = 99403
+	end
+	("WI"),
+	begin
+		stateMinZip = 53001
+		stateMaxZip = 54990
+	end
+	("WV"),
+	begin
+		stateMinZip = 24701
+		stateMaxZip = 26886
+	end
+	("WY"),
+	begin
+		stateMinZip = 82001
+		stateMaxZip = 83128
+	end
+	(),
+	begin
+		stateMinZip = 01001
+		stateMaxZip = 99999
+	end
+	endusing
+
     getSeeds(randomNumber,seed1,seed2)
     xcall randm(randomNumber,seed1,seed2)
     part1 = %rnd(randomNumber/(32767.0/(part1Count-1))) + 1001
     freturn part1
 endfunction
-
 
