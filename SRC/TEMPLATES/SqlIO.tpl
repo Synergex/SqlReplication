@@ -187,7 +187,12 @@ namespace <NAMESPACE>
 
         ;;If there was an error message, return it to the calling routine
         if (^passed(a_errtxt))
-            a_errtxt = ok ? "" : errtxt
+		begin
+			if (ok) then
+				a_errtxt = ""
+			else
+				a_errtxt = errtxt
+		end
 
         freturn ok
 
@@ -343,7 +348,12 @@ namespace <NAMESPACE>
 
         ;;If there was an error message, return it to the calling routine
         if (^passed(a_errtxt))
-            a_errtxt = ok ? "" : errtxt
+		begin
+			if (ok) then
+				a_errtxt = ""
+			else
+				a_errtxt = errtxt
+		end
 
         freturn ok
 
@@ -463,7 +473,12 @@ namespace <NAMESPACE>
 
         ;;If there was an error message, return it to the calling routine
         if (^passed(a_errtxt))
-            a_errtxt = ok ? "" : errtxt
+		begin
+			if (ok) then
+				a_errtxt = ""
+			else
+				a_errtxt = errtxt
+		end
 
         freturn ok
 
@@ -536,7 +551,12 @@ namespace <NAMESPACE>
 
         ;;If there was an error message, return it to the calling routine
         if (^passed(a_errtxt))
-            a_errtxt = error ? errtxt : ""
+		begin
+			if (error) then
+				a_errtxt = errtxt
+			else
+	            a_errtxt = ""
+		end
 
         freturn error
 
@@ -758,7 +778,12 @@ namespace <NAMESPACE>
 
         ;;If there was an error message, return it to the calling routine
         if (^passed(a_errtxt))
-            a_errtxt = ok ? "" : errtxt
+		begin
+			if (ok) then
+				a_errtxt = ""
+			else
+				a_errtxt = errtxt
+		end
 
         freturn sts
 
@@ -1009,7 +1034,12 @@ namespace <NAMESPACE>
 
         ;;If there was an error message, return it to the calling routine
         if (^passed(a_errtxt))
-            a_errtxt = ok ? "" : %atrim(errtxt)+" [Database error "+%string(dberror)+"]"
+		begin
+			if (ok) then
+				a_errtxt = ""
+			else
+				a_errtxt = %atrim(errtxt)+" [Database error "+%string(dberror)+"]"
+		end
 
         freturn ok
 
@@ -1403,7 +1433,12 @@ namespace <NAMESPACE>
 
         ;;Return error message
         if (^passed(a_errtxt))
-            a_errtxt = ok ? "" : errtxt
+		begin
+			if (ok) then
+				a_errtxt = ""
+			else
+				a_errtxt = errtxt
+		end
 
         freturn ok
 
@@ -1517,7 +1552,12 @@ namespace <NAMESPACE>
         ;;If there was an error message, return it to the calling routine
 
         if (^passed(a_errtxt))
-            a_errtxt = ok ? "" : errtxt
+		begin
+			if (ok) then
+				a_errtxt = ""
+			else
+				a_errtxt = errtxt
+		end
 
         freturn ok
 
