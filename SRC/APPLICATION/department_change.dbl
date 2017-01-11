@@ -91,7 +91,7 @@ proc
         else
         begin
             xcall u_msgbox("Error opening file DAT:DEPARTMENT.ISM",D_MOK+D_MICONEXCLAM+D_MCENTER,"Error")
-            xcall department_io(IO_SHOWERR)
+            ;xcall department_io(IO_SHOWERR)
             retval = D_EMITTEDERR
         end
     end
