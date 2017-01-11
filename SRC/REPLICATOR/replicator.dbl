@@ -165,6 +165,7 @@ proc
         if (length) then
         begin
             db_connect = databuffer(1:length)
+            log("Connect string: " + db_connect)
         end
         else
         begin
