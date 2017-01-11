@@ -53,21 +53,18 @@
 ;;          GENERATION IS RE-EXECUTED FOR THIS PROJECT.
 ;;*****************************************************************************
 
-namespace <NAMESPACE>
+function IsDate, boolean
+	required in value, a
+proc
+	try
+	begin
+		data julianDate, i4, %jperiod(^d(value))
+		freturn true
+	end
+	catch (ex)
+	begin
+		freturn false
+	end
+	endtry
+endfunction
 
-    function IsDate, boolean
-        required in value, a
-    proc
-		try 
-		begin
-			data julianDate, i4, %jperiod(^d(value))
-			freturn true
-		end
-		catch (ex)
-		begin
-			freturn false
-		end
-		endtry
-    endfunction
-
-endnamespace

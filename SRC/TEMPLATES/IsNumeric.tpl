@@ -53,22 +53,19 @@
 ;;          GENERATION IS RE-EXECUTED FOR THIS PROJECT.
 ;;*****************************************************************************
 
-namespace <NAMESPACE>
+function IsNumeric, boolean
+	required in valueToTest, a
+proc
+	try
+	begin
+		data number, d28.10
+		number = valueToTest
+		freturn true
+	end
+	catch (ex)
+	begin
+		freturn false
+	end
+	endtry
+endfunction
 
-    function IsNumeric, boolean
-        required in valueToTest, a
-    proc
-        try
-        begin
-            data number, d28.10
-            number = valueToTest
-            freturn true
-        end
-        catch (ex)
-        begin
-            freturn false
-        end
-        endtry
-    endfunction
-
-endnamespace

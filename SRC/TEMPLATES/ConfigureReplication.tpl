@@ -35,112 +35,109 @@
 ;; POSSIBILITY OF SUCH DAMAGE.
 ;;
 
-namespace <NAMESPACE>
+subroutine ConfigureReplication
+	required in channel, n
+	endparams
+	stack record
+		openMode, a3
+	endrecord
 
-    subroutine ConfigureReplication
-        required in channel, n
-        endparams
-        stack record
-            openMode, a3
-        endrecord
+	.define common global common
+	.include "INC:sqlgbl.def"
+	.undefine common
 
-        .define common global common
-        .include "INC:sqlgbl.def"
-        .undefine common
+	external function
+		doFile, boolean
+	endexternal
 
-        external function
-            doFile, boolean
-        endexternal
+proc
 
-    proc
+	;;Default to NOT populating a REPLICATION_KEY field for this channel
+	repkey_required[channel] = 0
 
-        ;;Default to NOT populating a REPLICATION_KEY field for this channel
-        repkey_required[channel] = 0
+	xcall getfa(channel,"OMD",openMode)
 
-        xcall getfa(channel,"OMD",openMode)
+	if (openMode=="U:I")
+	begin
+		data fileSpec, a128
+		data fileName, a80
+		data fileExt,  a20
 
-        if (openMode=="U:I")
-        begin
-            data fileSpec, a128
-            data fileName, a80
-            data fileExt,  a20
+		xcall filnm(channel,fileSpec)
+		xcall parse(fileSpec,,,,,fileName,fileExt)
 
-            xcall filnm(channel,fileSpec)
-            xcall parse(fileSpec,,,,,fileName,fileExt)
+		fileSpec = %atrim(fileName) + fileExt
 
-            fileSpec = %atrim(fileName) + fileExt
+		upcase fileSpec
 
-            upcase fileSpec
+		using fileSpec select
 
-            using fileSpec select
-
-;            ;;A single-record layout file that already had a unique key
-;            ("FILE1.ISM"),
-;            begin
-;                if (%doFile(fileName))
-;                    new ReplicationIoHooks(channel,"FILE1")
-;            end
+;       ;;A single-record layout file that already had a unique key
+;       ("FILE1.ISM"),
+;       begin
+;           if (%doFile(fileName))
+;               new ReplicationIoHooks(channel,"FILE1")
+;       end
 ;
-;            ;;A single-record layout file with REPLICATION_KEY added
-;            ("FILE2.ISM"),
-;            begin
-;                if (%doFile(fileName))
-;                    new ReplicationIoHooks(channel,"FILE2")
-;                repkey_required[channel] = 1
-;            end
+;       ;;A single-record layout file with REPLICATION_KEY added
+;       ("FILE2.ISM"),
+;       begin
+;           if (%doFile(fileName))
+;               new ReplicationIoHooks(channel,"FILE2")
+;           repkey_required[channel] = 1
+;       end
 ;
 ;
-;            ;;A multi-record layout file that already had a unique key
-;            ("FILE3.ISM"), ;;Multiple possibilities (FILE3A, FILE3B, FILE3C)
-;            begin
-;                if (%doFile(fileName))
-;                    new ReplicationIoHooks(channel,"MULTI_FILE3")
-;            end
+;       ;;A multi-record layout file that already had a unique key
+;       ("FILE3.ISM"), ;;Multiple possibilities (FILE3A, FILE3B, FILE3C)
+;       begin
+;           if (%doFile(fileName))
+;               new ReplicationIoHooks(channel,"MULTI_FILE3")
+;       end
 ;
-;            ;;A multi-record layout file with REPLICATION_KEY added
-;            ("FILE4.ISM"), ;;Multiple possibilities (FILE4A, FILE4B, FILE4C)
-;            begin
-;                if (%doFile(fileName))
-;                    new ReplicationIoHooks(channel,"MULTI_FILE4")
-;                repkey_required[channel] = 1
-;            end
+;       ;;A multi-record layout file with REPLICATION_KEY added
+;       ("FILE4.ISM"), ;;Multiple possibilities (FILE4A, FILE4B, FILE4C)
+;       begin
+;           if (%doFile(fileName))
+;               new ReplicationIoHooks(channel,"MULTI_FILE4")
+;           repkey_required[channel] = 1
+;       end
 
-            ("EMPLOYEE.ISM"),
-            begin
-                if (%doFile(fileName))
-                    new ReplicationIoHooks(channel,"EMPLOYEE")
-            end
+		("EMPLOYEE.ISM"),
+		begin
+			if (%doFile(fileName))
+				new ReplicationIoHooks(channel,"EMPLOYEE")
+		end
 
-            endusing
-        end
+		endusing
+	end
 
-        xreturn
+	xreturn
 
-    endsubroutine
+endsubroutine
 
-    function doFile, boolean
-        required in fileName, a
-        endparams
-        stack record
-            result, boolean
-            len, i4
-        endrecord
-        static record
-            files, a65535, "NOT DONE!"
-        endrecord
-    proc
-        if (files=="NOT DONE!")
-        begin
-            ;;Look for an environment variable REPLICATOR_FILES. If defined it should be in the
-            ;;format REPLICAOTR_FILES="|FILE1|FILE2|FILE3|" and names the base file names to be
-            ;;INCLUDED in replication. Files not mentioned in the environment variable will NOT
-            ;;be replicated, even if replication is otherwise configured.
-            xcall getlog("REPLICATOR_FILES",files,len)
-            if (!len)
-                clear files
-        end
-        result = (!files || %instr(1,files,"|"+%atrim(fileName)+"|"))
-        freturn result
-    endfunction
+function doFile, boolean
+	required in fileName, a
+	endparams
+	stack record
+		result, boolean
+		len, i4
+	endrecord
+	static record
+		files, a65535, "NOT DONE!"
+	endrecord
+proc
+	if (files=="NOT DONE!")
+	begin
+		;;Look for an environment variable REPLICATOR_FILES. If defined it should be in the
+		;;format REPLICAOTR_FILES="|FILE1|FILE2|FILE3|" and names the base file names to be
+		;;INCLUDED in replication. Files not mentioned in the environment variable will NOT
+		;;be replicated, even if replication is otherwise configured.
+		xcall getlog("REPLICATOR_FILES",files,len)
+		if (!len)
+			clear files
+	end
+	result = (!files || %instr(1,files,"|"+%atrim(fileName)+"|"))
+	freturn result
+endfunction
 
-endnamespace

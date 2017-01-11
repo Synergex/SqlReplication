@@ -1,0 +1,540 @@
+;*****************************************************************************
+;
+; Title:        SmtpMail.dbl
+;
+; Description:  Sends an SMTP e-mail message
+;
+; Author:       Galen Carpenter (Synergex Development)
+; Date:         3rd Dec 2002
+;
+; Updated by:   Steve Ives (Synergex Professional Services Group)
+; Date:         1st June 2006
+;
+;*****************************************************************************
+;
+; This code is supplied as seen and without warranty or support, and is used
+; at your own risk. Neither the author or Synergex accept any responsability
+; for any loss or damage which may result from the use of this code.
+;
+;*****************************************************************************
+;
+;   SMTP server response codes:
+;
+;   211 - A system status message.
+;   214 - A help message for a human reader follows.
+;   220 - SMTP Service ready.
+;   221 - Service closing.
+;   250 - Requested action taken and completed. The best message of them all.
+;   251 - The recipient is not local to the server, but the server will accept
+;         and forward the message.
+;   252 - The recipient cannot be VRFYed, but the server accepts the message
+;         and attempts delivery.
+;   354 - Start message input and end with <CRLF>.<CRLF>. This indicates that
+;         the server is ready to accept the message itself (after you have told
+;         it who it is from and where you want to to go).
+;   421 - The service is not available and the connection will be closed.
+;   450 - The requested command failed because the user's mailbox was
+;         unavailable (for example because it was locked). Try again later.
+;   451 - The command has been aborted due to a server error. Not your fault.
+;         Maybe let the admin know.
+;   452 - The command has been aborted because the server has insufficient
+;         system storage.
+;   500 - The server could not recognize the command due to a syntax error.
+;   501 - A syntax error was encountered in command arguments.
+;   502 - This command is not implemented.
+;   503 - The server has encountered a bad sequence of commands.
+;   504 - A command parameter is not implemented.
+;   550 - The requested command failed because the user's mailbox was
+;         unavailable (for example because it was not found, or because the
+;         command was rejected for policy reasons).
+;   551 - The recipient is not local to the server. The server then gives a
+;         forward address to try.
+;   552 - The action was aborted due to exceeded storage allocation.
+;   553 - The command was aborted because the mailbox name is invalid.
+;   554 - The transaction failed. Blame it on the weather.
+;
+;*****************************************************************************
+;
+function SmtpMail ,^val
+
+    ;Server
+    a_server        ,a      ;SMTP server name or ip address (required)
+
+    ;Sender
+    a_domain        ,a      ;Sender's domain name (required)
+    a_sender        ,a      ;Senders e-mail address  (required)
+    a_sender_name   ,a      ;Senders name (optional)
+    a_replyto       ,a      ;Reply to email address (optional)
+
+    ;Recipient(s)
+    a_tolist        ,a      ;Recipient list (required, comma delimited)
+    a_cclist        ,a      ;CC list (optional, comma delimited)
+
+    ;Message
+    a_subject       ,a      ;Subject text (optional)
+    a_bodyarray     ,[*]a   ;Body text array (optional)
+    a_bodyfile      ,a      ;File containing body text (optional)
+    a_bodyhtml      ,n      ;Does the body contain HTML?
+
+    ;Attachment
+    a_attachfile    ,[*]a   ;Attachment file names (optional)
+
+    ;End of parameters
+
+.include "INC:SmtpMail.def"
+.include "DBLDIR:synsock.def"
+
+external function
+    get_smtp_line   ,^val
+    send_rcpt_list  ,^val
+    synsock         ,^val
+
+stack record avars
+    cr              ,a1     ;Carriage return
+    lf              ,a1     ;Line feed
+    line_buf        ,a255
+    infile          ,a255
+    outfile         ,a255
+    group dt
+        year        ,a4
+        month       ,d2
+        day         ,a2
+        hour        ,a2
+        minute      ,a2
+        seconds     ,a2
+        milli       ,a6
+    endgroup
+
+.align
+stack record ivars
+    sd              ,i4     ;Socket descriptor
+    rc              ,i4     ;Reply code from server
+    inaddr          ,i4     ;internet address for server - needed by connect
+    err             ,i4
+    chan            ,i4     ;channel to open bodyfile
+    count           ,i4     ;Loop counter
+    dll             ,i4     ;Dll handle
+    dllsts          ,i4     ;Dll call return status
+    dllopt          ,i4     ;Dll option
+
+literal
+    dayname         ,[7]a3  ,"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"
+    monthname       ,[12]a3 ,"Jan", "Feb", "Mar", "Apr", "May", "Jun",
+    &                         "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+
+
+proc
+
+    ;Initialize data
+    clear avars, ^i(ivars)
+    cr=%char(13)
+    lf=%char(10)
+
+    ;Open a socket
+    err = %ss_socket(sd,SS_SOCK_STREAM)
+
+    ;Assume we've been given a server name and attempt to lookup IP address
+    if (err=%ss_gethostbyname(a_server,inaddr))
+    begin
+        ;It failed, maybe we were given an IP address?
+        if (err=%ss_inet_addr(a_server,inaddr))
+        begin
+            ;No, it's not valid
+            freturn(SMERR_BADSERVER)
+        end
+    end
+
+    ;Connect socket to SMTP server (port 25)
+    if (err=%ss_connect(sd,25,inaddr))
+        freturn(SMERR_NETPROB)
+
+    ;Get initial response from the server
+    if (%get_smtp_line(sd)!=220)
+    begin
+        xcall ss_close(sd)
+        freturn(SMERR_SERVERFAIL)
+    end
+
+    ;Service is available, now tell the server the senders domain
+    .ifdef USE_EHLO
+    xcall ss_sendbuf(sd,"EHLO "+%atrim(a_domain)+cr+lf)
+    do
+    begin
+        rc=%get_smtp_line(sd,line_buf)
+        call check_rc
+    end
+    until (line_buf(4:1)==" ")
+    .else
+    xcall ss_sendbuf(sd,"HELO "+%atrim(a_domain)+cr+lf)
+    rc=%get_smtp_line(sd)
+    call check_rc
+    .endc
+
+    ;Tell the server about the sender
+    xcall ss_sendbuf(sd,"MAIL FROM:<"+%atrim(a_sender)+">"+cr+lf)
+    rc=%get_smtp_line(sd)
+    call check_rc
+
+    ;Send recipient list
+    rc = %send_rcpt_list(sd, a_tolist)
+    if (rc!=SMERR_SUCCESS)
+    begin
+        if (rc!=SMERR_SUCCESS)
+        begin
+            xcall ss_close(sd)
+            using rc select
+            (SMERR_BADLIST),
+                freturn(SMERR_TOLIST)
+            (),
+                freturn(SMERR_SERVERFAIL)
+            endusing
+        end
+    end
+
+    ;Send cc list
+    if (^passed(a_cclist)&&a_cclist)
+    begin
+        rc=%send_rcpt_list(sd,a_cclist)
+        if (rc!=SMERR_SUCCESS)
+        begin
+            xcall ss_close(sd)
+            using rc select
+            (SMERR_BADLIST),
+                freturn(SMERR_CCLIST)
+            (),
+                freturn(SMERR_SERVERFAIL)
+            endusing
+        end
+    end
+
+    ;Successfully sent cc list, now send DATA command
+    xcall ss_sendbuf(sd,"DATA"+cr+lf)
+    if (%get_smtp_line(sd)!=354)
+    begin
+        xcall ss_close(sd)
+        freturn(SMERR_SERVERFAIL)
+    end
+
+    ;Send message header
+    dt = %datetime
+    xcall put_data_line(sd, "X-Mailer: Synergy DBL")
+    xcall put_data_line(sd,"Date: "+dayname[%wkday]+", "
+    &                   +dt.day +" "+monthname[dt.month]+" "+dt.year+" "
+    &                   +dt.hour+":"+dt.minute+":"+dt.seconds)
+
+    ;Sender
+    if (^passed(a_sender_name)&&a_sender_name) then
+        xcall put_data_line(sd,'From: "'+%atrim(a_sender_name)+'" <'+%atrim(a_sender)+'>')
+    else
+        xcall put_data_line(sd,"From: "+%atrim(a_sender))
+
+    ;Reciptient
+    xcall put_data_line(sd,"To: "+%atrim(a_tolist))
+
+    ;Subject
+    if (^passed(a_subject)&&a_subject)
+        xcall put_data_line(sd,"Subject: "+%atrim(a_subject))
+
+    ;CC:
+    if (^passed(a_cclist)&&a_cclist)
+        xcall put_data_line(sd,"Cc: "+%atrim(a_cclist))
+
+    ;Reply to
+    if (^passed(a_replyto)&&a_replyto)
+        xcall put_data_line(sd,"Reply-To: "+%atrim(a_replyto))
+
+    ;Attachment
+    xcall put_data_line(sd,"Mime-Version: 1.0")
+    if (^passed(a_bodyhtml)&&a_bodyhtml) then
+        xcall put_data_line(sd,'Content-Type: multipart/related; boundary="--=_NextPart_'+%hex(%jbno)+'"')
+    else
+        xcall put_data_line(sd,'Content-Type: multipart/mixed; boundary="--=_NextPart_'+%hex(%jbno)+'"')
+    xcall put_data_line(sd,"")
+    xcall put_data_line(sd,'----=_NextPart_'+%hex(%jbno))
+    if (^passed(a_bodyhtml)&&a_bodyhtml) then
+        xcall put_data_line(sd,'Content-Type: text/html; charset="iso-8859-1"')
+    else
+        xcall put_data_line(sd,'Content-Type: text/plain; charset="iso-8859-1"')
+    xcall put_data_line(sd,"Content-Transfer-Encoding: 7bit")
+
+    xcall put_data_line(sd, "")
+
+    ;Were we passed an array containing body text?
+    if (^passed(a_bodyarray))
+    begin
+        ;Yes, add the body text from the array
+        for count from 1 thru ^argdim(^argnum(a_bodyarray),1)
+            xcall put_data_line(sd, %atrim(a_bodyarray[count]))
+    end
+
+    ;Were we passed the name of a file containing body text?
+    if (^passed(a_bodyfile)&&a_bodyfile)
+    begin
+        ;Yes, add the body text from the file
+        open(chan=%syn_freechn,i,a_bodyfile) [ERR=body_err]
+        repeat
+        begin
+            reads(chan,line_buf,body_eof)
+            xcall put_data_line(sd,%atrim(line_buf))
+        end
+body_eof,
+        close chan
+        exit
+body_err,
+        freturn(SMERR_BODYFILE)
+    end
+
+    ;Were we passed an attachment array?
+    if (^passed(a_attachfile))
+    begin
+        ;Iterate through the attachments
+        for count from 1 thru ^argdim(^argnum(a_attachfile),1)
+        begin
+            ;If this one is blank, skip it
+            if (!a_attachfile[count])
+                nextloop
+
+            ;We have an attachment to process
+            clear infile, outfile
+
+            ;Is it a JPEG image?
+            if (%instr(1,a_attachfile[count],".jpg")) then
+            begin
+                ;Yes, it's a JPEG, attach it as an image
+                xcall put_data_line(sd,"")
+                xcall put_data_line(sd,'----=_NextPart_'+%hex(%jbno))
+                xcall put_data_line(sd,'Content-Type: image/ext; name="'+%atrim(a_attachfile[count])+'"')
+                xcall put_data_line(sd,"Content-Transfer-Encoding: base64")
+                xcall put_data_line(sd,'Content-Disposition: attachment; filename="'+%atrim(a_attachfile[count])+'"')
+                xcall put_data_line(sd,"Content-id: "+%atrim(a_attachfile[count]))
+                xcall put_data_line(sd,"")
+
+                ;Base64 encode the file
+                infile  = %atrim(a_attachfile[count]) + %char(0)
+                outfile = %atrim(a_attachfile[count]) + ".b64" + %char(0)
+                dllopt = ^i("e")
+                dll=%dll_open("b64")
+                dllsts = %dll_call(dll,DLL_TYPE_C,"b64",dllopt,^addr(infile),^addr(outfile),%integer(74))
+                xcall dll_close(dll)
+
+                ;Attach the Base64 encoded file
+                open(chan=%syn_freechn,i,outfile) [ERR=attach_err]
+                repeat
+                begin
+                    reads(chan,line_buf,attach_eof)
+                    xcall put_data_line(sd,%atrim(line_buf))
+                end
+
+            end
+            else
+            begin
+                ;No, it's not a JPEG, attack it as an octet-stream
+                xcall put_data_line(sd,"")
+                xcall put_data_line(sd,'----=_NextPart_'+%hex(%jbno))
+                xcall put_data_line(sd,'Content-Type: application/octet-stream; name="'+%atrim(a_attachfile[count])+'"')
+                xcall put_data_line(sd,"")
+                open(chan=%syn_freechn,i,a_attachfile[count]) [ERR=attach_err]
+                repeat
+                begin
+                    reads(chan,line_buf,attach_eof)
+                    xcall put_data_line(sd,%atrim(line_buf))
+                end
+            end
+
+attach_eof,
+            close(chan)
+            if (outfile)
+                xcall delet(outfile)
+            nextloop
+attach_err,
+            freturn(SMERR_ATTACHFILE)
+        end
+    end
+
+    ;End the final mime section
+    xcall put_data_line(sd,"")
+    xcall put_data_line(sd,'----=_NextPart_'+%hex(%jbno)+"--")
+
+    ;Send the end of message command (CRLF.CRLF)
+    xcall ss_sendbuf(sd,cr+lf+"."+cr+lf)
+    if (%get_smtp_line(sd).ne.250)
+    begin
+        xcall ss_close(sd)
+        freturn(SMERR_SERVERFAIL)
+    end
+
+    ;Close the socket
+    xcall ss_close(sd)
+
+    ;All done
+    freturn(SMERR_SUCCESS)
+
+check_rc,
+
+    using rc select
+    (421,451,452,552),
+    begin
+        xcall ss_close(sd)
+        freturn(SMERR_SERVERFAIL)
+    end
+    (!=250),
+    begin
+        xcall ss_close(sd)
+        freturn(SMERR_SENDADDR)
+    end
+    endusing
+
+    return
+
+.end
+
+;*****************************************************************************
+;
+;   if first character is a period, this function inserts a period
+;   in front of the line.  See section 4.5.2 of SMTP FAQ - Transparency
+;   note: this function will not trim buf.
+;
+.subroutine put_data_line
+
+    sd              ,n
+    buffer          ,a
+
+.include "INC:SmtpMail.def"
+.include "DBLDIR:synsock.def"
+
+.proc
+
+    if (buffer(1:1)==".")
+        xcall ss_sendbuf(sd, ".")
+
+    xcall ss_sendbuf(sd,buffer+%char(13)+%char(10))
+
+    xreturn
+
+.end
+
+
+;*****************************************************************************
+;
+.function get_smtp_line, ^val
+
+    sd              ,n
+    line            ,a
+
+.include "INC:SmtpMail.def"
+.include "DBLDIR:synsock.def"
+
+external function
+    synsock         ,^val
+
+stack record ivars
+    i               ,i4
+    err             ,i4
+
+stack record avars
+    linebuf         ,a255
+    linebuf_byte    ,[255]a1 @linebuf
+    char            ,a1
+
+.proc
+
+    clear ^i(ivars),avars
+
+    while (char!=%char(10))
+    begin
+        err=%ss_recvbuf(sd,char)
+        linebuf_byte[i+=1]=char
+    end
+
+    if (^passed(line))
+        line=linebuf
+
+    freturn (%integer(linebuf(1:3)))
+
+.end
+
+;*****************************************************************************
+;
+.function send_rcpt_list, ^val
+
+    sd              ,n
+    list            ,a
+
+.include "INC:SmtpMail.def"
+.include "DBLDIR:synsock.def"
+
+external function
+    get_smtp_line   ,^val
+
+stack record avars
+    cr              ,a1     ;Carriage return
+    lf              ,a1     ;Line feed
+
+.align
+stack record ivars
+    pos             ,i4     ;Index into list
+    eol             ,i4     ;Position of end of list
+    t_spos          ,i4     ;Token starting position
+    t_epos          ,i4     ;Token ending position
+    rc              ,i4     ;Reply code from server
+
+.proc
+
+    ;Initialize data
+    clear avars, ^i(ivars)
+    eol = %trim(list)
+    pos = 1
+    cr  = %char(13)
+    lf  = %char(10)
+
+    while (pos<=eol)
+    begin
+
+        ;Look for the start of the next token
+        if (!((list(pos:1)==' ')||(list(pos:1)==',')))
+        begin
+            ;Found it
+            t_spos = pos
+
+            ;Look for the end of the token
+            while((pos<eol)&&(list(pos:1)!=' ')&&(list(pos:1)!=','))
+                incr pos
+
+            ;Found it, set token end position
+            if (pos!=eol) then
+                t_epos=pos-1
+            else
+                t_epos=pos
+
+            ;Add the recipient
+            xcall ss_sendbuf(sd,"RCPT TO:<"+list(t_spos,t_epos)+">"+cr+lf)
+
+            ;Get the response from the server
+            rc=%get_smtp_line(sd)
+
+            using rc select
+            (550),
+                freturn(SMERR_NORELAY)
+            (421,450,451,452,552),
+                freturn(SMERR_SERVERFAIL)
+            (250,251,252),
+                nop
+            (),
+                freturn(SMERR_BADLIST)
+            endusing
+
+            ;Successfully sent recipient token
+
+            ;Are we done?
+            if (pos==eol)
+                exitloop
+        end
+
+        incr pos
+
+    end
+
+    freturn(SMERR_SUCCESS)
+
+endfunction
+
