@@ -192,12 +192,15 @@
             <F N="../SRC/LIBRARY/Replicate.dbl"/>
             <F N="../SRC/LIBRARY/ReplicationIoHooks.dbl"/>
             <F N="../SRC/LIBRARY/ReplicatorControl.dbl"/>
+            <F N="../SRC/LIBRARY/SmtpMail.dbl"/>
         </Folder>
         <Folder
             Name="Header Files"
             Filters="*.def;*.dbh">
+            <F N="../SRC/LIBRARY/SmtpMail.def"/>
             <F N="../SRC/LIBRARY/sqlgbl.def"/>
             <F N="../SRC/LIBRARY/structureio.def"/>
+            <F N="../SRC/LIBRARY/system.def"/>
         </Folder>
         <Folder
             Name="Other Files"
