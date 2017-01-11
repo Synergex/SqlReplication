@@ -34,75 +34,74 @@
 ;; POSSIBILITY OF SUCH DAMAGE.
 ;;
 
-namespace SynPSG.ReplicationDemo
+import SynPSG.ReplicationDemo
 
-    subroutine ConfigureReplication
-        required in channel, n
-        endparams
-        stack record
-            openMode, a3
-        endrecord
+subroutine ConfigureReplication
+	required in channel, n
+	endparams
+	stack record
+		openMode, a3
+	endrecord
 
-        .define common global common
-        .include "INC:sqlgbl.def"
-        .undefine common
+	.define common global common
+	.include "INC:sqlgbl.def"
+	.undefine common
 
-        external function
-            doFile, boolean
-        endexternal
+	external function
+		doFile, boolean
+	endexternal
 
-    proc
+proc
 
-        ;;Default to NOT populating a REPLICATION_KEY field for this channel
-        repkey_required[channel] = 0
+	;;Default to NOT populating a REPLICATION_KEY field for this channel
+	repkey_required[channel] = 0
 
-        xcall getfa(channel,"OMD",openMode)
+	xcall getfa(channel,"OMD",openMode)
 
-        if (openMode=="U:I")
-        begin
-            data fileSpec, a128
-            data fileName, a80
-            data fileExt,  a20
+	if (openMode=="U:I")
+	begin
+		data fileSpec, a128
+		data fileName, a80
+		data fileExt,  a20
 
-            xcall filnm(channel,fileSpec)
-            xcall parse(fileSpec,,,,,fileName,fileExt)
+		xcall filnm(channel,fileSpec)
+		xcall parse(fileSpec,,,,,fileName,fileExt)
 
-            fileSpec = %atrim(fileName) + fileExt
+		fileSpec = %atrim(fileName) + fileExt
 
-            upcase fileSpec
+		upcase fileSpec
 
-            using fileSpec select
+		using fileSpec select
 
-			("EMPLOYEE.ISM"),
-				new ReplicationIoHooks(channel,"EMPLOYEE")
+		("EMPLOYEE.ISM"),
+			new ReplicationIoHooks(channel,"EMPLOYEE")
 
-;            ;;A single-record layout file that already had a unique key
-;            ("FILE1.ISM"),
-;                new ReplicationIoHooks(channel,"FILE1")
+;       ;;A single-record layout file that already had a unique key
+;       ("FILE1.ISM"),
+;           new ReplicationIoHooks(channel,"FILE1")
 ;
-;            ;;A single-record layout file with REPLICATION_KEY added
-;            ("FILE2.ISM"),
-;            begin
-;                new ReplicationIoHooks(channel,"FILE2")
-;                repkey_required[channel] = 1
-;            end
+;       ;;A single-record layout file with REPLICATION_KEY added
+;       ("FILE2.ISM"),
+;       begin
+;           new ReplicationIoHooks(channel,"FILE2")
+;           repkey_required[channel] = 1
+;       end
 ;
-;            ;;A multi-record layout file that already had a unique key
-;            ("FILE3.ISM"), ;;Multiple possibilities (FILE3A, FILE3B, FILE3C)
-;                new ReplicationIoHooks(channel,"MULTI_FILE3")
+;       ;;A multi-record layout file that already had a unique key
+;       ("FILE3.ISM"), ;;Multiple possibilities (FILE3A, FILE3B, FILE3C)
+;           new ReplicationIoHooks(channel,"MULTI_FILE3")
 ;
-;            ;;A multi-record layout file with REPLICATION_KEY added
-;            ("FILE4.ISM"), ;;Multiple possibilities (FILE4A, FILE4B, FILE4C)
-;            begin
-;                new ReplicationIoHooks(channel,"MULTI_FILE4")
-;                repkey_required[channel] = 1
-;            end
+;       ;;A multi-record layout file with REPLICATION_KEY added
+;       ("FILE4.ISM"), ;;Multiple possibilities (FILE4A, FILE4B, FILE4C)
+;       begin
+;           new ReplicationIoHooks(channel,"MULTI_FILE4")
+;           repkey_required[channel] = 1
+;       end
 
-            endusing
-        end
+		endusing
+	end
 
-        xreturn
+	xreturn
 
-    endsubroutine
+endsubroutine
 
-endnamespace

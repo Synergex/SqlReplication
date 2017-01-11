@@ -35,6 +35,8 @@
 ;; POSSIBILITY OF SUCH DAMAGE.
 ;;
 
+import <NAMESPACE>
+
 subroutine ConfigureReplication
 	required in channel, n
 	endparams
