@@ -19,39 +19,36 @@
 ;; duplicate key error does not occur.
 ;;
 
-namespace SynPSG.ReplicationDemo
+subroutine PopulateReplicationKey
+	required in    channel, n
+	required inout aRecord, a
+	endparams
+	stack record
+		fileSpec, a128
+		fileName, a80
+		fileExt,  a20
+	endrecord
 
-    subroutine PopulateReplicationKey
-        required in    channel, n
-        required inout aRecord, a
-        endparams
-        stack record
-            fileSpec, a128
-            fileName, a80
-            fileExt,  a20
-        endrecord
+	;;Include the structure for each record type that needs REPLICATION_KEY populateing on STORE
+;	.include "SOME_STRUCTURE" repository, structure="strSomeStructure"
 
-        ;;Include the structure for each record type that needs REPLICATION_KEY populateing on STORE
-;        .include "SOME_STRUCTURE" repository, structure="strSomeStructure"
+proc
+	xcall filnm(channel,fileSpec)
+	xcall parse(fileSpec,,,,,fileName,fileExt)
 
-    proc
-        xcall filnm(channel,fileSpec)
-        xcall parse(fileSpec,,,,,fileName,fileExt)
+	fileSpec = %atrim(fileName) + fileExt
 
-        fileSpec = %atrim(fileName) + fileExt
+	upcase fileSpec
 
-        upcase fileSpec
+	;;Add a section to fill out the REPLICATION_KEY field for each file / record type
+	using fileSpec select
+;   ("SOMEFILE.ISM"),
+;       ^m(strSomeStructure.replication_key,aRecord) = %datetime
+	(),
+		nop
+	endusing
 
-        ;;Add a section to fill out the REPLICATION_KEY field for each file / record type
-        using fileSpec select
-;        ("SOMEFILE.ISM"),
-;            ^m(strSomeStructure.replication_key,aRecord) = %datetime
-        (),
-            nop
-        endusing
+	xreturn
 
-        xreturn
+endsubroutine
 
-    endsubroutine
-
-endnamespace
