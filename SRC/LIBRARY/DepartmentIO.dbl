@@ -40,263 +40,260 @@
 ;;          GENERATION IS RE-EXECUTED FOR THIS PROJECT.
 ;;*****************************************************************************
 
-namespace SynPSG.ReplicationDemo
-
-    .include "DEPARTMENT" repository, structure="strDepartment", end
-
-    function department_io ,^val
-
-        required in    a_mode       ,n  ;;Access type
-        required inout a_channel    ,n  ;;Channel
-        optional in    a_key        ,a  ;;Key value
-        optional in    a_keynum     ,n  ;;Key number
-        optional inout department, strDepartment
-        optional in    a_lock       ,n  ;;If passed and TRUE, lock record
-        optional in    a_partial    ,n  ;;Do a partial key lookup
-        optional out   a_errtxt     ,a  ;;Returned error text
-        endparams
-
-        .INCLUDE "INC:structureio.def"
-        .include "INC:sqlgbl.def"
-
-        stack record localData
-            keyno                   ,int    ;;Key number
-            keylen                  ,int    ;;Key length
-            lock                    ,int    ;;Lock record?
-            pos                     ,int    ;;Position in a string
-            errorNumber             ,int
-            lineNumber              ,int
-            errorMessage            ,a45
-            errmsg                  ,a45    ;;Error message
-            keyValue                ,a255   ;;Hold original key
-        endrecord
-
-    proc
-
-        init localData
-
-        onerror fatalIoError
-
-        if ^passed(a_key)
-        begin
-            keyValue = a_key
-            if (^passed(a_partial)&&a_partial) then
-                keylen = %trim(a_key)
-            else
-                keylen = ^size(a_key)
-        end
-
-        if ^passed(a_keynum) then
-            keyno=a_keynum
-        else
-            keyno=0
-
-        if (!^passed(a_key) && ^passed(department))
-        begin
-            keyValue = %keyval(a_channel,department,keyno)
-            if (^passed(a_partial)&&a_partial) then
-                keylen = %trim(%keyval(a_channel,department,keyno))
-            else
-                keylen = ^len(%keyval(a_channel,department,keyno))
-        end
-
-        if (!^passed(a_lock)) then
-            lock = Q_NO_LOCK
-        else
-            lock = Q_AUTO_LOCK
-
-        if (^passed(a_errtxt))
-            clear a_errtxt
-
-        using a_mode select
-
-        (IO_OPEN_INP),
-        begin
-            open(a_channel=0,i:i,"DAT:DEPARTMENT.ISM") [ERR=openError]
-        end
-
-        (IO_OPEN_UPD),
-        begin
-            open(a_channel=0,u:i,"DAT:DEPARTMENT.ISM") [ERR=openError]
-        end
-
-        (IO_FIND),
-        begin
-            find(a_channel,,keyValue(1:keylen),KEYNUM:keyno) [$ERR_EOF=endOfFile,$ERR_LOCKED=recordLocked,$ERR_KEYNOT=keyNotFound]
-        end
-
-        (IO_FIND_FIRST),
-        begin
-            .ifdef TAG_VALUE
-            find(a_channel,,TAG_VALUE,KEYNUM:keyno) [$ERR_EOF=endOfFile,$ERR_LOCKED=recordLocked,$ERR_KEYNOT=keyNotFound]
-            .else
-            find(a_channel,,^FIRST,KEYNUM:keyno)    [$ERR_EOF=endOfFile,$ERR_LOCKED=recordLocked,$ERR_KEYNOT=keyNotFound]
-            .endc
-        end
-
-        (IO_READ_FIRST),
-        begin
-            read(a_channel,department,^FIRST,KEYNUM:keyno)    [$ERR_EOF=endOfFile,$ERR_LOCKED=recordLocked,$ERR_KEYNOT=keyNotFound]
-        end
-
-        (IO_READ),
-        begin
-            read(a_channel,department,keyValue(1:keylen),KEYNUM:keyno,LOCK:lock) [$ERR_EOF=endOfFile,$ERR_LOCKED=recordLocked,$ERR_KEYNOT=keyNotFound]
-        end
+.include "DEPARTMENT" repository, structure="strDepartment", end
+
+function department_io ,^val
+
+	required in    a_mode       ,n  ;;Access type
+	required inout a_channel    ,n  ;;Channel
+	optional in    a_key        ,a  ;;Key value
+	optional in    a_keynum     ,n  ;;Key number
+	optional inout department, strDepartment
+	optional in    a_lock       ,n  ;;If passed and TRUE, lock record
+	optional in    a_partial    ,n  ;;Do a partial key lookup
+	optional out   a_errtxt     ,a  ;;Returned error text
+	endparams
+
+	.INCLUDE "INC:structureio.def"
+	.include "INC:sqlgbl.def"
+
+	stack record localData
+		keyno                   ,int    ;;Key number
+		keylen                  ,int    ;;Key length
+		lock                    ,int    ;;Lock record?
+		pos                     ,int    ;;Position in a string
+		errorNumber             ,int
+		lineNumber              ,int
+		errorMessage            ,a45
+		errmsg                  ,a45    ;;Error message
+		keyValue                ,a255   ;;Hold original key
+	endrecord
+
+proc
+
+	init localData
+
+	onerror fatalIoError
+
+	if ^passed(a_key)
+	begin
+		keyValue = a_key
+		if (^passed(a_partial)&&a_partial) then
+			keylen = %trim(a_key)
+		else
+			keylen = ^size(a_key)
+	end
+
+	if ^passed(a_keynum) then
+		keyno=a_keynum
+	else
+		keyno=0
+
+	if (!^passed(a_key) && ^passed(department))
+	begin
+		keyValue = %keyval(a_channel,department,keyno)
+		if (^passed(a_partial)&&a_partial) then
+			keylen = %trim(%keyval(a_channel,department,keyno))
+		else
+			keylen = ^len(%keyval(a_channel,department,keyno))
+	end
+
+	if (!^passed(a_lock)) then
+		lock = Q_NO_LOCK
+	else
+		lock = Q_AUTO_LOCK
+
+	if (^passed(a_errtxt))
+		clear a_errtxt
+
+	using a_mode select
+
+	(IO_OPEN_INP),
+	begin
+		open(a_channel=0,i:i,"DAT:DEPARTMENT.ISM") [ERR=openError]
+	end
+
+	(IO_OPEN_UPD),
+	begin
+		open(a_channel=0,u:i,"DAT:DEPARTMENT.ISM") [ERR=openError]
+	end
+
+	(IO_FIND),
+	begin
+		find(a_channel,,keyValue(1:keylen),KEYNUM:keyno) [$ERR_EOF=endOfFile,$ERR_LOCKED=recordLocked,$ERR_KEYNOT=keyNotFound]
+	end
+
+	(IO_FIND_FIRST),
+	begin
+		.ifdef TAG_VALUE
+		find(a_channel,,TAG_VALUE,KEYNUM:keyno) [$ERR_EOF=endOfFile,$ERR_LOCKED=recordLocked,$ERR_KEYNOT=keyNotFound]
+		.else
+		find(a_channel,,^FIRST,KEYNUM:keyno)    [$ERR_EOF=endOfFile,$ERR_LOCKED=recordLocked,$ERR_KEYNOT=keyNotFound]
+		.endc
+	end
+
+	(IO_READ_FIRST),
+	begin
+		read(a_channel,department,^FIRST,KEYNUM:keyno)    [$ERR_EOF=endOfFile,$ERR_LOCKED=recordLocked,$ERR_KEYNOT=keyNotFound]
+	end
+
+	(IO_READ),
+	begin
+		read(a_channel,department,keyValue(1:keylen),KEYNUM:keyno,LOCK:lock) [$ERR_EOF=endOfFile,$ERR_LOCKED=recordLocked,$ERR_KEYNOT=keyNotFound]
+	end
 
-        (IO_READ_NEXT),
-        begin
-            reads(a_channel,department,LOCK:lock) [$ERR_EOF=endOfFile,$ERR_LOCKED=recordLocked,$ERR_KEYNOT=keyNotFound]
-        end
+	(IO_READ_NEXT),
+	begin
+		reads(a_channel,department,LOCK:lock) [$ERR_EOF=endOfFile,$ERR_LOCKED=recordLocked,$ERR_KEYNOT=keyNotFound]
+	end
 
-        (IO_CREATE),
-        begin
+	(IO_CREATE),
+	begin
 
-            if (repkey_required[a_channel]) then
-            begin
-                repeat
-                begin
-                    xcall PopulateReplicationKey(a_channel,department)
-                    store(a_channel,department) [$ERR_NODUPS=timeStampClash]
-                    exitloop
-timeStampClash,     sleep 0.01
-                end
-            end
-            else
-            begin
-                store(a_channel,department) [$ERR_NODUPS=duplicateKey]
-            end
-        end
+		if (repkey_required[a_channel]) then
+		begin
+			repeat
+			begin
+				xcall PopulateReplicationKey(a_channel,department)
+				store(a_channel,department) [$ERR_NODUPS=timeStampClash]
+				exitloop
+timeStampClash,
+				sleep 0.01
+			end
+		end
+		else
+		begin
+			store(a_channel,department) [$ERR_NODUPS=duplicateKey]
+		end
+	end
 
-        (IO_UPDATE),
-        begin
-            write(a_channel,department) [$ERR_NOCURR=noCurrentRecord]
-        end
+	(IO_UPDATE),
+	begin
+		write(a_channel,department) [$ERR_NOCURR=noCurrentRecord]
+	end
 
-        (IO_DELETE),
-        begin
-            delete(a_channel) [$ERR_NOCURR=noCurrentRecord]
-        end
+	(IO_DELETE),
+	begin
+		delete(a_channel) [$ERR_NOCURR=noCurrentRecord]
+	end
 
-        (IO_UNLOCK),
-        begin
-            unlock a_channel
-        end
+	(IO_UNLOCK),
+	begin
+		unlock a_channel
+	end
 
-        (IO_CLOSE),
-        begin
-            if (a_channel)
-            begin
-                close a_channel
-                clear a_channel
-            end
-        end
+	(IO_CLOSE),
+	begin
+		if (a_channel)
+		begin
+			close a_channel
+			clear a_channel
+		end
+	end
 
-        (),
-        begin
-            if (^passed(a_errtxt))
-                a_errtxt = "Invalid file access mode"
-            freturn IO_FATAL
-        end
+	(),
+	begin
+		if (^passed(a_errtxt))
+			a_errtxt = "Invalid file access mode"
+		freturn IO_FATAL
+	end
 
-        endusing
+	endusing
 
-        offerror
+	offerror
 
-        if (!^passed(a_lock) || (^passed(a_lock) && !a_lock))
-            if (a_channel && %chopen(a_channel))
-                unlock a_channel
+	if (!^passed(a_lock) || (^passed(a_lock) && !a_lock))
+		if (a_channel && %chopen(a_channel))
+			unlock a_channel
 
-        freturn IO_OK
+	freturn IO_OK
 
-    ;;-----------------------------------------------------------------------------
+;;-----------------------------------------------------------------------------
 
-    recordLocked,
+recordLocked,
 
-        ;;Return the locked error code
-        if (^passed(a_errtxt))
-            a_errtxt = "Record locked"
+	;;Return the locked error code
+	if (^passed(a_errtxt))
+		a_errtxt = "Record locked"
 
-        freturn IO_LOCKED
+	freturn IO_LOCKED
 
-    ;;-----------------------------------------------------------------------------
+;;-----------------------------------------------------------------------------
 
-    endOfFile,
+endOfFile,
 
-        unlock a_channel
+	unlock a_channel
 
-        if (^passed(a_errtxt))
-            a_errtxt = "Record not found - end of file"
+	if (^passed(a_errtxt))
+		a_errtxt = "Record not found - end of file"
 
-        freturn IO_EOF
+	freturn IO_EOF
 
-    ;;-----------------------------------------------------------------------------
+;;-----------------------------------------------------------------------------
 
-    keyNotFound,
+keyNotFound,
 
-        unlock a_channel
+	unlock a_channel
 
-        if (^passed(a_errtxt))
-            a_errtxt = "Record not found"
+	if (^passed(a_errtxt))
+		a_errtxt = "Record not found"
 
-        freturn IO_NOT_FOUND
+	freturn IO_NOT_FOUND
 
-    ;;-------------------------------------------------------------------------------
+;;-------------------------------------------------------------------------------
 
-    duplicateKey,
+duplicateKey,
 
-        unlock a_channel
+	unlock a_channel
 
-        if (^passed(a_errtxt))
-            a_errtxt = "Record already exists"
+	if (^passed(a_errtxt))
+		a_errtxt = "Record already exists"
 
-        freturn IO_DUP_KEY
+	freturn IO_DUP_KEY
 
-    ;;-----------------------------------------------------------------------------
+;;-----------------------------------------------------------------------------
 
-    noCurrentRecord,
+noCurrentRecord,
 
-        unlock a_channel
+	unlock a_channel
 
-        if (^passed(a_errtxt))
-            a_errtxt = "No record was locked"
+	if (^passed(a_errtxt))
+		a_errtxt = "No record was locked"
 
-        freturn IO_NO_CUR_REC
+	freturn IO_NO_CUR_REC
 
-    ;;-----------------------------------------------------------------------------
+;;-----------------------------------------------------------------------------
 
-    fatalIoError,
+fatalIoError,
 
-        if (a_channel && %chopen(a_channel))
-            unlock a_channel
+	if (a_channel && %chopen(a_channel))
+		unlock a_channel
 
-        offerror
+	offerror
 
-        if (^passed(a_errtxt))
-        begin
-            xcall error(errorNumber,lineNumber)
-            xcall ertxt(errorNumber,errorMessage)
-            xcall s_bld(a_errtxt,,'Error : %d, %a, at line : %d',errorNumber,errorMessage,lineNumber)
-        end
+	if (^passed(a_errtxt))
+	begin
+		xcall error(errorNumber,lineNumber)
+		xcall ertxt(errorNumber,errorMessage)
+		xcall s_bld(a_errtxt,,'Error : %d, %a, at line : %d',errorNumber,errorMessage,lineNumber)
+	end
 
-        freturn IO_FATAL
+	freturn IO_FATAL
 
-    ;;-----------------------------------------------------------------------------
+;;-----------------------------------------------------------------------------
 
-    openError,
+openError,
 
-        if (^passed(a_errtxt))
-            a_errtxt = "Failed to open file"
+	if (^passed(a_errtxt))
+		a_errtxt = "Failed to open file"
 
-        freturn IO_FATAL
+	freturn IO_FATAL
 
-    endfunction
+endfunction
 
-    function department_length ,^val
-        endparams
-    proc
-        freturn 71
-    endfunction
-
-endnamespace
+function department_length ,^val
+	endparams
+proc
+	freturn 71
+endfunction
 
