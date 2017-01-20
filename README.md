@@ -70,6 +70,25 @@ The code in this example is configured for use with a local default instance of 
 
 If your SQL Server database is not local, or does not accept Windows authentication, you will need to change the value of the REPLICATOR_DATABASE environment variable that is defined in the project properties of the application.vpj project. Refer to the section on configuring connect strings in the Synergy/DE SQL Connection API manual for more details.
 
+## Configuration
+
+The replicator process is configured by setting environment variables, as follows:
+
+| Environment Variable                | Description                                                                                                                 |
+| ----------------------------------- | -------------                                                                                                               |
+| REPLICATOR_DATABASE                 | SQL connection database connection string identifying the SQL Server database to connect to.                                |
+| REPLICATOR_LOGDIR                   | The location where the log file should be created. A full or relative path, or an environment variable followed by a colon. |
+| REPLICATOR_INTERVAL                 | The number of seconds the replicator should sleep if it finds no instructions to process.                                   |
+| REPLICATOR_FULL_LOG                 | Set to YES to cause more verbose logging to be used.                                                                        |
+| REPLICATOR_LOG_KEYS                 | Set to YES to cause the key values being used to relate ISAM records to SQL rows.                                           |
+| REPLICATOR_LOG_BULK_LOAD_EXCEPTIONS | Set to YES to cause failing records during a bulk load operation to be logged to a file.                                    |
+| REPLICATOR_EXPORT                   | The location where buld export files will be created.                                                                       |
+| REPLICATOR_ERROR_EMAIL              | The email address that start, error and stop messages should be sent TO.                                                    |
+| REPLICATOR_EMAIL_SENDER             | The email address that replicator messages should be sent FROM.                                                             |
+| REPLICATOR_EMAIL_DOMAIN             | The domain associated with the sender email address (e.g. synergex.com).                                                    |
+| REPLICATOR_ERROR_STOP               | Set to YES to cause the replicator to stop if an error is encountered.                                                      |
+| REPLICATOR_SMTP_SERVER              | The DNS name or IP address of the SMTP mail server that will be used to send messages.                                      |
+
 ## Running the demo
 
 In order to see the replication happenning use SQL Server Management Studio to connect to the SqlReplicationUniqueKey database and display the list of tables in the database - there aren't any at the moment. Run the Synergy client application by ensuring that application.vpj is the current project, and then selecting "Build > Execute" from the Workbench menu.
