@@ -705,6 +705,6 @@
         <ExecMacro CmdLine="syn_set REPLICATOR_EMAIL_DOMAIN=synergex.com"/>
         <ExecMacro CmdLine="syn_set REPLICATOR_ERROR_EMAIL=steve.ives@synergex.com"/>
         <ExecMacro CmdLine="syn_set REPLICATOR_ERROR_STOP=YES"/>
-        <ExecMacro CmdLine="syn_set REPLICATOR_SMTP_SERVER="/>
+        <ExecMacro CmdLine="syn_set REPLICATOR_SMTP_SERVER=fubar.synergex.loc"/>
     </Macro>
 </Project>

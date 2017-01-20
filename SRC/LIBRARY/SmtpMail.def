@@ -4,19 +4,33 @@
 ;
 .ifndef SMTPMAIL_DEF
     .define SMTPMAIL_DEF
-
     .define SMERR_SUCCESS       1
     .define SMERR_BADSERVER     2   ;Invalid server name or address
     .define SMERR_NORELAY       3   ;Mail server can't relay
     .define SMERR_NETPROB       4   ;Failed to connect to SMTP server
-    .define SMERR_TOLIST        5   ;No recipient address provided
-    .define SMERR_CCLIST        6
+    .define SMERR_TOLIST        5   ;No recipient list provided, or bad recipient list.
+    .define SMERR_CCLIST        6   ;Bad CC list.
     .define SMERR_BODYFILE      7   ;Failed to open body file
-    .define SMERR_SENDADDR      8
+    .define SMERR_SENDADDR      8	;Bad sender address
     .define SMERR_SERVERFAIL    9   ;Invalid response from SMTP server
-    .define SMERR_BADLIST       10
+    .define SMERR_BADLIST       10	;Bad recipient list
     .define SMERR_ATTACHFILE    11  ;Failed to open attachment file
 .endc
 
 external function
     SmtpMail,   ^val
+endexternal
+
+literal
+	SmtpErrorText,	[11]a50,	"",
+	&							"Invalid server name or address.",
+	&							"Mail server can't relay.",
+	&							"Failed to connect to SMTP server.",
+	&							"No recipient list provided, or bad recipient list.",
+	&							"Bad CC list.",
+	&							"Failed to open body file.",
+	&							"Bad sender address.",
+	&							"Invalid response from SMTP server.",
+	&							"Bad recipient list.",
+	&							"Failed to open attachment file."
+endliteral

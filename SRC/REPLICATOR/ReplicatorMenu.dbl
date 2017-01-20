@@ -273,7 +273,7 @@ eof,        close chn
                 ;;Call the _LENGTH rotuine to make sure we have code for the table
                 try
                 begin
-                    data length, int, %xsubr(%atrim(tableName) + "_LENGTH")
+;                    data length, int, %xsubr(%atrim(tableName) + "_LENGTH")
                     display(tt,$SCR_POS(2,55),$SCR_CLR(EOL),%atrim(tableName))
                     nextloop
                 end

@@ -49,6 +49,7 @@ main replicator
 
     .include "CONNECTDIR:ssql.def"
     .include "INC:structureio.def"
+	.include "INC:SmtpMail.def"
     .include "REPLICATION" repository, record="instruction", end
 
     .define D_MAX_CURSORS   128
@@ -254,9 +255,14 @@ proc
 		;;If we're sending emails then let's record the server startup
 		if (errorEmail && emailServer && emailSender && emailDomain)
 		begin
+			data emailStatus, i4
 			data body, [1]a80
 			body[1] = "The SQL replicator process was started."
-			xcall SmtpMail(emailServer,emailDomain,emailSender,"SQL Replicator",,errorEmail,,"Replicator STARTED",body)
+			if ((emailStatus=%SmtpMail(emailServer,emailDomain,emailSender,"SQL Replicator",,errorEmail,,"Replicator STARTED",body)) != SMERR_SUCCESS)
+			begin
+				data errorText, string, %TimeStamp + "ERROR: Failed to send startup email. Error was " + %atrim(SmtpErrorText[emailStatus])
+				log(errorText)
+			end
 		end
 
         ;;Main loop
@@ -1146,6 +1152,7 @@ subroutine ReplicatorShutdown
     .include "CONNECTDIR:ssql.def"
     .include "DBLDIR:namspc.def"
     .include "INC:structureio.def"
+	.include "INC:SmtpMail.def"
 
     external common
         instanceName        ,a40                ;;The name of the running instance
@@ -1190,14 +1197,21 @@ proc
 	;;If we're sending emails then let's record the shutdown
 	if (errorEmail && emailServer && emailSender && emailDomain)
 	begin
+		data emailStatus, i4
 		data body, [6]a80
+
 		body[1] = "The SQL Replicator was stopped. Session summary:"
 		body[2] = ""
 		body[3] = "INSERTS: " + %string(inserts,"ZZZ,ZZZ,ZZZ,ZZX")
 		body[4] = "UPDATES: " + %string(updates,"ZZZ,ZZZ,ZZZ,ZZX")
 		body[5] = "DELETES: " + %string(deletes,"ZZZ,ZZZ,ZZZ,ZZX")
 		body[6] = "ERRORS:  " + %string(fails,  "ZZZ,ZZZ,ZZZ,ZZX")
-		xcall SmtpMail(emailServer,emailDomain,emailSender,"SQL Replicator",,errorEmail,,"Replicator STOPPED",body)
+
+		if ((emailStatus=%SmtpMail(emailServer,emailDomain,emailSender,"SQL Replicator",,errorEmail,,"Replicator STOPPED",body)) != SMERR_SUCCESS)
+		begin
+			data errorText, string, %TimeStamp + "ERROR: Failed to send startup email. Error was " + %atrim(SmtpErrorText[emailStatus])
+			log(errorText)
+		end
 	end
 
     ;;Clean up any database cursors and data files that we have open
@@ -1281,6 +1295,7 @@ subroutine LogFunctionError
     required in errorNumber, int
     required in errorMessage, string
     endparams
+	.include "INC:SmtpMail.def"
 	external common
 		errorEmail			,a512
 		emailServer			,a80
@@ -1302,6 +1317,7 @@ proc
 	;;Email the error?
 	if (errorEmail && emailServer && emailSender && emailDomain)
 	begin
+		data emailStatus, i4
 		data body, [3]a256
 		if (stopOnError) then
 			body[1] = "The SQL Replicator encountered the following error and will STOP processing:"
@@ -1309,7 +1325,11 @@ proc
 			body[1] = "The SQL Replicator encountered the following error and will CONTINUE processing:"
 		body[2] = ""
 		body[3] = errorText
-		xcall SmtpMail(emailServer,emailDomain,emailSender,"SQL Replicator",,errorEmail,,"Replicator ERROR",body)
+		if ((emailStatus=%SmtpMail(emailServer,emailDomain,emailSender,"SQL Replicator",,errorEmail,,"Replicator ERROR",body)) != SMERR_SUCCESS)
+		begin
+			errorText = %TimeStamp+"ERROR: Failed to send error email. Error was " + %atrim(SmtpErrorText[emailStatus])
+			writes(logChannel,errorText)
+		end
 	end
 
 	;;Stop processing?
@@ -1331,6 +1351,7 @@ function LogFunctionFail, boolean
     required in errorNumber, int
     required in errorMessage, string
     endparams
+	.include "INC:SmtpMail.def"
 	external common
 		errorEmail			,a512
 		emailServer			,a80
@@ -1352,6 +1373,7 @@ proc
 	;;Email the error?
 	if (errorEmail && emailServer && emailSender && emailDomain)
 	begin
+		data emailStatus, i4
 		data body, [3]a256
 		if (stopOnError) then
 			body[1] = "The SQL Replicator encountered the following error and will STOP processing:"
@@ -1359,7 +1381,11 @@ proc
 			body[1] = "The SQL Replicator encountered the following error and will CONTINUE processing:"
 		body[2] = ""
 		body[3] = errorText
-		xcall SmtpMail(emailServer,emailDomain,emailSender,"SQL Replicator",,errorEmail,,"Replicator ERROR",body)
+		if ((emailStatus=%SmtpMail(emailServer,emailDomain,emailSender,"SQL Replicator",,errorEmail,,"Replicator ERROR",body)) != SMERR_SUCCESS)
+		begin
+			errorText = %TimeStamp+"ERROR: Failed to send error email. Error was " + %atrim(SmtpErrorText[emailStatus])
+			writes(logChannel,errorText)
+		end
 	end
 
 	;;Stop processing?
