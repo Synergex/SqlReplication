@@ -107,7 +107,7 @@ stack record avars
 
 .align
 stack record ivars
-    sd              ,i4     ;Socket descriptor
+    sd              ,D_ADDR ;Socket descriptor
     rc              ,i4     ;Reply code from server
     inaddr          ,i4     ;internet address for server - needed by connect
     err             ,i4
@@ -396,7 +396,7 @@ check_rc,
 ;
 .subroutine put_data_line
 
-    sd              ,n
+    sd              ,i
     buffer          ,a
 
 .include "INC:SmtpMail.def"
@@ -404,7 +404,7 @@ check_rc,
 
 .proc
 
-    if (buffer(1:1)==".")
+    if (buffer && buffer(1:1)==".")
         xcall ss_sendbuf(sd, ".")
 
     xcall ss_sendbuf(sd,buffer+%char(13)+%char(10))
@@ -418,7 +418,7 @@ check_rc,
 ;
 .function get_smtp_line, ^val
 
-    sd              ,n
+    sd              ,i
     line            ,a
 
 .include "INC:SmtpMail.def"
@@ -457,7 +457,7 @@ stack record avars
 ;
 .function send_rcpt_list, ^val
 
-    sd              ,n
+    sd              ,i
     list            ,a
 
 .include "INC:SmtpMail.def"

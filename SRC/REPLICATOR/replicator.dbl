@@ -75,6 +75,15 @@ main replicator
         fails               ,i4                 ;;Failed operations
     endcommon
 
+	global common
+		errorEmail			,a512
+		emailServer			,a80
+		emailSender			,a80
+		emailDomain			,a80
+		logFileSpec			,a80
+		stopOnError			,boolean
+	endcommon
+
     .align
     record
         ok                  ,boolean            ;;Main status
@@ -142,6 +151,30 @@ proc
 
     ;;Open the log
     call OpenLogFile
+
+	;;Should we send email messages when errors occur?
+	xcall getlog("REPLICATOR_ERROR_EMAIL",databuffer,length)
+	if ((length>0)&&databuffer)
+		errorEmail = databuffer
+
+	;;Email server DNS name or IP address
+	xcall getlog("REPLICATOR_SMTP_SERVER",databuffer,length)
+	if ((length>0)&&databuffer)
+		emailServer = databuffer
+
+	;;Email sender address
+	xcall getlog("REPLICATOR_EMAIL_SENDER",databuffer,length)
+	if ((length>0)&&databuffer)
+		emailSender = databuffer
+
+	;;Email senders domain
+	xcall getlog("REPLICATOR_EMAIL_DOMAIN",databuffer,length)
+	if ((length>0)&&databuffer)
+		emailDomain = databuffer
+
+	;;Should the replicator STOP if it encounters an error
+	xcall getlog("REPLICATOR_ERROR_STOP",databuffer,length)
+	stopOnError = ((length>0)&&(databuffer.eq."YES"))
 
     ;;Open the instruction file
     if (ok)
@@ -217,6 +250,14 @@ proc
         nsid = %nspc_open(,%size(structure_data))
 
         log("--- Processing instructions ----------------------")
+
+		;;If we're sending emails then let's record the server startup
+		if (errorEmail && emailServer && emailSender && emailDomain)
+		begin
+			data body, [1]a80
+			body[1] = "The SQL replicator process was started."
+			xcall SmtpMail(emailServer,emailDomain,emailSender,"SQL Replicator",,errorEmail,,"Replicator STARTED",body)
+		end
 
         ;;Main loop
         repeat
@@ -965,7 +1006,6 @@ ReadSynergyRecord,
 OpenLogFile,
 
     begin
-        data logFileSpec, string
         data logChannelMode, string
 
         ;;Are we running on a terminal?
@@ -986,7 +1026,7 @@ OpenLogFile,
         begin
             if (cycleLog)
             begin
-                log("Cycling log. New log is " + logFileSpec)
+                log("Cycling log. New log is " + %atrim(logFileSpec))
                 close logFileChannel
                 cycleLog = false
                 if (runningOnTerminal)
@@ -1004,7 +1044,7 @@ OpenLogFile,
         catch (ex)
         begin
             if (!runningOnTerminal)
-                xcall syn_reportevent(D_EVENTLOG_ERROR_TYPE,"Replicator failed to open log file " + logFileSpec + ". Error number " + %string(%ernum))
+                xcall syn_reportevent(D_EVENTLOG_ERROR_TYPE,"Replicator failed to open log file " + %atrim(logFileSpec) + ". Error number " + %string(%ernum))
             ok = false
         end
         endtry
@@ -1120,6 +1160,15 @@ subroutine ReplicatorShutdown
         fails               ,i4                 ;;Failed operations
     endcommon
 
+	external common
+		errorEmail			,a512
+		emailServer			,a80
+		emailSender			,a80
+		emailDomain			,a80
+		logFileSpec			,a80
+		stopOnError			,boolean
+	endcommon
+
     stack record
         idx                 ,i4                 ;;Loop counter
         access_code         ,i4                 ;;Namespace access code
@@ -1137,6 +1186,19 @@ proc
     log("DELETES: " + %string(deletes,"ZZZ,ZZZ,ZZZ,ZZX"))
     log("ERRORS:  " + %string(fails,  "ZZZ,ZZZ,ZZZ,ZZX"))
     log("--------------------------------------------------")
+
+	;;If we're sending emails then let's record the shutdown
+	if (errorEmail && emailServer && emailSender && emailDomain)
+	begin
+		data body, [6]a80
+		body[1] = "The SQL Replicator was stopped. Session summary:"
+		body[2] = ""
+		body[3] = "INSERTS: " + %string(inserts,"ZZZ,ZZZ,ZZZ,ZZX")
+		body[4] = "UPDATES: " + %string(updates,"ZZZ,ZZZ,ZZZ,ZZX")
+		body[5] = "DELETES: " + %string(deletes,"ZZZ,ZZZ,ZZZ,ZZX")
+		body[6] = "ERRORS:  " + %string(fails,  "ZZZ,ZZZ,ZZZ,ZZX")
+		xcall SmtpMail(emailServer,emailDomain,emailSender,"SQL Replicator",,errorEmail,,"Replicator STOPPED",body)
+	end
 
     ;;Clean up any database cursors and data files that we have open
     if (nsid)
@@ -1219,9 +1281,46 @@ subroutine LogFunctionError
     required in errorNumber, int
     required in errorMessage, string
     endparams
+	external common
+		errorEmail			,a512
+		emailServer			,a80
+		emailSender			,a80
+		emailDomain			,a80
+		logFileSpec			,a80
+		stopOnError			,boolean
+	endcommon
+	stack record
+		errorText			,string
+	endrecord
 proc
-    writes(logChannel,%TimeStamp+"ERROR: Function" + functionName + " returned error " + %string(errorNumber) + ": " + %atrim(errorMessage))
+
+	errorText = %TimeStamp+"ERROR: Function" + functionName + " returned error " + %string(errorNumber) + ": " + %atrim(errorMessage)
+
+	;;Log the error
+    writes(logChannel,errorText)
+
+	;;Email the error?
+	if (errorEmail && emailServer && emailSender && emailDomain)
+	begin
+		data body, [3]a256
+		if (stopOnError) then
+			body[1] = "The SQL Replicator encountered the following error and will STOP processing:"
+		else
+			body[1] = "The SQL Replicator encountered the following error and will CONTINUE processing:"
+		body[2] = ""
+		body[3] = errorText
+		xcall SmtpMail(emailServer,emailDomain,emailSender,"SQL Replicator",,errorEmail,,"Replicator ERROR",body)
+	end
+
+	;;Stop processing?
+	if (stopOnError)
+	begin
+		xcall ReplicatorShutdown
+		stop
+	end
+
     xreturn
+
 endsubroutine
 
 ;;*****************************************************************************
@@ -1232,9 +1331,46 @@ function LogFunctionFail, boolean
     required in errorNumber, int
     required in errorMessage, string
     endparams
+	external common
+		errorEmail			,a512
+		emailServer			,a80
+		emailSender			,a80
+		emailDomain			,a80
+		logFileSpec			,a80
+		stopOnError			,boolean
+	endcommon
+	stack record
+		errorText			,string
+	endrecord
 proc
-    writes(logChannel,%TimeStamp+"ERROR: Function " + functionName + " failed with error " + %string(errorNumber) + ": " + %atrim(errorMessage))
+
+	errorText = %TimeStamp+"ERROR: Function " + functionName + " failed with error " + %string(errorNumber) + ": " + %atrim(errorMessage)
+
+	;;Log the error
+    writes(logChannel,errorText)
+
+	;;Email the error?
+	if (errorEmail && emailServer && emailSender && emailDomain)
+	begin
+		data body, [3]a256
+		if (stopOnError) then
+			body[1] = "The SQL Replicator encountered the following error and will STOP processing:"
+		else
+			body[1] = "The SQL Replicator encountered the following error and will CONTINUE processing:"
+		body[2] = ""
+		body[3] = errorText
+		xcall SmtpMail(emailServer,emailDomain,emailSender,"SQL Replicator",,errorEmail,,"Replicator ERROR",body)
+	end
+
+	;;Stop processing?
+	if (stopOnError)
+	begin
+		xcall ReplicatorShutdown
+		stop
+	end
+
     freturn false
+
 endfunction
 
 ;;*****************************************************************************
