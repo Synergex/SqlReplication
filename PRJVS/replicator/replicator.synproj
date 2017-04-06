@@ -1,0 +1,98 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(SolutionDir)Common.props" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Configuration)' == '' ">x86</Platform>
+    <Name>replicator</Name>
+    <StartupObject>ReplicatorMenu.dbl</StartupObject>
+    <OutputName>$(StartupObject)</OutputName>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>e6523f1c-7f09-4d5b-ad35-5351d9ae4d44</ProjectGuid>
+    <ProjectTypeGuids>{7B8CF543-378A-4EC1-BB1B-98E4DC6E6820};{BBD0F5D1-1CC4-42fd-BA4C-A96779C64378}</ProjectTypeGuids>
+    <OutputType>mainline</OutputType>
+    <ResolveAssemblyWarnOrErrorOnTargetArchitectureMismatch>None</ResolveAssemblyWarnOrErrorOnTargetArchitectureMismatch>
+    <PrototypeExpDirectory>proto</PrototypeExpDirectory>
+    <DBL_SingleCompilationUnit>false</DBL_SingleCompilationUnit>
+    <DBL_qTrim>True</DBL_qTrim>
+    <DBL_qDebug>True</DBL_qDebug>
+    <DBL_qCheck>True</DBL_qCheck>
+    <DBL_qAlign>True</DBL_qAlign>
+    <EnableCommonProperties>True</EnableCommonProperties>
+    <CommonPropertiesFileLocation>$(SolutionDir)Common.props</CommonPropertiesFileLocation>
+    <RootNamespace>replicator</RootNamespace>
+    <SingleBuildTarget>
+    </SingleBuildTarget>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|x86' ">
+    <IncludeDebugInformation>true</IncludeDebugInformation>
+    <OutputPath>$(SolutionDir)EXE</OutputPath>
+    <UnevaluatedOutputPath>EXE:</UnevaluatedOutputPath>
+    <PlatformTarget>x86</PlatformTarget>
+    <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
+    <DebugOptimize>Debug</DebugOptimize>
+    <TargetRuntimeLevel>10030300</TargetRuntimeLevel>
+    <LanguageCompatibilityLevel>10030300</LanguageCompatibilityLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|x64' ">
+    <IncludeDebugInformation>true</IncludeDebugInformation>
+    <OutputPath>$(SolutionDir)EXE</OutputPath>
+    <UnevaluatedOutputPath>EXE:</UnevaluatedOutputPath>
+    <PlatformTarget>x64</PlatformTarget>
+    <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
+    <DebugOptimize>Debug</DebugOptimize>
+    <TargetRuntimeLevel>10030300</TargetRuntimeLevel>
+    <LanguageCompatibilityLevel>10030300</LanguageCompatibilityLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|x86' ">
+    <IncludeDebugInformation>true</IncludeDebugInformation>
+    <OutputPath>$(SolutionDir)EXE</OutputPath>
+    <UnevaluatedOutputPath>EXE:</UnevaluatedOutputPath>
+    <PlatformTarget>x86</PlatformTarget>
+    <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
+    <DebugOptimize>Optimize</DebugOptimize>
+    <TargetRuntimeLevel>10030300</TargetRuntimeLevel>
+    <LanguageCompatibilityLevel>10030300</LanguageCompatibilityLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|x64' ">
+    <IncludeDebugInformation>true</IncludeDebugInformation>
+    <OutputPath>$(SolutionDir)EXE</OutputPath>
+    <UnevaluatedOutputPath>EXE:</UnevaluatedOutputPath>
+    <PlatformTarget>x64</PlatformTarget>
+    <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
+    <DebugOptimize>Optimize</DebugOptimize>
+    <TargetRuntimeLevel>10030300</TargetRuntimeLevel>
+    <LanguageCompatibilityLevel>10030300</LanguageCompatibilityLevel>
+  </PropertyGroup>
+  <Import Project="$(MSBuildExtensionsPath)\Synergex\dbl\Synergex.SynergyDE.Traditional.targets" />
+  <PropertyGroup>
+    <PreBuildEvent>
+    </PreBuildEvent>
+    <PostBuildEvent>
+    </PostBuildEvent>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="..\..\SRC\REPLICATOR\EmployeeDataReport.dbl">
+      <Link>EmployeeDataReport.dbl</Link>
+    </Compile>
+    <Compile Include="..\..\SRC\REPLICATOR\InstructionCount.dbl">
+      <Link>InstructionCount.dbl</Link>
+    </Compile>
+    <Compile Include="..\..\SRC\REPLICATOR\replicator.dbl">
+      <Link>replicator.dbl</Link>
+    </Compile>
+    <Compile Include="..\..\SRC\REPLICATOR\ReplicatorMenu.dbl">
+      <Link>ReplicatorMenu.dbl</Link>
+    </Compile>
+    <Compile Include="..\..\SRC\REPLICATOR\ReplicatorStop.dbl">
+      <Link>ReplicatorStop.dbl</Link>
+    </Compile>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\library\library.synproj">
+      <Name>library</Name>
+      <Project>{3abdc463-1713-445b-87c9-7a1786931be2}</Project>
+      <Private>True</Private>
+    </ProjectReference>
+  </ItemGroup>
+</Project>
