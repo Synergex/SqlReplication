@@ -199,6 +199,7 @@
             <F N="../BAT/load_data.bat"/>
             <F N="../BAT/rps_export.bat"/>
             <F N="../BAT/rps_import.bat"/>
+            <F N="../setup.bat"/>
         </Folder>
         <Folder
             Name="Other Files"

@@ -1,5 +1,8 @@
 @echo off
 
+rem This batch file can be used to configure the environment after an initial
+rem download of the environment. It will load the repository from the schema
+rem file, and load the ISAM files ready for use.
 
 if exist "%SYNERGYDE64%dbl\dblvars64.bat" (
   call "%SYNERGYDE64%dbl\dblvars64.bat"
