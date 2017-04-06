@@ -234,6 +234,19 @@ proc
             log(" -     Connect string: " + db_connect)
             log(" -     Error message : " + dberrtxt(1,length))
             ok = false
+
+			;;If we're sending emails then let's record the connect failure
+			if (errorEmail && emailServer && emailSender && emailDomain)
+			begin
+				data emailStatus, i4
+				data body, [1]a512
+				body[1] = "The SQL replicator process failed to connect to the database. The error was " + dberrtxt(1,length)
+				if ((emailStatus=%SmtpMail(emailServer,emailDomain,emailSender,"SQL Replicator",,errorEmail,,"Replicator FAILED TO CONNECT TO DATABASE",body)) != SMERR_SUCCESS)
+				begin
+					data errorText, string, %TimeStamp + "ERROR: Failed to send startup email. Error was " + %atrim(SmtpErrorText[emailStatus])
+					log(errorText)
+				end
+			end
         end
     end
 
