@@ -41,10 +41,12 @@ set REPLICATOR_ERROR_EMAIL=steve.ives@synergex.com
 set REPLICATOR_ERROR_STOP=YES
 set REPLICATOR_SMTP_SERVER=
 
+rem If no repository load it from the schema
 if not exist "%RPSMFIL%" (
   call "%BAT%\rps_import.bat"
 )
 
+rem if no data files, create and load them
 if not exist "%DAT%\employee.ism" (
   call "%BAT%\load_data.bat"
 )

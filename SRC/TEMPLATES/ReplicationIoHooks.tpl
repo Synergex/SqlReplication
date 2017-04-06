@@ -137,70 +137,8 @@ namespace <NAMESPACE>
         endmethod
 
         ;;---------------------------------------------------------------------
-        ;;CLOSE hooks
-
-        public override method close_pre_operation_hook, void
-            required in aFlags, IOFlags
-            endparams
-        proc
-            if (mActive)
-                LastRecordCache.Clear(mChannel)
-        endmethod
-
-        ;;---------------------------------------------------------------------
-        ;;DELETE hooks
-
-;//     public override method delete_pre_operation_hook, void
-;//         endparams
-;//     proc
-;//
-;//     endmethod
-;//
-        public override method delete_post_operation_hook, void
-            required inout aError, int
-            endparams
-        proc
-            ;;A record was just deleted. Replicate the change.
-            if (mActive && !aError)
-                xcall replicate(REPLICATION_INSTRUCTION.DELETE_ROW,getTableName(LastRecordCache.Retrieve(mChannel)),%keyval(mChannel,LastRecordCache.Retrieve(mChannel),mKeyNum))
-        endmethod
-
-;//     ;;---------------------------------------------------------------------
-;//     ;;FIND hooks
-;//
-;//     public override method find_pre_operation_hook, void
-;//         optional in mismatch aKey,    n
-;//         optional in          aRfa,    a
-;//         optional in          aKeynum, n
-;//         required in          aFlags,  IOFlags
-;//     proc
-;//
-;//     endmethod
-;//
-;//     public override method find_post_operation_hook, void
-;//         optional in mismatch aKey,    n
-;//         optional in          aRfa,    a
-;//         optional in          aKeynum, n
-;//         required in          aFlags,  IOFlags
-;//         required inout       aError,  int
-;//         endparams
-;//     proc
-;//
-;//     endmethod
-;//
-        ;;---------------------------------------------------------------------
         ;;READ hooks
 
-;//     public override method read_pre_operation_hook, void
-;//         optional in mismatch aKey,    n
-;//         optional in          aRfa,    a
-;//         optional in          aKeynum, n
-;//         required in          aFlags,  IOFlags
-;//         endparams
-;//     proc
-;//
-;//     endmethod
-;//
         public override method read_post_operation_hook, void
             required inout       aRecord, a
             optional in mismatch aKey,    n
@@ -217,16 +155,6 @@ namespace <NAMESPACE>
             end
         endmethod
 
-        ;;---------------------------------------------------------------------
-        ;;READS hooks
-
-;//     public virtual method reads_pre_operation_hook, void
-;//         required in          aFlags,  IOFlags
-;//         endparams
-;//     proc
-;//
-;//     endmethod
-;//
         public override method reads_post_operation_hook ,void
             required inout aRecord, a
             optional in    aRfa,    a
@@ -239,6 +167,23 @@ namespace <NAMESPACE>
                 ;;Record the record that was just read (to support delete)
                 LastRecordCache.Update(mChannel,aRecord)
             end
+        endmethod
+
+        ;;---------------------------------------------------------------------
+        ;;WRITE hooks
+
+        public override method write_post_operation_hook, void
+            required inout       aRecord, a
+            optional in          aRecnum, n
+            optional in          aRfa,    a
+            required in          aFlags,  IOFlags
+            required inout       aError,  int
+            endparams
+        proc
+            ;;A record was just updated. If it changed then replicate the change.
+            if (mActive && !aError)
+                if (LastRecordCache.HasChanged(mChannel,aRecord))
+                    xcall replicate(REPLICATION_INSTRUCTION.UPDATE_ROW,getTableName(aRecord),%keyval(mChannel,aRecord,mKeyNum))
         endmethod
 
         ;;---------------------------------------------------------------------
@@ -269,73 +214,29 @@ namespace <NAMESPACE>
                 xcall replicate(REPLICATION_INSTRUCTION.CREATE_ROW,getTableName(aRecord),%keyval(mChannel,aRecord,mKeyNum))
         endmethod
 
-;//     ;;---------------------------------------------------------------------
-;//     ;;UNLOCK hooks
-;//
-;//     public virtual method unlock_pre_operation_hook, void
-;//         optional in          aRfa,    a
-;//         required in          aFlags,  IOFlags
-;//         endparams
-;//     proc
-;//
-;//     endmethod
-;//
-;//     public override method unlock_post_operation_hook, void
-;//         required in          aFlags,  IOFlags
-;//         required inout       aError,  int
-;//         endparams
-;//     proc
-;//
-;//     endmethod
-;//
         ;;---------------------------------------------------------------------
-        ;;WRITE hooks
+        ;;DELETE hooks
 
-;//     public override method write_pre_operation_hook, void
-;//         required inout       aBuffer, a
-;//         optional in          aRecnum, n
-;//         optional in          aRfa,    a
-;//         required in          aFlags,  IOFlags
-;//         endparams
-;//     proc
-;//
-;//     endmethod
-;//
-        public override method write_post_operation_hook, void
-            required inout       aRecord, a
-            optional in          aRecnum, n
-            optional in          aRfa,    a
-            required in          aFlags,  IOFlags
-            required inout       aError,  int
+        public override method delete_post_operation_hook, void
+            required inout aError, int
             endparams
         proc
-            ;;A record was just updated. If it changed then replicate the change.
+            ;;A record was just deleted. Replicate the change.
             if (mActive && !aError)
-                if (LastRecordCache.HasChanged(mChannel,aRecord))
-                    xcall replicate(REPLICATION_INSTRUCTION.UPDATE_ROW,getTableName(aRecord),%keyval(mChannel,aRecord,mKeyNum))
+                xcall replicate(REPLICATION_INSTRUCTION.DELETE_ROW,getTableName(LastRecordCache.Retrieve(mChannel)),%keyval(mChannel,LastRecordCache.Retrieve(mChannel),mKeyNum))
         endmethod
 
-;//     ;;---------------------------------------------------------------------
-;//     ;;WRITES hooks
-;//
-;//     public override method writes_pre_operation_hook, void
-;//         required inout       aBuffer, a
-;//         required in          aFlags,  IOFlags
-;//         endparams
-;//     proc
-;//
-;//     endmethod
-;//
-;//     public override method writes_post_operation_hook, void
-;//         required inout       aBuffer, a
-;//         optional in          aRfa,    a
-;//         required in          aFlags,  IOFlags
-;//         required inout       aError,  int
-;//         endparams
-;//     proc
-;//
-;//     endmethod
-;//
+        ;;---------------------------------------------------------------------
+        ;;CLOSE hooks
+
+        public override method close_pre_operation_hook, void
+            required in aFlags, IOFlags
+            endparams
+        proc
+            if (mActive)
+                LastRecordCache.Clear(mChannel)
+        endmethod
+
         ;;-------------------------------------------------------------------------------------
         ;;Custom code for multi-record layout files
 

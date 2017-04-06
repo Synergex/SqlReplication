@@ -127,12 +127,15 @@ proc
     ;;log to a log file.
     runningOnTerminal = (%tnmbr>=0)
 
-    ;;Get the name of the instance
-    xcall getlog("REPLICATOR_INSTANCE",databuffer,length)
-    if (length) then
-        instanceName = databuffer(1:length)
-    else
-        instanceName = %string(%jbno)
+    if (!runningOnTerminal)
+    begin
+        ;;Get the name of the instance
+        xcall getlog("REPLICATOR_INSTANCE",databuffer,length)
+        if (length) then
+            instanceName = databuffer(1:length)
+        else
+            instanceName = %string(%jbno)
+    end
 
     ;;Set the sleep time between processing runs
     xcall getlog("REPLICATOR_INTERVAL",databuffer,length)
@@ -197,10 +200,7 @@ proc
     begin
         xcall getlog("REPLICATOR_DATABASE",databuffer,length)
         if (length) then
-        begin
             db_connect = databuffer(1:length)
-            log("Connect string: " + db_connect)
-        end
         else
         begin
             ;;No connect string, we're dead!
@@ -231,16 +231,20 @@ proc
         begin
             xcall ssc_getemsg(db,dberrtxt,length)
             log("ERROR: Failed to connect to database")
-            log(" -     Connect string: " + db_connect)
-            log(" -     Error message : " + dberrtxt(1,length))
+            log(" - Connect string:")
+            log("   " + db_connect)
+            log(" - Error message :")
+            log("   " + dberrtxt(1,length))
             ok = false
 
             ;;If we're sending emails then let's record the connect failure
             if (errorEmail && emailServer && emailSender && emailDomain)
             begin
                 data emailStatus, i4
-                data body, [1]a512
-                body[1] = "The SQL replicator process failed to connect to the database. The error was " + dberrtxt(1,length)
+                data body, [3]a512
+                body[1] = "The SQL replicator process failed to connect to the database."
+                body[2] = "Connect string: " + db_connect
+                body[3] = "Error message:  " + dberrtxt(1,length)
                 if ((emailStatus=%SmtpMail(emailServer,emailDomain,emailSender,"SQL Replicator",,errorEmail,,"Replicator FAILED TO CONNECT TO DATABASE",body)) != SMERR_SUCCESS)
                 begin
                     data errorText, string, %TimeStamp + "ERROR: Failed to send startup email. Error was " + %atrim(SmtpErrorText[emailStatus])
