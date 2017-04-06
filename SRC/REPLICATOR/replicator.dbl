@@ -49,7 +49,7 @@ main replicator
 
     .include "CONNECTDIR:ssql.def"
     .include "INC:structureio.def"
-	.include "INC:SmtpMail.def"
+    .include "INC:SmtpMail.def"
     .include "REPLICATION" repository, record="instruction", end
 
     .define D_MAX_CURSORS   128
@@ -76,14 +76,14 @@ main replicator
         fails               ,i4                 ;;Failed operations
     endcommon
 
-	global common
-		errorEmail			,a512
-		emailServer			,a80
-		emailSender			,a80
-		emailDomain			,a80
-		logFileSpec			,a80
-		stopOnError			,boolean
-	endcommon
+    global common
+        errorEmail          ,a512
+        emailServer         ,a80
+        emailSender         ,a80
+        emailDomain         ,a80
+        logFileSpec         ,a80
+        stopOnError         ,boolean
+    endcommon
 
     .align
     record
@@ -153,29 +153,29 @@ proc
     ;;Open the log
     call OpenLogFile
 
-	;;Should we send email messages when errors occur?
-	xcall getlog("REPLICATOR_ERROR_EMAIL",databuffer,length)
-	if ((length>0)&&databuffer)
-		errorEmail = databuffer
+    ;;Should we send email messages when errors occur?
+    xcall getlog("REPLICATOR_ERROR_EMAIL",databuffer,length)
+    if ((length>0)&&databuffer)
+        errorEmail = databuffer
 
-	;;Email server DNS name or IP address
-	xcall getlog("REPLICATOR_SMTP_SERVER",databuffer,length)
-	if ((length>0)&&databuffer)
-		emailServer = databuffer
+    ;;Email server DNS name or IP address
+    xcall getlog("REPLICATOR_SMTP_SERVER",databuffer,length)
+    if ((length>0)&&databuffer)
+        emailServer = databuffer
 
-	;;Email sender address
-	xcall getlog("REPLICATOR_EMAIL_SENDER",databuffer,length)
-	if ((length>0)&&databuffer)
-		emailSender = databuffer
+    ;;Email sender address
+    xcall getlog("REPLICATOR_EMAIL_SENDER",databuffer,length)
+    if ((length>0)&&databuffer)
+        emailSender = databuffer
 
-	;;Email senders domain
-	xcall getlog("REPLICATOR_EMAIL_DOMAIN",databuffer,length)
-	if ((length>0)&&databuffer)
-		emailDomain = databuffer
+    ;;Email senders domain
+    xcall getlog("REPLICATOR_EMAIL_DOMAIN",databuffer,length)
+    if ((length>0)&&databuffer)
+        emailDomain = databuffer
 
-	;;Should the replicator STOP if it encounters an error
-	xcall getlog("REPLICATOR_ERROR_STOP",databuffer,length)
-	stopOnError = ((length>0)&&(databuffer.eq."YES"))
+    ;;Should the replicator STOP if it encounters an error
+    xcall getlog("REPLICATOR_ERROR_STOP",databuffer,length)
+    stopOnError = ((length>0)&&(databuffer.eq."YES"))
 
     ;;Open the instruction file
     if (ok)
@@ -235,24 +235,32 @@ proc
             log(" -     Error message : " + dberrtxt(1,length))
             ok = false
 
-			;;If we're sending emails then let's record the connect failure
-			if (errorEmail && emailServer && emailSender && emailDomain)
-			begin
-				data emailStatus, i4
-				data body, [1]a512
-				body[1] = "The SQL replicator process failed to connect to the database. The error was " + dberrtxt(1,length)
-				if ((emailStatus=%SmtpMail(emailServer,emailDomain,emailSender,"SQL Replicator",,errorEmail,,"Replicator FAILED TO CONNECT TO DATABASE",body)) != SMERR_SUCCESS)
-				begin
-					data errorText, string, %TimeStamp + "ERROR: Failed to send startup email. Error was " + %atrim(SmtpErrorText[emailStatus])
-					log(errorText)
-				end
-			end
+            ;;If we're sending emails then let's record the connect failure
+            if (errorEmail && emailServer && emailSender && emailDomain)
+            begin
+                data emailStatus, i4
+                data body, [1]a512
+                body[1] = "The SQL replicator process failed to connect to the database. The error was " + dberrtxt(1,length)
+                if ((emailStatus=%SmtpMail(emailServer,emailDomain,emailSender,"SQL Replicator",,errorEmail,,"Replicator FAILED TO CONNECT TO DATABASE",body)) != SMERR_SUCCESS)
+                begin
+                    data errorText, string, %TimeStamp + "ERROR: Failed to send startup email. Error was " + %atrim(SmtpErrorText[emailStatus])
+                    log(errorText)
+                end
+            end
         end
     end
 
     ;;Register a shutdown handler
     if (ok && !runningOnTerminal)
         xcall syn_atexit(%xaddr("ReplicatorShutdown"))
+
+    ;;Let the developer see the error message!
+    if (!ok && runningOnTerminal)
+    begin
+        data tmpchr, a1
+        display(logFileChannel,13,10,"Replicator will stop - press a key: ")
+        accept(logFileChannel,tmpchr)
+    end
 
     ;;Main processing
     if (ok)
@@ -265,18 +273,18 @@ proc
 
         log("--- Processing instructions ----------------------")
 
-		;;If we're sending emails then let's record the server startup
-		if (errorEmail && emailServer && emailSender && emailDomain)
-		begin
-			data emailStatus, i4
-			data body, [1]a80
-			body[1] = "The SQL replicator process was started."
-			if ((emailStatus=%SmtpMail(emailServer,emailDomain,emailSender,"SQL Replicator",,errorEmail,,"Replicator STARTED",body)) != SMERR_SUCCESS)
-			begin
-				data errorText, string, %TimeStamp + "ERROR: Failed to send startup email. Error was " + %atrim(SmtpErrorText[emailStatus])
-				log(errorText)
-			end
-		end
+        ;;If we're sending emails then let's record the server startup
+        if (errorEmail && emailServer && emailSender && emailDomain)
+        begin
+            data emailStatus, i4
+            data body, [1]a80
+            body[1] = "The SQL replicator process was started."
+            if ((emailStatus=%SmtpMail(emailServer,emailDomain,emailSender,"SQL Replicator",,errorEmail,,"Replicator STARTED",body)) != SMERR_SUCCESS)
+            begin
+                data errorText, string, %TimeStamp + "ERROR: Failed to send startup email. Error was " + %atrim(SmtpErrorText[emailStatus])
+                log(errorText)
+            end
+        end
 
         ;;Main loop
         repeat
@@ -1165,7 +1173,7 @@ subroutine ReplicatorShutdown
     .include "CONNECTDIR:ssql.def"
     .include "DBLDIR:namspc.def"
     .include "INC:structureio.def"
-	.include "INC:SmtpMail.def"
+    .include "INC:SmtpMail.def"
 
     external common
         instanceName        ,a40                ;;The name of the running instance
@@ -1180,14 +1188,14 @@ subroutine ReplicatorShutdown
         fails               ,i4                 ;;Failed operations
     endcommon
 
-	external common
-		errorEmail			,a512
-		emailServer			,a80
-		emailSender			,a80
-		emailDomain			,a80
-		logFileSpec			,a80
-		stopOnError			,boolean
-	endcommon
+    external common
+        errorEmail          ,a512
+        emailServer         ,a80
+        emailSender         ,a80
+        emailDomain         ,a80
+        logFileSpec         ,a80
+        stopOnError         ,boolean
+    endcommon
 
     stack record
         idx                 ,i4                 ;;Loop counter
@@ -1207,25 +1215,25 @@ proc
     log("ERRORS:  " + %string(fails,  "ZZZ,ZZZ,ZZZ,ZZX"))
     log("--------------------------------------------------")
 
-	;;If we're sending emails then let's record the shutdown
-	if (errorEmail && emailServer && emailSender && emailDomain)
-	begin
-		data emailStatus, i4
-		data body, [6]a80
+    ;;If we're sending emails then let's record the shutdown
+    if (errorEmail && emailServer && emailSender && emailDomain)
+    begin
+        data emailStatus, i4
+        data body, [6]a80
 
-		body[1] = "The SQL Replicator was stopped. Session summary:"
-		body[2] = ""
-		body[3] = "INSERTS: " + %string(inserts,"ZZZ,ZZZ,ZZZ,ZZX")
-		body[4] = "UPDATES: " + %string(updates,"ZZZ,ZZZ,ZZZ,ZZX")
-		body[5] = "DELETES: " + %string(deletes,"ZZZ,ZZZ,ZZZ,ZZX")
-		body[6] = "ERRORS:  " + %string(fails,  "ZZZ,ZZZ,ZZZ,ZZX")
+        body[1] = "The SQL Replicator was stopped. Session summary:"
+        body[2] = ""
+        body[3] = "INSERTS: " + %string(inserts,"ZZZ,ZZZ,ZZZ,ZZX")
+        body[4] = "UPDATES: " + %string(updates,"ZZZ,ZZZ,ZZZ,ZZX")
+        body[5] = "DELETES: " + %string(deletes,"ZZZ,ZZZ,ZZZ,ZZX")
+        body[6] = "ERRORS:  " + %string(fails,  "ZZZ,ZZZ,ZZZ,ZZX")
 
-		if ((emailStatus=%SmtpMail(emailServer,emailDomain,emailSender,"SQL Replicator",,errorEmail,,"Replicator STOPPED",body)) != SMERR_SUCCESS)
-		begin
-			data errorText, string, %TimeStamp + "ERROR: Failed to send startup email. Error was " + %atrim(SmtpErrorText[emailStatus])
-			log(errorText)
-		end
-	end
+        if ((emailStatus=%SmtpMail(emailServer,emailDomain,emailSender,"SQL Replicator",,errorEmail,,"Replicator STOPPED",body)) != SMERR_SUCCESS)
+        begin
+            data errorText, string, %TimeStamp + "ERROR: Failed to send startup email. Error was " + %atrim(SmtpErrorText[emailStatus])
+            log(errorText)
+        end
+    end
 
     ;;Clean up any database cursors and data files that we have open
     if (nsid)
@@ -1308,49 +1316,49 @@ subroutine LogFunctionError
     required in errorNumber, int
     required in errorMessage, string
     endparams
-	.include "INC:SmtpMail.def"
-	external common
-		errorEmail			,a512
-		emailServer			,a80
-		emailSender			,a80
-		emailDomain			,a80
-		logFileSpec			,a80
-		stopOnError			,boolean
-	endcommon
-	stack record
-		errorText			,string
-	endrecord
+    .include "INC:SmtpMail.def"
+    external common
+        errorEmail          ,a512
+        emailServer         ,a80
+        emailSender         ,a80
+        emailDomain         ,a80
+        logFileSpec         ,a80
+        stopOnError         ,boolean
+    endcommon
+    stack record
+        errorText           ,string
+    endrecord
 proc
 
-	errorText = %TimeStamp+"ERROR: Function" + functionName + " returned error " + %string(errorNumber) + ": " + %atrim(errorMessage)
+    errorText = %TimeStamp+"ERROR: Function" + functionName + " returned error " + %string(errorNumber) + ": " + %atrim(errorMessage)
 
-	;;Log the error
+    ;;Log the error
     writes(logChannel,errorText)
 
-	;;Email the error?
-	if (errorEmail && emailServer && emailSender && emailDomain)
-	begin
-		data emailStatus, i4
-		data body, [3]a256
-		if (stopOnError) then
-			body[1] = "The SQL Replicator encountered the following error and will STOP processing:"
-		else
-			body[1] = "The SQL Replicator encountered the following error and will CONTINUE processing:"
-		body[2] = ""
-		body[3] = errorText
-		if ((emailStatus=%SmtpMail(emailServer,emailDomain,emailSender,"SQL Replicator",,errorEmail,,"Replicator ERROR",body)) != SMERR_SUCCESS)
-		begin
-			errorText = %TimeStamp+"ERROR: Failed to send error email. Error was " + %atrim(SmtpErrorText[emailStatus])
-			writes(logChannel,errorText)
-		end
-	end
+    ;;Email the error?
+    if (errorEmail && emailServer && emailSender && emailDomain)
+    begin
+        data emailStatus, i4
+        data body, [3]a256
+        if (stopOnError) then
+            body[1] = "The SQL Replicator encountered the following error and will STOP processing:"
+        else
+            body[1] = "The SQL Replicator encountered the following error and will CONTINUE processing:"
+        body[2] = ""
+        body[3] = errorText
+        if ((emailStatus=%SmtpMail(emailServer,emailDomain,emailSender,"SQL Replicator",,errorEmail,,"Replicator ERROR",body)) != SMERR_SUCCESS)
+        begin
+            errorText = %TimeStamp+"ERROR: Failed to send error email. Error was " + %atrim(SmtpErrorText[emailStatus])
+            writes(logChannel,errorText)
+        end
+    end
 
-	;;Stop processing?
-	if (stopOnError)
-	begin
-		xcall ReplicatorShutdown
-		stop
-	end
+    ;;Stop processing?
+    if (stopOnError)
+    begin
+        xcall ReplicatorShutdown
+        stop
+    end
 
     xreturn
 
@@ -1364,49 +1372,49 @@ function LogFunctionFail, boolean
     required in errorNumber, int
     required in errorMessage, string
     endparams
-	.include "INC:SmtpMail.def"
-	external common
-		errorEmail			,a512
-		emailServer			,a80
-		emailSender			,a80
-		emailDomain			,a80
-		logFileSpec			,a80
-		stopOnError			,boolean
-	endcommon
-	stack record
-		errorText			,string
-	endrecord
+    .include "INC:SmtpMail.def"
+    external common
+        errorEmail          ,a512
+        emailServer         ,a80
+        emailSender         ,a80
+        emailDomain         ,a80
+        logFileSpec         ,a80
+        stopOnError         ,boolean
+    endcommon
+    stack record
+        errorText           ,string
+    endrecord
 proc
 
-	errorText = %TimeStamp+"ERROR: Function " + functionName + " failed with error " + %string(errorNumber) + ": " + %atrim(errorMessage)
+    errorText = %TimeStamp+"ERROR: Function " + functionName + " failed with error " + %string(errorNumber) + ": " + %atrim(errorMessage)
 
-	;;Log the error
+    ;;Log the error
     writes(logChannel,errorText)
 
-	;;Email the error?
-	if (errorEmail && emailServer && emailSender && emailDomain)
-	begin
-		data emailStatus, i4
-		data body, [3]a256
-		if (stopOnError) then
-			body[1] = "The SQL Replicator encountered the following error and will STOP processing:"
-		else
-			body[1] = "The SQL Replicator encountered the following error and will CONTINUE processing:"
-		body[2] = ""
-		body[3] = errorText
-		if ((emailStatus=%SmtpMail(emailServer,emailDomain,emailSender,"SQL Replicator",,errorEmail,,"Replicator ERROR",body)) != SMERR_SUCCESS)
-		begin
-			errorText = %TimeStamp+"ERROR: Failed to send error email. Error was " + %atrim(SmtpErrorText[emailStatus])
-			writes(logChannel,errorText)
-		end
-	end
+    ;;Email the error?
+    if (errorEmail && emailServer && emailSender && emailDomain)
+    begin
+        data emailStatus, i4
+        data body, [3]a256
+        if (stopOnError) then
+            body[1] = "The SQL Replicator encountered the following error and will STOP processing:"
+        else
+            body[1] = "The SQL Replicator encountered the following error and will CONTINUE processing:"
+        body[2] = ""
+        body[3] = errorText
+        if ((emailStatus=%SmtpMail(emailServer,emailDomain,emailSender,"SQL Replicator",,errorEmail,,"Replicator ERROR",body)) != SMERR_SUCCESS)
+        begin
+            errorText = %TimeStamp+"ERROR: Failed to send error email. Error was " + %atrim(SmtpErrorText[emailStatus])
+            writes(logChannel,errorText)
+        end
+    end
 
-	;;Stop processing?
-	if (stopOnError)
-	begin
-		xcall ReplicatorShutdown
-		stop
-	end
+    ;;Stop processing?
+    if (stopOnError)
+    begin
+        xcall ReplicatorShutdown
+        stop
+    end
 
     freturn false
 
