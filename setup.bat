@@ -28,7 +28,7 @@ set RPSMFIL=%ROOT%RPS\rpsmain.ism
 set RPSTFIL=%ROOT%RPS\rpstext.ism
 set SYNEXPDIR=%ROOT%PROTO
 set SYNIMPDIR=%ROOT%PROTO
-set REPLICATOR_DATABASE=VTX12_SQLNATIVE://SqlReplicationUniqueKey/.///Trusted_connection=yes
+set REPLICATOR_DATABASE=VTX12_SQLNATIVE://SqlReplicationIoHooks/.///Trusted_connection=yes
 set REPLICATOR_LOGDIR=%ROOT%
 set REPLICATOR_INTERVAL=2
 set REPLICATOR_FULL_LOG=YES

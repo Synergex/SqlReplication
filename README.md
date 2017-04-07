@@ -66,7 +66,7 @@ If you wish to actually configure and execute this demo you will need:
 
 ## Preparing the Database
 
-The code in this example is configured for use with a local default instance of a recent version of Microsoft SQL Server (Express edition is OK) that is configured to accept Windows authentication. The only database preparation that is necessary is to create an empty database named "SqlReplicationUniqueKey".
+The code in this example is configured for use with a local default instance of a recent version of Microsoft SQL Server (Express edition is OK) that is configured to accept Windows authentication. The only database preparation that is necessary is to create an empty database named "SqlReplicationIoHooks".
 
 If your SQL Server database is not local, or does not accept Windows authentication, you will need to change the value of the REPLICATOR_DATABASE environment variable that is defined in the project properties of the application.vpj project. Refer to the section on configuring connect strings in the Synergy/DE SQL Connection API manual for more details.
 
@@ -91,7 +91,7 @@ The replicator process is configured by setting environment variables, as follow
 
 ## Running the demo
 
-In order to see the replication happenning use SQL Server Management Studio to connect to the SqlReplicationUniqueKey database and display the list of tables in the database - there aren't any at the moment. Run the Synergy client application by ensuring that application.vpj is the current project, and then selecting "Build > Execute" from the Workbench menu.
+In order to see the replication happenning use SQL Server Management Studio to connect to the SqlReplicationIoHooks database and display the list of tables in the database - there aren't any at the moment. Run the Synergy client application by ensuring that application.vpj is the current project, and then selecting "Build > Execute" from the Workbench menu.
 
 Start the replicator process by selecting select "Replicator -> Start Replicator" from the application menu. You should see some messages, including:
 

@@ -684,7 +684,7 @@
         <ExecMacro CmdLine="syn_set RPSTFIL=%(ROOT)RPS\rpstext.ism"/>
         <ExecMacro CmdLine="syn_set SYNEXPDIR=%(ROOT)PROTO"/>
         <ExecMacro CmdLine="syn_set SYNIMPDIR=%(ROOT)PROTO"/>
-        <ExecMacro CmdLine="syn_set REPLICATOR_DATABASE=VTX12_SQLNATIVE://SqlReplicationUniqueKey/.///Trusted_connection=yes"/>
+        <ExecMacro CmdLine="syn_set REPLICATOR_DATABASE=VTX12_SQLNATIVE://SqlReplicationIoHooks/.///Trusted_connection=yes"/>
         <ExecMacro CmdLine="syn_set REPLICATOR_LOGDIR=%(ROOT)"/>
         <ExecMacro CmdLine="syn_set REPLICATOR_INTERVAL=2"/>
         <ExecMacro CmdLine="syn_set REPLICATOR_FULL_LOG=YES"/>
