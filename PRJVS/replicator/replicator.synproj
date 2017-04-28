@@ -96,5 +96,10 @@
       <Project>{3abdc463-1713-445b-87c9-7a1786931be2}</Project>
       <Private>True</Private>
     </ProjectReference>
+    <ProjectReference Include="..\repository\repository.synproj">
+      <Name>repository</Name>
+      <Project>{16ff74c0-7fea-4d0e-92a8-74300d18cd66}</Project>
+      <Private>True</Private>
+    </ProjectReference>
   </ItemGroup>
 </Project>

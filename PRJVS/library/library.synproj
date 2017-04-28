@@ -132,4 +132,11 @@
       <Link>system.def</Link>
     </Content>
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\repository\repository.synproj">
+      <Name>repository</Name>
+      <Project>{16ff74c0-7fea-4d0e-92a8-74300d18cd66}</Project>
+      <Private>True</Private>
+    </ProjectReference>
+  </ItemGroup>
 </Project>
