@@ -45,7 +45,7 @@
     <LanguageCompatibilityLevel>10030300</LanguageCompatibilityLevel>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|x86' ">
-    <IncludeDebugInformation>true</IncludeDebugInformation>
+    <IncludeDebugInformation>False</IncludeDebugInformation>
     <OutputPath>$(SolutionDir)EXE</OutputPath>
     <UnevaluatedOutputPath>EXE:</UnevaluatedOutputPath>
     <PlatformTarget>x86</PlatformTarget>
@@ -56,7 +56,7 @@
     <LanguageCompatibilityLevel>10030300</LanguageCompatibilityLevel>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|x64' ">
-    <IncludeDebugInformation>true</IncludeDebugInformation>
+    <IncludeDebugInformation>False</IncludeDebugInformation>
     <OutputPath>$(SolutionDir)EXE</OutputPath>
     <UnevaluatedOutputPath>EXE:</UnevaluatedOutputPath>
     <PlatformTarget>x64</PlatformTarget>
