@@ -11,6 +11,31 @@ Project("{BBD0F5D1-1CC4-42FD-BA4C-A96779C64378}") = "application", "PRJVS\applic
 EndProject
 Project("{BBD0F5D1-1CC4-42FD-BA4C-A96779C64378}") = "repository", "PRJVS\repository\repository.synproj", "{16FF74C0-7FEA-4D0E-92A8-74300D18CD66}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Templates", "Templates", "{B28D0BFD-E6F5-4A1E-95B2-B8BBA9036688}"
+	ProjectSection(SolutionItems) = preProject
+		SRC\TEMPLATES\ConfigureReplication.tpl = SRC\TEMPLATES\ConfigureReplication.tpl
+		SRC\TEMPLATES\FileDataReport.tpl = SRC\TEMPLATES\FileDataReport.tpl
+		SRC\TEMPLATES\IsDate.tpl = SRC\TEMPLATES\IsDate.tpl
+		SRC\TEMPLATES\IsNumeric.tpl = SRC\TEMPLATES\IsNumeric.tpl
+		SRC\TEMPLATES\IsTime.tpl = SRC\TEMPLATES\IsTime.tpl
+		SRC\TEMPLATES\LastRecordCache.tpl = SRC\TEMPLATES\LastRecordCache.tpl
+		SRC\TEMPLATES\PopulateReplicationKey.tpl = SRC\TEMPLATES\PopulateReplicationKey.tpl
+		SRC\TEMPLATES\replicate.tpl = SRC\TEMPLATES\replicate.tpl
+		SRC\TEMPLATES\ReplicationIoHooks.tpl = SRC\TEMPLATES\ReplicationIoHooks.tpl
+		SRC\TEMPLATES\SqlIO.tpl = SRC\TEMPLATES\SqlIO.tpl
+		SRC\TEMPLATES\structureio.def = SRC\TEMPLATES\structureio.def
+		SRC\TEMPLATES\SynIO.tpl = SRC\TEMPLATES\SynIO.tpl
+		SRC\TEMPLATES\tk_change.tpl = SRC\TEMPLATES\tk_change.tpl
+		SRC\TEMPLATES\tk_drill.tpl = SRC\TEMPLATES\tk_drill.tpl
+		SRC\TEMPLATES\tk_lookup.tpl = SRC\TEMPLATES\tk_lookup.tpl
+		SRC\TEMPLATES\tk_maint_tab.tpl = SRC\TEMPLATES\tk_maint_tab.tpl
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{CD5A07D5-E55A-43A3-BAF3-E89A6E0E29C3}"
+	ProjectSection(SolutionItems) = preProject
+		regen.bat = regen.bat
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
