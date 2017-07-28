@@ -104,10 +104,11 @@ main replicator
         rows                ,i4                 ;;Number of rows affected
         functionName        ,string             ;;External function to call
         primaryKey          ,string             ;;Primary key of current record
+        keyValue            ,string             ;;Key value of the current record
         db_connect          ,string             ;;Database connect string
         dberrtxt            ,a1024
         structure_data      ,strStructureData
-        databuffer          ,a65535             ;;Data buffer used to read ISAM files
+        env_value          ,a1024               ;;Data buffer used to read environment variables
     endrecord
 
     external function
@@ -130,55 +131,55 @@ proc
     if (!runningOnTerminal)
     begin
         ;;Get the name of the instance
-        xcall getlog("REPLICATOR_INSTANCE",databuffer,length)
+        xcall getlog("REPLICATOR_INSTANCE",env_value,length)
         if (length) then
-            instanceName = databuffer(1:length)
+            instanceName = env_value(1:length)
         else
             instanceName = %string(%jbno)
     end
 
     ;;Set the sleep time between processing runs
-    xcall getlog("REPLICATOR_INTERVAL",databuffer,length)
-    sleep_time = length ? %integer(databuffer(1:length)) : D_SLEEP_TIME
+    xcall getlog("REPLICATOR_INTERVAL",env_value,length)
+    sleep_time = length ? %integer(env_value(1:length)) : D_SLEEP_TIME
 
     ;;Set the logging level
-    xcall getlog("REPLICATOR_FULL_LOG",databuffer,length)
-    fullLogging = ((length>0)&&(databuffer.eq."YES"))
+    xcall getlog("REPLICATOR_FULL_LOG",env_value,length)
+    fullLogging = ((length>0)&&(env_value.eq."YES"))
 
     ;;Should we log keys?
-    xcall getlog("REPLICATOR_LOG_KEYS",databuffer,length)
-    logKeys = ((length>0)&&(databuffer.eq."YES"))
+    xcall getlog("REPLICATOR_LOG_KEYS",env_value,length)
+    logKeys = ((length>0)&&(env_value.eq."YES"))
 
     ;;Should we log data exceptions to a log file when doing a bulk load?
-    xcall getlog("REPLICATOR_LOG_BULK_LOAD_EXCEPTIONS",databuffer,length)
-    logLoadExceptions = ((length>0)&&(databuffer.eq."YES"))
+    xcall getlog("REPLICATOR_LOG_BULK_LOAD_EXCEPTIONS",env_value,length)
+    logLoadExceptions = ((length>0)&&(env_value.eq."YES"))
 
     ;;Open the log
     call OpenLogFile
 
     ;;Should we send email messages when errors occur?
-    xcall getlog("REPLICATOR_ERROR_EMAIL",databuffer,length)
-    if ((length>0)&&databuffer)
-        errorEmail = databuffer
+    xcall getlog("REPLICATOR_ERROR_EMAIL",env_value,length)
+    if ((length>0)&&env_value)
+        errorEmail = env_value
 
     ;;Email server DNS name or IP address
-    xcall getlog("REPLICATOR_SMTP_SERVER",databuffer,length)
-    if ((length>0)&&databuffer)
-        emailServer = databuffer
+    xcall getlog("REPLICATOR_SMTP_SERVER",env_value,length)
+    if ((length>0)&&env_value)
+        emailServer = env_value
 
     ;;Email sender address
-    xcall getlog("REPLICATOR_EMAIL_SENDER",databuffer,length)
-    if ((length>0)&&databuffer)
-        emailSender = databuffer
+    xcall getlog("REPLICATOR_EMAIL_SENDER",env_value,length)
+    if ((length>0)&&env_value)
+        emailSender = env_value
 
     ;;Email senders domain
-    xcall getlog("REPLICATOR_EMAIL_DOMAIN",databuffer,length)
-    if ((length>0)&&databuffer)
-        emailDomain = databuffer
+    xcall getlog("REPLICATOR_EMAIL_DOMAIN",env_value,length)
+    if ((length>0)&&env_value)
+        emailDomain = env_value
 
     ;;Should the replicator STOP if it encounters an error
-    xcall getlog("REPLICATOR_ERROR_STOP",databuffer,length)
-    stopOnError = ((length>0)&&(databuffer.eq."YES"))
+    xcall getlog("REPLICATOR_ERROR_STOP",env_value,length)
+    stopOnError = ((length>0)&&(env_value.eq."YES"))
 
     ;;Open the instruction file
     if (ok)
@@ -198,9 +199,9 @@ proc
     ;;Get the database connect string from the logical REPLICATOR_DATABASE
     if (ok)
     begin
-        xcall getlog("REPLICATOR_DATABASE",databuffer,length)
+        xcall getlog("REPLICATOR_DATABASE",env_value,length)
         if (length) then
-            db_connect = databuffer(1:length)
+            db_connect = env_value(1:length)
         else
         begin
             ;;No connect string, we're dead!
@@ -476,7 +477,7 @@ CheckFileTable,
         endtry
 
         ;;Search the first unique key. There should always be one, because without one the
-        ;;constructor in the I/O hooks class would not activate replication for the channel.
+        ;;constructor in the I/O hooks class would not activate replication for the file.
         begin
             data thisKey, i4
             structure_data.structure_keynum = -1
@@ -665,23 +666,24 @@ DoInsert,
     else
     begin
         debuglog("Insert row in table " + %atrim(instruction.structure_name))
-        call ReadSynergyRecord
+        if (logKeys)
+        begin
+            keyValue = %keyVal(structure_data.structure_chan,instruction.record,structure_data.structure_keynum)
+            debugLog(" - Key: " + keyValue)
+        end
     end
 
-    if ((status==IO_OK)&&(databuffer))
+    try
     begin
-        try
-        begin
-            functionName = %atrim(instruction.structure_name) + '_INSERT_ROW'
-            status = %xsubr(functionName,db,databuffer(1,structure_data.structure_size),dberrtxt)
-        end
-        catch (ex, @SynException)
-        begin
-            ok = %LogFunctionFail(logFileChannel,functionName,ex.Errno,ex.Message)
-            return
-        end
-        endtry
+        functionName = %atrim(instruction.structure_name) + '_INSERT_ROW'
+        status = %xsubr(functionName,db,instruction.record(1,structure_data.structure_size),dberrtxt)
     end
+    catch (ex, @SynException)
+    begin
+        ok = %LogFunctionFail(logFileChannel,functionName,ex.Errno,ex.Message)
+        return
+    end
+    endtry
 
     using status select
     (0),
@@ -724,26 +726,24 @@ DoUpdate,
     else
     begin
         debuglog("Update row in table " + %atrim(instruction.structure_name))
-        call ReadSynergyRecord
+        if (logKeys)
+        begin
+            keyValue = %keyVal(structure_data.structure_chan,instruction.record,structure_data.structure_keynum)
+            debugLog(" - Key: " + keyValue)
+        end
     end
 
-    ;; Check that a record was returned before calling update because the record
-    ;; may have been deleted since. If so just ignore the instruction.
-
-    if ((status==IO_OK)&&(databuffer))
+    try
     begin
-        try
-        begin
-            functionName = %atrim(instruction.structure_name) + '_UPDATE_ROW'
-            status = %xsubr(functionName,db,databuffer(1,structure_data.structure_size),rows,dberrtxt)
-        end
-        catch (ex, @SynException)
-        begin
-            ok = %LogFunctionFail(logFileChannel,functionName,ex.Errno,ex.Message)
-            return
-        end
-        endtry
+        functionName = %atrim(instruction.structure_name) + '_UPDATE_ROW'
+        status = %xsubr(functionName,db,instruction.record(1,structure_data.structure_size),rows,dberrtxt)
     end
+    catch (ex, @SynException)
+    begin
+        ok = %LogFunctionFail(logFileChannel,functionName,ex.Errno,ex.Message)
+        return
+    end
+    endtry
 
     if (status) then
     begin
@@ -781,13 +781,15 @@ DoDelete,
 
     debuglog("Delete row from table " + %atrim(instruction.structure_name))
 
+    keyValue = %keyval(structure_data.structure_chan,instruction.record,structure_data.structure_keynum)
+
     if (logKeys)
-        debugLog(" - Key: " + %atrim(instruction.key))
+        debugLog(" - Key: " + keyValue)
 
     try
     begin
         functionName = %atrim(instruction.structure_name) + '_DELETE_ROW'
-        status = %xsubr(functionName,db,instruction.key,dberrtxt)
+        status = %xsubr(functionName,db,(a)keyValue,dberrtxt)
         if (status) then
         begin
             debuglog(" - Row deleted")
@@ -1002,36 +1004,6 @@ DoDeleteTable,
     return
 
 ;;-----------------------------------------------------------------------------
-;; Read the record associated with the key obtained from the instruction file.
-;;
-ReadSynergyRecord,
-
-    ;;Find the master record details
-    try
-    begin
-        functionName = %atrim(instruction.structure_name) + "_IO"
-        status = %xsubr(functionName,IO_READ,structure_data.structure_chan,instruction.key,structure_data.structure_keynum,databuffer(1,structure_data.structure_size),,,dberrtxt)
-        using status select
-        (IO_OK),
-        begin
-            if (logKeys)
-                debugLog(" - Key: " + %atrim(instruction.key))
-        end
-        (IO_NOT_FOUND,IO_EOF),
-            debuglog(" - Record not found in ISAM file!")
-        (),
-            xcall LogFunctionError(logFileChannel,functionName,status,dberrtxt)
-        endusing
-    end
-    catch (ex, @SynException)
-    begin
-        ok = %LogFunctionFail(logFileChannel,functionName,ex.Errno,ex.Message)
-    end
-    endtry
-
-    return
-
-;;-----------------------------------------------------------------------------
 ;; Open the log file
 
 OpenLogFile,
@@ -1123,7 +1095,7 @@ ChangeInterval,
         data save_time, i4, sleep_time
         try
         begin
-            sleep_time = %integer(instruction.key)
+            sleep_time = %integer(instruction.record)
             if (sleep_time >= 1) then
             begin
                 log("Sleep time changed from " + %string(save_time) + " to " + %string(sleep_time) + " seconds")
@@ -1136,7 +1108,7 @@ ChangeInterval,
         end
         catch (ex)
         begin
-            log("ERROR: Invalid sleep time " + %atrim(instruction.key) + " requested")
+            log("ERROR: Invalid sleep time " + %atrim(instruction.record) + " requested")
             sleep_time = save_time
         end
         endtry

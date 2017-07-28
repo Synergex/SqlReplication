@@ -3,11 +3,11 @@
 ;
 ;  REPOSITORY     : C:\DEV\PUBLIC\SqlReplicationIoHooks\RPS\rpsmain.ism
 ;                 : C:\DEV\PUBLIC\SqlReplicationIoHooks\RPS\rpstext.ism
-;                 : Version 10.3.3a
+;                 : Version 10.3.3c
 ;
-;  GENERATED      : 05-OCT-2016, 11:36:54
-;                 : Version 10.3.3a
-;  EXPORT OPTIONS : [ALL-K-R-A] 
+;  GENERATED      : 29-JUN-2017, 09:57:41
+;                 : Version 10.3.3c
+;  EXPORT OPTIONS : [ALL] 
  
  
 Format PHONE   Type NUMERIC   "(XXX) XXX-XXXX"   Justify LEFT
@@ -224,8 +224,8 @@ Field ACTION   Type DECIMAL   Size 2
 Field STRUCTURE_NAME   Type ALPHA   Size 32
    Description "the SDMS structure name"
  
-Field KEY   Type ALPHA   Size 255
-   Description "Primary key of affected record"
+Field RECORD   Type ALPHA   Size 65000
+   Description "Record affected"
  
 Key TRANSACTION_ID   ACCESS   Order ASCENDING   Dups NO   Density 100
    Description "Transaction ID (timestamp)"

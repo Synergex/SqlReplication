@@ -178,7 +178,7 @@ proc
                     endusing
 
                     outbuf.table = instruction.structure_name
-                    outbuf.keyval = instruction.key
+                    outbuf.keyval = instruction.record
 
                     display(tt,$scr_pos(row,2),outbuf)
                 end

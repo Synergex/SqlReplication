@@ -56,88 +56,88 @@
 
 subroutine Replicate
 
-	required in a_action, REPLICATION_INSTRUCTION
-	optional in a_structure, a
-	optional in a_key, a
-	endparams
+    required in a_action, REPLICATION_INSTRUCTION
+    optional in a_structure, a
+    optional in a_record, a
+    endparams
 
-	.include "REPLICATION" repository, stack record="instruction", end
+    .include "REPLICATION" repository, stack record="instruction", end
 
-	static record
-		chn ,i4
-	endrecord
+    static record
+        chn ,i4
+    endrecord
 
 proc
 
-	;Do we need to open the replication transaction file?
-	if (!chn)
-		open(chn=0,"U:I","DAT:REPLICATION.ISM")
+    ;Do we need to open the replication transaction file?
+    if (!chn)
+        open(chn=0,"U:I","DAT:REPLICATION.ISM")
 
-	using a_action select
+    using a_action select
 
-	(REPLICATION_INSTRUCTION.CLOSE_FILE),
-	begin
-		if (chn && %chopen(chn))
-		begin
-			close chn
-			init chn
-		end
-	end
+    (REPLICATION_INSTRUCTION.CLOSE_FILE),
+    begin
+        if (chn && %chopen(chn))
+        begin
+            close chn
+            init chn
+        end
+    end
 
-	(REPLICATION_INSTRUCTION.DELETE_ALL_INSTRUCTIONS),
-	begin
-		;Delete pending instructions
-		repeat
-		begin
-			try
-			begin
-				read(chn,instruction,^FIRST)
-				delete(chn)
-			end
-			catch (ex, @EndOfFileException)
-			begin
-				exitloop
-			end
-			catch (ex, @Exception)
-			begin
-				sleep 0.01
-			end
-			endtry
-		end
-	end
+    (REPLICATION_INSTRUCTION.DELETE_ALL_INSTRUCTIONS),
+    begin
+        ;Delete pending instructions
+        repeat
+        begin
+            try
+            begin
+                read(chn,instruction,^FIRST)
+                delete(chn)
+            end
+            catch (ex, @EndOfFileException)
+            begin
+                exitloop
+            end
+            catch (ex, @Exception)
+            begin
+                sleep 0.01
+            end
+            endtry
+        end
+    end
 
-	(),
-	begin
-		;Issue new instruction
+    (),
+    begin
+        ;Issue new instruction
 
-		init instruction
+        init instruction
 
-		instruction.action = (i)a_action
+        instruction.action = (i)a_action
 
-		if (^passed(a_structure) && a_structure)
-			instruction.structure_name = a_structure
+        if (^passed(a_structure) && a_structure)
+            instruction.structure_name = a_structure
 
-		if (^passed(a_key) && a_key)
-			instruction.key = a_key
+        if (^passed(a_record) && a_record)
+            instruction.record = a_record
 
-		repeat
-		begin
-			try
-			begin
-				instruction.transaction_id = %datetime
-				store(chn,instruction)
-				exitloop
-			end
-			catch (ex, @DuplicateException)
-			begin
-				sleep 0.01
-			end
-			endtry
-		end
-	end
-	endusing
+        repeat
+        begin
+            try
+            begin
+                instruction.transaction_id = %datetime
+                store(chn,instruction)
+                exitloop
+            end
+            catch (ex, @DuplicateException)
+            begin
+                sleep 0.01
+            end
+            endtry
+        end
+    end
+    endusing
 
-	xreturn
+    xreturn
 
 endsubroutine
 

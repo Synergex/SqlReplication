@@ -66,10 +66,9 @@ namespace <NAMESPACE>
     public sealed class ReplicationIoHooks extends IOHooks
 
         private mStructureName, string
-        private mActive, boolean
+        private mActive, boolean, false
         private mMultiTable, boolean
         private mChannel, int, 0
-        private mKeyNum, int, -1
         private mFillTimeStamp, boolean, false
         private mTimeStampPos, int, 0
 
@@ -95,29 +94,31 @@ namespace <NAMESPACE>
                 key_spos ,8d5
                 key_slen ,8d3
             endrecord
+            .include "REPLICATION" repository, structure="strInstruction", end
         proc
             ;;Make sure the channel is to an indexed file and open in update mode
             xcall getfa(aChannel,"OMD",openMode)
-            if (mActive = (openMode=="U:I"))
+            if (openMode=="U:I")
             begin
-                ;;Record the structure name and channel number
-                mChannel = aChannel
-                if (mMultiTable = aStructureName.StartsWith("MULTI_")) then
-                    mStructureName = aStructureName - "MULTI_"
-                else
-                    mStructureName = aStructureName
 
-                ;;Search for the first unique key
-                for thisKey from 0 thru %isinfo(mChannel,"NUMKEYS") - 1
+                ;;Check that the record length is not over the maximum we can support
+                data recLen, int
+                xcall getfa(aChannel,"RSZ",recLen)
+                if (recLen > ^size(strInstruction.record))
+                    exit
+
+                ;;Search for a unique key
+                for thisKey from 0 thru %isinfo(aChannel,"NUMKEYS") - 1
                 begin
-                    if (!%isinfo(mChannel,"DUPS",thisKey))
+                    if (!%isinfo(aChannel,"DUPS",thisKey))
                     begin
                         ;;Found one
-                        mKeyNum = thisKey
+                        mActive = true
+                        LastRecordCache.Init(aChannel)
 
                         ;;Is it REPLICATION_KEY and 20 long? If so we will cause the PRE STORE hook
                         ;;to fill the key with a timestamp value for new records.
-                        xcall iskey(mChannel,mKeyNum,keyinfo)
+                        xcall iskey(aChannel,thisKey,keyinfo)
                         upcase keyinfo.keynam
                         if ((mFillTimeStamp=(keyinfo.keynam=="REPLICATION_KEY"))&&(keylen==20))
                             mTimeStampPos = keypos
@@ -127,12 +128,16 @@ namespace <NAMESPACE>
                     end
                 end
 
-                ;;Did we find a unique key? If not, we can't enable replication.
-                if (mActive=(mKeyNum>=0))
+                if (mActive)
                 begin
-                    ;;Initialize the last record cache for the channel
-                    LastRecordCache.Init(mChannel)
+                    ;;Record the channel number and structure name
+                    mChannel = aChannel
+                    if (mMultiTable = aStructureName.StartsWith("MULTI_")) then
+                        mStructureName = aStructureName - "MULTI_"
+                    else
+                        mStructureName = aStructureName
                 end
+
             end
         endmethod
 
@@ -183,7 +188,7 @@ namespace <NAMESPACE>
             ;;A record was just updated. If it changed then replicate the change.
             if (mActive && !aError)
                 if (LastRecordCache.HasChanged(mChannel,aRecord))
-                    xcall replicate(REPLICATION_INSTRUCTION.UPDATE_ROW,getTableName(aRecord),%keyval(mChannel,aRecord,mKeyNum))
+                    xcall replicate(REPLICATION_INSTRUCTION.UPDATE_ROW,getTableName(aRecord),aRecord)
         endmethod
 
         ;;---------------------------------------------------------------------
@@ -211,7 +216,7 @@ namespace <NAMESPACE>
         proc
             ;;A new record was just created. Replicate the change.
             if (mActive && !aError)
-                xcall replicate(REPLICATION_INSTRUCTION.CREATE_ROW,getTableName(aRecord),%keyval(mChannel,aRecord,mKeyNum))
+                xcall replicate(REPLICATION_INSTRUCTION.CREATE_ROW,getTableName(aRecord),aRecord)
         endmethod
 
         ;;---------------------------------------------------------------------
@@ -223,7 +228,7 @@ namespace <NAMESPACE>
         proc
             ;;A record was just deleted. Replicate the change.
             if (mActive && !aError)
-                xcall replicate(REPLICATION_INSTRUCTION.DELETE_ROW,getTableName(LastRecordCache.Retrieve(mChannel)),%keyval(mChannel,LastRecordCache.Retrieve(mChannel),mKeyNum))
+                xcall replicate(REPLICATION_INSTRUCTION.DELETE_ROW,getTableName(LastRecordCache.Retrieve(mChannel)),LastRecordCache.Retrieve(mChannel))
         endmethod
 
         ;;---------------------------------------------------------------------
