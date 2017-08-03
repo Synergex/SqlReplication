@@ -197,9 +197,12 @@
             Name="Batch Files"
             Filters="*.bat">
             <F N="../BAT/load_data.bat"/>
+            <F N="../RegisterReplicatorService.bat"/>
             <F N="../BAT/rps_export.bat"/>
             <F N="../BAT/rps_import.bat"/>
             <F N="../setup.bat"/>
+            <F N="../StartLocalReplicator.bat"/>
+            <F N="../UnregisterReplicatorService.bat"/>
         </Folder>
         <Folder
             Name="Other Files"
@@ -684,7 +687,8 @@
         <ExecMacro CmdLine="syn_set RPSTFIL=%(ROOT)RPS\rpstext.ism"/>
         <ExecMacro CmdLine="syn_set SYNEXPDIR=%(ROOT)PROTO"/>
         <ExecMacro CmdLine="syn_set SYNIMPDIR=%(ROOT)PROTO"/>
-        <ExecMacro CmdLine="syn_set REPLICATOR_DATABASE=VTX12_SQLNATIVE://SqlReplicationIoHooks/.///Trusted_connection=yes"/>
+        <ExecMacro CmdLine="syn_set REPLICATOR_DATABASE=net:SqlReplicationUser/SqlReplicationPassword//.\\SqlReplicationIoHooks@1958:localhost!VTX12_SQLNATIVE"/>
+        <ExecMacro CmdLine="syn_set REPLICATOR_DATABASE2=VTX12_SQLNATIVE://SqlReplicationIoHooks/.///Trusted_connection=yes"/>
         <ExecMacro CmdLine="syn_set REPLICATOR_LOGDIR=%(ROOT)"/>
         <ExecMacro CmdLine="syn_set REPLICATOR_INTERVAL=2"/>
         <ExecMacro CmdLine="syn_set REPLICATOR_FULL_LOG=YES"/>

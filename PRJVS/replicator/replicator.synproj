@@ -5,7 +5,7 @@
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Configuration)' == '' ">x86</Platform>
     <Name>replicator</Name>
-    <StartupObject>ReplicatorMenu.dbl</StartupObject>
+    <StartupObject>replicator.dbl</StartupObject>
     <OutputName>$(StartupObject)</OutputName>
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>e6523f1c-7f09-4d5b-ad35-5351d9ae4d44</ProjectGuid>

@@ -1,0 +1,2 @@
+@echo off
+dbr EXE:replicator -interval 2 -verbose -keyvalues -loaderrors -erroremail steve.ives@synergex.com -mailserver exch2016.synergex.loc -mailfrom replicator@synergex.com -maildomain synergex.com -stoponerror -database VTX12_SQLNATIVE://SqlReplicationIoHooks/.///Trusted_connection=yes
