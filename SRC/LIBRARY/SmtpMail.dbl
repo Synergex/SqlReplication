@@ -399,8 +399,8 @@ check_rc,
 ;
 .subroutine put_data_line
 
-    sd              ,i
-    buffer          ,a
+    required in sd, i
+    required in buffer, a
 
 .include "INC:SmtpMail.def"
 .include "DBLDIR:synsock.def"
@@ -421,8 +421,8 @@ check_rc,
 ;
 .function get_smtp_line, ^val
 
-    sd              ,i
-    line            ,a
+    required in  sd, i
+    optional out line, a
 
 .include "INC:SmtpMail.def"
 .include "DBLDIR:synsock.def"
@@ -460,8 +460,8 @@ stack record avars
 ;
 .function send_rcpt_list, ^val
 
-    sd              ,i
-    list            ,a
+    required in sd, i
+    required in list, a
 
 .include "INC:SmtpMail.def"
 .include "DBLDIR:synsock.def"

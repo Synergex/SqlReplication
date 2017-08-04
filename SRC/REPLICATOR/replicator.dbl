@@ -62,19 +62,15 @@ main replicator
     .define D_ERROR_TIME    0.5                 ;;Time to sleep after an error
 
     .define log(x)          writes(Settings.LogFileChannel,%TimeStamp+%atrim(x))
-	.define debuglog(x)     if (fullLogging) writes(Settings.LogFileChannel,%TimeStamp+%atrim(x))
+	.define debuglog(x)     if (Settings.FullLogging) writes(Settings.LogFileChannel,%TimeStamp+%atrim(x))
 
     .align
     record
         ok                  ,boolean            ;;Main status
         noMoreInstructions  ,boolean            ;;End of instruction file
-        fullLogging         ,boolean            ;;Are we doing full logging?
-        logKeys             ,boolean            ;;Include key data in debug logs
         switchMode          ,boolean            ;;Switched from INSERT to UPDATE or vice versa
-        logLoadExceptions   ,boolean            ;;Log bulk load exceptions to a log file?
         cycleLog            ,boolean            ;;Cycle the log file
         switchDone          ,boolean            ;;Have we tried to switch modes before?
-        sleep_time          ,i4                 ;;Seconds to sleep
         errnum              ,i4                 ;;Error number
         nsptr               ,i4                 ;;Namespace pointer
         dberr               ,i4                 ;;Database error
@@ -84,11 +80,8 @@ main replicator
         functionName        ,string             ;;External function to call
         primaryKey          ,string             ;;Primary key of current record
         keyValue            ,string             ;;Key value of the current record
-        db_connect          ,string             ;;Database connect string
-		logFileSpec         ,string				;;Log file or device name
         dberrtxt            ,a1024
         structure_data      ,strStructureData
-        env_value           ,a1024              ;;Data buffer used to read environment variables
         clValues            ,@ArrayList         ;;Values of a command-line parameter
     endrecord
 
@@ -160,9 +153,10 @@ proc
         end
         else
         begin
-            xcall getlog("REPLICATOR_INSTANCE",env_value,length)
+			data tmpval, a80
+            xcall getlog("REPLICATOR_INSTANCE",tmpval,length)
             if (length) then
-				Settings.InstanceName = env_value(1:length)
+				Settings.InstanceName = tmpval(1:length)
             else
 				Settings.InstanceName = "DEFAULT"
         end
@@ -178,7 +172,7 @@ proc
             begin
                 try
                 begin
-                    sleep_time = %integer((string)clValues[0])
+					Settings.SleepTime = %integer((string)clValues[0])
                 end
                 catch (e, @Exception)
                 begin
@@ -201,10 +195,14 @@ proc
         end
         else
         begin
-            xcall getlog("REPLICATOR_INTERVAL",env_value,length)
-            sleep_time = length ? %integer(env_value(1:length)) : D_SLEEP_TIME
+			data tmpval, a10
+			xcall getlog("REPLICATOR_INTERVAL",tmpval,length)
+			if (length>0) then
+				Settings.SleepTime = %integer(tmpval(1:length))
+			else
+				Settings.SleepTime = D_SLEEP_TIME
         end
-        log("Sleep interval is " + %string(sleep_time) + " seconds.")
+		log("Sleep interval is " + %string(Settings.SleepTime) + " seconds.")
     end
 
     ;;Set the logging level
@@ -212,12 +210,13 @@ proc
     begin
         if (CommandLineParser.Parse("verbose")) then
         begin
-            fullLogging = true
+            Settings.FullLogging = true
         end
         else
         begin
-            xcall getlog("REPLICATOR_FULL_LOG",env_value,length)
-            fullLogging = ((length>0)&&(env_value.eq."YES"))
+			data tmpval, a3
+			xcall getlog("REPLICATOR_FULL_LOG",tmpval,length)
+			Settings.FullLogging = ((length>0)&&(tmpval.eq."YES"))
         end
     end
 
@@ -226,12 +225,13 @@ proc
     begin
         if (CommandLineParser.Parse("keyvalues")) then
         begin
-            logKeys = true
+            Settings.LogKeys = true
         end
         else
         begin
-            xcall getlog("REPLICATOR_LOG_KEYS",env_value,length)
-            logKeys = ((length>0)&&(env_value.eq."YES"))
+			data tmpval, a3
+			xcall getlog("REPLICATOR_LOG_KEYS",tmpval,length)
+			Settings.LogKeys = ((length>0)&&(tmpval.eq."YES"))
         end
     end
 
@@ -240,12 +240,13 @@ proc
     begin
         if (CommandLineParser.Parse("loaderrors")) then
         begin
-            logLoadExceptions = true
+            Settings.LogLoadExceptions = true
         end
         else
         begin
-            xcall getlog("REPLICATOR_LOG_BULK_LOAD_EXCEPTIONS",env_value,length)
-            logLoadExceptions = ((length>0)&&(env_value.eq."YES"))
+			data tmpval, a3
+			xcall getlog("REPLICATOR_LOG_BULK_LOAD_EXCEPTIONS",tmpval,length)
+			Settings.LogLoadExceptions = ((length>0)&&(tmpval.eq."YES"))
         end
     end
 
@@ -273,9 +274,10 @@ proc
         end
         else
         begin
-            xcall getlog("REPLICATOR_ERROR_EMAIL",env_value,length)
-            if ((length>0)&&env_value)
-                Settings.ErrorEmail = env_value(1:length)
+			data tmpval, a1024
+			xcall getlog("REPLICATOR_ERROR_EMAIL",tmpval,length)
+            if (length>0)
+				Settings.ErrorEmail = tmpval(1:length)
         end
     end
 
@@ -303,9 +305,10 @@ proc
         end
         else
         begin
-            xcall getlog("REPLICATOR_SMTP_SERVER",env_value,length)
-            if ((length>0)&&env_value)
-				Settings.EmailServer = env_value(1:length)
+			data tmpval, a128
+			xcall getlog("REPLICATOR_SMTP_SERVER",tmpval,length)
+            if (length>0)
+				Settings.EmailServer = tmpval(1:length)
         end
     end
 
@@ -333,9 +336,10 @@ proc
         end
         else
         begin
-            xcall getlog("REPLICATOR_EMAIL_SENDER",env_value,length)
-            if ((length>0)&&env_value)
-				Settings.EmailSender = env_value(1:length)
+			data tmpval, a128
+			xcall getlog("REPLICATOR_EMAIL_SENDER",tmpval,length)
+            if (length>0)
+				Settings.EmailSender = tmpval(1:length)
         end
     end
 
@@ -363,9 +367,10 @@ proc
         end
         else
         begin
-            xcall getlog("REPLICATOR_EMAIL_DOMAIN",env_value,length)
-            if ((length>0)&&env_value)
-				Settings.EmailDomain = env_value(1:length)
+			data tmpval, a128
+			xcall getlog("REPLICATOR_EMAIL_DOMAIN",tmpval,length)
+            if (length>0)
+				Settings.EmailDomain = tmpval(1:length)
         end
     end
 
@@ -378,8 +383,9 @@ proc
         end
         else
         begin
-            xcall getlog("REPLICATOR_ERROR_STOP",env_value,length)
-			Settings.StopOnError = ((length>0)&&(env_value.eq."YES"))
+			data tmpval, a3
+			xcall getlog("REPLICATOR_ERROR_STOP",tmpval,length)
+			Settings.StopOnError = ((length>0)&&(tmpval.eq."YES"))
         end
     end
 
@@ -408,7 +414,7 @@ proc
             using clValues.Count select
             (1),
             begin
-                db_connect = (string)clValues[0]
+                Settings.DatabaseConnectString = (string)clValues[0]
             end
             (0),
             begin
@@ -424,9 +430,10 @@ proc
         end
         else
         begin
-            xcall getlog("REPLICATOR_DATABASE",env_value,length)
+			data tmpval, a256
+			xcall getlog("REPLICATOR_DATABASE",tmpval,length)
             if (length) then
-                db_connect = env_value(1:length)
+				Settings.DatabaseConnectString = tmpval(1:length)
             else
             begin
                 ;;No connect string, we're dead!
@@ -455,12 +462,12 @@ proc
     ;;Connect to the database
     if (ok)
     begin
-		if (%ssc_connect(Settings.DatabaseChannel,db_connect)==SSQL_FAILURE)
+		if (%ssc_connect(Settings.DatabaseChannel,Settings.DatabaseConnectString)==SSQL_FAILURE)
         begin
 			xcall ssc_getemsg(Settings.DatabaseChannel,dberrtxt,length)
             log("ERROR: Failed to connect to database")
             log(" - Connect string:")
-            log("   " + db_connect)
+			log("   " + Settings.DatabaseConnectString)
             log(" - Error message :")
             log("   " + dberrtxt(1,length))
             ok = false
@@ -471,7 +478,7 @@ proc
                 data emailStatus, i4
                 data body = new string[3]
                 body[1] = "Failed to connect to database."
-                body[2] = "Connect string: " + db_connect
+				body[2] = "Connect string: " + Settings.DatabaseConnectString
                 body[3] = "Error message:  " + dberrtxt(1,length)
 				if ((emailStatus=%SmtpMail(Settings.EmailServer,Settings.EmailDomain,Settings.EmailSender,"SQL Replicator ",,Settings.ErrorEmail,,"Replicator"  + Settings.InstanceName + " ERROR",body)) != SMERR_SUCCESS)
                 begin
@@ -526,7 +533,7 @@ proc
 
             if (noMoreInstructions) then
             begin
-                sleep sleep_time
+				sleep Settings.SleepTime
             end
             else
             begin
@@ -854,9 +861,9 @@ LoadTable,
         functionName = %atrim(instruction.structure_name) + "_LOAD"
 
 		if (Settings.RunningOnTerminal) then
-			status = %xsubr(functionName,Settings.DatabaseChannel,dberrtxt,logLoadExceptions,Settings.LogFileChannel,successCount,failCount)
+			status = %xsubr(functionName,Settings.DatabaseChannel,dberrtxt,Settings.LogLoadExceptions,Settings.LogFileChannel,successCount,failCount)
         else
-			status = %xsubr(functionName,Settings.DatabaseChannel,dberrtxt,logLoadExceptions,,successCount,failCount)
+			status = %xsubr(functionName,Settings.DatabaseChannel,dberrtxt,Settings.LogLoadExceptions,,successCount,failCount)
 
         if (status) then
         begin
@@ -891,7 +898,7 @@ DoInsert,
     else
     begin
         debuglog("Insert row in table " + %atrim(instruction.structure_name))
-        if (logKeys)
+		if (Settings.LogKeys)
         begin
             keyValue = %keyVal(structure_data.structure_chan,instruction.record,structure_data.structure_keynum)
             debugLog(" - Key: " + keyValue)
@@ -951,7 +958,7 @@ DoUpdate,
     else
     begin
         debuglog("Update row in table " + %atrim(instruction.structure_name))
-        if (logKeys)
+		if (Settings.LogKeys)
         begin
             keyValue = %keyVal(structure_data.structure_chan,instruction.record,structure_data.structure_keynum)
             debugLog(" - Key: " + keyValue)
@@ -1008,7 +1015,7 @@ DoDelete,
 
     keyValue = %keyval(structure_data.structure_chan,instruction.record,structure_data.structure_keynum)
 
-    if (logKeys)
+	if (Settings.LogKeys)
         debugLog(" - Key: " + keyValue)
 
     try
@@ -1239,13 +1246,13 @@ OpenLogFile,
         ;;Are we running on a terminal?
 		if (Settings.RunningOnTerminal) then
         begin
-            logFileSpec = "TT:"
+            Settings.LogFileName = "TT:"
             logChannelMode = "O"
         end
         else
         begin
             ;;The logical will be used if defined, otherwise current directory will be used
-            logFileSpec = "REPLICATOR_LOGDIR:replicator_"+%datetime+".log"
+			Settings.LogFileName = "REPLICATOR_LOGDIR:replicator_"+%datetime+".log"
             logChannelMode = "O:S"
         end
 
@@ -1256,14 +1263,14 @@ OpenLogFile,
 
             if (cycleLog)
             begin
-                log("Cycling log. New log is " + logFileSpec)
+				log("Cycling log. New log is " + Settings.LogFileName)
                 close Settings.LogFileChannel
                 cycleLog = false
 				if (Settings.RunningOnTerminal)
                     sleep 0.5
             end
 
-			open(tmpchn,logChannelMode,logFileSpec)
+			open(tmpchn,logChannelMode,Settings.LogFileName)
 			Settings.LogFileChannel = tmpchn
 
 			if (Settings.RunningOnTerminal)
@@ -1274,7 +1281,7 @@ OpenLogFile,
         catch (ex)
         begin
 			if (!Settings.RunningOnTerminal)
-                xcall syn_reportevent(D_EVENTLOG_ERROR_TYPE,"Replicator failed to open log file " + logFileSpec + ". Error number " + %string(%ernum))
+				xcall syn_reportevent(D_EVENTLOG_ERROR_TYPE,"Replicator failed to open log file " + Settings.LogFileName + ". Error number " + %string(%ernum))
             ok = false
         end
         endtry
@@ -1319,24 +1326,24 @@ RecordProcessId,
 ChangeInterval,
 
     begin
-        data save_time, i4, sleep_time
+        data save_time, i4, Settings.SleepTime
         try
         begin
-            sleep_time = %integer(instruction.record)
-            if (sleep_time >= 1) then
+			Settings.SleepTime = %integer(%atrim(instruction.record))
+			if (Settings.SleepTime >= 1) then
             begin
-                log("Sleep time changed from " + %string(save_time) + " to " + %string(sleep_time) + " seconds")
+				log("Sleep time changed from " + %string(save_time) + " to " + %string(Settings.SleepTime) + " seconds")
             end
             else
             begin
-                log("ERROR: Invalid sleep time " + %string(sleep_time) + " requested")
-                sleep_time = save_time
+				log("ERROR: Invalid sleep time " + %string(Settings.SleepTime) + " requested")
+				Settings.SleepTime = save_time
             end
         end
         catch (ex)
         begin
             log("ERROR: Invalid sleep time " + %atrim(instruction.record) + " requested")
-            sleep_time = save_time
+			Settings.SleepTime = save_time
         end
         endtry
     end
@@ -1755,7 +1762,20 @@ namespace Tools
 			endmethod
 		endproperty
 
+		;;; <summary>
+		;;; The SQL Connection database channel that represents our connection to the database.
+		;;; </summary>
 		public static property DatabaseChannel, i4
+			method get
+			endmethod
+			method set
+			endmethod
+		endproperty
+
+		;;; <summary>
+		;;; Database connection string.
+		;;; </summary>
+		public static property DatabaseConnectString, string
 			method get
 			endmethod
 			method set
@@ -1764,6 +1784,11 @@ namespace Tools
 
 		private static mInstanceName, string
 
+		;;; <summary>
+		;;; The name of the replicator instance. The default instance name is DEFAULT. The instance name is used to
+		;;; discriminate between multiple instances of the replicator that might be active, each processing different
+		;;; data sets.
+		;;; </summary>
 		public static property InstanceName, string
 			method get
 			proc
@@ -1775,6 +1800,9 @@ namespace Tools
 			endmethod
 		endproperty
 
+		;;; <summary>
+		;;; The channel number of the replication instruction file.
+		;;; </summary>
 		public static property InstructionChannel, i4
 			method get
 			endmethod
@@ -1782,6 +1810,10 @@ namespace Tools
 			endmethod
 		endproperty
 
+		;;; <summary>
+		;;; The email address or addresses to send status messages to.
+		;;; One or more email addresses seperated by commas.
+		;;; </summary>
 		public static property ErrorEmail, string
 			method get
 			endmethod
@@ -1789,6 +1821,10 @@ namespace Tools
 			endmethod
 		endproperty
 
+		;;; <summary>
+		;;; The DNS name or IP address of the SMTP server to use to send email messages.
+		;;; The SMTP server must be configured to accept messages from unauthenticated sources.
+		;;; </summary>
 		public static property EmailServer, string
 			method get
 			endmethod
@@ -1796,6 +1832,9 @@ namespace Tools
 			endmethod
 		endproperty
 
+		;;; <summary>
+		;;; The email address to be used as the sender of status messages.
+		;;; </summary>
 		public static property EmailSender, string
 			method get
 			endmethod
@@ -1803,6 +1842,9 @@ namespace Tools
 			endmethod
 		endproperty
 
+		;;; <summary>
+		;;; The DNS domain name of the email sender.
+		;;; </summary>
 		public static property EmailDomain, string
 			method get
 			endmethod
@@ -1810,6 +1852,20 @@ namespace Tools
 			endmethod
 		endproperty
 
+		;;; <summary>
+		;;; Are we doing full logging?
+		;;; </summary>
+		public static property FullLogging, boolean
+			method get
+			endmethod
+			method set
+			endmethod
+		endproperty
+
+		;;; <summary>
+		;;; The channel number of the replicator log file.
+		;;; This will be the terminal channel if the replicator is running interactively.
+		;;; </summary>
 		public static property LogFileChannel, i4
 			method get
 			endmethod
@@ -1817,6 +1873,40 @@ namespace Tools
 			endmethod
 		endproperty
 
+		;;; <summary>
+		;;; The name of the replicator log file.
+		;;; If running in interactive mode this will be TT:
+		;;; </summary>
+		public static property LogFileName, string
+			method get
+			endmethod
+			method set
+			endmethod
+		endproperty
+
+		;;; <summary>
+		;;; Include key data in debug logs?
+		;;; </summary>
+		public static property LogKeys, boolean
+			method get
+			endmethod
+			method set
+			endmethod
+		endproperty
+
+		;;; <summary>
+		;;; Log bulk load exceptions to a log file?
+		;;; </summary>
+		public static property LogLoadExceptions, boolean
+			method get
+			endmethod
+			method set
+			endmethod
+		endproperty
+
+		;;; <summary>
+		;;; Are we attached to a terminal?
+		;;; </summary>
 		public static property RunningOnTerminal, boolean
 			method get
 			endmethod
@@ -1824,6 +1914,19 @@ namespace Tools
 			endmethod
 		endproperty
 
+		;;; <summary>
+		;;; How many seconds should we sleep when we run out of instructions to process?
+		;;; </summary>
+		public static property SleepTime, int
+			method get
+			endmethod
+			method set
+			endmethod
+		endproperty
+
+		;;; <summary>
+		;;; Should we stop processing and close if we encounter an error?
+		;;; </summary>
 		public static property StopOnError, boolean
 			method get
 			endmethod
@@ -1831,6 +1934,11 @@ namespace Tools
 			endmethod
 		endproperty
 
+		;;; <summary>
+		;;; Are we able to send email messages. In order for this to return true we must have values
+		;;; for EmailError, EmailServer, EmailSender and EmailDomain.
+		;;; </summary>
+		;;; <returns>Returns true if we have all the data, but does not guarantee that email can be sent!</returns>
 		public static method CanSendEmail, boolean
 		proc
 			mreturn (ErrorEmail != ^null && ErrorEmail.Length>0 && EmailServer != ^null && EmailServer.Length>0 && EmailSender != ^null && EmailSender.Length>0 && EmailDomain != ^null && EmailDomain.Length>0)
