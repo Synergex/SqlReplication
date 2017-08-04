@@ -37,6 +37,7 @@
 ;;*****************************************************************************
 
 import SynPSG.ReplicationDemo
+import System.Collections
 import Tools
 
 structure strStructureData
@@ -60,31 +61,8 @@ main replicator
     .define D_SLEEP_TIME    60                  ;;Seconds to sleep
     .define D_ERROR_TIME    0.5                 ;;Time to sleep after an error
 
-    .define log(x)          writes(logFileChannel,%TimeStamp+%atrim(x))
-    .define debuglog(x)     if (fullLogging) writes(logFileChannel,%TimeStamp+%atrim(x))
-
-    .align
-    global common
-        instanceName        ,a40                ;;The name of the running instance
-        runningOnTerminal   ,boolean            ;;Program is running on a terminal
-        db                  ,i4                 ;;Database channel
-        nsid                ,i4                 ;;Name space id
-        instructionChannel  ,i4                 ;;Instruction file channel
-        logFileChannel      ,i4                 ;;Log file channel
-        inserts             ,i4                 ;;Create operations completed
-        updates             ,i4                 ;;Update operations completed
-        deletes             ,i4                 ;;Delete operations completed
-        fails               ,i4                 ;;Failed operations
-    endcommon
-
-    global common
-        errorEmail          ,a512
-        emailServer         ,a80
-        emailSender         ,a80
-        emailDomain         ,a80
-        logFileSpec         ,a80
-        stopOnError         ,boolean
-    endcommon
+    .define log(x)          writes(Settings.LogFileChannel,%TimeStamp+%atrim(x))
+	.define debuglog(x)     if (fullLogging) writes(Settings.LogFileChannel,%TimeStamp+%atrim(x))
 
     .align
     record
@@ -107,6 +85,7 @@ main replicator
         primaryKey          ,string             ;;Primary key of current record
         keyValue            ,string             ;;Key value of the current record
         db_connect          ,string             ;;Database connect string
+		logFileSpec         ,string				;;Log file or device name
         dberrtxt            ,a1024
         structure_data      ,strStructureData
         env_value           ,a1024              ;;Data buffer used to read environment variables
@@ -122,13 +101,9 @@ proc
     ok = true
     xcall flags(7004020,1)
 
-;    ;;Open the ELB containing the SynIO and SqlIO code
-;    xcall openelb("EXE:library.elb")
-
     ;;Do we have a terminal attached or are we a detached process or service?
-    ;;If we're running on a terminal we will log to the terminal, if not we will
-    ;;log to a log file.
-    runningOnTerminal = (%tnmbr>=0)
+    ;;If we're running on a terminal we will log to the terminal, if not we will log to a log file.
+    Settings.RunningOnTerminal = (%tnmbr>=0)
 
     if (CommandLineParser.Parse("logdir",clValues))
     begin
@@ -163,14 +138,14 @@ proc
         end
     end
 
-    if (!runningOnTerminal)
+	if (ok)
     begin
         ;;Get the name of the instance
         if (CommandLineParser.Parse("instance",clValues)) then
         begin
             using clValues.Count select
             (1),
-                instanceName = (string)clValues[0]
+                Settings.InstanceName = (string)clValues[0]
             (0),
             begin
                 log("ERROR: Missing instance name after the -instance option")
@@ -187,9 +162,9 @@ proc
         begin
             xcall getlog("REPLICATOR_INSTANCE",env_value,length)
             if (length) then
-                instanceName = env_value(1:length)
+				Settings.InstanceName = env_value(1:length)
             else
-                instanceName = %string(%jbno)
+				Settings.InstanceName = "DEFAULT"
         end
     end
 
@@ -282,7 +257,7 @@ proc
             using clValues.Count select
             (1),
             begin
-                errorEmail = (string)clValues[0]
+                Settings.ErrorEmail = (string)clValues[0]
             end
             (0),
             begin
@@ -300,7 +275,7 @@ proc
         begin
             xcall getlog("REPLICATOR_ERROR_EMAIL",env_value,length)
             if ((length>0)&&env_value)
-                errorEmail = env_value(1:length)
+                Settings.ErrorEmail = env_value(1:length)
         end
     end
 
@@ -312,7 +287,7 @@ proc
             using clValues.Count select
             (1),
             begin
-                emailServer = (string)clValues[0]
+                Settings.EmailServer = (string)clValues[0]
             end
             (0),
             begin
@@ -330,7 +305,7 @@ proc
         begin
             xcall getlog("REPLICATOR_SMTP_SERVER",env_value,length)
             if ((length>0)&&env_value)
-                emailServer = env_value
+				Settings.EmailServer = env_value(1:length)
         end
     end
 
@@ -342,7 +317,7 @@ proc
             using clValues.Count select
             (1),
             begin
-                emailSender = (string)clValues[0]
+				Settings.EmailSender = (string)clValues[0]
             end
             (0),
             begin
@@ -360,7 +335,7 @@ proc
         begin
             xcall getlog("REPLICATOR_EMAIL_SENDER",env_value,length)
             if ((length>0)&&env_value)
-                emailSender = env_value
+				Settings.EmailSender = env_value(1:length)
         end
     end
 
@@ -372,7 +347,7 @@ proc
             using clValues.Count select
             (1),
             begin
-                emailDomain = (string)clValues[0]
+				Settings.EmailDomain = (string)clValues[0]
             end
             (0),
             begin
@@ -390,7 +365,7 @@ proc
         begin
             xcall getlog("REPLICATOR_EMAIL_DOMAIN",env_value,length)
             if ((length>0)&&env_value)
-                emailDomain = env_value
+				Settings.EmailDomain = env_value(1:length)
         end
     end
 
@@ -399,21 +374,23 @@ proc
     begin
         if (CommandLineParser.Parse("stoponerror")) then
         begin
-            stopOnError = true
+            Settings.StopOnError = true
         end
         else
         begin
             xcall getlog("REPLICATOR_ERROR_STOP",env_value,length)
-            stopOnError = ((length>0)&&(env_value.eq."YES"))
+			Settings.StopOnError = ((length>0)&&(env_value.eq."YES"))
         end
     end
 
     ;;Open the instruction file
     if (ok)
     begin
-        try
+		try
         begin
-            open(instructionChannel=0,U:I,D_TRANS_FILE)
+			data tmpchn, i4, 0
+            open(tmpchn,U:I,D_TRANS_FILE)
+			Settings.InstructionChannel = tmpchn
         end
         catch (ex)
         begin
@@ -467,7 +444,8 @@ proc
         .else
         status = %option(48,1)
         .endc
-        if (%ssc_init(db=1,D_MAX_CURSORS,D_MAX_COLUMNS)==SSQL_FAILURE)
+		Settings.DatabaseChannel = 1
+		if (%ssc_init(Settings.DatabaseChannel,D_MAX_CURSORS,D_MAX_COLUMNS)==SSQL_FAILURE)
         begin
             log("ERROR: Failed to initialize SQL Connection")
             ok = false
@@ -477,9 +455,9 @@ proc
     ;;Connect to the database
     if (ok)
     begin
-        if (%ssc_connect(db,db_connect)==SSQL_FAILURE)
+		if (%ssc_connect(Settings.DatabaseChannel,db_connect)==SSQL_FAILURE)
         begin
-            xcall ssc_getemsg(db,dberrtxt,length)
+			xcall ssc_getemsg(Settings.DatabaseChannel,dberrtxt,length)
             log("ERROR: Failed to connect to database")
             log(" - Connect string:")
             log("   " + db_connect)
@@ -488,14 +466,14 @@ proc
             ok = false
 
             ;;If we're sending emails then let's record the connect failure
-            if (errorEmail && emailServer && emailSender && emailDomain)
+            if (Settings.CanSendEmail())
             begin
                 data emailStatus, i4
-                data body, [3]a512
-                body[1] = "The SQL replicator process failed to connect to the database."
+                data body = new string[3]
+                body[1] = "Failed to connect to database."
                 body[2] = "Connect string: " + db_connect
                 body[3] = "Error message:  " + dberrtxt(1,length)
-                if ((emailStatus=%SmtpMail(emailServer,emailDomain,emailSender,"SQL Replicator",,errorEmail,,"Replicator FAILED TO CONNECT TO DATABASE",body)) != SMERR_SUCCESS)
+				if ((emailStatus=%SmtpMail(Settings.EmailServer,Settings.EmailDomain,Settings.EmailSender,"SQL Replicator ",,Settings.ErrorEmail,,"Replicator"  + Settings.InstanceName + " ERROR",body)) != SMERR_SUCCESS)
                 begin
                     data errorText, string, %TimeStamp + "ERROR: Failed to send startup email. Error was " + %atrim(SmtpErrorText[emailStatus])
                     log(errorText)
@@ -505,15 +483,15 @@ proc
     end
 
     ;;Register a shutdown handler
-    if (ok && !runningOnTerminal)
+	if (ok && !Settings.RunningOnTerminal)
         xcall syn_atexit(%xaddr("ReplicatorShutdown"))
 
     ;;Let the developer see the error message!
-    if (!ok && runningOnTerminal)
+	if (!ok && Settings.RunningOnTerminal)
     begin
         data tmpchr, a1
-        display(logFileChannel,13,10,"Replicator will stop - press a key: ")
-        accept(logFileChannel,tmpchr)
+		display(Settings.LogFileChannel,13,10,"Replicator will stop - press a key: ")
+		accept(Settings.LogFileChannel,tmpchr)
     end
 
     ;;Main processing
@@ -523,17 +501,17 @@ proc
         call RecordProcessID
 
         ;;Create a namespace to record information about Synergy data files that we have opened.
-        nsid = %nspc_open(,%size(structure_data))
+        Settings.ChannelInfo = %nspc_open(,%size(structure_data))
 
         log("--- Processing instructions ----------------------")
 
         ;;If we're sending emails then let's record the server startup
-        if (errorEmail && emailServer && emailSender && emailDomain)
+        if (Settings.CanSendEmail())
         begin
             data emailStatus, i4
-            data body, [1]a80
+            data body = new string[1]
             body[1] = "The SQL replicator process was started."
-            if ((emailStatus=%SmtpMail(emailServer,emailDomain,emailSender,"SQL Replicator",,errorEmail,,"Replicator STARTED",body)) != SMERR_SUCCESS)
+			if ((emailStatus=%SmtpMail(Settings.EmailServer,Settings.EmailDomain,Settings.EmailSender,"SQL Replicator",,Settings.ErrorEmail,,"Replicator " + Settings.InstanceName + " STARTED",body)) != SMERR_SUCCESS)
             begin
                 data errorText, string, %TimeStamp + "ERROR: Failed to send startup email. Error was " + %atrim(SmtpErrorText[emailStatus])
                 log(errorText)
@@ -548,8 +526,6 @@ proc
 
             if (noMoreInstructions) then
             begin
-                ;if (runningOnTerminal)
-                ;    debuglog("Sleeping for " + %string(sleep_time) + " seconds...")
                 sleep sleep_time
             end
             else
@@ -621,7 +597,7 @@ proc
 
                 (REPLICATION_INSTRUCTION.SHUTDOWN),
                 begin
-                    delete(instructionChannel)
+                    delete(Settings.InstructionChannel)
                     xcall ReplicatorShutdown
                     stop
                 end
@@ -629,14 +605,14 @@ proc
                 endusing
 
                 ;;Delete the instruction from the instruction file
-                delete(instructionChannel)
+				delete(Settings.InstructionChannel)
 
             end
 
             ;;Reset to first record in instruction file and start over
             try
             begin
-                find(instructionChannel,,^FIRST)
+				find(Settings.InstructionChannel,,^FIRST)
             end
             catch (ex)
             begin
@@ -647,16 +623,16 @@ proc
     end
 
     ;;Close the database
-    if (db)
-        xcall ssc_release(db)
+	if (Settings.DatabaseChannel)
+		xcall ssc_release(Settings.DatabaseChannel)
 
     ;;Release the name space
-    if (nsid)
-        xcall nspc_close(nsid)
+	if (Settings.ChannelInfo)
+		xcall nspc_close(Settings.ChannelInfo)
 
     ;;Close the instructions file
-    if (instructionChannel&&%chopen(instructionChannel))
-        close instructionChannel
+	if (Settings.InstructionChannel&&%chopen(Settings.InstructionChannel))
+		close Settings.InstructionChannel
 
     ;;All done
     stop
@@ -670,7 +646,7 @@ GetInstruction,
     begin
         try
         begin
-            reads(instructionChannel,instruction,,LOCK:Q_AUTO_LOCK)
+			reads(Settings.InstructionChannel,instruction,,LOCK:Q_AUTO_LOCK)
             noMoreInstructions = false
             exitloop
         end
@@ -695,7 +671,7 @@ CheckFileTable,
 
     ;;Do we already have an entry for this file in our namespace?
 
-    if (nsptr = %nspc_find(nsid,instruction.structure_name,structure_data)) then
+	if (nsptr = %nspc_find(Settings.ChannelInfo,instruction.structure_name,structure_data)) then
     begin
         ;;Yes, we're good to go!
         return
@@ -720,7 +696,7 @@ CheckFileTable,
         end
         catch (ex, @SynException)
         begin
-            ok = %LogFunctionFail(logFileChannel,functionName,ex.Errno,ex.Message)
+			ok = %LogFunctionFail(functionName,ex.Errno,ex.Message)
             return
         end
         endtry
@@ -751,7 +727,7 @@ CheckFileTable,
             structure_data.structure_name = instruction.structure_name
 
             ;;Record the new open file in the namespace
-            nsptr = %nspc_add(nsid,instruction.structure_name,structure_data)
+			nsptr = %nspc_add(Settings.ChannelInfo,instruction.structure_name,structure_data)
         end
         else
         begin
@@ -780,7 +756,7 @@ OpenFile,
     end
     catch (ex, @SynException)
     begin
-        ok = %LogFunctionFail(logFileChannel,functionName,ex.Errno,ex.Message)
+		ok = %LogFunctionFail(functionName,ex.Errno,ex.Message)
         return
     end
     endtry
@@ -794,7 +770,7 @@ OpenFile,
     begin
         debuglog(" - Failed to open file!")
         clear structure_data.structure_chan
-        xcall LogFunctionError(logFileChannel,functionName,status,dberrtxt)
+		xcall LogFunctionError(functionName,status,dberrtxt)
     end
 
     return
@@ -809,11 +785,11 @@ CheckTable,
     try
     begin
         functionName = %atrim(instruction.structure_name) + "_EXISTS"
-        status = %xsubr(functionName,db,dberrtxt)
+		status = %xsubr(functionName,Settings.DatabaseChannel,dberrtxt)
     end
     catch (ex, @SynException)
     begin
-        ok = %LogFunctionFail(logFileChannel,functionName,ex.Errno,ex.Message)
+		ok = %LogFunctionFail(functionName,ex.Errno,ex.Message)
         return
     end
     endtry
@@ -827,7 +803,7 @@ CheckTable,
         call CreateTable
     end
     (<0),;Error
-        xcall LogFunctionError(logFileChannel,functionName,status,dberrtxt)
+		xcall LogFunctionError(functionName,status,dberrtxt)
     endusing
 
     return
@@ -842,11 +818,11 @@ CreateTable,
     try
     begin
         functionName = %atrim(instruction.structure_name) + "_CREATE"
-        status = %xsubr(functionName,db,dberrtxt)
+		status = %xsubr(functionName,Settings.DatabaseChannel,dberrtxt)
     end
     catch (ex, @SynException)
     begin
-        ok = %LogFunctionFail(logFileChannel,functionName,ex.Errno,ex.Message)
+		ok = %LogFunctionFail(functionName,ex.Errno,ex.Message)
         return
     end
     endtry
@@ -858,7 +834,7 @@ CreateTable,
     end
     else
     begin
-        xcall LogFunctionError(logFileChannel,functionName,status,dberrtxt)
+		xcall LogFunctionError(functionName,status,dberrtxt)
     end
 
     return
@@ -877,26 +853,26 @@ LoadTable,
 
         functionName = %atrim(instruction.structure_name) + "_LOAD"
 
-        if (runningOnTerminal) then
-            status = %xsubr(functionName,db,dberrtxt,logLoadExceptions,logFileChannel,successCount,failCount)
+		if (Settings.RunningOnTerminal) then
+			status = %xsubr(functionName,Settings.DatabaseChannel,dberrtxt,logLoadExceptions,Settings.LogFileChannel,successCount,failCount)
         else
-            status = %xsubr(functionName,db,dberrtxt,logLoadExceptions,,successCount,failCount)
+			status = %xsubr(functionName,Settings.DatabaseChannel,dberrtxt,logLoadExceptions,,successCount,failCount)
 
         if (status) then
         begin
             log(" - Load complete at " + %TimeNow)
             log(" - " + %string(successCount) + " rows inserted, " + %string(failCount) + " rows failed.")
-            inserts += successCount
-            fails   += failCount
+            Counters.Inserts += successCount
+            Counters.Errors  += failCount
         end
         else
         begin
-            xcall LogFunctionError(logFileChannel,functionName,status,dberrtxt)
+			xcall LogFunctionError(functionName,status,dberrtxt)
         end
     end
     catch (ex, @SynException)
     begin
-        ok = %LogFunctionFail(logFileChannel,functionName,ex.Errno,ex.Message)
+		ok = %LogFunctionFail(functionName,ex.Errno,ex.Message)
     end
     endtry
 
@@ -925,11 +901,11 @@ DoInsert,
     try
     begin
         functionName = %atrim(instruction.structure_name) + '_INSERT_ROW'
-        status = %xsubr(functionName,db,instruction.record(1,structure_data.structure_size),dberrtxt)
+		status = %xsubr(functionName,Settings.DatabaseChannel,instruction.record(1,structure_data.structure_size),dberrtxt)
     end
     catch (ex, @SynException)
     begin
-        ok = %LogFunctionFail(logFileChannel,functionName,ex.Errno,ex.Message)
+		ok = %LogFunctionFail(functionName,ex.Errno,ex.Message)
         return
     end
     endtry
@@ -937,12 +913,12 @@ DoInsert,
     using status select
     (0),
     begin
-        xcall LogFunctionError(logFileChannel,functionName,status,dberrtxt)
+		xcall LogFunctionError(functionName,status,dberrtxt)
     end
     (1),
     begin
         debuglog(" - Row inserted")
-        inserts+=1
+        Counters.Inserts += 1
     end
     (2),
     begin
@@ -985,11 +961,11 @@ DoUpdate,
     try
     begin
         functionName = %atrim(instruction.structure_name) + '_UPDATE_ROW'
-        status = %xsubr(functionName,db,instruction.record(1,structure_data.structure_size),rows,dberrtxt)
+		status = %xsubr(functionName,Settings.DatabaseChannel,instruction.record(1,structure_data.structure_size),rows,dberrtxt)
     end
     catch (ex, @SynException)
     begin
-        ok = %LogFunctionFail(logFileChannel,functionName,ex.Errno,ex.Message)
+		ok = %LogFunctionFail(functionName,ex.Errno,ex.Message)
         return
     end
     endtry
@@ -999,7 +975,7 @@ DoUpdate,
         if (rows) then
         begin
             debuglog(" - Row updated")
-            updates+=1
+			Counters.Updates += 1
         end
         else
         begin
@@ -1018,7 +994,7 @@ DoUpdate,
     end
     else
     begin
-        xcall LogFunctionError(logFileChannel,functionName,status,dberrtxt)
+		xcall LogFunctionError(functionName,status,dberrtxt)
     end
 
     return
@@ -1038,21 +1014,21 @@ DoDelete,
     try
     begin
         functionName = %atrim(instruction.structure_name) + '_DELETE_ROW'
-        status = %xsubr(functionName,db,(a)keyValue,dberrtxt)
+		status = %xsubr(functionName,Settings.DatabaseChannel,(a)keyValue,dberrtxt)
         if (status) then
         begin
             debuglog(" - Row deleted")
-            deletes+=1
+			Counters.Deletes += 1
         end
         else
         begin
             debuglog(" - " + dberrtxt)
-            xcall LogFunctionError(logFileChannel,functionName,status,dberrtxt)
+			xcall LogFunctionError(functionName,status,dberrtxt)
         end
     end
     catch (ex, @SynException)
     begin
-        ok = %LogFunctionFail(logFileChannel,functionName,ex.Errno,ex.Message)
+		ok = %LogFunctionFail(functionName,ex.Errno,ex.Message)
     end
     endtry
 
@@ -1072,7 +1048,7 @@ DoCreateTable,
     try
     begin
         functionName = %atrim(instruction.structure_name) + "_EXISTS"
-        status = %xsubr(functionName,db,dberrtxt)
+		status = %xsubr(functionName,Settings.DatabaseChannel,dberrtxt)
         using status select
         (1),
         begin
@@ -1085,27 +1061,27 @@ DoCreateTable,
             try
             begin
                 functionName = %atrim(instruction.structure_name) + "_CREATE"
-                status = %xsubr(functionName,db,dberrtxt)
+				status = %xsubr(functionName,Settings.DatabaseChannel,dberrtxt)
                 if (status) then
                     debuglog(" - Table created")
                 else
-                    xcall LogFunctionError(logFileChannel,functionName,status,dberrtxt)
+                    xcall LogFunctionError(functionName,status,dberrtxt)
             end
             catch (ex, @SynException)
             begin
-                ok = %LogFunctionFail(logFileChannel,functionName,ex.Errno,ex.Message)
+                ok = %LogFunctionFail(functionName,ex.Errno,ex.Message)
             end
             endtry
         end
         (<0),
         begin
-            xcall LogFunctionError(logFileChannel,functionName,status,dberrtxt)
+            xcall LogFunctionError(functionName,status,dberrtxt)
         end
         endusing
     end
     catch (ex, @SynException)
     begin
-        ok = %LogFunctionFail(logFileChannel,functionName,ex.Errno,ex.Message)
+        ok = %LogFunctionFail(functionName,ex.Errno,ex.Message)
     end
     endtry
 
@@ -1125,11 +1101,11 @@ DoLoadTable,
     try
     begin
         functionName = %atrim(instruction.structure_name) + "_EXISTS"
-        status = %xsubr(functionName,db,dberrtxt)
+		status = %xsubr(functionName,Settings.DatabaseChannel,dberrtxt)
     end
     catch (ex, @SynException)
     begin
-        ok = %LogFunctionFail(logFileChannel,functionName,ex.Errno,ex.Message)
+        ok = %LogFunctionFail(functionName,ex.Errno,ex.Message)
         return
     end
     endtry
@@ -1146,7 +1122,7 @@ DoLoadTable,
     end
     (<0),
     begin
-        xcall LogFunctionError(logFileChannel,functionName,status,dberrtxt)
+        xcall LogFunctionError(functionName,status,dberrtxt)
     end
     endusing
 
@@ -1178,11 +1154,11 @@ DoCreateCsv,
         if (status) then
             debuglog(" - Done at " + %TimeNow)
         else
-            xcall LogFunctionError(logFileChannel,functionName,status,dberrtxt)
+            xcall LogFunctionError(functionName,status,dberrtxt)
     end
     catch (ex, @SynException)
     begin
-        ok = %LogFunctionFail(logFileChannel,functionName,ex.Errno,ex.Message)
+        ok = %LogFunctionFail(functionName,ex.Errno,ex.Message)
     end
     endtry
 
@@ -1198,15 +1174,15 @@ DoDeleteAllRows,
     try
     begin
         functionName = %atrim(instruction.structure_name) + "_CLEAR"
-        status = %xsubr(functionName,db,dberrtxt)
+		status = %xsubr(functionName,Settings.DatabaseChannel,dberrtxt)
         if (status) then
             debuglog(" - Done")
         else
-            xcall LogFunctionError(logFileChannel,functionName,status,dberrtxt)
+            xcall LogFunctionError(functionName,status,dberrtxt)
     end
     catch (ex, @SynException)
     begin
-        ok = %LogFunctionFail(logFileChannel,functionName,ex.Errno,ex.Message)
+        ok = %LogFunctionFail(functionName,ex.Errno,ex.Message)
     end
     endtry
 
@@ -1218,7 +1194,7 @@ DoDeleteAllRows,
 DoDeleteTable,
 
     ;;Is the file in the file table?
-    if (nsptr=%nspc_find(nsid,instruction.structure_name,structure_data))
+	if (nsptr=%nspc_find(Settings.ChannelInfo,instruction.structure_name,structure_data))
     begin
 
         ;Yes - close the file
@@ -1229,7 +1205,7 @@ DoDeleteTable,
         end
 
         ;And remove it from the file table
-        xcall nspc_delete(nsid,nsptr)
+		xcall nspc_delete(Settings.ChannelInfo,nsptr)
     end
 
     log("Deleting table " + %atrim(instruction.structure_name))
@@ -1237,15 +1213,15 @@ DoDeleteTable,
     try
     begin
         functionName = %atrim(instruction.structure_name) + "_DROP"
-        status = %xsubr(functionName,db,dberrtxt)
+		status = %xsubr(functionName,Settings.DatabaseChannel,dberrtxt)
         if (status) then
             debuglog(" - Done")
         else
-            xcall LogFunctionError(logFileChannel,functionName,status,dberrtxt)
+            xcall LogFunctionError(functionName,status,dberrtxt)
     end
     catch (ex, @SynException)
     begin
-        ok = %LogFunctionFail(logFileChannel,functionName,ex.Errno,ex.Message)
+        ok = %LogFunctionFail(functionName,ex.Errno,ex.Message)
         return
     end
     endtry
@@ -1261,7 +1237,7 @@ OpenLogFile,
         data logChannelMode, string
 
         ;;Are we running on a terminal?
-        if (runningOnTerminal) then
+		if (Settings.RunningOnTerminal) then
         begin
             logFileSpec = "TT:"
             logChannelMode = "O"
@@ -1276,26 +1252,29 @@ OpenLogFile,
         ;;Open the log file
         try
         begin
+			data tmpchn, i4
+
             if (cycleLog)
             begin
-                log("Cycling log. New log is " + %atrim(logFileSpec))
-                close logFileChannel
+                log("Cycling log. New log is " + logFileSpec)
+                close Settings.LogFileChannel
                 cycleLog = false
-                if (runningOnTerminal)
+				if (Settings.RunningOnTerminal)
                     sleep 0.5
             end
 
-            open(logFileChannel=0,logChannelMode,logFileSpec)
+			open(tmpchn,logChannelMode,logFileSpec)
+			Settings.LogFileChannel = tmpchn
 
-            if (runningOnTerminal)
-                display(logFileChannel,$scr_pos(1,1),$scr_clr(SCREEN))
+			if (Settings.RunningOnTerminal)
+				display(Settings.LogFileChannel,$scr_pos(1,1),$scr_clr(SCREEN))
 
             log("SQL Replicator Log")
         end
         catch (ex)
         begin
-            if (!runningOnTerminal)
-                xcall syn_reportevent(D_EVENTLOG_ERROR_TYPE,"Replicator failed to open log file " + %atrim(logFileSpec) + ". Error number " + %string(%ernum))
+			if (!Settings.RunningOnTerminal)
+                xcall syn_reportevent(D_EVENTLOG_ERROR_TYPE,"Replicator failed to open log file " + logFileSpec + ". Error number " + %string(%ernum))
             ok = false
         end
         endtry
@@ -1308,9 +1287,9 @@ OpenLogFile,
 
 RecordProcessId,
 
-    if (!runningOnTerminal)
+	if (!Settings.RunningOnTerminal)
     begin
-        data pidFileSpec, string, "REPLICATOR_LOGDIR:REPLICATOR_" + %atrim(instanceName) + ".PID"
+		data pidFileSpec, string, "REPLICATOR_LOGDIR:REPLICATOR_" + Settings.InstanceName + ".PID"
         data pidFileChannel, int
 
         ;;Open the PID file
@@ -1399,28 +1378,6 @@ subroutine ReplicatorShutdown
     .include "INC:structureio.def"
     .include "INC:SmtpMail.def"
 
-    external common
-        instanceName        ,a40                ;;The name of the running instance
-        runningOnTerminal   ,boolean            ;;Program is running on a terminal
-        db                  ,i4                 ;;Database channel
-        nsid                ,i4                 ;;Name space id
-        instructionChannel  ,i4                 ;;Instruction file channel
-        logFileChannel      ,i4                 ;;Log file channel
-        inserts             ,i4                 ;;Create operations completed
-        updates             ,i4                 ;;Update operations completed
-        deletes             ,i4                 ;;Delete operations completed
-        fails               ,i4                 ;;Failed operations
-    endcommon
-
-    external common
-        errorEmail          ,a512
-        emailServer         ,a80
-        emailSender         ,a80
-        emailDomain         ,a80
-        logFileSpec         ,a80
-        stopOnError         ,boolean
-    endcommon
-
     stack record
         idx                 ,i4                 ;;Loop counter
         access_code         ,i4                 ;;Namespace access code
@@ -1432,27 +1389,31 @@ subroutine ReplicatorShutdown
 proc
 
     log("--------------------------------------------------")
-    log("Normal replicator shutdown. Session summary:")
-    log("INSERTS: " + %string(inserts,"ZZZ,ZZZ,ZZZ,ZZX"))
-    log("UPDATES: " + %string(updates,"ZZZ,ZZZ,ZZZ,ZZX"))
-    log("DELETES: " + %string(deletes,"ZZZ,ZZZ,ZZZ,ZZX"))
-    log("ERRORS:  " + %string(fails,  "ZZZ,ZZZ,ZZZ,ZZX"))
+	log("Normal shutdown of SQL replicator " + Settings.InstanceName + ". Summary of activity:")
+	log("INSERTS: " + %string(Counters.Inserts,"ZZZ,ZZZ,ZZZ,ZZX"))
+	log("UPDATES: " + %string(Counters.Updates,"ZZZ,ZZZ,ZZZ,ZZX"))
+	log("DELETES: " + %string(Counters.Deletes,"ZZZ,ZZZ,ZZZ,ZZX"))
+	log("ERRORS:  " + %string(Counters.Errors, "ZZZ,ZZZ,ZZZ,ZZX"))
     log("--------------------------------------------------")
 
     ;;If we're sending emails then let's record the shutdown
-    if (errorEmail && emailServer && emailSender && emailDomain)
+    if (Settings.CanSendEmail())
     begin
         data emailStatus, i4
-        data body, [6]a80
+        data body = new string[10]
 
-        body[1] = "The SQL Replicator was stopped. Session summary:"
-        body[2] = ""
-        body[3] = "INSERTS: " + %string(inserts,"ZZZ,ZZZ,ZZZ,ZZX")
-        body[4] = "UPDATES: " + %string(updates,"ZZZ,ZZZ,ZZZ,ZZX")
-        body[5] = "DELETES: " + %string(deletes,"ZZZ,ZZZ,ZZZ,ZZX")
-        body[6] = "ERRORS:  " + %string(fails,  "ZZZ,ZZZ,ZZZ,ZZX")
+		body[01] = "<html>"
+		body[02] = "<head><title>Replicator Activity Summary</title></head>"
+		body[03] = "<body>"
+		body[04] = "<p>Summary of activity:</p>"
+		body[05] = "<pre>INSERTS: " + %string(Counters.Inserts,"ZZZ,ZZZ,ZZZ,ZZX")
+		body[06] =      "UPDATES: " + %string(Counters.Updates,"ZZZ,ZZZ,ZZZ,ZZX")
+		body[07] =      "DELETES: " + %string(Counters.Deletes,"ZZZ,ZZZ,ZZZ,ZZX")
+		body[08] =      "ERRORS:  " + %string(Counters.Errors, "ZZZ,ZZZ,ZZZ,ZZX") + "</pre>"
+		body[09] = "</body>"
+		body[10] = "</html>"
 
-        if ((emailStatus=%SmtpMail(emailServer,emailDomain,emailSender,"SQL Replicator",,errorEmail,,"Replicator STOPPED",body)) != SMERR_SUCCESS)
+		if ((emailStatus=%SmtpMail(Settings.EmailServer,Settings.EmailDomain,Settings.EmailSender,"SQL Replicator",,Settings.ErrorEmail,,"Replicator " + Settings.InstanceName + " STOPPED",body,,true)) != SMERR_SUCCESS)
         begin
             data errorText, string, %TimeStamp + "ERROR: Failed to send startup email. Error was " + %atrim(SmtpErrorText[emailStatus])
             log(errorText)
@@ -1460,19 +1421,19 @@ proc
     end
 
     ;;Clean up any database cursors and data files that we have open
-    if (nsid)
+	if (Settings.ChannelInfo)
     begin
-        for idx from 1 thru %nspc_stoa(nsid,9999)
+		for idx from 1 thru %nspc_stoa(Settings.ChannelInfo,9999)
         begin
             ;;Get the item data from the namespace
-            access_code = %nspc_stoa(nsid,idx)
-            xcall nspc_getdata(nsid,access_code,structure_data)
+			access_code = %nspc_stoa(Settings.ChannelInfo,idx)
+			xcall nspc_getdata(Settings.ChannelInfo,access_code,structure_data)
 
             ;;Hard close any soft-closed database cursors
             try
             begin
                 functionName = %atrim(structure_data.structure_name) + "_CLOSE_CURSORS"
-                xcall xsubr(functionName,db)
+				xcall xsubr(functionName,Settings.DatabaseChannel)
             end
             catch (ex)
             begin
@@ -1496,33 +1457,33 @@ proc
             end
         end
 
-        xcall nspc_close(nsid)
-        clear nsid
+		xcall nspc_close(Settings.ChannelInfo)
+		Settings.ChannelInfo = 0
 
     end
 
     ;;Close our connection to the database
-    if (db)
+	if (Settings.DatabaseChannel)
     begin
-        xcall ssc_release(db)
-        clear db
+		xcall ssc_release(Settings.DatabaseChannel)
+		Settings.DatabaseChannel = 0
     end
 
     ;;Close the instructions file
-    if (instructionChannel)
+	if (Settings.InstructionChannel)
     begin
-        close instructionChannel
-        clear instructionChannel
+		close Settings.InstructionChannel
+		Settings.InstructionChannel = 0
     end
 
     ;;Delete the PID file
-    if (!runningOnTerminal)
+	if (!Settings.RunningOnTerminal)
     begin
-        data pidFileSpec, string, "REPLICATOR_LOGDIR:REPLICATOR_" + %atrim(instanceName) + ".PID"
+		data pidFileSpec, string, "REPLICATOR_LOGDIR:REPLICATOR_" + Settings.InstanceName + ".PID"
         xcall delet(pidFileSpec)
     end
 
-    if (runningOnTerminal)
+	if (Settings.RunningOnTerminal)
     begin
         log("Replicator will stop in 2 seconds")
         sleep 2
@@ -1535,20 +1496,11 @@ endsubroutine
 ;;*****************************************************************************
 ;;
 subroutine LogFunctionError
-    required in logChannel, int
     required in functionName, string
     required in errorNumber, int
     required in errorMessage, string
     endparams
     .include "INC:SmtpMail.def"
-    external common
-        errorEmail          ,a512
-        emailServer         ,a80
-        emailSender         ,a80
-        emailDomain         ,a80
-        logFileSpec         ,a80
-        stopOnError         ,boolean
-    endcommon
     stack record
         errorText           ,string
     endrecord
@@ -1557,28 +1509,28 @@ proc
     errorText = %TimeStamp+"ERROR: Function" + functionName + " returned error " + %string(errorNumber) + ": " + %atrim(errorMessage)
 
     ;;Log the error
-    writes(logChannel,errorText)
+	writes(Settings.LogFileChannel,errorText)
 
     ;;Email the error?
-    if (errorEmail && emailServer && emailSender && emailDomain)
+    if (Settings.CanSendEmail())
     begin
         data emailStatus, i4
-        data body, [3]a256
-        if (stopOnError) then
+        data body = new string[3]
+        if (Settings.StopOnError) then
             body[1] = "The SQL Replicator encountered the following error and will STOP processing:"
         else
             body[1] = "The SQL Replicator encountered the following error and will CONTINUE processing:"
         body[2] = ""
         body[3] = errorText
-        if ((emailStatus=%SmtpMail(emailServer,emailDomain,emailSender,"SQL Replicator",,errorEmail,,"Replicator ERROR",body)) != SMERR_SUCCESS)
+		if ((emailStatus=%SmtpMail(Settings.EmailServer,Settings.EmailDomain,Settings.EmailSender,"SQL Replicator",,Settings.ErrorEmail,,"Replicator " + Settings.InstanceName + " ERROR",body)) != SMERR_SUCCESS)
         begin
             errorText = %TimeStamp+"ERROR: Failed to send error email. Error was " + %atrim(SmtpErrorText[emailStatus])
-            writes(logChannel,errorText)
+			writes(Settings.LogFileChannel,errorText)
         end
     end
 
     ;;Stop processing?
-    if (stopOnError)
+	if (Settings.StopOnError)
     begin
         xcall ReplicatorShutdown
         stop
@@ -1591,20 +1543,11 @@ endsubroutine
 ;;*****************************************************************************
 ;;
 function LogFunctionFail, boolean
-    required in logChannel, int
     required in functionName, string
     required in errorNumber, int
     required in errorMessage, string
     endparams
     .include "INC:SmtpMail.def"
-    external common
-        errorEmail          ,a512
-        emailServer         ,a80
-        emailSender         ,a80
-        emailDomain         ,a80
-        logFileSpec         ,a80
-        stopOnError         ,boolean
-    endcommon
     stack record
         errorText           ,string
     endrecord
@@ -1613,28 +1556,28 @@ proc
     errorText = %TimeStamp+"ERROR: Function " + functionName + " failed with error " + %string(errorNumber) + ": " + %atrim(errorMessage)
 
     ;;Log the error
-    writes(logChannel,errorText)
+	writes(Settings.LogFileChannel,errorText)
 
     ;;Email the error?
-    if (errorEmail && emailServer && emailSender && emailDomain)
+	if (Settings.CanSendEmail())
     begin
         data emailStatus, i4
-        data body, [3]a256
-        if (stopOnError) then
+        data body = new string[3]
+		if (Settings.StopOnError) then
             body[1] = "The SQL Replicator encountered the following error and will STOP processing:"
         else
             body[1] = "The SQL Replicator encountered the following error and will CONTINUE processing:"
         body[2] = ""
         body[3] = errorText
-        if ((emailStatus=%SmtpMail(emailServer,emailDomain,emailSender,"SQL Replicator",,errorEmail,,"Replicator ERROR",body)) != SMERR_SUCCESS)
+		if ((emailStatus=%SmtpMail(Settings.EmailServer,Settings.EmailDomain,Settings.EmailSender,"SQL Replicator",,Settings.ErrorEmail,,"Replicator " + Settings.InstanceName + " ERROR",body)) != SMERR_SUCCESS)
         begin
             errorText = %TimeStamp+"ERROR: Failed to send error email. Error was " + %atrim(SmtpErrorText[emailStatus])
-            writes(logChannel,errorText)
+			writes(Settings.LogFileChannel,errorText)
         end
     end
 
     ;;Stop processing?
-    if (stopOnError)
+	if (Settings.StopOnError)
     begin
         xcall ReplicatorShutdown
         stop
@@ -1647,23 +1590,8 @@ endfunction
 ;;*****************************************************************************
 ;;
 function TimeStamp, string
-    external common
-        instanceName        ,a40                ;;The name of the running instance
-        runningOnTerminal   ,boolean            ;;Program is running on a terminal
-        db                  ,i4                 ;;Database channel
-        nsid                ,i4                 ;;Name space id
-        instructionChannel  ,i4                 ;;Instruction file channel
-        logFileChannel      ,i4                 ;;Log file channel
-        inserts             ,i4                 ;;Create operations completed
-        updates             ,i4                 ;;Update operations completed
-        deletes             ,i4                 ;;Delete operations completed
-        fails               ,i4                 ;;Failed operations
-    endcommon
-    record
-        now                 ,d20
-    endrecord
 proc
-    if (runningOnTerminal) then
+	if (Settings.RunningOnTerminal) then
         freturn ""
     else
     begin
@@ -1683,52 +1611,12 @@ proc
 endfunction
 
 ;;*****************************************************************************
-;;
-;; Title:       CommandLineParser.dbl
-;;
-;; Type:        Class
-;;
-;; Description: Parses and returns information about the command line that
-;;              started the program
-;;
-;; Date:        14th August 2014
-;;
-;; Author:      Steve Ives, Synergex Professional Services Group
-;;              http://www.synergex.com
-;;
-;;*****************************************************************************
-;;
-;; Copyright (c) 2014, Synergex International, Inc.
-;; All rights reserved.
-;;
-;; Redistribution and use in source and binary forms, with or without
-;; modification, are permitted provided that the following conditions are met:
-;;
-;; * Redistributions of source code must retain the above copyright notice,
-;;   this list of conditions and the following disclaimer.
-;;
-;; * Redistributions in binary form must reproduce the above copyright notice,
-;;   this list of conditions and the following disclaimer in the documentation
-;;   and/or other materials provided with the distribution.
-;;
-;; THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-;; AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-;; IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-;; ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
-;; LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-;; CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-;; SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-;; INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-;; CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
-;; ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-;; POSSIBILITY OF SUCH DAMAGE.
-;;
-;;*****************************************************************************
-
-import System.Collections
 
 namespace Tools
 
+	;;; <summary>
+	;;; Parses and returns information about the command line that started the program.
+	;;; </summary>
     public class CommandLineParser
 
         public static method Parse, boolean
@@ -1839,5 +1727,115 @@ namespace Tools
         endmethod
 
     endclass
+
+	public class Counters
+
+		public static Inserts, int
+
+		public static Updates, int
+
+		public static Deletes, int
+
+		public static Errors, int
+
+	endclass
+
+	;;; <summary>
+	;;; Represents various settings used within the replicator application.
+	;;; </summary>
+	public class Settings
+
+		;;; <summary>
+		;;; A synergy namespace used to store information about SDMS channels that the replicator currently has open
+		;;; </summary>
+		public static property ChannelInfo, i4
+			method get
+			endmethod
+			method set
+			endmethod
+		endproperty
+
+		public static property DatabaseChannel, i4
+			method get
+			endmethod
+			method set
+			endmethod
+		endproperty
+
+		private static mInstanceName, string
+
+		public static property InstanceName, string
+			method get
+			proc
+				mreturn mInstanceName
+			endmethod
+			method set
+			proc
+				mInstanceName = value.ToUpper()
+			endmethod
+		endproperty
+
+		public static property InstructionChannel, i4
+			method get
+			endmethod
+			method set
+			endmethod
+		endproperty
+
+		public static property ErrorEmail, string
+			method get
+			endmethod
+			method set
+			endmethod
+		endproperty
+
+		public static property EmailServer, string
+			method get
+			endmethod
+			method set
+			endmethod
+		endproperty
+
+		public static property EmailSender, string
+			method get
+			endmethod
+			method set
+			endmethod
+		endproperty
+
+		public static property EmailDomain, string
+			method get
+			endmethod
+			method set
+			endmethod
+		endproperty
+
+		public static property LogFileChannel, i4
+			method get
+			endmethod
+			method set
+			endmethod
+		endproperty
+
+		public static property RunningOnTerminal, boolean
+			method get
+			endmethod
+			method set
+			endmethod
+		endproperty
+
+		public static property StopOnError, boolean
+			method get
+			endmethod
+			method set
+			endmethod
+		endproperty
+
+		public static method CanSendEmail, boolean
+		proc
+			mreturn (ErrorEmail != ^null && ErrorEmail.Length>0 && EmailServer != ^null && EmailServer.Length>0 && EmailSender != ^null && EmailSender.Length>0 && EmailDomain != ^null && EmailDomain.Length>0)
+		endmethod
+
+	endclass
 
 endnamespace

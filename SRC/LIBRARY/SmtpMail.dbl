@@ -58,70 +58,72 @@
 function SmtpMail ,^val
 
     ;Server
-    a_server        ,a      ;SMTP server name or ip address (required)
+    required in a_server		,a			;SMTP server name or ip address (required)
 
     ;Sender
-    a_domain        ,a      ;Sender's domain name (required)
-    a_sender        ,a      ;Senders e-mail address  (required)
-    a_sender_name   ,a      ;Senders name (optional)
-    a_replyto       ,a      ;Reply to email address (optional)
+	required in a_domain        ,a			;Sender's domain name (required)
+	required in a_sender        ,a			;Senders e-mail address  (required)
+    optional in a_sender_name   ,a			;Senders name (optional)
+	optional in a_replyto       ,a			;Reply to email address (optional)
 
     ;Recipient(s)
-    a_tolist        ,a      ;Recipient list (required, comma delimited)
-    a_cclist        ,a      ;CC list (optional, comma delimited)
+	required in a_tolist        ,a			;Recipient list (required, comma delimited)
+	optional in a_cclist        ,a			;CC list (optional, comma delimited)
 
     ;Message
-    a_subject       ,a      ;Subject text (optional)
-    a_bodyarray     ,[*]a   ;Body text array (optional)
-    a_bodyfile      ,a      ;File containing body text (optional)
-    a_bodyhtml      ,n      ;Does the body contain HTML?
+	optional in a_subject       ,a			;Subject text (optional)
+	optional in a_bodyarray     ,[#]string  ;Body text array (optional)
+	optional in a_bodyfile      ,a			;File containing body text (optional)
+	optional in a_bodyhtml      ,n			;Does the body contain HTML?
 
     ;Attachment
-    a_attachfile    ,[*]a   ;Attachment file names (optional)
+	optional in a_attachfile    ,[*]a		;Attachment file names (optional)
 
-    ;End of parameters
+    endparams
 
-.include "INC:SmtpMail.def"
-.include "DBLDIR:synsock.def"
+	.include "INC:SmtpMail.def"
+	.include "DBLDIR:synsock.def"
 
-external function
-    get_smtp_line   ,^val
-    send_rcpt_list  ,^val
-    synsock         ,^val
+	external function
+		get_smtp_line   ,^val
+		send_rcpt_list  ,^val
+		synsock         ,^val
+	endexternal
 
-stack record avars
-    cr              ,a1     ;Carriage return
-    lf              ,a1     ;Line feed
-    line_buf        ,a255
-    infile          ,a255
-    outfile         ,a255
-    group dt
-        year        ,a4
-        month       ,d2
-        day         ,a2
-        hour        ,a2
-        minute      ,a2
-        seconds     ,a2
-        milli       ,a6
-    endgroup
+	stack record avars
+		cr              ,a1     ;Carriage return
+		lf              ,a1     ;Line feed
+		line_buf        ,a255
+		infile          ,a255
+		outfile         ,a255
+		group dt
+			year        ,a4
+			month       ,d2
+			day         ,a2
+			hour        ,a2
+			minute      ,a2
+			seconds     ,a2
+			milli       ,a6
+		endgroup
+	endrecord
 
-.align
-stack record ivars
-    sd              ,D_ADDR ;Socket descriptor
-    rc              ,i4     ;Reply code from server
-    inaddr          ,i4     ;internet address for server - needed by connect
-    err             ,i4
-    chan            ,i4     ;channel to open bodyfile
-    count           ,i4     ;Loop counter
-    dll             ,i4     ;Dll handle
-    dllsts          ,i4     ;Dll call return status
-    dllopt          ,i4     ;Dll option
+	.align
+	stack record ivars
+		sd              ,D_ADDR ;Socket descriptor
+		rc              ,i4     ;Reply code from server
+		inaddr          ,i4     ;internet address for server - needed by connect
+		err             ,i4
+		chan            ,i4     ;channel to open bodyfile
+		count           ,i4     ;Loop counter
+		dll             ,i4     ;Dll handle
+		dllsts          ,i4     ;Dll call return status
+		dllopt          ,i4     ;Dll option
+	endrecord
 
-literal
-    dayname         ,[7]a3  ,"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"
-    monthname       ,[12]a3 ,"Jan", "Feb", "Mar", "Apr", "May", "Jun",
-    &                         "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
-
+	literal
+		dayname         ,[7]a3  ,"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"
+		monthname       ,[12]a3 ,"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+	endliteral
 
 proc
 
@@ -263,9 +265,10 @@ proc
     if (^passed(a_bodyarray))
     begin
         ;Yes, add the body text from the array
-        for count from 1 thru ^argdim(^argnum(a_bodyarray),1)
-            xcall put_data_line(sd, %atrim(a_bodyarray[count]))
-    end
+		data bodyLine, string
+		foreach bodyLine in a_bodyarray
+			xcall put_data_line(sd,(a)bodyLine)
+	end
 
     ;Were we passed the name of a file containing body text?
     if (^passed(a_bodyfile)&&a_bodyfile)
