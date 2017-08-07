@@ -1,14 +1,10 @@
-<CODEGEN_FILENAME>PopulateReplicationKey.dbl</CODEGEN_FILENAME>
-;//
-;// This routine should be generated ONE time and then manually maintained!
-;//
 ;;*****************************************************************************
 ;;
 ;; File:        PopulateReplicationKey.dbl
 ;;
 ;; Description: Put unique replication key
 ;;
-;; Author:      <AUTHOR>
+;; Author:      Steve Ives, Synergex Professional Services Group
 ;;
 ;;*****************************************************************************
 ;;

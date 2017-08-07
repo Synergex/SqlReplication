@@ -1,26 +1,12 @@
-<CODEGEN_FILENAME>IsTime.dbl</CODEGEN_FILENAME>
-;//*****************************************************************************
-;//
-;// Title:      IsTime.tpl
-;//
-;// Description:Template to generate a subroutine that determines whether the
-;//             data in an alpha variable represents a time value in HHMMSS or
-;//             HHMM format.
-;//
-;// Author:     Steve Ives, Synergex Professional Services Group
-;//
-;// Copyright   © 2016 Synergex International Corporation.  All rights reserved.
-;//
 ;;*****************************************************************************
 ;;
-;; File:        IsTime.dbl
+;; File:        IsDate.dbl
 ;;
-;; Type:        Function (IsTime)
+;; Type:        Function
 ;;
-;; Description: Determines whether the data in an alpha variable represents a
-;;              time value in HHMMSS or HHMM format.
+;; Description: Determines if data in an alpha variable represents a date value.
 ;;
-;; Author:      Steve Ives
+;; Author:      Steve Ives, Synergex Professional Services Group
 ;;
 ;;*****************************************************************************
 ;;
@@ -50,27 +36,22 @@
 ;; POSSIBILITY OF SUCH DAMAGE.
 ;;
 ;;*****************************************************************************
+;; WARNING: THIS CODE WAS CODE GENERATED AND WILL BE OVERWRITTEN IF CODE
+;;          GENERATION IS RE-EXECUTED FOR THIS PROJECT.
+;;*****************************************************************************
 
-function IsTime, boolean
-	required in group value, a
-	  hour, d2
-	  minute, d2
-	  second, d2
-	endgroup
+function IsDate, boolean
+	required in value, a
 proc
-	using ^size(value) select
-	(4),
-		freturn %IsNumeric(value)
-		& && (hour>=0)   && (hour<=23)
-		& && (minute>=0) && (minute<=59)
-	(6),
-		freturn %IsNumeric(value)
-		& && (hour>=0)   && (hour<=23)
-		& && (minute>=0) && (minute<=59)
-		& && (second>=0) && (second<=59)
-	(),
+	try
+	begin
+		data julianDate, i4, %jperiod(^d(value))
+		freturn true
+	end
+	catch (ex)
+	begin
 		freturn false
-	endusing
-
+	end
+	endtry
 endfunction
 

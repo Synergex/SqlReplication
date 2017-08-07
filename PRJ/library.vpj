@@ -162,11 +162,11 @@
             Filters="*.tpl">
             <F N="../SRC/TEMPLATES/ConfigureReplication.tpl"/>
             <F N="../SRC/TEMPLATES/FileDataReport.tpl"/>
-            <F N="../SRC/TEMPLATES/IsDate.tpl"/>
-            <F N="../SRC/TEMPLATES/IsNumeric.tpl"/>
-            <F N="../SRC/TEMPLATES/IsTime.tpl"/>
+            <F N="../SRC/TEMPLATES/IsDate.dbl"/>
+            <F N="../SRC/TEMPLATES/IsNumeric.dbl"/>
+            <F N="../SRC/TEMPLATES/IsTime.dbl"/>
             <F N="../SRC/TEMPLATES/LastRecordCache.tpl"/>
-            <F N="../SRC/TEMPLATES/PopulateReplicationKey.tpl"/>
+            <F N="../SRC/TEMPLATES/PopulateReplicationKey.dbl"/>
             <F N="../SRC/TEMPLATES/replicate.tpl"/>
             <F N="../SRC/TEMPLATES/ReplicationIoHooks.tpl"/>
             <F N="../SRC/TEMPLATES/SqlIO.tpl"/>

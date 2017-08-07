@@ -1,29 +1,17 @@
-<CODEGEN_FILENAME>IsDate.dbl</CODEGEN_FILENAME>
-;//*****************************************************************************
-;//
-;// Title:      IsDate.tpl
-;//
-;// Description:Template to generate a subroutine that determines whether the
-;//             data in an alpha variable represents a date value.
-;//
-;// Author:     Steve Ives, Synergex Professional Services Group
-;//
-;// Copyright   © 2016 Synergex International Corporation.  All rights reserved.
-;//
 ;;*****************************************************************************
 ;;
-;; File:        IsDate.dbl
+;; File:        IsNumeric.dbl
 ;;
-;; Type:        Function (IsDate)
+;; Type:        Subroutine
 ;;
 ;; Description: Determines whether the data in an alpha variable represents a
-;;              date value.
+;;              numeric value.
 ;;
-;; Author:      Steve Ives
+;; Author:      Steve Ives, Synergex Professional Services Group
 ;;
 ;;*****************************************************************************
 ;;
-;; Copyright (c) 2016, Synergex International, Inc.
+;; Copyright (c) 2009, Synergex International, Inc.
 ;; All rights reserved.
 ;;
 ;; Redistribution and use in source and binary forms, with or without
@@ -53,12 +41,13 @@
 ;;          GENERATION IS RE-EXECUTED FOR THIS PROJECT.
 ;;*****************************************************************************
 
-function IsDate, boolean
-	required in value, a
+function IsNumeric, boolean
+	required in valueToTest, a
 proc
 	try
 	begin
-		data julianDate, i4, %jperiod(^d(value))
+		data number, d28.10
+		number = valueToTest
 		freturn true
 	end
 	catch (ex)
