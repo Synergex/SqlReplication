@@ -2,6 +2,7 @@
 <PROVIDE_FILE>IsDate.dbl</PROVIDE_FILE>
 <PROVIDE_FILE>IsNumeric.dbl</PROVIDE_FILE>
 <PROVIDE_FILE>IsTime.dbl</PROVIDE_FILE>
+<PROVIDE_FILE>sqlgbl.def</PROVIDE_FILE>
 <PROVIDE_FILE>structureio.def</PROVIDE_FILE>
 ;//*****************************************************************************
 ;//

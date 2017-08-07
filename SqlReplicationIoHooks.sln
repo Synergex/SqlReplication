@@ -23,6 +23,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Templates", "Templates", "{
 		SRC\TEMPLATES\replicate.tpl = SRC\TEMPLATES\replicate.tpl
 		SRC\TEMPLATES\ReplicationIoHooks.tpl = SRC\TEMPLATES\ReplicationIoHooks.tpl
 		SRC\TEMPLATES\SqlIO.tpl = SRC\TEMPLATES\SqlIO.tpl
+		SRC\TEMPLATES\sqlgbl.def = SRC\TEMPLATES\sqlgbl.def
 		SRC\TEMPLATES\structureio.def = SRC\TEMPLATES\structureio.def
 		SRC\TEMPLATES\SynIO.tpl = SRC\TEMPLATES\SynIO.tpl
 		SRC\TEMPLATES\tk_change.tpl = SRC\TEMPLATES\tk_change.tpl
