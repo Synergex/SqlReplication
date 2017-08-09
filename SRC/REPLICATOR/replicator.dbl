@@ -389,6 +389,36 @@ proc
         end
     end
 
+    ;;Check if the instruction file exists, if not create it
+    if (ok)
+	begin
+		data exists = true
+		try
+		begin
+			data tmpchn, i4, 0
+			open(tmpchn,I:I,D_TRANS_FILE)
+			close tmpchn
+		end
+		catch (e, @Exception)
+		begin
+			exists = false
+		end
+		endtry
+		if (!exists)
+		begin
+			try
+			begin
+				xcall isamc(D_TRANS_FILE + ", FIXED, COMPRESS, PAGE=1024, TBYTE", 65054, 1, "START=1, LENGTH=20, NAME=TRANSACTION_ID") ;Defaults: TYPE=ALPHA, NODUPS, NOMODIFY, ASCEND
+			end
+			catch (e, @Exception)
+			begin
+				log("ERROR: Failed to create new " + D_TRANS_FILE)
+				ok = false
+			end
+			endtry
+		end
+	end
+
     ;;Open the instruction file
     if (ok)
     begin
