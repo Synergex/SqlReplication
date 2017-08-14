@@ -1412,7 +1412,7 @@ function <structure_name>_update_row ,^val
 		& +              "<FieldSqlName>=:<COUNTER_1_VALUE><,>"
 		</IF USERTIMESTAMP>
 		</FIELD_LOOP>
-		& +              " WHERE <UNIQUE_KEY><SEGMENT_LOOP><COUNTER_1_INCREMENT><SegmentName>=:<COUNTER_1_VALUE> <AND></SEGMENT_LOOP></UNIQUE_KEY>"
+		& +              " WHERE <UNIQUE_KEY><SEGMENT_LOOP><COUNTER_1_INCREMENT><SegmentName>=:<COUNTER_1_VALUE> <AND> </SEGMENT_LOOP></UNIQUE_KEY>"
 	endliteral
 
 	static record
