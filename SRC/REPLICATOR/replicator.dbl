@@ -419,7 +419,37 @@ proc
 		end
 	end
 
-    ;;Open the instruction file
+	;;Check if the instruction file exists, if not create it
+	if (ok)
+	begin
+		try
+		begin
+			data tmpchn, i4, 0
+			open(tmpchn,I:I,D_TRANS_FILE)
+			close tmpchn
+		end
+		catch (e, @Synergex.SynergyDE.NoFileFoundException)
+		begin
+			try
+			begin
+				xcall isamc(D_TRANS_FILE + ", FIXED, COMPRESS, PAGE=1024, TBYTE", 65054, 1, "START=1, LENGTH=20, NAME=TRANSACTION_ID") ;Defaults: TYPE=ALPHA, NODUPS, NOMODIFY, ASCEND
+			end
+			catch (e, @Exception)
+			begin
+				log("ERROR: Failed to create new " + D_TRANS_FILE + " - Error " + e.Message)
+				ok = false
+			end
+			endtry
+		end
+		catch (e, @Exception)
+		begin
+			log("ERROR: Failed to open " + D_TRANS_FILE + " - Error " + e.Message)
+			ok = false
+		end
+		endtry
+	end
+
+	;;Open the instruction file
     if (ok)
     begin
 		try
