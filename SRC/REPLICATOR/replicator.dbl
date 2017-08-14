@@ -436,14 +436,14 @@ proc
 			end
 			catch (e, @Exception)
 			begin
-				log("ERROR: Failed to create new " + D_TRANS_FILE + " - Error " + e.Message)
+				log("ERROR: Failed to create new " + D_TRANS_FILE + " - Error: " + e.Message)
 				ok = false
 			end
 			endtry
 		end
 		catch (e, @Exception)
 		begin
-			log("ERROR: Failed to open " + D_TRANS_FILE + " - Error " + e.Message)
+			log("ERROR: Failed to open " + D_TRANS_FILE + " - Error: " + e.Message)
 			ok = false
 		end
 		endtry
