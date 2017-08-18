@@ -81,26 +81,26 @@ proc
 	;;Create the database table and primary key constraint
 	if (ok)
 	begin
-		sql = "CREATE TABLE Employee ("
-		& + "EmpId DECIMAL(6) NOT NULL,"
-		& + "EmpFirstName VARCHAR(20) NOT NULL,"
-		& + "EmpLastName VARCHAR(20) NOT NULL,"
-		& + "EmpDept VARCHAR(15) NOT NULL,"
-		& + "EmpHireDate DATE,"
-		& + "EmpPhoneWork VARCHAR(14),"
-		& + "EmpPhoneHome VARCHAR(14),"
-		& + "EmpPhoneCell VARCHAR(14),"
-		& + "EmpPaid DECIMAL(1),"
-		& + "EmpHomeOk DECIMAL(1),"
-		& + "EmpDateOfBirth DATE,"
-		& + "EmpHireTime TIME(0),"
-		& + "EmpEmail VARCHAR(40),"
-		& + "EmpAddressStreet VARCHAR(30),"
-		& + "EmpAddressCity VARCHAR(20),"
-		& + "EmpAddressState VARCHAR(2),"
-		& + "EmpAddressZip DECIMAL(5),"
-		& + "CONSTRAINT PK_Employee PRIMARY KEY CLUSTERED(EmpId ASC)"
-		& + ")"
+		sql = 'CREATE TABLE "Employee" ('
+		& + '"EmpId" DECIMAL(6) NOT NULL,'
+		& + '"EmpFirstName" VARCHAR(20) NOT NULL,'
+		& + '"EmpLastName" VARCHAR(20) NOT NULL,'
+		& + '"EmpDept" VARCHAR(15) NOT NULL,'
+		& + '"EmpHireDate" DATE,'
+		& + '"EmpPhoneWork" VARCHAR(14),'
+		& + '"EmpPhoneHome" VARCHAR(14),'
+		& + '"EmpPhoneCell" VARCHAR(14),'
+		& + '"EmpPaid" DECIMAL(1),'
+		& + '"EmpHomeOk" DECIMAL(1),'
+		& + '"EmpDateOfBirth" DATE,'
+		& + '"EmpHireTime" TIME(0),'
+		& + '"EmpEmail" VARCHAR(40),'
+		& + '"EmpAddressStreet" VARCHAR(30),'
+		& + '"EmpAddressCity" VARCHAR(20),'
+		& + '"EmpAddressState" VARCHAR(2),'
+		& + '"EmpAddressZip" DECIMAL(5),'
+		& + 'CONSTRAINT PK_Employee PRIMARY KEY CLUSTERED("EmpId" ASC)'
+		& + ')'
 
 		call open_cursor
 
@@ -114,7 +114,7 @@ proc
 	;;Create index 1 (Department ID)
 	if (ok)
 	begin
-		sql = "CREATE  INDEX IX_Employee_EmpDept ON Employee(EmpDept ASC)"
+		sql = 'CREATE  INDEX IX_Employee_EmpDept ON "Employee"("EmpDept" ASC)'
 
 		call open_cursor
 
@@ -128,7 +128,7 @@ proc
 	;;Create index 2 (Last name)
 	if (ok)
 	begin
-		sql = "CREATE  INDEX IX_Employee_EmpLastName ON Employee(EmpLastName ASC)"
+		sql = 'CREATE  INDEX IX_Employee_EmpLastName ON "Employee"("EmpLastName" ASC)'
 
 		call open_cursor
 
@@ -142,7 +142,7 @@ proc
 	;;Create index 3 (State)
 	if (ok)
 	begin
-		sql = "CREATE  INDEX IX_Employee_StateCode ON Employee(EmpAddressState ASC)"
+		sql = 'CREATE  INDEX IX_Employee_StateCode ON "Employee"("EmpAddressState" ASC)'
 
 		call open_cursor
 
@@ -156,7 +156,7 @@ proc
 	;;Create index 4 (Zip code)
 	if (ok)
 	begin
-		sql = "CREATE  INDEX IX_Employee_ZipCode ON Employee(EmpAddressZip ASC)"
+		sql = 'CREATE  INDEX IX_Employee_ZipCode ON "Employee"("EmpAddressZip" ASC)'
 
 		call open_cursor
 
@@ -170,7 +170,7 @@ proc
 	;;Grant access permissions
 	if (ok)
 	begin
-		sql = "GRANT ALL ON Employee TO PUBLIC"
+		sql = 'GRANT ALL ON "Employee" TO PUBLIC'
 
 		call open_cursor
 
@@ -424,8 +424,8 @@ proc
 	;;Open a cursor for the DELETE statement
 	if (ok)
 	begin
-		sql = "DELETE FROM Employee WHERE "
-		& + " EmpId=" + %string(employee.emp_id) + " "
+		sql = 'DELETE FROM "Employee" WHERE'
+		& + ' "EmpId"=' + "'" + %string(employee.emp_id) + "' "
 		if (%ssc_open(a_dbchn,cursor,(a)sql,SSQL_NONSEL)==SSQL_FAILURE)
 		begin
 			ok = false
@@ -596,23 +596,23 @@ function employee_insert_row ,^val
 
 	literal
 		sql         ,a*, "INSERT INTO Employee ("
-		& +              "EmpId,"
-		& +              "EmpFirstName,"
-		& +              "EmpLastName,"
-		& +              "EmpDept,"
-		& +              "EmpHireDate,"
-		& +              "EmpPhoneWork,"
-		& +              "EmpPhoneHome,"
-		& +              "EmpPhoneCell,"
-		& +              "EmpPaid,"
-		& +              "EmpHomeOk,"
-		& +              "EmpDateOfBirth,"
-		& +              "EmpHireTime,"
-		& +              "EmpEmail,"
-		& +              "EmpAddressStreet,"
-		& +              "EmpAddressCity,"
-		& +              "EmpAddressState,"
-		& +              "EmpAddressZip"
+		& +              '"EmpId",'
+		& +              '"EmpFirstName",'
+		& +              '"EmpLastName",'
+		& +              '"EmpDept",'
+		& +              '"EmpHireDate",'
+		& +              '"EmpPhoneWork",'
+		& +              '"EmpPhoneHome",'
+		& +              '"EmpPhoneCell",'
+		& +              '"EmpPaid",'
+		& +              '"EmpHomeOk",'
+		& +              '"EmpDateOfBirth",'
+		& +              '"EmpHireTime",'
+		& +              '"EmpEmail",'
+		& +              '"EmpAddressStreet",'
+		& +              '"EmpAddressCity",'
+		& +              '"EmpAddressState",'
+		& +              '"EmpAddressZip"'
 		& +              ") VALUES(:1,:2,:3,:4,:5,:6,:7,:8,:9,:10,:11,:12,:13,:14,:15,:16,:17)"
 	endliteral
 
@@ -832,23 +832,23 @@ function employee_insert_rows ,^val
 
 	literal
 		sql         ,a*, "INSERT INTO Employee ("
-		& +              "EmpId,"
-		& +              "EmpFirstName,"
-		& +              "EmpLastName,"
-		& +              "EmpDept,"
-		& +              "EmpHireDate,"
-		& +              "EmpPhoneWork,"
-		& +              "EmpPhoneHome,"
-		& +              "EmpPhoneCell,"
-		& +              "EmpPaid,"
-		& +              "EmpHomeOk,"
-		& +              "EmpDateOfBirth,"
-		& +              "EmpHireTime,"
-		& +              "EmpEmail,"
-		& +              "EmpAddressStreet,"
-		& +              "EmpAddressCity,"
-		& +              "EmpAddressState,"
-		& +              "EmpAddressZip"
+		& +              '"EmpId",'
+		& +              '"EmpFirstName",'
+		& +              '"EmpLastName",'
+		& +              '"EmpDept",'
+		& +              '"EmpHireDate",'
+		& +              '"EmpPhoneWork",'
+		& +              '"EmpPhoneHome",'
+		& +              '"EmpPhoneCell",'
+		& +              '"EmpPaid",'
+		& +              '"EmpHomeOk",'
+		& +              '"EmpDateOfBirth",'
+		& +              '"EmpHireTime",'
+		& +              '"EmpEmail",'
+		& +              '"EmpAddressStreet",'
+		& +              '"EmpAddressCity",'
+		& +              '"EmpAddressState",'
+		& +              '"EmpAddressZip"'
 		& +              ") VALUES(:1,:2,:3,:4,:5,:6,:7,:8,:9,:10,:11,:12,:13,:14,:15,:16,:17)"
 	endliteral
 
@@ -1253,25 +1253,25 @@ function employee_update_row ,^val
 	endrecord
 
 	literal
-		sql         ,a*, "UPDATE Employee SET "
-		& +              "EmpId=:1,"
-		& +              "EmpFirstName=:2,"
-		& +              "EmpLastName=:3,"
-		& +              "EmpDept=:4,"
-		& +              "EmpHireDate=:5,"
-		& +              "EmpPhoneWork=:6,"
-		& +              "EmpPhoneHome=:7,"
-		& +              "EmpPhoneCell=:8,"
-		& +              "EmpPaid=:9,"
-		& +              "EmpHomeOk=:10,"
-		& +              "EmpDateOfBirth=:11,"
-		& +              "EmpHireTime=:12,"
-		& +              "EmpEmail=:13,"
-		& +              "EmpAddressStreet=:14,"
-		& +              "EmpAddressCity=:15,"
-		& +              "EmpAddressState=:16,"
-		& +              "EmpAddressZip=:17"
-		& +              " WHERE EmpId=:18  "
+		sql         ,a*, 'UPDATE Employee SET '
+		& +              '"EmpId"=:1,'
+		& +              '"EmpFirstName"=:2,'
+		& +              '"EmpLastName"=:3,'
+		& +              '"EmpDept"=:4,'
+		& +              '"EmpHireDate"=:5,'
+		& +              '"EmpPhoneWork"=:6,'
+		& +              '"EmpPhoneHome"=:7,'
+		& +              '"EmpPhoneCell"=:8,'
+		& +              '"EmpPaid"=:9,'
+		& +              '"EmpHomeOk"=:10,'
+		& +              '"EmpDateOfBirth"=:11,'
+		& +              '"EmpHireTime"=:12,'
+		& +              '"EmpEmail"=:13,'
+		& +              '"EmpAddressStreet"=:14,'
+		& +              '"EmpAddressCity"=:15,'
+		& +              '"EmpAddressState"=:16,'
+		& +              '"EmpAddressZip"=:17'
+		& +              ' WHERE "EmpId"=:18  '
 	endliteral
 
 	static record
@@ -1490,7 +1490,7 @@ proc
 
 	if (ok)
 	begin
-		sql = "TRUNCATE TABLE Employee"
+		sql = 'TRUNCATE TABLE "Employee"'
 		if (%ssc_open(a_dbchn,cursor,(a)sql,SSQL_NONSEL)==SSQL_FAILURE)
 		begin
 			ok = false

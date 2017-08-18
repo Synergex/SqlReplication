@@ -98,14 +98,14 @@ proc
 	;;Create the database table and primary key constraint
 	if (ok)
 	begin
-		sql = "CREATE TABLE <StructureName> ("
+		sql = 'CREATE TABLE "<StructureName>" ('
 		<FIELD_LOOP>
-		& + "<FieldSqlName> <FIELD_SQLTYPE><IF REQUIRED> NOT NULL</IF><IF LAST><IF STRUCTURE_HAS_UNIQUE_PK>,</IF STRUCTURE_HAS_UNIQUE_PK><ELSE>,</IF LAST>"
+		& + '"<FieldSqlName>" <FIELD_SQLTYPE><IF REQUIRED> NOT NULL</IF><IF LAST><IF STRUCTURE_HAS_UNIQUE_PK>,</IF STRUCTURE_HAS_UNIQUE_PK><ELSE>,</IF LAST>'
 		</FIELD_LOOP>
 		<IF STRUCTURE_HAS_UNIQUE_PK>
-		& + "CONSTRAINT PK_<StructureName> PRIMARY KEY CLUSTERED(<PRIMARY_KEY><SEGMENT_LOOP><SegmentName> <SEGMENT_ORDER><,></SEGMENT_LOOP></PRIMARY_KEY>)"
+		& + 'CONSTRAINT PK_<StructureName> PRIMARY KEY CLUSTERED(<PRIMARY_KEY><SEGMENT_LOOP>"<SegmentName>" <SEGMENT_ORDER><,></SEGMENT_LOOP></PRIMARY_KEY>)'
 		</IF STRUCTURE_HAS_UNIQUE_PK>
-		& + ")"
+		& + ')'
 
 		call open_cursor
 
@@ -121,7 +121,7 @@ proc
 	;;The structure has no unique primary key, so no primary key constraint was added to the table. Create an index instead.
 	if (ok)
 	begin
-		sql = "<PRIMARY_KEY>CREATE INDEX IX_<StructureName>_<KeyName> ON <StructureName>(<SEGMENT_LOOP><SegmentName> <SEGMENT_ORDER><,></SEGMENT_LOOP>)</PRIMARY_KEY>"
+		sql = '<PRIMARY_KEY>CREATE INDEX IX_<StructureName>_<KeyName> ON "<StructureName>"(<SEGMENT_LOOP>"<SegmentName>" <SEGMENT_ORDER><,></SEGMENT_LOOP>)</PRIMARY_KEY>'
 
 		call open_cursor
 
@@ -137,7 +137,7 @@ proc
 	;;Create index <KEY_NUMBER> (<KEY_DESCRIPTION>)
 	if (ok)
 	begin
-		sql = "CREATE <KEY_UNIQUE> INDEX IX_<StructureName>_<KeyName> ON <StructureName>(<SEGMENT_LOOP><SegmentName> <SEGMENT_ORDER><,></SEGMENT_LOOP>)"
+		sql = 'CREATE <KEY_UNIQUE> INDEX IX_<StructureName>_<KeyName> ON "<StructureName>"(<SEGMENT_LOOP>"<SegmentName>" <SEGMENT_ORDER><,></SEGMENT_LOOP>)'
 
 		call open_cursor
 
@@ -152,7 +152,7 @@ proc
 	;;Grant access permissions
 	if (ok)
 	begin
-		sql = "GRANT ALL ON <StructureName> TO PUBLIC"
+		sql = 'GRANT ALL ON "<StructureName>" TO PUBLIC'
 
 		call open_cursor
 
@@ -406,13 +406,13 @@ proc
 	;;Open a cursor for the DELETE statement
 	if (ok)
 	begin
-		sql = "DELETE FROM <StructureName> WHERE "
+		sql = 'DELETE FROM "<StructureName>" WHERE'
 		<UNIQUE_KEY>
 		<SEGMENT_LOOP>
 		<IF ALPHA>
-		& + " <SegmentName>='" + %atrim(^a(<structureName>.<segment_name>)) + "' <AND>"
+		& + ' "<SegmentName>"=' + "'" + %atrim(^a(<structureName>.<segment_name>)) + "' <AND>"
 		<ELSE>
-		& + " <SegmentName>=" + %string(<structureName>.<segment_name>) + " <AND>"
+		& + ' "<SegmentName>"=' + "'" + %string(<structureName>.<segment_name>) + "' <AND>"
 		</IF ALPHA>
 		</SEGMENT_LOOP>
 		</UNIQUE_KEY>
@@ -587,7 +587,7 @@ function <structure_name>_insert_row ,^val
 	literal
 		sql         ,a*, "INSERT INTO <StructureName> ("
 		<FIELD_LOOP>
-		& +              "<FieldSqlName><,>"
+		& +              '"<FieldSqlName>"<,>'
 		</FIELD_LOOP>
 <IF DEFINED_USE_STRDEF>
 		& +              ") VALUES("
@@ -903,7 +903,7 @@ function <structure_name>_insert_rows ,^val
 	literal
 		sql         ,a*, "INSERT INTO <StructureName> ("
 		<FIELD_LOOP>
-		& +              "<FieldSqlName><,>"
+		& +              '"<FieldSqlName>"<,>'
 		</FIELD_LOOP>
 <IF DEFINED_USE_STRDEF>
 		& +              ") VALUES("
@@ -1402,17 +1402,17 @@ function <structure_name>_update_row ,^val
 	endrecord
 
 	literal
-		sql         ,a*, "UPDATE <StructureName> SET "
+		sql         ,a*, 'UPDATE <StructureName> SET '
 		<COUNTER_1_RESET>
 		<FIELD_LOOP>
 		<COUNTER_1_INCREMENT>
 		<IF USERTIMESTAMP>
-		& +              "<FieldSqlName>=CONVERT(DATETIME2,:<COUNTER_1_VALUE>,21)<,>"
+		& +              '"<FieldSqlName>"=CONVERT(DATETIME2,:<COUNTER_1_VALUE>,21)<,>'
 		<ELSE>
-		& +              "<FieldSqlName>=:<COUNTER_1_VALUE><,>"
+		& +              '"<FieldSqlName>"=:<COUNTER_1_VALUE><,>'
 		</IF USERTIMESTAMP>
 		</FIELD_LOOP>
-		& +              " WHERE <UNIQUE_KEY><SEGMENT_LOOP><COUNTER_1_INCREMENT><SegmentName>=:<COUNTER_1_VALUE> <AND> </SEGMENT_LOOP></UNIQUE_KEY>"
+		& +              ' WHERE <UNIQUE_KEY><SEGMENT_LOOP><COUNTER_1_INCREMENT>"<SegmentName>"=:<COUNTER_1_VALUE> <AND> </SEGMENT_LOOP></UNIQUE_KEY>'
 	endliteral
 
 	static record
@@ -1649,7 +1649,7 @@ proc
 
 	if (ok)
 	begin
-		sql = "TRUNCATE TABLE <StructureName>"
+		sql = 'TRUNCATE TABLE "<StructureName>"'
 		if (%ssc_open(a_dbchn,cursor,(a)sql,SSQL_NONSEL)==SSQL_FAILURE)
 		begin
 			ok = false
