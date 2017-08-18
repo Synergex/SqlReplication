@@ -1271,7 +1271,7 @@ function employee_update_row ,^val
 		& +              "EmpAddressCity=:15,"
 		& +              "EmpAddressState=:16,"
 		& +              "EmpAddressZip=:17"
-		& +              " WHERE EmpId=:18 "
+		& +              " WHERE EmpId=:18  "
 	endliteral
 
 	static record
