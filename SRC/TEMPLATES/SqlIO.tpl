@@ -353,11 +353,10 @@ function <structure_name>_insert_row, ^val
 
 	.include "CONNECTDIR:ssql.def"
 
-	.include "<STRUCTURE_NOALIAS>" repository, static record="<structure_name>", end
-
 	.align
 	stack record local_data
 		ok          ,boolean    ;;OK to continue
+		openAndBind	,boolean	;;Should we open the cursor and bind data this time?
 		sts         ,int        ;;Return status
 		dberror     ,int        ;;Database error number
 		transaction ,int        ;;Transaction in progress
@@ -372,6 +371,8 @@ function <structure_name>_insert_row, ^val
 		</FIELD_LOOP>
 		& +              ") VALUES(<FIELD_LOOP><IF USERTIMESTAMP>CONVERT(DATETIME2,:<FIELD#LOGICAL>,21)<,><ELSE>:<FIELD#LOGICAL><,></IF USERTIMESTAMP></FIELD_LOOP>)"
 	endliteral
+
+	.include "<STRUCTURE_NOALIAS>" repository, static record="<structure_name>", end
 
 	static record
 		<FIELD_LOOP>
@@ -398,6 +399,7 @@ proc
 	init local_data
 	ok = true
 	sts = 1
+	openAndBind = (csr_<structure_name>_insert1 == 0)
 
 	;;Start a database transaction
 
@@ -413,7 +415,7 @@ proc
 
 	;;Open a cursor for the INSERT statement
 
-	if (ok)
+	if (ok && openAndBind)
 	begin
 		if (%ssc_open(a_dbchn,csr_<structure_name>_insert1,sql,SSQL_NONSEL,SSQL_STANDARD)==SSQL_FAILURE)
 		begin
@@ -430,7 +432,7 @@ proc
 	<FIELD_LOOP>
 	<COUNTER_1_INCREMENT>
 	<IF COUNTER_1_EQ_1>
-	if (ok)
+	if (ok && openAndBind)
 	begin
 		if (%ssc_bind(a_dbchn,csr_<structure_name>_insert1,<REMAINING_INCLUSIVE_MAX_250>,
 	</IF COUNTER_1_EQ_1>
@@ -557,22 +559,6 @@ proc
 		end
 	end
 
-	;;Soft close the cursor
-
-	if (csr_<structure_name>_insert1)
-	begin
-		if (%ssc_sclose(a_dbchn,csr_<structure_name>_insert1)==SSQL_FAILURE)
-		begin
-			if (ok)
-			begin
-				ok = false
-				sts = 0
-				if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
-					errtxt="Failed to close cursor"
-			end
-		end
-	end
-
 	;;Commit or rollback the transaction
 
 	if (transaction)
@@ -631,13 +617,11 @@ function <structure_name>_insert_rows, ^val
 
 	.include "CONNECTDIR:ssql.def"
 
-	.include "<STRUCTURE_NOALIAS>" repository, structure="INPBUF", nofields, end
-	.include "<STRUCTURE_NOALIAS>" repository, static record="<structure_name>", end
-
 	.define EXCEPTION_BUFSZ 100
 
 	stack record local_data
 		ok          ,boolean    ;;Return status
+		openAndBind	,boolean	;;Should we open the cursor and bind data this time?
 		dberror     ,int        ;;Database error number
 		rows        ,int        ;;Number of rows to insert
 		transaction ,int        ;;Transaction in progress
@@ -655,6 +639,9 @@ function <structure_name>_insert_rows, ^val
 		</FIELD_LOOP>
 		& +              ") VALUES(<FIELD_LOOP><IF USERTIMESTAMP>CONVERT(DATETIME2,:<FIELD#LOGICAL>,21)<,><ELSE>:<FIELD#LOGICAL><,></IF USERTIMESTAMP></FIELD_LOOP>)"
 	endliteral
+
+	.include "<STRUCTURE_NOALIAS>" repository, structure="INPBUF", nofields, end
+	.include "<STRUCTURE_NOALIAS>" repository, static record="<structure_name>", end
 
 	static record
 		<FIELD_LOOP>
@@ -681,6 +668,8 @@ proc
 	init local_data
 	ok = true
 
+	openAndBind = (csr_<structure_name>_insert2 == 0)
+
 	if (^passed(a_exception)&&a_exception)
 		clear a_exception
 
@@ -701,7 +690,7 @@ proc
 
 	;;Open a cursor for the INSERT statement
 
-	if (ok)
+	if (ok && openAndBind)
 	begin
 		if (%ssc_open(a_dbchn,csr_<structure_name>_insert2,sql,SSQL_NONSEL,SSQL_STANDARD)==SSQL_FAILURE)
 		begin
@@ -717,7 +706,7 @@ proc
 	<FIELD_LOOP>
 	<COUNTER_1_INCREMENT>
 	<IF COUNTER_1_EQ_1>
-	if (ok)
+	if (ok && openAndBind)
 	begin
 		if (%ssc_bind(a_dbchn,csr_<structure_name>_insert2,<REMAINING_INCLUSIVE_MAX_250>,
 	</IF COUNTER_1_EQ_1>
@@ -861,21 +850,6 @@ proc
 		end
 	end
 
-	;;Soft close the database cursor
-
-	if (csr_<structure_name>_insert2)
-	begin
-		if (%ssc_sclose(a_dbchn,csr_<structure_name>_insert2)==SSQL_FAILURE)
-		begin
-			if (ok)
-			begin
-				ok = false
-				if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
-					errtxt="Failed to close cursor"
-			end
-		end
-	end
-
 	;;Commit or rollback the transaction
 
 	if (transaction)
@@ -938,6 +912,7 @@ function <structure_name>_update_row, ^val
 
 	stack record local_data
 		ok          ,boolean    ;;OK to continue
+		openAndBind	,boolean	;;Should we open the cursor and bind data this time?
 		transaction ,boolean    ;;Transaction in progress
 		dberror     ,int        ;;Database error number
 		cursor      ,int        ;;Database cursor
@@ -988,6 +963,8 @@ proc
 	init local_data
 	ok = true
 
+	openAndBind = (csr_<structure_name>_update == 0)
+
 	if (^passed(a_rows))
 		clear a_rows
 
@@ -1008,7 +985,7 @@ proc
 
 	;;Open a cursor for the UPDATE statement
 
-	if (ok)
+	if (ok && openAndBind)
 	begin
 		if (%ssc_open(a_dbchn,csr_<structure_name>_update,sql,SSQL_NONSEL,SSQL_STANDARD)==SSQL_FAILURE)
 		begin
@@ -1024,7 +1001,7 @@ proc
 	<COUNTER_1_INCREMENT>
 	<IF COUNTER_1_EQ_1>
 
-	if (ok)
+	if (ok && openAndBind)
 	begin
 		if (%ssc_bind(a_dbchn,csr_<structure_name>_update,<REMAINING_INCLUSIVE_MAX_250>,
 	</IF COUNTER_1_EQ_1>
@@ -1066,7 +1043,7 @@ proc
 
 	;;Bind the host variables for the key segments / WHERE clause
 
-	if (ok)
+	if (ok && openAndBind)
 	begin
 		if (%ssc_bind(a_dbchn,csr_<structure_name>_update,<UNIQUE_KEY><KEY_SEGMENTS>,<SEGMENT_LOOP><structure_name>.<segment_name><,></SEGMENT_LOOP></UNIQUE_KEY>)==SSQL_FAILURE)
 		begin
@@ -1142,21 +1119,6 @@ proc
 			ok = false
 			if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
 				errtxt="Failed to execute SQL statement"
-		end
-	end
-
-	;;Soft close the database cursor
-
-	if (csr_<structure_name>_update)
-	begin
-		if (%ssc_sclose(a_dbchn,csr_<structure_name>_update)==SSQL_FAILURE)
-		begin
-			if (ok)
-			begin
-				ok = false
-				if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
-					errtxt="Failed to close cursor"
-			end
 		end
 	end
 
@@ -1785,16 +1747,25 @@ subroutine <structure_name>_close_cursors
 proc
 
 	if (csr_<structure_name>_insert1)
+	begin
 		if (%ssc_close(a_dbchn,csr_<structure_name>_insert1))
 			nop
+		clear csr_<structure_name>_insert1
+	end
 
 	if (csr_<structure_name>_insert2)
+	begin
 		if (%ssc_close(a_dbchn,csr_<structure_name>_insert2))
 			nop
+		clear csr_<structure_name>_insert2
+	end
 
 	if (csr_<structure_name>_update)
+	begin
 		if (%ssc_close(a_dbchn,csr_<structure_name>_update))
 			nop
+		clear csr_<structure_name>_update
+	end
 
 	xreturn
 

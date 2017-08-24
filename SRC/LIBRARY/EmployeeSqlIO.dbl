@@ -372,11 +372,10 @@ function employee_insert_row, ^val
 
 	.include "CONNECTDIR:ssql.def"
 
-	.include "EMPLOYEE" repository, static record="employee", end
-
 	.align
 	stack record local_data
 		ok          ,boolean    ;;OK to continue
+		openAndBind	,boolean	;;Should we open the cursor and bind data this time?
 		sts         ,int        ;;Return status
 		dberror     ,int        ;;Database error number
 		transaction ,int        ;;Transaction in progress
@@ -406,6 +405,8 @@ function employee_insert_row, ^val
 		& +              ") VALUES(:1,:2,:3,:4,:5,:6,:7,:8,:9,:10,:11,:12,:13,:14,:15,:16,:17)"
 	endliteral
 
+	.include "EMPLOYEE" repository, static record="employee", end
+
 	static record
 		tmpEmpHireTime, a5      ;;Storage for HH:MM time field
 		,a1                         ;;In case there are no user timestamp, date or JJJJJJ date fields
@@ -420,6 +421,7 @@ proc
 	init local_data
 	ok = true
 	sts = 1
+	openAndBind = (csr_employee_insert1 == 0)
 
 	;;Start a database transaction
 
@@ -435,7 +437,7 @@ proc
 
 	;;Open a cursor for the INSERT statement
 
-	if (ok)
+	if (ok && openAndBind)
 	begin
 		if (%ssc_open(a_dbchn,csr_employee_insert1,sql,SSQL_NONSEL,SSQL_STANDARD)==SSQL_FAILURE)
 		begin
@@ -448,7 +450,7 @@ proc
 
 	;;Bind the host variables for data to be inserted
 
-	if (ok)
+	if (ok && openAndBind)
 	begin
 		if (%ssc_bind(a_dbchn,csr_employee_insert1,17,
 		&    employee.emp_id,
@@ -549,22 +551,6 @@ proc
 		end
 	end
 
-	;;Soft close the cursor
-
-	if (csr_employee_insert1)
-	begin
-		if (%ssc_sclose(a_dbchn,csr_employee_insert1)==SSQL_FAILURE)
-		begin
-			if (ok)
-			begin
-				ok = false
-				sts = 0
-				if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
-					errtxt="Failed to close cursor"
-			end
-		end
-	end
-
 	;;Commit or rollback the transaction
 
 	if (transaction)
@@ -623,13 +609,11 @@ function employee_insert_rows, ^val
 
 	.include "CONNECTDIR:ssql.def"
 
-	.include "EMPLOYEE" repository, structure="INPBUF", nofields, end
-	.include "EMPLOYEE" repository, static record="employee", end
-
 	.define EXCEPTION_BUFSZ 100
 
 	stack record local_data
 		ok          ,boolean    ;;Return status
+		openAndBind	,boolean	;;Should we open the cursor and bind data this time?
 		dberror     ,int        ;;Database error number
 		rows        ,int        ;;Number of rows to insert
 		transaction ,int        ;;Transaction in progress
@@ -662,6 +646,9 @@ function employee_insert_rows, ^val
 		& +              ") VALUES(:1,:2,:3,:4,:5,:6,:7,:8,:9,:10,:11,:12,:13,:14,:15,:16,:17)"
 	endliteral
 
+	.include "EMPLOYEE" repository, structure="INPBUF", nofields, end
+	.include "EMPLOYEE" repository, static record="employee", end
+
 	static record
 		tmpEmpHireTime, a5      ;;Storage for HH:MM time field
 		,a1                         ;;In case there are no user timestamp, date or JJJJJJ date fields
@@ -675,6 +662,8 @@ proc
 
 	init local_data
 	ok = true
+
+	openAndBind = (csr_employee_insert2 == 0)
 
 	if (^passed(a_exception)&&a_exception)
 		clear a_exception
@@ -696,7 +685,7 @@ proc
 
 	;;Open a cursor for the INSERT statement
 
-	if (ok)
+	if (ok && openAndBind)
 	begin
 		if (%ssc_open(a_dbchn,csr_employee_insert2,sql,SSQL_NONSEL,SSQL_STANDARD)==SSQL_FAILURE)
 		begin
@@ -708,7 +697,7 @@ proc
 
 	;;Bind the host variables for data to be inserted
 
-	if (ok)
+	if (ok && openAndBind)
 	begin
 		if (%ssc_bind(a_dbchn,csr_employee_insert2,17,
 		&    employee.emp_id,
@@ -827,21 +816,6 @@ proc
 		end
 	end
 
-	;;Soft close the database cursor
-
-	if (csr_employee_insert2)
-	begin
-		if (%ssc_sclose(a_dbchn,csr_employee_insert2)==SSQL_FAILURE)
-		begin
-			if (ok)
-			begin
-				ok = false
-				if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
-					errtxt="Failed to close cursor"
-			end
-		end
-	end
-
 	;;Commit or rollback the transaction
 
 	if (transaction)
@@ -904,6 +878,7 @@ function employee_update_row, ^val
 
 	stack record local_data
 		ok          ,boolean    ;;OK to continue
+		openAndBind	,boolean	;;Should we open the cursor and bind data this time?
 		transaction ,boolean    ;;Transaction in progress
 		dberror     ,int        ;;Database error number
 		cursor      ,int        ;;Database cursor
@@ -949,6 +924,8 @@ proc
 	init local_data
 	ok = true
 
+	openAndBind = (csr_employee_update == 0)
+
 	if (^passed(a_rows))
 		clear a_rows
 
@@ -969,7 +946,7 @@ proc
 
 	;;Open a cursor for the UPDATE statement
 
-	if (ok)
+	if (ok && openAndBind)
 	begin
 		if (%ssc_open(a_dbchn,csr_employee_update,sql,SSQL_NONSEL,SSQL_STANDARD)==SSQL_FAILURE)
 		begin
@@ -981,7 +958,7 @@ proc
 
 	;;Bind the host variables for data to be updated
 
-	if (ok)
+	if (ok && openAndBind)
 	begin
 		if (%ssc_bind(a_dbchn,csr_employee_update,17,
 		&    employee.emp_id,
@@ -1010,7 +987,7 @@ proc
 
 	;;Bind the host variables for the key segments / WHERE clause
 
-	if (ok)
+	if (ok && openAndBind)
 	begin
 		if (%ssc_bind(a_dbchn,csr_employee_update,1,employee.emp_id)==SSQL_FAILURE)
 		begin
@@ -1074,21 +1051,6 @@ proc
 			ok = false
 			if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
 				errtxt="Failed to execute SQL statement"
-		end
-	end
-
-	;;Soft close the database cursor
-
-	if (csr_employee_update)
-	begin
-		if (%ssc_sclose(a_dbchn,csr_employee_update)==SSQL_FAILURE)
-		begin
-			if (ok)
-			begin
-				ok = false
-				if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
-					errtxt="Failed to close cursor"
-			end
 		end
 	end
 
@@ -1709,16 +1671,25 @@ subroutine employee_close_cursors
 proc
 
 	if (csr_employee_insert1)
+	begin
 		if (%ssc_close(a_dbchn,csr_employee_insert1))
 			nop
+		clear csr_employee_insert1
+	end
 
 	if (csr_employee_insert2)
+	begin
 		if (%ssc_close(a_dbchn,csr_employee_insert2))
 			nop
+		clear csr_employee_insert2
+	end
 
 	if (csr_employee_update)
+	begin
 		if (%ssc_close(a_dbchn,csr_employee_update))
 			nop
+		clear csr_employee_update
+	end
 
 	xreturn
 
