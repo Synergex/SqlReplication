@@ -41,13 +41,104 @@
 ;;*****************************************************************************
 
 ;;*****************************************************************************
-;;
-;; Description: Create the Employee table in the database.
-;;
-function employee_create ,^val
+;;; <summary>
+;;; Determines if the Employee table exists in the database.
+;;; </summary>
+;;; <param name="a_dbchn">Connected database channel.</param>
+;;; <param name="a_errtxt">Returned error text.</param>
+;;; <returns>Returns 1 if the table exists, otherwise a number indicating the type of error.</returns>
 
-	required in  a_dbchn    ,i      ;;Connected database channel
-	optional out a_errtxt   ,a      ;;Error text
+function employee_exists, ^val
+
+	required in  a_dbchn,  i
+	optional out a_errtxt, a
+	endparams
+
+	.include "CONNECTDIR:ssql.def"
+
+	stack record local_data
+		error       ,int    ;;Returned error number
+		dberror     ,int    ;;Database error number
+		cursor      ,int    ;;Database cursor
+		length      ,int    ;;Length of a string
+		table_name  ,a128   ;;Retrieved table name
+		errtxt      ,a256   ;;Error message text
+	endrecord
+
+proc
+
+	init local_data
+
+	;;Open a cursor for the SELECT statement
+
+	if (%ssc_open(a_dbchn,cursor,"SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME='Employee'",SSQL_SELECT)==SSQL_FAILURE)
+	begin
+		error=-1
+		if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+			errtxt="Failed to open cursor"
+	end
+
+	;;Bind host variables to receive the data
+
+	if (!error)
+	begin
+		if (%ssc_define(a_dbchn,cursor,1,table_name)==SSQL_FAILURE)
+		begin
+			error=-1
+			if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+				errtxt="Failed to bind variable"
+		end
+	end
+
+	;;Move data to host variables
+
+	if (!error)
+	begin
+		if (%ssc_move(a_dbchn,cursor,1)==SSQL_NORMAL)
+				error = 1 ;; Table exists
+	end
+
+	;;Close the database cursor
+
+	if (cursor)
+	begin
+		if (%ssc_close(a_dbchn,cursor)==SSQL_FAILURE)
+		begin
+			if (!error)
+			begin
+				error=-1
+				if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+					errtxt="Failed to close cursor"
+			end
+		end
+	end
+
+	;;If there was an error message, return it to the calling routine
+
+	if (^passed(a_errtxt))
+	begin
+		if (error) then
+			a_errtxt = errtxt
+		else
+			a_errtxt = ""
+	end
+
+	freturn error
+
+endfunction
+
+;;*****************************************************************************
+;;; <summary>
+;;; Creates the Employee table in the database.
+;;; </summary>
+;;; <param name="a_dbchn">Connected database channel.</param>
+;;; <param name="a_errtxt">Returned error text.</param>
+;;; <returns>Returns true on success, otherwise false.</returns>
+
+function employee_create, ^val
+
+	required in  a_dbchn,  i
+	optional out a_errtxt, a
 	endparams
 
 	.include "CONNECTDIR:ssql.def"
@@ -69,6 +160,7 @@ proc
 	ok = true
 
 	;;Start a database transaction
+
 	if (%ssc_commit(a_dbchn,SSQL_TXON)==SSQL_NORMAL) then
 		transaction=1
 	else
@@ -79,6 +171,7 @@ proc
 	end
 
 	;;Create the database table and primary key constraint
+
 	if (ok)
 	begin
 		sql = 'CREATE TABLE "Employee" ('
@@ -112,6 +205,7 @@ proc
 	end
 
 	;;Create index 1 (Department ID)
+
 	if (ok)
 	begin
 		sql = 'CREATE  INDEX IX_Employee_EmpDept ON "Employee"("EmpDept" ASC)'
@@ -126,6 +220,7 @@ proc
 	end
 
 	;;Create index 2 (Last name)
+
 	if (ok)
 	begin
 		sql = 'CREATE  INDEX IX_Employee_EmpLastName ON "Employee"("EmpLastName" ASC)'
@@ -140,6 +235,7 @@ proc
 	end
 
 	;;Create index 3 (State)
+
 	if (ok)
 	begin
 		sql = 'CREATE  INDEX IX_Employee_StateCode ON "Employee"("EmpAddressState" ASC)'
@@ -154,6 +250,7 @@ proc
 	end
 
 	;;Create index 4 (Zip code)
+
 	if (ok)
 	begin
 		sql = 'CREATE  INDEX IX_Employee_ZipCode ON "Employee"("EmpAddressZip" ASC)'
@@ -168,6 +265,7 @@ proc
 	end
 
 	;;Grant access permissions
+
 	if (ok)
 	begin
 		sql = 'GRANT ALL ON "Employee" TO PUBLIC'
@@ -182,6 +280,7 @@ proc
 	end
 
 	;;Commit or rollback the transaction
+
 	if (transaction)
 	begin
 		if (ok) then
@@ -202,6 +301,7 @@ proc
 	end
 
 	;;If there was an error message, return it to the calling routine
+
 	if (^passed(a_errtxt))
 	begin
 		if (ok) then
@@ -212,7 +312,6 @@ proc
 
 	freturn ok
 
-;;Open a cursor
 open_cursor,
 
 	if (%ssc_open(a_dbchn,cursor,(a)sql,SSQL_NONSEL)==SSQL_FAILURE)
@@ -224,7 +323,6 @@ open_cursor,
 
 	return
 
-;;Execute a cursor
 execute_cursor,
 
 	if (%ssc_execute(a_dbchn,cursor,SSQL_STANDARD)==SSQL_FAILURE)
@@ -236,7 +334,6 @@ execute_cursor,
 
 	return
 
-;;Close a cursor
 close_cursor,
 
 	if (cursor)
@@ -258,330 +355,23 @@ close_cursor,
 endfunction
 
 ;;*****************************************************************************
-;;
-;; Description: Drop (delete) the Employee table from the database.
-;;
-function employee_drop ,^val
+;;; <summary>
+;;; Insert a row into the Employee table.
+;;; </summary>
+;;; <param name="a_dbchn">Connected database channel.</param>
+;;; <param name="a_data">Record to be inserted.</param>
+;;; <param name="a_errtxt">Returned error text.</param>
+;;; <returns>Returns 1 if the row was inserted, 2 to indicate the row already exists, or 0 if an error occurred.</returns>
 
-	required in  a_dbchn    ,i      ;;Connected database channel
-	optional out a_errtxt   ,a      ;;Error text
+function employee_insert_row, ^val
+
+	required in  a_dbchn,  i
+	required in  a_data,   a
+	optional out a_errtxt, a
 	endparams
 
 	.include "CONNECTDIR:ssql.def"
 
-	stack record local_data
-		ok          ,boolean    ;;Return status
-		dberror     ,int        ;;Database error number
-		cursor      ,int        ;;Database cursor
-		length      ,int        ;;Length of a string
-		transaction ,int        ;;Transaction in progress
-		errtxt      ,a256       ;;Returned error message text
-	endrecord
-
-proc
-
-	init local_data
-	ok = true
-
-	;;Hard close any soft closed cursors
-	xcall employee_close_cursors(a_dbchn)
-
-	;;Start a database transaction
-	if (%ssc_commit(a_dbchn,SSQL_TXON)==SSQL_NORMAL) then
-		transaction=1
-	else
-	begin
-		ok = false
-		if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
-			errtxt="Failed to start transaction"
-	end
-
-	;;Open cursor for DROP TABLE statement
-	if (ok)
-	begin
-		if (%ssc_open(a_dbchn,cursor,"DROP TABLE Employee",SSQL_NONSEL)==SSQL_FAILURE)
-		begin
-			ok = false
-			if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
-				errtxt="Failed to open cursor"
-		end
-	end
-
-	;;Execute DROP TABLE statement
-	if (ok)
-	begin
-		if (%ssc_execute(a_dbchn,cursor,SSQL_STANDARD)==SSQL_FAILURE)
-		begin
-			if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_NORMAL) then
-			begin
-				;;Check if the error was that the table did not exist
-				if (dberror==-3701) then
-					clear errtxt
-				else
-					ok = false
-			end
-			else
-			begin
-				errtxt="Failed to execute SQL statement"
-				ok = false
-			end
-		end
-	end
-
-	;;Close the database cursor
-	if (cursor)
-	begin
-		if (%ssc_close(a_dbchn,cursor)==SSQL_FAILURE)
-		begin
-			if (ok)
-			begin
-				ok = false
-				if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
-					errtxt="Failed to close cursor"
-			end
-		end
-	end
-
-	;;Commit or rollback the transaction
-	if (transaction)
-	begin
-		if (ok) then
-		begin
-			;;Success, commit the transaction
-			if (%ssc_commit(a_dbchn,SSQL_TXOFF)==SSQL_FAILURE)
-			begin
-				ok = false
-				if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
-					errtxt="Failed to commit transaction"
-			end
-		end
-		else
-		begin
-			;;There was an error, rollback the transaction
-			xcall ssc_rollback(a_dbchn,SSQL_TXOFF)
-		end
-	end
-
-	;;If there was an error message, return it to the calling routine
-	if (^passed(a_errtxt))
-	begin
-		if (ok) then
-			a_errtxt = ""
-		else
-			a_errtxt = errtxt
-	end
-
-	freturn ok
-
-endfunction
-
-;;*****************************************************************************
-;;
-;; Description: Delete a row from the Employee table.
-;;
-function employee_delete_row ,^val
-
-	required in  a_dbchn    ,i      ;;Connected database channel
-	required in  a_key      ,a      ;;Unique key of row to delete
-	optional out a_errtxt   ,a      ;;Error text
-	endparams
-
-	.include "CONNECTDIR:ssql.def"
-	.include "EMPLOYEE" repository, stack record="employee"
-
-	external function
-		EmployeeKeyToRecord, a
-	endexternal
-
-	stack record local_data
-		ok          ,boolean    ;;Return status
-		dberror     ,int        ;;Database error number
-		cursor      ,int        ;;Database cursor
-		length      ,int        ;;Length of a string
-		transaction ,int        ;;Transaction in progress
-		errtxt      ,a256       ;;Error message text
-		sql         ,string     ;;SQL statement
-	endrecord
-
-proc
-
-	init local_data
-	ok = true
-
-	;;Put the unique key value into the record
-	employee = %EmployeeKeyToRecord(a_key)
-
-	;;Start a database transaction
-	if (%ssc_commit(a_dbchn,SSQL_TXON)==SSQL_NORMAL) then
-		transaction=1
-	else
-	begin
-		ok = false
-		if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
-			errtxt="Failed to start transaction"
-	end
-
-	;;Open a cursor for the DELETE statement
-	if (ok)
-	begin
-		sql = 'DELETE FROM "Employee" WHERE'
-		& + ' "EmpId"=' + "'" + %string(employee.emp_id) + "' "
-		if (%ssc_open(a_dbchn,cursor,(a)sql,SSQL_NONSEL)==SSQL_FAILURE)
-		begin
-			ok = false
-			if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
-				errtxt="Failed to open cursor"
-		end
-	end
-
-	;;Execute the query
-	if (ok)
-	begin
-		if (%ssc_execute(a_dbchn,cursor,SSQL_STANDARD)==SSQL_FAILURE)
-		begin
-			ok = false
-			if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
-				errtxt="Failed to execute SQL statement"
-		end
-	end
-
-	;;Close the database cursor
-	if (cursor)
-	begin
-		if (%ssc_close(a_dbchn,cursor)==SSQL_FAILURE)
-		begin
-			if (ok)
-			begin
-				ok = false
-				if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
-					errtxt="Failed to close cursor"
-			end
-		end
-	end
-
-	;;Commit or rollback the transaction
-	if (transaction)
-	begin
-		if (ok) then
-		begin
-			;;Success, commit the transaction
-			if (%ssc_commit(a_dbchn,SSQL_TXOFF)==SSQL_FAILURE)
-			begin
-				ok = false
-				if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
-					errtxt="Failed to commit transaction"
-			end
-		end
-		else
-		begin
-			;;There was an error, rollback the transaction
-			xcall ssc_rollback(a_dbchn,SSQL_TXOFF)
-		end
-	end
-
-	;;If there was an error message, return it to the calling routine
-	if (^passed(a_errtxt))
-	begin
-		if (ok) then
-			a_errtxt = ""
-		else
-			a_errtxt = errtxt
-	end
-
-	freturn ok
-
-endfunction
-
-;;*****************************************************************************
-;;
-;; Description: Determine if the Employee table exists in the database.
-;;
-function employee_exists ,^val
-
-	required in  a_dbchn    ,i      ;;Connected database channel
-	optional out a_errtxt   ,a      ;;Error text
-	endparams
-
-	.include "CONNECTDIR:ssql.def"
-
-	stack record local_data
-		error       ,int    ;;Returned error number
-		dberror     ,int    ;;Database error number
-		cursor      ,int    ;;Database cursor
-		length      ,int    ;;Length of a string
-		table_name  ,a128   ;;Retrieved table name
-		errtxt      ,a256   ;;Error message text
-	endrecord
-
-proc
-
-	init local_data
-
-	;;Open a cursor for the SELECT statement
-	if (%ssc_open(a_dbchn,cursor,"SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME='Employee'",SSQL_SELECT)==SSQL_FAILURE)
-	begin
-		error=-1
-		if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
-			errtxt="Failed to open cursor"
-	end
-
-	;;Bind host variables to receive the data
-	if (!error)
-	begin
-		if (%ssc_define(a_dbchn,cursor,1,table_name)==SSQL_FAILURE)
-		begin
-			error=-1
-			if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
-				errtxt="Failed to bind variable"
-		end
-	end
-
-	;;Move data to host variables
-	if (!error)
-	begin
-		if (%ssc_move(a_dbchn,cursor,1)==SSQL_NORMAL)
-				error = 1 ;; Table exists
-	end
-
-	;;Close the database cursor
-	if (cursor)
-	begin
-		if (%ssc_close(a_dbchn,cursor)==SSQL_FAILURE)
-		begin
-			if (!error)
-			begin
-				error=-1
-				if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
-					errtxt="Failed to close cursor"
-			end
-		end
-	end
-
-	;;If there was an error message, return it to the calling routine
-	if (^passed(a_errtxt))
-	begin
-		if (error) then
-			a_errtxt = errtxt
-		else
-			a_errtxt = ""
-	end
-
-	freturn error
-
-endfunction
-
-;;*****************************************************************************
-;;
-;; Description: Insert a new row into the Employee table.
-;;
-function employee_insert_row ,^val
-
-	required in  a_dbchn    ,i      ;;Connected database channel
-	required in  a_data     ,a      ;;Record containing data to insert
-	optional out a_errtxt   ,a      ;;Error text
-	endparams
-
-	.include "CONNECTDIR:ssql.def"
 	.include "EMPLOYEE" repository, static record="employee", end
 
 	.align
@@ -621,9 +411,8 @@ function employee_insert_row ,^val
 		,a1                         ;;In case there are no user timestamp, date or JJJJJJ date fields
 	endrecord
 
-
 	global common
-		csr_employee_insert1, i4
+		csr_employee_insert1, i4, 0
 	endcommon
 
 proc
@@ -633,6 +422,7 @@ proc
 	sts = 1
 
 	;;Start a database transaction
+
 	if (%ssc_commit(a_dbchn,SSQL_TXON)==SSQL_NORMAL) then
 		transaction=1
 	else
@@ -644,6 +434,7 @@ proc
 	end
 
 	;;Open a cursor for the INSERT statement
+
 	if (ok)
 	begin
 		if (%ssc_open(a_dbchn,csr_employee_insert1,sql,SSQL_NONSEL,SSQL_STANDARD)==SSQL_FAILURE)
@@ -656,6 +447,7 @@ proc
 	end
 
 	;;Bind the host variables for data to be inserted
+
 	if (ok)
 	begin
 		if (%ssc_bind(a_dbchn,csr_employee_insert1,17,
@@ -675,8 +467,7 @@ proc
 		&    employee.emp_address_street,
 		&    employee.emp_address_city,
 		&    employee.emp_address_state,
-		&    employee.emp_address_zip
-		&   )==SSQL_FAILURE)
+		&    employee.emp_address_zip)==SSQL_FAILURE)
 		begin
 			ok = false
 			sts = 0
@@ -686,12 +477,15 @@ proc
 	end
 
 	;;Insert the row into the database
+
 	if (ok)
 	begin
 		;;Load data into bound record
+
 		employee = a_data
 
 		;;Clean up any alpha fields
+
 		employee.emp_first_name = %atrim(employee.emp_first_name)+%char(0)
 		employee.emp_last_name = %atrim(employee.emp_last_name)+%char(0)
 		employee.emp_dept = %atrim(employee.emp_dept)+%char(0)
@@ -704,6 +498,7 @@ proc
 		employee.emp_address_state = %atrim(employee.emp_address_state)+%char(0)
 
 		;;Clean up any decimal fields
+
 		if ((!employee.emp_id)||(!%IsNumeric(^a(employee.emp_id))))
 			clear employee.emp_id
 		if ((!employee.emp_paid)||(!%IsNumeric(^a(employee.emp_paid))))
@@ -714,19 +509,23 @@ proc
 			clear employee.emp_address_zip
 
 		;;Clean up any date fields
+
 		if ((!employee.emp_hire_date)||(!%IsDate(^a(employee.emp_hire_date))))
 			^a(employee.emp_hire_date(1:1))=%char(0)
 		if ((!employee.emp_date_of_birth)||(!%IsDate(^a(employee.emp_date_of_birth))))
 			^a(employee.emp_date_of_birth(1:1))=%char(0)
 
 		;;Clean up any time fields
+
 		if ((!employee.emp_hire_time)||(!%IsTime(^a(employee.emp_hire_time))))
 			^a(employee.emp_hire_time(1:1))=%char(0)
 
 		;;Assign data to any temporary time or user-defined timestamp fields
+
 		tmpEmpHireTime = %string(employee.emp_hire_time,"XX:XX")
 
 		;;Execute the INSERT statement
+
 		if (%ssc_execute(a_dbchn,csr_employee_insert1,SSQL_STANDARD)==SSQL_FAILURE)
 		begin
 			ok = false
@@ -751,6 +550,7 @@ proc
 	end
 
 	;;Soft close the cursor
+
 	if (csr_employee_insert1)
 	begin
 		if (%ssc_sclose(a_dbchn,csr_employee_insert1)==SSQL_FAILURE)
@@ -766,6 +566,7 @@ proc
 	end
 
 	;;Commit or rollback the transaction
+
 	if (transaction)
 	begin
 		if (ok) then
@@ -787,6 +588,7 @@ proc
 	end
 
 	;;If there was an error message, return it to the calling routine
+
 	if (^passed(a_errtxt))
 	begin
 		if (ok) then
@@ -800,21 +602,29 @@ proc
 endfunction
 
 ;;*****************************************************************************
-;;
-;; Description: Insert multiple new rows into the Employee table.
-;;
-function employee_insert_rows ,^val
+;;; <summary>
+;;; Inserts multiple rows into the Employee table.
+;;; </summary>
+;;; <param name="a_dbchn">Connected database channel</param>
+;;; <param name="a_data">Memory handle containing one or more rows to insert.</param>
+;;; <param name="a_errtxt">Returned error text.</param>
+;;; <param name="a_exception">Memory handle to load exception data records into.</param>
+;;; <param name="a_terminal">Terminal number channel to log errors on.</param>
+;;; <returns>Returns true on success, otherwise false.</returns>
 
-	required in  a_dbchn    ,i      ;;Connected database channel
-	required in  a_data     ,i      ;;Memory handle with records to insert
-	optional out a_errtxt   ,a      ;;Error text
-	optional out a_exception,i      ;;Handle to return exception records
-	optional in  a_terminal ,i      ;;Terminal number channel to log errors on
+function employee_insert_rows, ^val
+
+	required in  a_dbchn,     i
+	required in  a_data,      i
+	optional out a_errtxt,    a
+	optional out a_exception, i
+	optional in  a_terminal,  i
 	endparams
 
 	.include "CONNECTDIR:ssql.def"
-	.include "EMPLOYEE" repository, static record="employee", end
+
 	.include "EMPLOYEE" repository, structure="INPBUF", nofields, end
+	.include "EMPLOYEE" repository, static record="employee", end
 
 	.define EXCEPTION_BUFSZ 100
 
@@ -870,9 +680,11 @@ proc
 		clear a_exception
 
 	;;Figure out how many rows to insert
+
 	rows = (%mem_proc(DM_GETSIZE,a_data)/^size(employee))
 
 	;;Start a database transaction
+
 	if (%ssc_commit(a_dbchn,SSQL_TXON)==SSQL_NORMAL) then
 		transaction=1
 	else
@@ -883,17 +695,19 @@ proc
 	end
 
 	;;Open a cursor for the INSERT statement
+
 	if (ok)
 	begin
 		if (%ssc_open(a_dbchn,csr_employee_insert2,sql,SSQL_NONSEL,SSQL_STANDARD)==SSQL_FAILURE)
 		begin
-			ok = true
+			ok = false
 			if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
 				errtxt="Failed to open cursor"
 		end
 	end
 
 	;;Bind the host variables for data to be inserted
+
 	if (ok)
 	begin
 		if (%ssc_bind(a_dbchn,csr_employee_insert2,17,
@@ -913,8 +727,7 @@ proc
 		&    employee.emp_address_street,
 		&    employee.emp_address_city,
 		&    employee.emp_address_state,
-		&    employee.emp_address_zip
-		&   )==SSQL_FAILURE)
+		&    employee.emp_address_zip)==SSQL_FAILURE)
 		begin
 			ok = false
 			if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
@@ -923,15 +736,18 @@ proc
 	end
 
 	;;Insert the rows into the database
+
 	if (ok)
 	begin
 		data cnt, int
 		for cnt from 1 thru rows
 		begin
 			;;Load data into bound record
+
 			employee = ^m(inpbuf[cnt],a_data)
 
 			;;Clean up any alpha variables
+
 			employee.emp_first_name=%atrim(employee.emp_first_name)+%char(0)
 			employee.emp_last_name=%atrim(employee.emp_last_name)+%char(0)
 			employee.emp_dept=%atrim(employee.emp_dept)+%char(0)
@@ -944,6 +760,7 @@ proc
 			employee.emp_address_state=%atrim(employee.emp_address_state)+%char(0)
 
 			;;Clean up any decimal variables
+
 			if ((!employee.emp_id)||(!%IsNumeric(^a(employee.emp_id))))
 				clear employee.emp_id
 			if ((!employee.emp_paid)||(!%IsNumeric(^a(employee.emp_paid))))
@@ -954,19 +771,23 @@ proc
 				clear employee.emp_address_zip
 
 			;;Clean up any date variables
+
 			if ((!employee.emp_hire_date)||(!%IsDate(^a(employee.emp_hire_date))))
 				^a(employee.emp_hire_date(1:1))=%char(0)
 			if ((!employee.emp_date_of_birth)||(!%IsDate(^a(employee.emp_date_of_birth))))
 				^a(employee.emp_date_of_birth(1:1))=%char(0)
 
 			;;Clean up any time variables
+
 			if ((!employee.emp_hire_time)||(!%IsTime(^a(employee.emp_hire_time))))
 				^a(employee.emp_hire_time(1:1))=%char(0)
 
 			;;Assign any time or user-defined timestamp fields
+
 			tmpEmpHireTime = %string(employee.emp_hire_time,"XX:XX")
 
 			;;Execute the statement
+
 			if (%ssc_execute(a_dbchn,csr_employee_insert2,SSQL_STANDARD)==SSQL_FAILURE)
 			begin
 				if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
@@ -1007,6 +828,7 @@ proc
 	end
 
 	;;Soft close the database cursor
+
 	if (csr_employee_insert2)
 	begin
 		if (%ssc_sclose(a_dbchn,csr_employee_insert2)==SSQL_FAILURE)
@@ -1021,6 +843,7 @@ proc
 	end
 
 	;;Commit or rollback the transaction
+
 	if (transaction)
 	begin
 		if (ok) then
@@ -1041,10 +864,12 @@ proc
 	end
 
 	;;If we're returning exceptions then resize the buffer to the correct size
+
 	if (^passed(a_exception)&&a_exception)
 		a_exception = %mem_proc(DM_RESIZ,^size(inpbuf)*ex_mc,a_exception)
 
 	;;If there was an error message, return it to the calling routine
+
 	if (^passed(a_errtxt))
 	begin
 		if (ok) then
@@ -1058,17 +883,644 @@ proc
 endfunction
 
 ;;*****************************************************************************
-;;
-;; Description: Load all data from DAT:EMPLOYEE.ISM into the Employee table.
-;;
-function employee_load ,^val
+;;; <summary>
+;;; Updates a row in the Employee table.
+;;; </summary>
+;;; <param name="a_dbchn">Connected database channel.</param>
+;;; <param name="a_data">Record containing data to update.</param>
+;;; <param name="a_rows">Returned number of rows affected.</param>
+;;; <param name="a_errtxt">Returned error text.</param>
+;;; <returns>Returns true on success, otherwise false.</returns>
 
-	required in  a_dbchn    ,i      ;;Connected database channel
-	optional out a_errtxt   ,a      ;;Error text
-	optional in  a_logex    ,i      ;;Log exception records
-	optional in  a_terminal ,i      ;;Terminal channel to log errors on
-	optional out a_added    ,n      ;;Total number of successful inserts
-	optional out a_failed   ,n      ;;Total number of failed inserts
+function employee_update_row, ^val
+
+	required in  a_dbchn,  i
+	required in  a_data,   a
+	optional out a_rows,   i
+	optional out a_errtxt, a
+	endparams
+
+	.include "CONNECTDIR:ssql.def"
+
+	stack record local_data
+		ok          ,boolean    ;;OK to continue
+		transaction ,boolean    ;;Transaction in progress
+		dberror     ,int        ;;Database error number
+		cursor      ,int        ;;Database cursor
+		length      ,int        ;;Length of a string
+		rows        ,int        ;;Number of rows updated
+		errtxt      ,a256       ;;Error message text
+	endrecord
+
+	literal
+		sql         ,a*, 'UPDATE Employee SET '
+		& +              '"EmpId"=:1,'
+		& +              '"EmpFirstName"=:2,'
+		& +              '"EmpLastName"=:3,'
+		& +              '"EmpDept"=:4,'
+		& +              '"EmpHireDate"=:5,'
+		& +              '"EmpPhoneWork"=:6,'
+		& +              '"EmpPhoneHome"=:7,'
+		& +              '"EmpPhoneCell"=:8,'
+		& +              '"EmpPaid"=:9,'
+		& +              '"EmpHomeOk"=:10,'
+		& +              '"EmpDateOfBirth"=:11,'
+		& +              '"EmpHireTime"=:12,'
+		& +              '"EmpEmail"=:13,'
+		& +              '"EmpAddressStreet"=:14,'
+		& +              '"EmpAddressCity"=:15,'
+		& +              '"EmpAddressState"=:16,'
+		& +              '"EmpAddressZip"=:17'
+		& +              ' WHERE "EmpId"=:18  '
+	endliteral
+
+	.include "EMPLOYEE" repository, static record="employee", end
+
+	static record
+		tmpEmpHireTime, a5      ;;Storage for HH:MM time field
+		,a1                         ;;In case there are no user timestamp, date or JJJJJJ date fields
+	endrecord
+
+	global common
+		csr_employee_update, i4
+	endcommon
+proc
+
+	init local_data
+	ok = true
+
+	if (^passed(a_rows))
+		clear a_rows
+
+	;;Load the data into the bound record
+
+	employee = a_data
+
+	;;Start a database transaction
+
+	if (%ssc_commit(a_dbchn,SSQL_TXON)==SSQL_NORMAL) then
+		transaction = true
+	else
+	begin
+		ok = false
+		if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+			errtxt="Failed to start transaction"
+	end
+
+	;;Open a cursor for the UPDATE statement
+
+	if (ok)
+	begin
+		if (%ssc_open(a_dbchn,csr_employee_update,sql,SSQL_NONSEL,SSQL_STANDARD)==SSQL_FAILURE)
+		begin
+			ok = false
+			if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+				errtxt="Failed to open cursor"
+		end
+	end
+
+	;;Bind the host variables for data to be updated
+
+	if (ok)
+	begin
+		if (%ssc_bind(a_dbchn,csr_employee_update,17,
+		&    employee.emp_id,
+		&    employee.emp_first_name,
+		&    employee.emp_last_name,
+		&    employee.emp_dept,
+		&    ^a(employee.emp_hire_date),
+		&    employee.emp_phone_work,
+		&    employee.emp_phone_home,
+		&    employee.emp_phone_cell,
+		&    employee.emp_paid,
+		&    employee.emp_home_ok,
+		&    ^a(employee.emp_date_of_birth),
+		&    tmpEmpHireTime,
+		&    employee.emp_email,
+		&    employee.emp_address_street,
+		&    employee.emp_address_city,
+		&    employee.emp_address_state,
+		&    employee.emp_address_zip)==SSQL_FAILURE)
+		begin
+			ok = false
+			if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+				errtxt="Failed to bind variables"
+		end
+	end
+
+	;;Bind the host variables for the key segments / WHERE clause
+
+	if (ok)
+	begin
+		if (%ssc_bind(a_dbchn,csr_employee_update,1,employee.emp_id)==SSQL_FAILURE)
+		begin
+			ok = false
+			if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+				errtxt="Failed to bind key variables"
+		end
+	end
+
+	;;Update the row in the database
+
+	if (ok)
+	begin
+		;;Clean up any alpha fields
+
+		employee.emp_first_name = %atrim(employee.emp_first_name) + %char(0)
+		employee.emp_last_name = %atrim(employee.emp_last_name) + %char(0)
+		employee.emp_dept = %atrim(employee.emp_dept) + %char(0)
+		employee.emp_phone_work = %atrim(employee.emp_phone_work) + %char(0)
+		employee.emp_phone_home = %atrim(employee.emp_phone_home) + %char(0)
+		employee.emp_phone_cell = %atrim(employee.emp_phone_cell) + %char(0)
+		employee.emp_email = %atrim(employee.emp_email) + %char(0)
+		employee.emp_address_street = %atrim(employee.emp_address_street) + %char(0)
+		employee.emp_address_city = %atrim(employee.emp_address_city) + %char(0)
+		employee.emp_address_state = %atrim(employee.emp_address_state) + %char(0)
+		
+		;;Clean up any decimal fields
+
+		if ((!employee.emp_id)||(!%IsNumeric(^a(employee.emp_id))))
+			clear employee.emp_id
+		if ((!employee.emp_paid)||(!%IsNumeric(^a(employee.emp_paid))))
+			clear employee.emp_paid
+		if ((!employee.emp_home_ok)||(!%IsNumeric(^a(employee.emp_home_ok))))
+			clear employee.emp_home_ok
+		if ((!employee.emp_address_zip)||(!%IsNumeric(^a(employee.emp_address_zip))))
+			clear employee.emp_address_zip
+
+		;;Clean up any date fields
+
+		if ((!employee.emp_hire_date)||(!%IsDate(^a(employee.emp_hire_date))))
+			^a(employee.emp_hire_date(1:1)) = %char(0)
+		if ((!employee.emp_date_of_birth)||(!%IsDate(^a(employee.emp_date_of_birth))))
+			^a(employee.emp_date_of_birth(1:1)) = %char(0)
+
+		;;Clean up any time fields
+
+		if ((!employee.emp_hire_time)||(!%IsTime(^a(employee.emp_hire_time))))
+			^a(employee.emp_hire_time(1:1)) = %char(0)
+
+		;;Assign any time and user-defined timestamp fields
+
+		tmpEmpHireTime = %string(employee.emp_hire_time,"XX:XX")
+
+		if (%ssc_execute(a_dbchn,csr_employee_update,SSQL_STANDARD,,rows)==SSQL_NORMAL) then
+		begin
+			if (^passed(a_rows))
+				a_rows = rows
+		end
+		else
+		begin
+			ok = false
+			if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+				errtxt="Failed to execute SQL statement"
+		end
+	end
+
+	;;Soft close the database cursor
+
+	if (csr_employee_update)
+	begin
+		if (%ssc_sclose(a_dbchn,csr_employee_update)==SSQL_FAILURE)
+		begin
+			if (ok)
+			begin
+				ok = false
+				if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+					errtxt="Failed to close cursor"
+			end
+		end
+	end
+
+	;;Commit or rollback the transaction
+
+	if (transaction)
+	begin
+		if (ok) then
+		begin
+			;;Success, commit the transaction
+			if (%ssc_commit(a_dbchn,SSQL_TXOFF)==SSQL_FAILURE)
+			begin
+				ok = false
+				if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+					errtxt="Failed to commit transaction"
+			end
+		end
+		else
+		begin
+			;;There was an error, rollback the transaction
+			xcall ssc_rollback(a_dbchn,SSQL_TXOFF)
+		end
+	end
+
+	;;Return error message
+
+	if (^passed(a_errtxt))
+	begin
+		if (ok) then
+			a_errtxt = ""
+		else
+			a_errtxt = errtxt
+	end
+
+	freturn ok
+
+endfunction
+
+;;*****************************************************************************
+;;; <summary>
+;;; Deletes a row from the Employee table.
+;;; </summary>
+;;; <param name="a_dbchn">Connected database channel.</param>
+;;; <param name="a_key">Unique key of row to be deleted.</param>
+;;; <param name="a_errtxt">Returned error text.</param>
+;;; <returns>Returns true on success, otherwise false.</returns>
+
+function employee_delete_row, ^val
+
+	required in  a_dbchn,  i
+	required in  a_key,    a
+	optional out a_errtxt, a
+	endparams
+
+	.include "CONNECTDIR:ssql.def"
+	.include "EMPLOYEE" repository, stack record="employee"
+
+	external function
+		EmployeeKeyToRecord, a
+	endexternal
+
+	stack record local_data
+		ok          ,boolean    ;;Return status
+		dberror     ,int        ;;Database error number
+		cursor      ,int        ;;Database cursor
+		length      ,int        ;;Length of a string
+		transaction ,int        ;;Transaction in progress
+		errtxt      ,a256       ;;Error message text
+		sql         ,string     ;;SQL statement
+	endrecord
+
+proc
+
+	init local_data
+	ok = true
+
+	;;Put the unique key value into the record
+
+	employee = %EmployeeKeyToRecord(a_key)
+
+	;;Start a database transaction
+	if (%ssc_commit(a_dbchn,SSQL_TXON)==SSQL_NORMAL) then
+		transaction=1
+	else
+	begin
+		ok = false
+		if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+			errtxt="Failed to start transaction"
+	end
+
+	;;Open a cursor for the DELETE statement
+
+	if (ok)
+	begin
+		sql = 'DELETE FROM "Employee" WHERE'
+		& + ' "EmpId"=' + "'" + %string(employee.emp_id) + "' "
+		if (%ssc_open(a_dbchn,cursor,(a)sql,SSQL_NONSEL)==SSQL_FAILURE)
+		begin
+			ok = false
+			if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+				errtxt="Failed to open cursor"
+		end
+	end
+
+	;;Execute the query
+
+	if (ok)
+	begin
+		if (%ssc_execute(a_dbchn,cursor,SSQL_STANDARD)==SSQL_FAILURE)
+		begin
+			ok = false
+			if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+				errtxt="Failed to execute SQL statement"
+		end
+	end
+
+	;;Close the database cursor
+
+	if (cursor)
+	begin
+		if (%ssc_close(a_dbchn,cursor)==SSQL_FAILURE)
+		begin
+			if (ok)
+			begin
+				ok = false
+				if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+					errtxt="Failed to close cursor"
+			end
+		end
+	end
+
+	;;Commit or rollback the transaction
+
+	if (transaction)
+	begin
+		if (ok) then
+		begin
+			;;Success, commit the transaction
+			if (%ssc_commit(a_dbchn,SSQL_TXOFF)==SSQL_FAILURE)
+			begin
+				ok = false
+				if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+					errtxt="Failed to commit transaction"
+			end
+		end
+		else
+		begin
+			;;There was an error, rollback the transaction
+			xcall ssc_rollback(a_dbchn,SSQL_TXOFF)
+		end
+	end
+
+	;;If there was an error message, return it to the calling routine
+
+	if (^passed(a_errtxt))
+	begin
+		if (ok) then
+			a_errtxt = ""
+		else
+			a_errtxt = errtxt
+	end
+
+	freturn ok
+
+endfunction
+
+;;*****************************************************************************
+;;; <summary>
+;;; Deletes all rows from the Employee table.
+;;; </summary>
+;;; <param name="a_dbchn">Connected database channel.</param>
+;;; <param name="a_errtxt">Returned error text.</param>
+;;; <returns>Returns true on success, otherwise false.</returns>
+
+function employee_clear, ^val
+
+	required in  a_dbchn,  i
+	optional out a_errtxt, a
+	endparams
+
+	.include "CONNECTDIR:ssql.def"
+
+	stack record local_data
+		ok          ,boolean    ;;Return status
+		dberror     ,int        ;;Database error number
+		cursor      ,int        ;;Database cursor
+		length      ,int        ;;Length of a string
+		transaction ,int        ;;Transaction in process
+		errtxt      ,a512       ;;Returned error message text
+		sql         ,string     ;;SQL statement
+	endrecord
+
+proc
+
+	init local_data
+	ok = true
+
+	;;Start a database transaction
+
+	if (%ssc_commit(a_dbchn,SSQL_TXON)==SSQL_NORMAL) then
+		transaction=1
+	else
+	begin
+		ok = false
+		if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+			errtxt="Failed to start transaction"
+	end
+
+	;;Open cursor for the SQL statement
+
+	if (ok)
+	begin
+		sql = 'TRUNCATE TABLE "Employee"'
+		if (%ssc_open(a_dbchn,cursor,(a)sql,SSQL_NONSEL)==SSQL_FAILURE)
+		begin
+			ok = false
+			if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+				errtxt="Failed to open cursor"
+		end
+	end
+
+	;;Execute SQL statement
+
+	if (ok)
+	begin
+		if (%ssc_execute(a_dbchn,cursor,SSQL_STANDARD)==SSQL_FAILURE)
+		begin
+			ok = false
+			if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+				errtxt="Failed to execute SQL statement"
+		end
+	end
+
+	;;Close the database cursor
+
+	if (cursor)
+	begin
+		if (%ssc_close(a_dbchn,cursor)==SSQL_FAILURE)
+		begin
+			if (ok)
+			begin
+				ok = false
+				if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+					errtxt="Failed to close cursor"
+			end
+		end
+	end
+
+	;;Commit or rollback the transaction
+
+	if (transaction)
+	begin
+		if (ok) then
+		begin
+			;;Success, commit the transaction
+			if (%ssc_commit(a_dbchn,SSQL_TXOFF)==SSQL_FAILURE)
+			begin
+				ok = false
+				if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+					errtxt="Failed to commit transaction"
+			end
+		end
+		else
+		begin
+			;;There was an error, rollback the transaction
+			xcall ssc_rollback(a_dbchn,SSQL_TXOFF)
+		end
+	end
+
+	;;If there was an error message, return it to the calling routine
+
+	if (^passed(a_errtxt))
+	begin
+		if (ok) then
+			a_errtxt = ""
+		else
+			a_errtxt = errtxt
+	end
+
+	freturn ok
+
+endfunction
+
+;;*****************************************************************************
+;;; <summary>
+;;; Deletes the Employee table from the database.
+;;; </summary>
+;;; <param name="a_dbchn">Connected database channel.</param>
+;;; <param name="a_errtxt">Returned error text.</param>
+;;; <returns>Returns true on success, otherwise false.</returns>
+
+function employee_drop, ^val
+
+	required in  a_dbchn,  i
+	optional out a_errtxt, a
+	endparams
+
+	.include "CONNECTDIR:ssql.def"
+
+	stack record local_data
+		ok          ,boolean    ;;Return status
+		dberror     ,int        ;;Database error number
+		cursor      ,int        ;;Database cursor
+		length      ,int        ;;Length of a string
+		transaction ,int        ;;Transaction in progress
+		errtxt      ,a256       ;;Returned error message text
+	endrecord
+
+proc
+
+	init local_data
+	ok = true
+
+	;;Hard close any soft closed cursors
+
+	xcall employee_close_cursors(a_dbchn)
+
+	;;Start a database transaction
+
+	if (%ssc_commit(a_dbchn,SSQL_TXON)==SSQL_NORMAL) then
+		transaction=1
+	else
+	begin
+		ok = false
+		if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+			errtxt="Failed to start transaction"
+	end
+
+	;;Open cursor for DROP TABLE statement
+
+	if (ok)
+	begin
+		if (%ssc_open(a_dbchn,cursor,"DROP TABLE Employee",SSQL_NONSEL)==SSQL_FAILURE)
+		begin
+			ok = false
+			if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+				errtxt="Failed to open cursor"
+		end
+	end
+
+	;;Execute DROP TABLE statement
+
+	if (ok)
+	begin
+		if (%ssc_execute(a_dbchn,cursor,SSQL_STANDARD)==SSQL_FAILURE)
+		begin
+			if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_NORMAL) then
+			begin
+				;;Check if the error was that the table did not exist
+				if (dberror==-3701) then
+					clear errtxt
+				else
+					ok = false
+			end
+			else
+			begin
+				errtxt="Failed to execute SQL statement"
+				ok = false
+			end
+		end
+	end
+
+	;;Close the database cursor
+
+	if (cursor)
+	begin
+		if (%ssc_close(a_dbchn,cursor)==SSQL_FAILURE)
+		begin
+			if (ok)
+			begin
+				ok = false
+				if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+					errtxt="Failed to close cursor"
+			end
+		end
+	end
+
+	;;Commit or rollback the transaction
+
+	if (transaction)
+	begin
+		if (ok) then
+		begin
+			;;Success, commit the transaction
+			if (%ssc_commit(a_dbchn,SSQL_TXOFF)==SSQL_FAILURE)
+			begin
+				ok = false
+				if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+					errtxt="Failed to commit transaction"
+			end
+		end
+		else
+		begin
+			;;There was an error, rollback the transaction
+			xcall ssc_rollback(a_dbchn,SSQL_TXOFF)
+		end
+	end
+
+	;;If there was an error message, return it to the calling routine
+
+	if (^passed(a_errtxt))
+	begin
+		if (ok) then
+			a_errtxt = ""
+		else
+			a_errtxt = errtxt
+	end
+
+	freturn ok
+
+endfunction
+
+;;*****************************************************************************
+;;; <summary>
+;;; Load all data from DAT:EMPLOYEE.ISM into the Employee table.
+;;; </summary>
+;;; <param name="a_dbchn">Connected database channel.</param>
+;;; <param name="a_errtxt">Returned error text.</param>
+;;; <param name="a_logex">Log exception records?</param>
+;;; <param name="a_terminal">Terminal channel to log errors on.</param>
+;;; <param name="a_added">Total number of successful inserts.</param>
+;;; <param name="a_failed">Total number of failed inserts.</param>
+;;; <returns>Returns true on success, otherwise false.</returns>
+
+function employee_load, ^val
+
+	required in  a_dbchn,    i
+	optional out a_errtxt,   a
+	optional in  a_logex,    i
+	optional in  a_terminal, i
+	optional out a_added,    n
+	optional out a_failed,   n
 	endparams
 
 	.include "CONNECTDIR:ssql.def"
@@ -1102,6 +1554,7 @@ proc
 	ok = true
 
 	;;Open the data file associated with the structure
+
 	if (%employee_io(IO_OPEN_INP,filechn)!=IO_OK)
 	begin
 		ok = false
@@ -1112,9 +1565,11 @@ proc
 	if (ok)
 	begin
 		;;Allocate memory buffer for the database rows
+
 		mh = %mem_proc(DM_ALLOC,^size(employee)*(ms=BUFFER_ROWS))
 
 		;;Read records from the input file
+
 		firstRecord = true
 		repeat
 		begin
@@ -1155,23 +1610,28 @@ proc
 		end
 
 		;;Deallocate memory buffer
+
 		mh = %mem_proc(DM_FREE,mh)
 
 	end
 
 	;;Close the file
+
 	if (filechn)
 		xcall employee_io(IO_CLOSE,filechn)
 
 	;;Close the exceptions log file
+
 	if (ex_ch)
 		close ex_ch
 
 	;;Return the error text
+
 	if (^passed(a_errtxt))
 		a_errtxt = errtxt
 
 	;;Return totals
+
 	if (^passed(a_added))
 		a_added = ttl_added
 	if (^passed(a_failed))
@@ -1228,349 +1688,14 @@ insert_data,
 endfunction
 
 ;;*****************************************************************************
-;;
-;; Description: Update a row in the Employee table.
-;;
-function employee_update_row ,^val
+;;; <summary>
+;;; Hard close any soft closed cursors.
+;;; </summary>
+;;; <param name="a_dbchn">Connected database channel</param>
 
-	required in  a_dbchn    ,i      ;Connected database channel
-	required in  a_data     ,a      ;Record containing data to update
-	optional out a_rows     ,i      ;Number of rows affected
-	optional out a_errtxt   ,a      ;Error text
-	endparams
-
-	.include "CONNECTDIR:ssql.def"
-	.include "EMPLOYEE" repository, static record="employee", end
-
-	stack record local_data
-		ok          ,boolean    ;;OK to continue
-		transaction ,boolean    ;;Transaction in progress
-		dberror     ,int        ;;Database error number
-		cursor      ,int        ;;Database cursor
-		length      ,int        ;;Length of a string
-		rows        ,int        ;;Number of rows updated
-		errtxt      ,a256       ;;Error message text
-	endrecord
-
-	literal
-		sql         ,a*, 'UPDATE Employee SET '
-		& +              '"EmpId"=:1,'
-		& +              '"EmpFirstName"=:2,'
-		& +              '"EmpLastName"=:3,'
-		& +              '"EmpDept"=:4,'
-		& +              '"EmpHireDate"=:5,'
-		& +              '"EmpPhoneWork"=:6,'
-		& +              '"EmpPhoneHome"=:7,'
-		& +              '"EmpPhoneCell"=:8,'
-		& +              '"EmpPaid"=:9,'
-		& +              '"EmpHomeOk"=:10,'
-		& +              '"EmpDateOfBirth"=:11,'
-		& +              '"EmpHireTime"=:12,'
-		& +              '"EmpEmail"=:13,'
-		& +              '"EmpAddressStreet"=:14,'
-		& +              '"EmpAddressCity"=:15,'
-		& +              '"EmpAddressState"=:16,'
-		& +              '"EmpAddressZip"=:17'
-		& +              ' WHERE "EmpId"=:18  '
-	endliteral
-
-	static record
-		tmpEmpHireTime, a5      ;;Storage for HH:MM time field
-		,a1                         ;;In case there are no user timestamp, date or JJJJJJ date fields
-	endrecord
-
-	global common
-		csr_employee_update, i4
-	endcommon
-proc
-
-	init local_data
-	ok = true
-
-	if (^passed(a_rows))
-		clear a_rows
-
-	;;Load the data into the bound record
-	employee=a_data
-
-	;;Start a database transaction
-	if (%ssc_commit(a_dbchn,SSQL_TXON)==SSQL_NORMAL) then
-		transaction = true
-	else
-	begin
-		ok = false
-		if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
-			errtxt="Failed to start transaction"
-	end
-
-	;;Open a cursor for the UPDATE statement
-	if (ok)
-	begin
-		if (%ssc_open(a_dbchn,csr_employee_update,sql,SSQL_NONSEL,SSQL_STANDARD)==SSQL_FAILURE)
-		begin
-			ok = false
-			if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
-				errtxt="Failed to open cursor"
-		end
-	end
-
-	;;Bind the host variables for the data to update
-	if (ok)
-	begin
-		if (%ssc_bind(a_dbchn,csr_employee_update,17,
-		&    employee.emp_id,
-		&    employee.emp_first_name,
-		&    employee.emp_last_name,
-		&    employee.emp_dept,
-		&    ^a(employee.emp_hire_date),
-		&    employee.emp_phone_work,
-		&    employee.emp_phone_home,
-		&    employee.emp_phone_cell,
-		&    employee.emp_paid,
-		&    employee.emp_home_ok,
-		&    ^a(employee.emp_date_of_birth),
-		&    tmpEmpHireTime,
-		&    employee.emp_email,
-		&    employee.emp_address_street,
-		&    employee.emp_address_city,
-		&    employee.emp_address_state,
-		&    employee.emp_address_zip
-		&   )==SSQL_FAILURE)
-		begin
-			ok = false
-			if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
-				errtxt="Failed to bind data variables"
-		end
-	end
-
-	;;Bind the host variables for the key segments / WHERE clause
-	if (ok)
-	begin
-		if (%ssc_bind(a_dbchn,csr_employee_update,1,employee.emp_id)==SSQL_FAILURE)
-		begin
-			ok = false
-			if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
-				errtxt="Failed to bind key variables"
-		end
-	end
-
-	;;Update the row in the database
-	if (ok)
-	begin
-		;;Clean up the data
-		if ((!employee.emp_id)||(!%IsNumeric(^a(employee.emp_id))))
-			clear employee.emp_id
-		employee.emp_first_name=%atrim(employee.emp_first_name)+%char(0)
-		employee.emp_last_name=%atrim(employee.emp_last_name)+%char(0)
-		employee.emp_dept=%atrim(employee.emp_dept)+%char(0)
-		if ((!employee.emp_hire_date)||(!%IsDate(^a(employee.emp_hire_date))))
-			^a(employee.emp_hire_date(1:1))=%char(0)
-		employee.emp_phone_work=%atrim(employee.emp_phone_work)+%char(0)
-		employee.emp_phone_home=%atrim(employee.emp_phone_home)+%char(0)
-		employee.emp_phone_cell=%atrim(employee.emp_phone_cell)+%char(0)
-		if ((!employee.emp_paid)||(!%IsNumeric(^a(employee.emp_paid))))
-			clear employee.emp_paid
-		if ((!employee.emp_home_ok)||(!%IsNumeric(^a(employee.emp_home_ok))))
-			clear employee.emp_home_ok
-		if ((!employee.emp_date_of_birth)||(!%IsDate(^a(employee.emp_date_of_birth))))
-			^a(employee.emp_date_of_birth(1:1))=%char(0)
-		if ((!employee.emp_hire_time)||(!%IsTime(^a(employee.emp_hire_time))))
-			^a(employee.emp_hire_time(1:1))=%char(0)
-		employee.emp_email=%atrim(employee.emp_email)+%char(0)
-		employee.emp_address_street=%atrim(employee.emp_address_street)+%char(0)
-		employee.emp_address_city=%atrim(employee.emp_address_city)+%char(0)
-		employee.emp_address_state=%atrim(employee.emp_address_state)+%char(0)
-		if ((!employee.emp_address_zip)||(!%IsNumeric(^a(employee.emp_address_zip))))
-			clear employee.emp_address_zip
-
-		;;Assign any time and user-defined timestamp fields
-		tmpEmpHireTime = %string(employee.emp_hire_time,"XX:XX")
-
-		if (%ssc_execute(a_dbchn,csr_employee_update,SSQL_STANDARD,,rows)==SSQL_NORMAL) then
-		begin
-			if (^passed(a_rows))
-				a_rows = rows
-		end
-		else
-		begin
-			ok = false
-			if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
-				errtxt="Failed to execute SQL statement"
-		end
-	end
-
-	;;Soft close the database cursor
-	if (csr_employee_update)
-	begin
-		if (%ssc_sclose(a_dbchn,csr_employee_update)==SSQL_FAILURE)
-		begin
-			if (ok)
-			begin
-				ok = false
-				if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
-					errtxt="Failed to close cursor"
-			end
-		end
-	end
-
-	;;Commit or rollback the transaction
-	if (transaction)
-	begin
-		if (ok) then
-		begin
-			;;Success, commit the transaction
-			if (%ssc_commit(a_dbchn,SSQL_TXOFF)==SSQL_FAILURE)
-			begin
-				ok = false
-				if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
-					errtxt="Failed to commit transaction"
-			end
-		end
-		else
-		begin
-			;;There was an error, rollback the transaction
-			xcall ssc_rollback(a_dbchn,SSQL_TXOFF)
-		end
-	end
-
-	;;Return error message
-	if (^passed(a_errtxt))
-	begin
-		if (ok) then
-			a_errtxt = ""
-		else
-			a_errtxt = errtxt
-	end
-
-	freturn ok
-
-endfunction
-
-;;*****************************************************************************
-;;
-;; Description: Delete all rows from the Employee table.
-;;
-function employee_clear ,^val
-
-	required in  a_dbchn    ,i      ;;Connected database channel
-	optional out a_errtxt   ,a      ;;Error text
-	endparams
-
-	.include "CONNECTDIR:ssql.def"
-
-	stack record local_data
-		ok          ,boolean    ;;Return status
-		dberror     ,int        ;;Database error number
-		cursor      ,int        ;;Database cursor
-		length      ,int        ;;Length of a string
-		transaction ,int        ;;Transaction in process
-		errtxt      ,a512       ;;Returned error message text
-		sql         ,string     ;;SQL statement
-	endrecord
-
-proc
-
-	init local_data
-	ok = true
-
-	;;-------------------------------------------------------------------------
-	;;Start a database transaction
-
-	if (%ssc_commit(a_dbchn,SSQL_TXON)==SSQL_NORMAL) then
-		transaction=1
-	else
-	begin
-		ok = false
-		if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
-			errtxt="Failed to start transaction"
-	end
-
-	;;-------------------------------------------------------------------------
-	;;Open cursor for the SQL statement
-
-	if (ok)
-	begin
-		sql = 'TRUNCATE TABLE "Employee"'
-		if (%ssc_open(a_dbchn,cursor,(a)sql,SSQL_NONSEL)==SSQL_FAILURE)
-		begin
-			ok = false
-			if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
-				errtxt="Failed to open cursor"
-		end
-	end
-
-	;;-------------------------------------------------------------------------
-	;;Execute SQL statement
-
-	if (ok)
-	begin
-		if (%ssc_execute(a_dbchn,cursor,SSQL_STANDARD)==SSQL_FAILURE)
-		begin
-			ok = false
-			if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
-				errtxt="Failed to execute SQL statement"
-		end
-	end
-
-	;;-------------------------------------------------------------------------
-	;;Close the database cursor
-
-	if (cursor)
-	begin
-		if (%ssc_close(a_dbchn,cursor)==SSQL_FAILURE)
-		begin
-			if (ok)
-			begin
-				ok = false
-				if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
-					errtxt="Failed to close cursor"
-			end
-		end
-	end
-
-	;;-------------------------------------------------------------------------
-	;;Commit or rollback the transaction
-
-	if (transaction)
-	begin
-		if (ok) then
-		begin
-			;;Success, commit the transaction
-			if (%ssc_commit(a_dbchn,SSQL_TXOFF)==SSQL_FAILURE)
-			begin
-				ok = false
-				if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
-					errtxt="Failed to commit transaction"
-			end
-		end
-		else
-		begin
-			;;There was an error, rollback the transaction
-			xcall ssc_rollback(a_dbchn,SSQL_TXOFF)
-		end
-	end
-
-	;;-------------------------------------------------------------------------
-	;;If there was an error message, return it to the calling routine
-
-	if (^passed(a_errtxt))
-	begin
-		if (ok) then
-			a_errtxt = ""
-		else
-			a_errtxt = errtxt
-	end
-
-	freturn ok
-
-endfunction
-
-;;*****************************************************************************
-;;
-;; Description: Hard close any soft closed cursors.
-;;
 subroutine employee_close_cursors
-	required in  a_dbchn    ,i      ;;Connected database channel
+
+	required in  a_dbchn, i
 	endparams
 
 	.include "CONNECTDIR:ssql.def"
@@ -1600,11 +1725,15 @@ proc
 endsubroutine
 
 ;;*****************************************************************************
-;;
-;; Description: Export ISAM data to a CSV file.
-;;
-function employee_create_csv ,^val
-	optional out a_errtxt   ,a
+;;; <summary>
+;;; Exports DAT:EMPLOYEE.ISM to a CSV file.
+;;; </summary>
+;;; <param name="a_errtxt">Returned error text.</param>
+;;; <returns>Returns true on success, otherwise false.</returns>
+
+function employee_create_csv, ^val
+
+	optional out a_errtxt, a
 	endparams
 
 	.include "CONNECTDIR:ssql.def"
@@ -1629,6 +1758,7 @@ proc
 	ok = true
 
 	;;Open the data file associated with the structure
+
 	if (%employee_io(IO_OPEN_INP,filechn)!=IO_OK)
 	begin
 		ok = false
@@ -1637,6 +1767,7 @@ proc
 	end
 
 	;;Open the CSV file
+
 	if (ok)
 	begin
 		open(csvchn=0,o:s,"REPLICATOR_EXPORT:employee.csv")
@@ -1646,10 +1777,13 @@ proc
 	if (ok)
 	begin
 		;;Read records from the input file
+
 		firstRecord = true
 		repeat
 		begin
+
 			;;Get the next record from the input file
+
 			if (firstRecord) then
 			begin
 				errnum = %employee_io(IO_READ_FIRST,filechn,,,employee)
@@ -1698,10 +1832,12 @@ proc
 	end
 
 	;;Close the CSV file
+
 	if (csvchn)
 		close csvchn
 
 	;;Create the SQL command file
+
 	if (ok)
 	begin
 		data csvdir, a128
@@ -1744,10 +1880,12 @@ proc
 	end
 
 	;;Close the file
+
 	if (filechn)
 		xcall employee_io(IO_CLOSE,filechn)
 
 	;;Return the error text
+
 	if (^passed(a_errtxt))
 		a_errtxt = errtxt
 
@@ -1756,11 +1894,14 @@ proc
 endfunction
 
 ;;*****************************************************************************
-;; Description: Accepts a primary key value and returns an instance of the
-;;              record containing the data of the key segments.
-;;
+;;; <summary>
+;;; Loads a unique key value into the respective fields in a record.
+;;; </summary>
+;;; <param name="aKeyValue">Unique key value.</param>
+;;; <returns>Returns a record containig only the unique key segment data.</returns>
 
 function EmployeeKeyToRecord, a
+
 	required in aKeyValue, a
 	endparams
 
@@ -1781,4 +1922,3 @@ proc
 	freturn employee
 
 endfunction
-
