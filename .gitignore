@@ -319,3 +319,4 @@ __pycache__/
 # Ignore specific folders
 
 Documentation/Web Help
+/register.bat

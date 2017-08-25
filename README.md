@@ -175,11 +175,21 @@ of a recent version of Microsoft SQL Server (Express edition is OK) that is
 configured to accept Windows authentication. The only database preparation
 that is necessary is to create an empty database named "SqlReplicationIoHooks".
 
-If your SQL Server database is not local, or does not accept Windows
-authentication, you will need to change the value of the REPLICATOR_DATABASE
-environment variable that is defined in the project properties of the
-application.vpj project. Refer to the section on configuring connect strings
-in the Synergy/DE SQL Connection API manual for more details:
+If your SQL Server database is not local, is is a "named instance", or does
+not accept Windows authentication, you will need to change the SQL Connection
+"connect string" that is used to identify and authenticate against the database.
+To do this, depending on how you are starting the replicator program, you need
+to either change the value of the REPLICATOR_DATABASE environment variable, or
+the value of the -database command line option. If you are running replicator
+from the supplied Visual Studio project you will find that REPLICATOR_DATABASE
+se set in "common properties" in the Visual Studio projects; change the value
+and then restart Visual Studio. If you are running replicator from the supplied
+Workbench projects you will fins that REPLICATOR_DATABASE is set in the project
+properties of both the application and replicator projects. If you are running
+replicator as a Windows Service using the included RegisterReplicatorService
+batch file you will fins that the -database command option is used.
+
+You can find information about connect strings in the SQL Connection manual:
 
 http://docs.synergyde.com/sql/sqlChap2Buildingconnectstrings.html
 
