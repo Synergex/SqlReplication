@@ -344,38 +344,6 @@ proc
 
 	if (ok)
 	begin
-		;;Is an email sender domain specified via the command line?
-		if (CommandLineParser.Parse("maildomain",clValues)) then
-		begin
-			using clValues.Count select
-			(1),
-			begin
-				Settings.EmailDomain = (string)clValues[0]
-			end
-			(0),
-			begin
-				log("ERROR: Missing domain name after the -maildomain option")
-				ok = false
-			end
-			(),
-			begin
-				log("ERROR: Only one domain name may follow the -maildomain option")
-				ok = false
-			end
-			endusing
-		end
-		else
-		begin
-			;;Or via an environment variable?
-			data tmpval, a128
-			xcall getlog("REPLICATOR_EMAIL_DOMAIN",tmpval,length)
-			if (length>0)
-				Settings.EmailDomain = tmpval(1:length)
-		end
-	end
-
-	if (ok)
-	begin
 		;;Should the replicator STOP if it encounters an error?
 		if (CommandLineParser.Parse("stoponerror")) then
 		begin
@@ -507,16 +475,11 @@ proc
 			;;If we're sending emails then let's record the connect failure
 			if (Settings.CanSendEmail())
 			begin
-				data emailStatus, i4
 				data body = new string[3]
 				body[1] = "Failed to connect to database."
 				body[2] = "Connect string: " + Settings.DatabaseConnectString
 				body[3] = "Error message:  " + dberrtxt(1,length)
-				if ((emailStatus=%SmtpMail(Settings.EmailServer,Settings.EmailDomain,Settings.EmailSender,"SQL Replicator ",,Settings.ErrorEmail,,"Replicator"  + Settings.InstanceName + " ERROR",body)) != SMERR_SUCCESS)
-				begin
-					data errorText, string, %TimeStamp + "ERROR: Failed to send startup email. Error was " + %atrim(SmtpErrorText[emailStatus])
-					log(errorText)
-				end
+				xcall SendEmail("ERROR",body)
 			end
 		end
 	end
@@ -547,14 +510,8 @@ proc
 		;;If we're sending emails then let's record the server startup
 		if (Settings.CanSendEmail())
 		begin
-			data emailStatus, i4
-			data body = new string[1]
-			body[1] = "The SQL replicator process was started."
-			if ((emailStatus=%SmtpMail(Settings.EmailServer,Settings.EmailDomain,Settings.EmailSender,"SQL Replicator",,Settings.ErrorEmail,,"Replicator " + Settings.InstanceName + " STARTED",body)) != SMERR_SUCCESS)
-			begin
-				data errorText, string, %TimeStamp + "ERROR: Failed to send startup email. Error was " + %atrim(SmtpErrorText[emailStatus])
-				log(errorText)
-			end
+			data body = new string[#] {"The SQL replicator process was started."}
+			xcall SendEmail("STARTED",body)
 		end
 
 		;;Main loop
@@ -903,6 +860,13 @@ LoadTable,
 			log(" - " + %string(successCount) + " rows inserted, " + %string(failCount) + " rows failed.")
 			Counters.Inserts += successCount
 			Counters.Errors  += failCount
+
+			if (Settings.CanSendEmail())
+			begin
+				data subject, string, "loaded table " + %atrim(instruction.structure_name)
+				data body = new string[#] { "A full table load completed. " + %string(successCount) + " rows inserted, " + %string(failCount) + " rows failed." }
+				xcall SendEmail(subject,body)
+			end
 		end
 		else
 		begin
@@ -1102,7 +1066,16 @@ DoCreateTable,
 				functionName = %atrim(instruction.structure_name) + "_CREATE"
 				status = %xsubr(functionName,Settings.DatabaseChannel,dberrtxt)
 				if (status) then
+				begin
 					debuglog(" - Table created")
+
+					if (Settings.CanSendEmail())
+					begin
+						data subject, string, "created table " + %atrim(instruction.structure_name)
+						data body = new string[#] { "A new table was created in the database." }
+						xcall SendEmail(subject,body)
+					end
+				end
 				else
 					xcall LogFunctionError(functionName,status,dberrtxt)
 			end
@@ -1215,7 +1188,16 @@ DoDeleteAllRows,
 		functionName = %atrim(instruction.structure_name) + "_CLEAR"
 		status = %xsubr(functionName,Settings.DatabaseChannel,dberrtxt)
 		if (status) then
+		begin
 			debuglog(" - Done")
+
+			if (Settings.CanSendEmail())
+			begin
+				data subject, string, "truncated table " + %atrim(instruction.structure_name)
+				data body = new string[#] { "All rows were deleted from the table." }
+				xcall SendEmail(subject, body)
+			end
+		end
 		else
 			xcall LogFunctionError(functionName,status,dberrtxt)
 	end
@@ -1254,7 +1236,16 @@ DoDeleteTable,
 		functionName = %atrim(instruction.structure_name) + "_DROP"
 		status = %xsubr(functionName,Settings.DatabaseChannel,dberrtxt)
 		if (status) then
+		begin
 			debuglog(" - Done")
+
+			if (Settings.CanSendEmail())
+			begin
+				data subject, string, "deleted table " + %atrim(instruction.structure_name)
+				data body = new string[#] { "The table was deleted from the database." }
+				xcall SendEmail(subject, body)
+			end
+		end
 		else
 			xcall LogFunctionError(functionName,status,dberrtxt)
 	end
@@ -1438,9 +1429,7 @@ proc
 	;;If we're sending emails then let's record the shutdown
 	if (Settings.CanSendEmail())
 	begin
-		data emailStatus, i4
 		data body = new string[10]
-
 		body[01] = "<html>"
 		body[02] = "<head><title>Replicator Activity Summary</title></head>"
 		body[03] = "<body>"
@@ -1451,12 +1440,7 @@ proc
 		body[08] =      "ERRORS:  " + %string(Counters.Errors, "ZZZ,ZZZ,ZZZ,ZZX") + "</pre>"
 		body[09] = "</body>"
 		body[10] = "</html>"
-
-		if ((emailStatus=%SmtpMail(Settings.EmailServer,Settings.EmailDomain,Settings.EmailSender,"SQL Replicator",,Settings.ErrorEmail,,"Replicator " + Settings.InstanceName + " STOPPED",body,,true)) != SMERR_SUCCESS)
-		begin
-			data errorText, string, %TimeStamp + "ERROR: Failed to send startup email. Error was " + %atrim(SmtpErrorText[emailStatus])
-			log(errorText)
-		end
+		xcall SendEmail("STOPPED",body,true)
 	end
 
 	;;Clean up any database cursors and data files that we have open
@@ -1553,7 +1537,6 @@ proc
 	;;Email the error?
 	if (Settings.CanSendEmail())
 	begin
-		data emailStatus, i4
 		data body = new string[3]
 		if (Settings.StopOnError) then
 			body[1] = "The SQL Replicator encountered the following error and will STOP processing:"
@@ -1561,11 +1544,7 @@ proc
 			body[1] = "The SQL Replicator encountered the following error and will CONTINUE processing:"
 		body[2] = ""
 		body[3] = errorText
-		if ((emailStatus=%SmtpMail(Settings.EmailServer,Settings.EmailDomain,Settings.EmailSender,"SQL Replicator",,Settings.ErrorEmail,,"Replicator " + Settings.InstanceName + " ERROR",body)) != SMERR_SUCCESS)
-		begin
-			errorText = %TimeStamp+"ERROR: Failed to send error email. Error was " + %atrim(SmtpErrorText[emailStatus])
-			writes(Settings.LogFileChannel,errorText)
-		end
+		xcall SendEmail("ERROR",body)
 	end
 
 	;;Stop processing?
@@ -1577,6 +1556,27 @@ proc
 
 	xreturn
 
+endsubroutine
+
+;;*****************************************************************************
+;;
+subroutine SendEmail
+	required in subject, string
+	required in body, [#]string
+	optional in bodyhtml, boolean
+	.include "INC:SmtpMail.def"
+	stack record
+		emailStatus, i4
+		subjectLine, string
+		html, boolean
+	endrecord
+proc
+	emailStatus = 0
+	subjectLine = "Replicator " + Settings.InstanceName + " " + subject
+	html = ^passed(bodyhtml) && bodyhtml
+	if ((emailStatus=%SmtpMail(Settings.EmailServer,Settings.EmailSender,"SQL Replicator",,Settings.ErrorEmail,,subjectLine,body,,html)) != SMERR_SUCCESS)
+		writes(Settings.LogFileChannel,%TimeStamp+"ERROR: Failed to send error email. Error was " + %atrim(SmtpErrorText[emailStatus]))
+	xreturn
 endsubroutine
 
 ;;*****************************************************************************
@@ -1600,7 +1600,6 @@ proc
 	;;Email the error?
 	if (Settings.CanSendEmail())
 	begin
-		data emailStatus, i4
 		data body = new string[3]
 		if (Settings.StopOnError) then
 			body[1] = "The SQL Replicator encountered the following error and will STOP processing:"
@@ -1608,11 +1607,7 @@ proc
 			body[1] = "The SQL Replicator encountered the following error and will CONTINUE processing:"
 		body[2] = ""
 		body[3] = errorText
-		if ((emailStatus=%SmtpMail(Settings.EmailServer,Settings.EmailDomain,Settings.EmailSender,"SQL Replicator",,Settings.ErrorEmail,,"Replicator " + Settings.InstanceName + " ERROR",body)) != SMERR_SUCCESS)
-		begin
-			errorText = %TimeStamp+"ERROR: Failed to send error email. Error was " + %atrim(SmtpErrorText[emailStatus])
-			writes(Settings.LogFileChannel,errorText)
-		end
+		xcall SendEmail("ERROR",body)
 	end
 
 	;;Stop processing?
@@ -1875,16 +1870,6 @@ namespace Tools
 		endproperty
 
 		;;; <summary>
-		;;; The DNS domain name of the email sender.
-		;;; </summary>
-		public static property EmailDomain, string
-			method get
-			endmethod
-			method set
-			endmethod
-		endproperty
-
-		;;; <summary>
 		;;; Are we doing full logging?
 		;;; </summary>
 		public static property FullLogging, boolean
@@ -1973,7 +1958,7 @@ namespace Tools
 		;;; <returns>Returns true if we have all the data, but does not guarantee that email can be sent!</returns>
 		public static method CanSendEmail, boolean
 		proc
-			mreturn (ErrorEmail != ^null && ErrorEmail.Length>0 && EmailServer != ^null && EmailServer.Length>0 && EmailSender != ^null && EmailSender.Length>0 && EmailDomain != ^null && EmailDomain.Length>0)
+			mreturn (ErrorEmail != ^null && ErrorEmail.Length>0 && EmailServer != ^null && EmailServer.Length>0 && EmailSender != ^null && EmailSender.Length>0)
 		endmethod
 
 	endclass

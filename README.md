@@ -214,7 +214,6 @@ will override the equivalent environment variables.
 | -exportdir <directory>              | The location where bulk export files will be created. |
 | -erroremail <email_address>         | The email address that start, error and stop messages should be sent TO. |
 | -mailfrom <email_address>           | The email address that replicator messages should be sent FROM. |
-| -maildomain <domain_name>           | The domain associated with the sender email address (e.g. synergex.com).|
 | -stoponerror                        | Set to YES to cause the replicator to stop if an error is encountered. |
 | -mailserver <smtp_server>           | The DNS name or IP address of the SMTP mail server that will be used to send messages. |
 | -instance <name>                    | The name of this replicator instance. |
@@ -232,7 +231,6 @@ will override the equivalent environment variables.
 | REPLICATOR_EXPORT                   | The location where buld export files will be created.                                                                       |
 | REPLICATOR_ERROR_EMAIL              | The email address that start, error and stop messages should be sent TO.                                                    |
 | REPLICATOR_EMAIL_SENDER             | The email address that replicator messages should be sent FROM.                                                             |
-| REPLICATOR_EMAIL_DOMAIN             | The domain associated with the sender email address (e.g. synergex.com).                                                    |
 | REPLICATOR_ERROR_STOP               | Set to YES to cause the replicator to stop if an error is encountered.                                                      |
 | REPLICATOR_SMTP_SERVER              | The DNS name or IP address of the SMTP mail server that will be used to send messages.                                      |
 | REPLICATOR_INSTANCE                 | The name of this replicator instance.                                                                                       |

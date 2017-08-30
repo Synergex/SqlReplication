@@ -58,26 +58,25 @@
 function SmtpMail ,^val
 
     ;Server
-    required in a_server		,a			;SMTP server name or ip address (required)
+    required in a_server		,string		;SMTP server name or ip address
 
     ;Sender
-	required in a_domain        ,a			;Sender's domain name (required)
-	required in a_sender        ,a			;Senders e-mail address  (required)
-    optional in a_sender_name   ,a			;Senders name (optional)
-	optional in a_replyto       ,a			;Reply to email address (optional)
+	required in a_sender        ,a			;Senders e-mail address
+    optional in a_sender_name   ,a			;Senders name
+	optional in a_replyto       ,a			;Reply to email address
 
     ;Recipient(s)
-	required in a_tolist        ,a			;Recipient list (required, comma delimited)
-	optional in a_cclist        ,a			;CC list (optional, comma delimited)
+	required in a_tolist        ,a			;Recipient list (comma delimited)
+	optional in a_cclist        ,a			;CC list (comma delimited)
 
     ;Message
-	optional in a_subject       ,a			;Subject text (optional)
-	optional in a_bodyarray     ,[#]string  ;Body text array (optional)
-	optional in a_bodyfile      ,a			;File containing body text (optional)
+	optional in a_subject       ,a			;Subject text
+	optional in a_bodyarray     ,[#]string  ;Body text array
+	optional in a_bodyfile      ,a			;File containing body text
 	optional in a_bodyhtml      ,n			;Does the body contain HTML?
 
     ;Attachment
-	optional in a_attachfile    ,[*]a		;Attachment file names (optional)
+	optional in a_attachfile    ,[*]a		;Attachment file names
 
     endparams
 
@@ -120,6 +119,10 @@ function SmtpMail ,^val
 		dllopt          ,i4     ;Dll option
 	endrecord
 
+	stack record
+		senderDomain	,string
+	endrecord
+
 	literal
 		dayname         ,[7]a3  ,"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"
 		monthname       ,[12]a3 ,"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
@@ -131,6 +134,8 @@ proc
     clear avars, ^i(ivars)
     cr=%char(13)
     lf=%char(10)
+
+	senderDomain = a_sender(%instr(1,a_sender,"@")+1,%trim(a_sender))
 
     ;Open a socket
     err = %ss_socket(sd,SS_SOCK_STREAM)
@@ -159,7 +164,7 @@ proc
 
     ;Service is available, now tell the server the senders domain
     .ifdef USE_EHLO
-    xcall ss_sendbuf(sd,"EHLO "+%atrim(a_domain)+cr+lf)
+    xcall ss_sendbuf(sd,"EHLO "+senderDomain+cr+lf)
     do
     begin
         rc=%get_smtp_line(sd,line_buf)
@@ -167,7 +172,7 @@ proc
     end
     until (line_buf(4:1)==" ")
     .else
-    xcall ss_sendbuf(sd,"HELO "+%atrim(a_domain)+cr+lf)
+	xcall ss_sendbuf(sd,"HELO "+senderDomain+cr+lf)
     rc=%get_smtp_line(sd)
     call check_rc
     .endc
