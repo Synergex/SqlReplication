@@ -91,12 +91,11 @@ proc
         display(tt,$SCR_POS(7,2),"VI. View instructions")
         display(tt,$SCR_POS(8,2),"PI. Purge instructions")
         display(tt,$SCR_POS(9,2),"QL. Instruction count")
-        display(tt,$SCR_POS(10,2),"CL. Cycle log")
-        display(tt,$SCR_POS(11,2),"CI. Change interval")
+        display(tt,$SCR_POS(10,2),"CI. Change interval")
 
-        display(tt,$SCR_POS(13,2),"T.  Set current table")
+        display(tt,$SCR_POS(12,2),"T.  Set current table")
 
-        display(tt,$SCR_POS(15,2),"E.  Exit")
+        display(tt,$SCR_POS(14,2),"E.  Exit")
 
         if (tableName)
         begin
@@ -169,8 +168,6 @@ proc
                         outbuf.operation = "Delete table"
                     (REPLICATION_INSTRUCTION.SHUTDOWN),
                         outbuf.operation = "Shutdown"
-                    (REPLICATION_INSTRUCTION.CYCLE_LOG),
-                        outbuf.operation = "Cycle log"
                     (REPLICATION_INSTRUCTION.DELETE_ALL_INSTRUCTIONS),
                         outbuf.operation = "Purge instructions"
                     (REPLICATION_INSTRUCTION.CLOSE_FILE),
@@ -231,12 +228,6 @@ eof,        close chn
         begin
             xcall Replicate(REPLICATION_INSTRUCTION.DELETE_ALL_INSTRUCTIONS)
             display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Command executed")
-        end
-
-        ("CL"),
-        begin
-            xcall Replicate(REPLICATION_INSTRUCTION.CYCLE_LOG)
-            display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Command queued")
         end
 
         ("CI"),

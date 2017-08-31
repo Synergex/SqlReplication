@@ -51,9 +51,6 @@ proc
     ("R_CLEAR"),
         xcall replicate(REPLICATION_INSTRUCTION.DELETE_ALL_INSTRUCTIONS)
 
-    ("R_CYCLE_LOG"),
-        xcall replicate(REPLICATION_INSTRUCTION.CYCLE_LOG)
-
     endusing
 
     xreturn

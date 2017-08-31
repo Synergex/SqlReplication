@@ -61,15 +61,11 @@ main replicator
 .define D_SLEEP_TIME    60                  ;;Seconds to sleep
 .define D_ERROR_TIME    0.5                 ;;Time to sleep after an error
 
-.define log(x)          writes(Settings.LogFileChannel,%TimeStamp+%atrim(x))
-.define debuglog(x)     if (Settings.FullLogging) writes(Settings.LogFileChannel,%TimeStamp+%atrim(x))
-
 .align
 	record
 		ok                  ,boolean            ;;Main status
 		noMoreInstructions  ,boolean            ;;End of instruction file
 		switchMode          ,boolean            ;;Switched from INSERT to UPDATE or vice versa
-		cycleLog            ,boolean            ;;Cycle the log file
 		switchDone          ,boolean            ;;Have we tried to switch modes before?
 		errnum              ,i4                 ;;Error number
 		nsptr               ,i4                 ;;Namespace pointer
@@ -98,6 +94,16 @@ proc
 	;;If we're running on a terminal we will log to the terminal, if not we will log to a log file.
 	Settings.RunningOnTerminal = (%tnmbr>=0)
 
+	;;If we're running on the terminal, open the terminal channel
+	if (Settings.RunningOnTerminal)
+	begin
+		data tmpchn, i4, 0
+		open(tmpchn,o,"tt:")
+		Settings.TerminalChannel = tmpchn
+		display(Settings.TerminalChannel,$scr_pos(1,1),$scr_clr(SCREEN))
+		writes(Settings.TerminalChannel,"SQL Replicator Log")
+	end
+
 	if (CommandLineParser.Parse("logdir",clValues))
 	begin
 		using clValues.Count select
@@ -109,8 +115,25 @@ proc
 		endusing
 	end
 
-	;;Open the log
-	call OpenLogFile
+	;;Create a new log file
+	Settings.LogFileName = "REPLICATOR_LOGDIR:replicator_"+%datetime+".log"
+	try
+	begin
+		data tmpchn, i4, 0
+		open(tmpchn,o:s,Settings.LogFileName)
+		close tmpchn
+		log("Replicator startup")
+	end
+	catch (ex)
+	begin
+		data message = "Replicator failed to open log file " + Settings.LogFileName + ". Error number " + %string(%ernum)
+		if (Settings.RunningOnTerminal) then
+			writes(Settings.TerminalChannel,message)
+		else
+			xcall syn_reportevent(D_EVENTLOG_ERROR_TYPE,message)
+		ok = false
+	end
+	endtry
 
 	if (ok)
 	begin
@@ -492,8 +515,8 @@ proc
 	if (!ok && Settings.RunningOnTerminal)
 	begin
 		data tmpchr, a1
-		display(Settings.LogFileChannel,13,10,"Replicator will stop - press a key: ")
-		accept(Settings.LogFileChannel,tmpchr)
+		display(Settings.TerminalChannel,13,10,"Replicator will stop - press a key: ")
+		accept(Settings.TerminalChannel,tmpchr)
 	end
 
 	;;Main processing
@@ -584,12 +607,6 @@ proc
 
 				(REPLICATION_INSTRUCTION.CHANGE_INTERVAL),
 					call ChangeInterval
-
-				(REPLICATION_INSTRUCTION.CYCLE_LOG),
-				begin
-					cycleLog = true
-					call OpenLogFile
-				end
 
 				(REPLICATION_INSTRUCTION.SHUTDOWN),
 				begin
@@ -717,7 +734,8 @@ CheckFileTable,
 		if (structure_data.structure_keynum>=0) then
 		begin
 			;;Report the key that will be used
-			debuglog(" - Key " + %string(structure_data.structure_keynum) + " will be used to access the ISAM file")
+			if (Settings.FullLogging)
+				log(" - Key " + %string(structure_data.structure_keynum) + " will be used to access the ISAM file")
 
 			;;And save the structure name
 			structure_data.structure_name = instruction.structure_name
@@ -743,7 +761,8 @@ CheckFileTable,
 ;;
 OpenFile,
 
-	debuglog("Opening file " + %atrim(instruction.structure_name))
+	if (Settings.FullLogging)
+		log("Opening file " + %atrim(instruction.structure_name))
 
 	try
 	begin
@@ -759,12 +778,14 @@ OpenFile,
 
 	if (status == IO_OK) then
 	begin
-		debuglog(" - File opened")
+		if (Settings.FullLogging)
+			log(" - File opened")
 		call CheckTable
 	end
 	else
 	begin
-		debuglog(" - Failed to open file!")
+		if (Settings.FullLogging)
+			log(" - Failed to open file!")
 		clear structure_data.structure_chan
 		xcall LogFunctionError(functionName,status,dberrtxt)
 	end
@@ -776,7 +797,8 @@ OpenFile,
 ;;
 CheckTable,
 
-	debuglog("Checking if table " + %atrim(instruction.structure_name) + " exists")
+	if (Settings.FullLogging)
+		log("Checking if table " + %atrim(instruction.structure_name) + " exists")
 
 	try
 	begin
@@ -792,10 +814,12 @@ CheckTable,
 
 	using status select
 	(1),
-		debuglog(" - Table exists")
+		if (Settings.FullLogging)
+			log(" - Table exists")
 	(0),
 	begin
-		debuglog(" - Table not found!")
+		if (Settings.FullLogging)
+			log(" - Table not found!")
 		call CreateTable
 	end
 	(<0),;Error
@@ -825,7 +849,8 @@ CreateTable,
 
 	if (status) then
 	begin
-		debuglog(" - Table created")
+		if (Settings.FullLogging)
+			log(" - Table created")
 		call LoadTable
 	end
 	else
@@ -850,7 +875,7 @@ LoadTable,
 		functionName = %atrim(instruction.structure_name) + "_LOAD"
 
 		if (Settings.RunningOnTerminal) then
-			status = %xsubr(functionName,Settings.DatabaseChannel,dberrtxt,Settings.LogLoadExceptions,Settings.LogFileChannel,successCount,failCount)
+			status = %xsubr(functionName,Settings.DatabaseChannel,dberrtxt,Settings.LogLoadExceptions,Settings.TerminalChannel,successCount,failCount)
 		else
 			status = %xsubr(functionName,Settings.DatabaseChannel,dberrtxt,Settings.LogLoadExceptions,,successCount,failCount)
 
@@ -888,16 +913,19 @@ DoInsert,
 
 	if (switchMode) then
 	begin
-		debuglog(" - Insert row in table " + %atrim(instruction.structure_name))
+		if (Settings.FullLogging)
+			log(" - Insert row in table " + %atrim(instruction.structure_name))
 		switchMode = false
 	end
 	else
 	begin
-		debuglog("Insert row in table " + %atrim(instruction.structure_name))
+		if (Settings.FullLogging)
+			log("Insert row in table " + %atrim(instruction.structure_name))
 		if (Settings.LogKeys)
 		begin
 			keyValue = %keyVal(structure_data.structure_chan,instruction.record,structure_data.structure_keynum)
-			debugLog(" - Key: " + keyValue)
+			if (Settings.FullLogging)
+				Log(" - Key: " + keyValue)
 		end
 	end
 
@@ -920,16 +948,18 @@ DoInsert,
 	end
 	(1),
 	begin
-		debuglog(" - Row inserted")
+		if (Settings.FullLogging)
+			log(" - Row inserted")
 		Counters.Inserts += 1
 	end
 	(2),
 	begin
-		debuglog(" - Row already exists, switching to UPDATE")
+		if (Settings.FullLogging)
+			log(" - Row already exists, switching to UPDATE")
 		status = IO_OK
 		if (switchDone) then
 		begin
-			Log("ERROR: Too many INSERT/UPDATE mode switches!")
+			log("ERROR: Too many INSERT/UPDATE mode switches!")
 		end
 		else
 		begin
@@ -948,16 +978,20 @@ DoUpdate,
 
 	if (switchMode) then
 	begin
-		debuglog(" - Update row in table " + %atrim(instruction.structure_name))
+		if (Settings.FullLogging)
+			log(" - Update row in table " + %atrim(instruction.structure_name))
 		switchMode = false
 	end
 	else
 	begin
-		debuglog("Update row in table " + %atrim(instruction.structure_name))
+		if (Settings.FullLogging)
+			log("Update row in table " + %atrim(instruction.structure_name))
+
 		if (Settings.LogKeys)
 		begin
 			keyValue = %keyVal(structure_data.structure_chan,instruction.record,structure_data.structure_keynum)
-			debugLog(" - Key: " + keyValue)
+			if (Settings.FullLogging)
+				Log(" - Key: " + keyValue)
 		end
 	end
 
@@ -977,12 +1011,14 @@ DoUpdate,
 	begin
 		if (rows) then
 		begin
-			debuglog(" - Row updated")
+			if (Settings.FullLogging)
+				log(" - Row updated")
 			Counters.Updates += 1
 		end
 		else
 		begin
-			debuglog(" - Row not found, switching to INSERT")
+			if (Settings.FullLogging)
+				log(" - Row not found, switching to INSERT")
 			status = IO_OK
 			if (switchDone) then
 			begin
@@ -1007,12 +1043,14 @@ DoUpdate,
 ;;
 DoDelete,
 
-	debuglog("Delete row from table " + %atrim(instruction.structure_name))
+	if (Settings.FullLogging)
+		log("Delete row from table " + %atrim(instruction.structure_name))
 
 	keyValue = %keyval(structure_data.structure_chan,instruction.record,structure_data.structure_keynum)
 
 	if (Settings.LogKeys)
-		debugLog(" - Key: " + keyValue)
+		if (Settings.FullLogging)
+			Log(" - Key: " + keyValue)
 
 	try
 	begin
@@ -1020,12 +1058,14 @@ DoDelete,
 		status = %xsubr(functionName,Settings.DatabaseChannel,(a)keyValue,dberrtxt)
 		if (status) then
 		begin
-			debuglog(" - Row deleted")
+			if (Settings.FullLogging)
+				log(" - Row deleted")
 			Counters.Deletes += 1
 		end
 		else
 		begin
-			debuglog(" - " + dberrtxt)
+			if (Settings.FullLogging)
+				log(" - " + dberrtxt)
 			xcall LogFunctionError(functionName,status,dberrtxt)
 		end
 	end
@@ -1045,8 +1085,10 @@ DoCreateTable,
 	;;Create a new table (only)
 	;;If the table already exists, do nothing
 
-	debuglog("Create table " + %atrim(instruction.structure_name))
-	debuglog(" - Checking if table already exists")
+	if (Settings.FullLogging)
+		log("Create table " + %atrim(instruction.structure_name))
+	if (Settings.FullLogging)
+		log(" - Checking if table already exists")
 
 	try
 	begin
@@ -1055,11 +1097,13 @@ DoCreateTable,
 		using status select
 		(1),
 		begin
-			debuglog(" - Table already exists!")
+			if (Settings.FullLogging)
+				log(" - Table already exists!")
 		end
 		(0),
 		begin
-			debuglog(" - Creating table")
+			if (Settings.FullLogging)
+				log(" - Creating table")
 
 			try
 			begin
@@ -1067,7 +1111,8 @@ DoCreateTable,
 				status = %xsubr(functionName,Settings.DatabaseChannel,dberrtxt)
 				if (status) then
 				begin
-					debuglog(" - Table created")
+					if (Settings.FullLogging)
+						log(" - Table created")
 
 					if (Settings.CanSendEmail())
 					begin
@@ -1108,7 +1153,8 @@ DoLoadTable,
 	;;Delete all existing data before loading new data
 
 	log("Reload table " + %atrim(instruction.structure_name))
-	debuglog(" - Checking if table exists")
+	if (Settings.FullLogging)
+		log(" - Checking if table exists")
 
 	try
 	begin
@@ -1130,7 +1176,8 @@ DoLoadTable,
 	end
 	(0),
 	begin
-		debuglog(" - Table does not exist!")
+		if (Settings.FullLogging)
+			log(" - Table does not exist!")
 	end
 	(<0),
 	begin
@@ -1164,7 +1211,8 @@ DoCreateCsv,
 		functionName = %atrim(instruction.structure_name) + "_CREATE_CSV"
 		status = %xsubr(functionName,dberrtxt)
 		if (status) then
-			debuglog(" - Done at " + %TimeNow)
+			if (Settings.FullLogging)
+				log(" - Done at " + %TimeNow)
 		else
 			xcall LogFunctionError(functionName,status,dberrtxt)
 	end
@@ -1189,7 +1237,8 @@ DoDeleteAllRows,
 		status = %xsubr(functionName,Settings.DatabaseChannel,dberrtxt)
 		if (status) then
 		begin
-			debuglog(" - Done")
+			if (Settings.FullLogging)
+				log(" - Done")
 
 			if (Settings.CanSendEmail())
 			begin
@@ -1237,7 +1286,8 @@ DoDeleteTable,
 		status = %xsubr(functionName,Settings.DatabaseChannel,dberrtxt)
 		if (status) then
 		begin
-			debuglog(" - Done")
+			if (Settings.FullLogging)
+				log(" - Done")
 
 			if (Settings.CanSendEmail())
 			begin
@@ -1255,60 +1305,6 @@ DoDeleteTable,
 		return
 	end
 	endtry
-
-	return
-
-;;-----------------------------------------------------------------------------
-;; Open the log file
-
-OpenLogFile,
-
-	begin
-		data logChannelMode, string
-
-		;;Are we running on a terminal?
-		if (Settings.RunningOnTerminal) then
-		begin
-			Settings.LogFileName = "TT:"
-			logChannelMode = "O"
-		end
-		else
-		begin
-			;;The logical will be used if defined, otherwise current directory will be used
-			Settings.LogFileName = "REPLICATOR_LOGDIR:replicator_"+%datetime+".log"
-			logChannelMode = "O:S"
-		end
-
-		;;Open the log file
-		try
-		begin
-			data tmpchn, i4
-
-			if (cycleLog)
-			begin
-				log("Cycling log. New log is " + Settings.LogFileName)
-				close Settings.LogFileChannel
-				cycleLog = false
-				if (Settings.RunningOnTerminal)
-					sleep 0.5
-			end
-
-			open(tmpchn,logChannelMode,Settings.LogFileName)
-			Settings.LogFileChannel = tmpchn
-
-			if (Settings.RunningOnTerminal)
-				display(Settings.LogFileChannel,$scr_pos(1,1),$scr_clr(SCREEN))
-
-			log("SQL Replicator Log")
-		end
-		catch (ex)
-		begin
-			if (!Settings.RunningOnTerminal)
-				xcall syn_reportevent(D_EVENTLOG_ERROR_TYPE,"Replicator failed to open log file " + Settings.LogFileName + ". Error number " + %string(%ernum))
-			ok = false
-		end
-		endtry
-	end
 
 	return
 
@@ -1518,6 +1514,43 @@ endsubroutine
 
 ;;*****************************************************************************
 ;;
+subroutine log
+	required in message, string
+	stack record
+		logchn, i4
+	endrecord
+proc
+
+	;;Open the log file
+	try
+	begin
+		open(logchn=0,a:s,Settings.LogFileName)
+
+		;;Log the message
+		writes(logchn,%TimeNow + message)
+
+		;;If running on the terminal, also display the message
+		if (Settings.RunningOnTerminal)
+			writes(Settings.TerminalChannel,message)
+
+		;;Close the log file
+		close logchn
+	end
+	catch (ex)
+	begin
+		data message = "Replicator failed to open log file " + Settings.LogFileName + ". Error number " + %string(%ernum)
+		if (Settings.RunningOnTerminal) then
+			writes(Settings.TerminalChannel,message)
+		else
+			xcall syn_reportevent(D_EVENTLOG_ERROR_TYPE,message)
+	end
+	endtry
+
+	xreturn
+end
+
+;;*****************************************************************************
+;;
 subroutine LogFunctionError
 	required in functionName, string
 	required in errorNumber, int
@@ -1529,10 +1562,10 @@ subroutine LogFunctionError
 	endrecord
 proc
 
-	errorText = %TimeStamp+"ERROR: Function" + functionName + " returned error " + %string(errorNumber) + ": " + %atrim(errorMessage)
+	errorText = "ERROR: Function" + functionName + " returned error " + %string(errorNumber) + ": " + %atrim(errorMessage)
 
 	;;Log the error
-	writes(Settings.LogFileChannel,errorText)
+	log(errorText)
 
 	;;Email the error?
 	if (Settings.CanSendEmail())
@@ -1575,7 +1608,7 @@ proc
 	subjectLine = "Replicator " + Settings.InstanceName + " " + subject
 	html = ^passed(bodyhtml) && bodyhtml
 	if ((emailStatus=%SmtpMail(Settings.EmailServer,Settings.EmailSender,"SQL Replicator",,Settings.ErrorEmail,,subjectLine,body,,html)) != SMERR_SUCCESS)
-		writes(Settings.LogFileChannel,%TimeStamp+"ERROR: Failed to send error email. Error was " + %atrim(SmtpErrorText[emailStatus]))
+		log("ERROR: Failed to send error email. Error was " + %atrim(SmtpErrorText[emailStatus]))
 	xreturn
 endsubroutine
 
@@ -1592,10 +1625,10 @@ function LogFunctionFail, boolean
 	endrecord
 proc
 
-	errorText = %TimeStamp+"ERROR: Function " + functionName + " failed with error " + %string(errorNumber) + ": " + %atrim(errorMessage)
+	errorText = "ERROR: Function " + functionName + " failed with error " + %string(errorNumber) + ": " + %atrim(errorMessage)
 
 	;;Log the error
-	writes(Settings.LogFileChannel,errorText)
+	log(errorText)
 
 	;;Email the error?
 	if (Settings.CanSendEmail())
@@ -1619,18 +1652,6 @@ proc
 
 	freturn false
 
-endfunction
-
-;;*****************************************************************************
-;;
-function TimeStamp, string
-proc
-	if (Settings.RunningOnTerminal) then
-		freturn ""
-	else
-	begin
-		freturn %TimeNow
-	end
 endfunction
 
 ;;*****************************************************************************
@@ -1880,16 +1901,6 @@ namespace Tools
 		endproperty
 
 		;;; <summary>
-		;;; The channel number of the replicator log file.
-		;;; This will be the terminal channel if the replicator is running interactively.
-		;;; </summary>
-		public static property LogFileChannel, i4
-			method get
-			endmethod
-			method set
-			endmethod
-		endproperty
-
 		;;; <summary>
 		;;; The name of the replicator log file.
 		;;; If running in interactive mode this will be TT:
@@ -1901,8 +1912,7 @@ namespace Tools
 			endmethod
 		endproperty
 
-		;;; <summary>
-		;;; Include key data in debug logs?
+	;;; Include key data in debug logs?
 		;;; </summary>
 		public static property LogKeys, boolean
 			method get
@@ -1945,6 +1955,16 @@ namespace Tools
 		;;; Should we stop processing and close if we encounter an error?
 		;;; </summary>
 		public static property StopOnError, boolean
+			method get
+			endmethod
+			method set
+			endmethod
+		endproperty
+
+		;;; <summary>
+		;;; If running interactively, the channel number of the terminal.
+		;;; </summary>
+		public static property TerminalChannel, i4
 			method get
 			endmethod
 			method set

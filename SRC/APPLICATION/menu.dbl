@@ -126,7 +126,6 @@ setup,
         xcall mb_entry(mbcontrol,"R_CSV","Export Employee Bulk Upload File")
         xcall mb_line(mbcontrol)
         xcall mb_entry(mbcontrol,"R_CLEAR","Clear Replicator Instructions")
-        xcall mb_entry(mbcontrol,"R_CYCLE_LOG","Cycle Replicator Log")
         xcall mb_end(mbcontrol,idc_replicator)
     end
 
