@@ -21,8 +21,6 @@
 ;;
 ;; Description: An I/O Hooks class that implements SQL data replication
 ;;
-;; Author:      <AUTHOR>
-;;
 ;;*****************************************************************************
 ;;
 ;; Copyright (c) 2015, Synergex International, Inc.

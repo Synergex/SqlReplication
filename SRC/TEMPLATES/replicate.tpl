@@ -18,8 +18,6 @@
 ;;
 ;; Description: Adds new instructions to the replication servers instruction file.
 ;;
-;; Author:      <AUTHOR>
-;;
 ;;*****************************************************************************
 ;;
 ;; Copyright (c) 2009, Synergex International, Inc.
