@@ -6,8 +6,6 @@
 ;;
 ;; Description: Various functions that performs SQL I/O for EMPLOYEE
 ;;
-;; Author:      Steve Ives
-;;
 ;;*****************************************************************************
 ;;
 ;; Copyright (c) 2009, Synergex International, Inc.

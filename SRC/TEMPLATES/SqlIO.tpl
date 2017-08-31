@@ -24,8 +24,6 @@
 ;;
 ;; Description: Various functions that performs SQL I/O for <STRUCTURE_NAME>
 ;;
-;; Author:      <AUTHOR>
-;;
 ;;*****************************************************************************
 ;;
 ;; Copyright (c) 2009, Synergex International, Inc.

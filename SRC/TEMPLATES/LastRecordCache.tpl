@@ -19,8 +19,6 @@
 ;; Description: Track the data of the last record that was read from or written
 ;;              to each channel.
 ;;
-;; Author:      <AUTHOR>
-;;
 ;;*****************************************************************************
 ;;
 ;; Copyright (c) 2009, Synergex International, Inc.

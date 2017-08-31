@@ -5,8 +5,6 @@
 ;;
 ;; Description: Adds replication I/O hooks to channels
 ;;
-;; Author:      <AUTHOR>
-;;
 ;;*****************************************************************************
 ;;
 ;; Copyright (c) 2016, Synergex International, Inc.

@@ -23,8 +23,6 @@
 ;;
 ;; Description: Performs ISAM file I/O for the file <FILE_NAME>
 ;;
-;; Author:      <AUTHOR>
-;;
 ;;*****************************************************************************
 ;;
 ;; Copyright (c) 2009, Synergex International, Inc.
