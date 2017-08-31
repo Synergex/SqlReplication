@@ -1045,7 +1045,7 @@ proc
 
 	if (ok && openAndBind)
 	begin
-		if (%ssc_bind(a_dbchn,csr_<structure_name>_update,<UNIQUE_KEY><KEY_SEGMENTS>,<SEGMENT_LOOP><IF DATE>^a(</IF DATE><structure_name>.<segment_name><IF DATE>)</IF DATE><,></SEGMENT_LOOP></UNIQUE_KEY>)==SSQL_FAILURE)
+		if (%ssc_bind(a_dbchn,csr_<structure_name>_update,<UNIQUE_KEY><KEY_SEGMENTS>,<SEGMENT_LOOP><IF DATEORTIME>^a(</IF DATEORTIME><structure_name>.<segment_name><IF DATEORTIME>)</IF DATEORTIME><,></SEGMENT_LOOP></UNIQUE_KEY>)==SSQL_FAILURE)
 		begin
 			ok = false
 			if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
