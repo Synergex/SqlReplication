@@ -1451,7 +1451,7 @@ proc
 			;;Hard close any soft-closed database cursors
 			try
 			begin
-				functionName = %atrim(structure_data.structure_name) + "_CLOSE_CURSORS"
+				functionName = %atrim(structure_data.structure_name) + "_CLOSE"
 				xcall xsubr(functionName,Settings.DatabaseChannel)
 			end
 			catch (ex)

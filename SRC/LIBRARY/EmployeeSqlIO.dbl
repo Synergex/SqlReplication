@@ -1362,9 +1362,9 @@ proc
 	init local_data
 	ok = true
 
-	;;Hard close any soft closed cursors
+	;;Close any open cursors
 
-	xcall employee_close_cursors(a_dbchn)
+	xcall employee_close(a_dbchn)
 
 	;;Start a database transaction
 
@@ -1649,11 +1649,11 @@ endfunction
 
 ;;*****************************************************************************
 ;;; <summary>
-;;; Hard close any soft closed cursors.
+;;; Close cursors associated with the Employee table.
 ;;; </summary>
 ;;; <param name="a_dbchn">Connected database channel</param>
 
-subroutine employee_close_cursors
+subroutine employee_close
 
 	required in  a_dbchn, i
 	endparams
