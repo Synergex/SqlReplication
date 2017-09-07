@@ -170,26 +170,88 @@ Contains the replicator program as well as several utility programs.
 
 ## Preparing the Database
 
-The code in this example is configured for use with a local default instance
-of a recent version of Microsoft SQL Server (Express edition is OK) that is
-configured to accept Windows authentication. The only database preparation
-that is necessary is to create an empty database named "SqlReplicationIoHooks".
+The code in this example is configured for the following database configuration:
 
-If your SQL Server database is not local, is is a "named instance", or does
-not accept Windows authentication, you will need to change the SQL Connection
-"connect string" that is used to identify and authenticate against the database.
-To do this, depending on how you are starting the replicator program, you need
-to either change the value of the REPLICATOR_DATABASE environment variable, or
-the value of the -database command line option. If you are running replicator
-from the supplied Visual Studio project you will find that REPLICATOR_DATABASE
-se set in "common properties" in the Visual Studio projects; change the value
-and then restart Visual Studio. If you are running replicator from the supplied
-Workbench projects you will fins that REPLICATOR_DATABASE is set in the project
-properties of both the application and replicator projects. If you are running
-replicator as a Windows Service using the included RegisterReplicatorService
-batch file you will fins that the -database command option is used.
+* Local default instance of a recent version of SQL Server (Express is OK)
+* An empty database named "SqlReplicationIoHooks"
+* Windows authentication based on your current windows login allows full
+  access to the database (ability to create and drop tables, etc.)
 
-You can find information about connect strings in the SQL Connection manual:
+If your SQL Server database is not local, is not a default instance (i.e. it
+is a "named instance"), or does not accept Windows authentication, then you will
+need to change the SQL Connection "connect string" that is used to connect to
+the database.
+
+Depending on how you start the replicator program, you need will to either change
+the value of the -database command line option, or change the value of the
+REPLICATOR_DATABASE environment variable.
+
+If you are running replicator from the supplied Visual Studio project you will
+find that the REPLICATOR_DATABASE environment variable is set via the "common
+properties" tab in the Visual Studio projects; change the value and then restart
+Visual Studio.
+
+If you are running replicator from the supplied Workbench projects you will find
+that REPLICATOR_DATABASE environment variable is set in the project properties of
+both the application and replicator projects.
+
+If you are running replicator as a Windows Service using the supplied batch file
+RegisterReplicatorService.bat you will finf that the -database command option is
+used.
+
+Here are a few examles of valid SQL Connection connect strings for use with SQL
+Server databases.
+
+| Database | Instance |Connect Via    | Authentication   | Connect String                                      |
+| -------- | -------- |-------------- | ---------------- | --------------------------------------------------- |
+| Local    | Either   | DSN name      | SQL Server login | VTX12_SQLNATIVE:uid/pwd/dsn                         |
+| Local    | Default  | Database name | SQL Server login | VTX12_SQLNATIVE:uid/pwd/dbname/.///                 |
+| Local    | Default  | Database name | Windows login    | VTX12_SQLNATIVE://dbname/.///Trusted_connection=yes |
+| Local    | Named    | Database name | SQL Server login | VTX12_SQLNATIVE:uid/pwd/dbname/.\\\instance///                 |
+| Local    | Named    | Database name | Windows login    | VTX12_SQLNATIVE://dbname/.\\\instance///Trusted_connection=yes |
+| Remote   | Either   | DSN name      | SQL Server login | net:uid/pwd/dsn@port:server_ip!VTX12_SQLNATIVE |
+| Remote   | Default  | Database name | SQL Server login | net:uid/pwd/dbname/server_name///@port:server_ip!VTX12_SQLNATIVE |
+| Remote   | Default  | Database name | Windows login    | net://dbname/server_name///Trusted_connection=yes@port:server_ip!VTX12_SQLNATIVE |
+| Remote   | Named    | Database name | SQL Server login | net:uid/pwd/dbname/server_name\\\instance///@port:server_ip!VTX12_SQLNATIVE |
+| Remote   | Named    | Database name | Windows login    | net://dbname/server_name\\\instance///Trusted_connection=yes@port:server_ip!VTX12_SQLNATIVE |
+
+A local connection should be used when the SQL Server database exists on the
+same system that the replicator is running on. A remote connection should be
+used when the SQL Server database is located on a different system to where
+the replicator is running, and requires that the Synergy OpenNet server is
+running on the database server system.
+
+The various parts of the connect string are replaced as follows:
+
+| Value       | Replaced With |
+| ----------- | ------------- |
+| uid         | Username of the SQL Server login to use. |
+| pwd         | Password of the SQL Server login to use. |
+| dsn         | Name of an ODBC datasource to use. |
+| dbname      | Name of the SQL Server database to connect to. |
+| port        | TCP/IP port number that the Synergy OpenNet server is listening on (usually 1958) on the remote database server. |
+| server_name | Name of the remote SQL Server (Window server name). |
+| instance    | Name of the SQL Server named instance. |
+| server_ip   | The DNS name or TCP/IP address of the remote database server. |
+
+If you are using an ODBC DSN to connect to the database then you should:
+
+* Create the DSN wherever the database is located. For local databases the DSN
+  should be defined on the local system. For remote databases the DSN should
+  be created on the remote server system.
+* For local databases, create the DSN to match the bit-size that you are building
+  the replicator application with. If you are building replicator for x86 then
+  create a 32-bit System DSN. If you are building replicator for x64 then create
+  a 63-bit System DSN.
+* For remote databases, create a DSN to match the bit size of the server that is
+  hosting the database, and running the Synergy SQL OpenNet server. For 32-bit
+  servers (rare), create a 32-bit System DSN on the server. For 64-bit servers
+  (usual), create a 64-bit System DSN on the server.
+
+
+
+You can find additional information about SQL Connection connect strings in the
+SQL Connection documentation:
 
 http://docs.synergyde.com/sql/sqlChap2Buildingconnectstrings.html
 
