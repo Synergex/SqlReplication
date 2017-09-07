@@ -54,13 +54,6 @@ main replicator
 	.include "INC:SmtpMail.def"
 	.include "REPLICATION" repository, record="instruction", end
 
-.define D_MAX_CURSORS   128
-.define D_MAX_COLUMNS   254
-
-.define D_TRANS_FILE    "DAT:REPLICATION.ISM"
-.define D_SLEEP_TIME    60                  ;;Seconds to sleep
-.define D_ERROR_TIME    0.5                 ;;Time to sleep after an error
-
 .align
 	record
 		ok                  ,boolean            ;;Main status
@@ -90,10 +83,6 @@ proc
 	ok = true
 	xcall flags(7004020,1)
 
-	;;Do we have a terminal attached or are we a detached process or service?
-	;;If we're running on a terminal we will log to the terminal, if not we will log to a log file.
-	Settings.RunningOnTerminal = (%tnmbr>=0)
-
 	;;If we're running on the terminal, open the terminal channel
 	if (Settings.RunningOnTerminal)
 	begin
@@ -116,7 +105,6 @@ proc
 	end
 
 	;;Create a new log file
-	Settings.LogFileName = "REPLICATOR_LOGDIR:replicator_"+%datetime+".log"
 	try
 	begin
 		data tmpchn, i4, 0
@@ -155,12 +143,12 @@ proc
 				Settings.InstanceName = (string)clValues[0]
 			(0),
 			begin
-				log("ERROR: Missing instance name after the -instance option")
+				log("ERROR: Missing value after the -instance option")
 				ok = false
 			end
 			(),
 			begin
-				log("ERROR: Only one instance name may follow the -instance option")
+				log("ERROR: Only one value may follow the -instance option")
 				ok = false
 			end
 			endusing
@@ -170,10 +158,8 @@ proc
 			;;Or via an environment variable?
 			data tmpval, a80
 			xcall getlog("REPLICATOR_INSTANCE",tmpval,length)
-			if (length) then
+			if (length)
 				Settings.InstanceName = tmpval(1:length)
-			else
-				Settings.InstanceName = "DEFAULT"
 		end
 	end
 
@@ -191,19 +177,19 @@ proc
 				end
 				catch (e, @Exception)
 				begin
-					log("ERROR: Invalid sleep interval value after the -interval option")
+					log("ERROR: Invalid value after the -interval option")
 					ok = false
 				end
 				endtry
 			end
 			(0),
 			begin
-				log("ERROR: Missing sleep interval value after the -interval option")
+				log("ERROR: Missing value after the -interval option")
 				ok = false
 			end
 			(),
 			begin
-				log("ERROR: Only one sleep interval may follow the -interval option")
+				log("ERROR: Only one value may follow the -interval option")
 				ok = false
 			end
 			endusing
@@ -213,10 +199,8 @@ proc
 			;;Or via an environment variable?
 			data tmpval, a10
 			xcall getlog("REPLICATOR_INTERVAL",tmpval,length)
-			if (length>0) then
+			if (length>0)
 				Settings.SleepTime = %integer(tmpval(1:length))
-			else
-				Settings.SleepTime = D_SLEEP_TIME
 		end
 		log("Sleep interval is " + %string(Settings.SleepTime) + " seconds.")
 	end
@@ -281,12 +265,12 @@ proc
 			end
 			(0),
 			begin
-				log("ERROR: Missing email address after the -erroremail option")
+				log("ERROR: Missing value after the -erroremail option")
 				ok = false
 			end
 			(),
 			begin
-				log("ERROR: Only one email address may follow the -erroremail option")
+				log("ERROR: Only one value may follow the -erroremail option")
 				ok = false
 			end
 			endusing
@@ -313,12 +297,12 @@ proc
 			end
 			(0),
 			begin
-				log("ERROR: Missing email server name or address after the -mailserver option")
+				log("ERROR: Missing value after the -mailserver option")
 				ok = false
 			end
 			(),
 			begin
-				log("ERROR: Only one email server name or address may follow the -mailserver option")
+				log("ERROR: Only one value may follow the -mailserver option")
 				ok = false
 			end
 			endusing
@@ -345,12 +329,12 @@ proc
 			end
 			(0),
 			begin
-				log("ERROR: Missing email address after the -mailfrom option")
+				log("ERROR: Missing value after the -mailfrom option")
 				ok = false
 			end
 			(),
 			begin
-				log("ERROR: Only one email address may follow the -mailfrom option")
+				log("ERROR: Only one value may follow the -mailfrom option")
 				ok = false
 			end
 			endusing
@@ -382,29 +366,111 @@ proc
 
 	if (ok)
 	begin
+		;;Do we have a max columns value  via the command line?
+		if (CommandLineParser.Parse("maxcols",clValues)) then
+		begin
+			using clValues.Count select
+			(1),
+			begin
+				try
+				begin
+					Settings.MaxColumns = %integer((string)clValues[0])
+				end
+				catch (e, @Exception)
+				begin
+					log("ERROR: Invalid value after the -maxcols option")
+					ok = false
+				end
+				endtry
+			end
+			(0),
+			begin
+				log("ERROR: Missing value after the -maxcols option")
+				ok = false
+			end
+			(),
+			begin
+				log("ERROR: Only one value may follow the -maxcols option")
+				ok = false
+			end
+			endusing
+		end
+		else
+		begin
+			;;Or via an environment variable?
+			data tmpval, a10
+			xcall getlog("REPLICATOR_MAX_COLS",tmpval,length)
+			if (length>0)
+				Settings.MaxColumns = %integer(tmpval(1:length))
+		end
+	end
+
+	if (ok)
+	begin
+		;;Do we have a max cursors value  via the command line?
+		if (CommandLineParser.Parse("maxcursors",clValues)) then
+		begin
+			using clValues.Count select
+			(1),
+			begin
+				try
+				begin
+					Settings.MaxCursors = %integer((string)clValues[0])
+				end
+				catch (e, @Exception)
+				begin
+					log("ERROR: Invalid value after the -maxcursors option")
+					ok = false
+				end
+				endtry
+			end
+			(0),
+			begin
+				log("ERROR: Missing value after the -maxcursors option")
+				ok = false
+			end
+			(),
+			begin
+				log("ERROR: Only one value may follow the -maxcursors option")
+				ok = false
+			end
+			endusing
+		end
+		else
+		begin
+			;;Or via an environment variable?
+			data tmpval, a10
+			xcall getlog("REPLICATOR_MAX_CURSORS",tmpval,length)
+			if (length>0)
+				Settings.MaxCursors = %integer(tmpval(1:length))
+		end
+	end
+
+	if (ok)
+	begin
 		;;Check if the instruction file exists, if not create it
 		try
 		begin
 			data tmpchn, i4, 0
-			open(tmpchn,I:I,D_TRANS_FILE)
+			open(tmpchn,I:I,Settings.TransactionFile)
 			close tmpchn
 		end
 		catch (e, @Synergex.SynergyDE.NoFileFoundException)
 		begin
 			try
 			begin
-				xcall isamc(D_TRANS_FILE + ", FIXED, COMPRESS, PAGE=1024, TBYTE", 65054, 1, "START=1, LENGTH=20, NAME=TRANSACTION_ID") ;Defaults: TYPE=ALPHA, NODUPS, NOMODIFY, ASCEND
+				xcall isamc(Settings.TransactionFile + ", FIXED, COMPRESS, PAGE=1024, TBYTE", 65054, 1, "START=1, LENGTH=20, NAME=TRANSACTION_ID") ;Defaults: TYPE=ALPHA, NODUPS, NOMODIFY, ASCEND
 			end
 			catch (ex, @Exception)
 			begin
-				log("ERROR: Failed to create new " + D_TRANS_FILE + " - Error: " + e.Message)
+				log("ERROR: Failed to create transaction log file " + Settings.TransactionFile + " - Error: " + e.Message)
 				ok = false
 			end
 			endtry
 		end
 		catch (e, @Exception)
 		begin
-			log("ERROR: Failed to open " + D_TRANS_FILE + " - Error: " + e.Message)
+			log("ERROR: Failed to open transaction log file " + Settings.TransactionFile + " - Error: " + e.Message)
 			ok = false
 		end
 		endtry
@@ -416,12 +482,12 @@ proc
 		try
 		begin
 			data tmpchn, i4, 0
-			open(tmpchn,U:I,D_TRANS_FILE)
+			open(tmpchn,U:I,Settings.TransactionFile)
 			Settings.InstructionChannel = tmpchn
 		end
 		catch (ex)
 		begin
-			log("ERROR: Failed to open " + D_TRANS_FILE)
+			log("ERROR: Failed to open transaction log file " + Settings.TransactionFile)
 			ok = false
 		end
 		endtry
@@ -439,12 +505,12 @@ proc
 			end
 			(0),
 			begin
-				log("ERROR: Missing connect string after the -database option")
+				log("ERROR: Missing value after the -database option")
 				ok = false
 			end
 			(),
 			begin
-				log("ERROR: Only one connect string may follow the -database option")
+				log("ERROR: Only one value may follow the -database option")
 				ok = false
 			end
 			endusing
@@ -474,7 +540,7 @@ proc
 		status = %option(48,1)
 .endc
 		Settings.DatabaseChannel = 1
-		if (%ssc_init(Settings.DatabaseChannel,D_MAX_CURSORS,D_MAX_COLUMNS)==SSQL_FAILURE)
+		if (%ssc_init(Settings.DatabaseChannel,Settings.MaxCursors,Settings.MaxColumns)==SSQL_FAILURE)
 		begin
 			log("ERROR: Failed to initialize SQL Connection")
 			ok = false
@@ -670,7 +736,7 @@ GetInstruction,
 		end
 		catch (ex, @RecordLockedException)
 		begin
-			sleep D_ERROR_TIME
+			sleep Settings.ErrorSleepTime
 			nextloop
 		end
 		endtry
@@ -1798,7 +1864,19 @@ namespace Tools
 	;;; <summary>
 	;;; Represents various settings used within the replicator application.
 	;;; </summary>
-	public class Settings
+	public static class Settings
+
+		static method Settings
+		proc
+			ErrorSleepTime    = 0.5
+			InstanceName      = "DEFAULT"
+			LogFileName       = "REPLICATOR_LOGDIR:replicator_" + %datetime + ".log"
+			MaxCursors        = 128
+			MaxColumns        = 254
+			RunningOnTerminal = (%tnmbr >= 0)
+			SleepTime         = 60
+			TransactionFile   = "DAT:REPLICATION.ISM"
+		endmethod
 
 		;;; <summary>
 		;;; A synergy namespace used to store information about SDMS channels that the replicator currently has open
@@ -1891,6 +1969,16 @@ namespace Tools
 		endproperty
 
 		;;; <summary>
+		;;; How many seconds should we sleep after processing an error?
+		;;; </summary>
+		public static property ErrorSleepTime, decimal
+			method get
+			endmethod
+			method set
+			endmethod
+		endproperty
+
+		;;; <summary>
 		;;; Are we doing full logging?
 		;;; </summary>
 		public static property FullLogging, boolean
@@ -1932,6 +2020,26 @@ namespace Tools
 		endproperty
 
 		;;; <summary>
+		;;; Maximum number of database cursors
+		;;; </summary>
+		public static property MaxCursors, int
+			method get
+			endmethod
+			method set
+			endmethod
+		endproperty
+
+		;;; <summary>
+		;;; Maximum number of columns in a database table
+		;;; </summary>
+		public static property MaxColumns, int
+			method get
+			endmethod
+			method set
+			endmethod
+		endproperty
+
+		;;; <summary>
 		;;; Are we attached to a terminal?
 		;;; </summary>
 		public static property RunningOnTerminal, boolean
@@ -1964,7 +2072,17 @@ namespace Tools
 		;;; <summary>
 		;;; If running interactively, the channel number of the terminal.
 		;;; </summary>
-		public static property TerminalChannel, i4
+		public static property TerminalChannel, int
+			method get
+			endmethod
+			method set
+			endmethod
+		endproperty
+
+		;;; <summary>
+		;;; The name of the replication transation log file.
+		;;; </summary>
+		public static property TransactionFile, string
 			method get
 			endmethod
 			method set

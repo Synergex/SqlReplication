@@ -268,34 +268,39 @@ will override the equivalent environment variables.
 | Parameter                           | Description   |
 | ----------------------------------- | ------------- |
 | -database <connect_string>          | SQL connection connect string identifying the database to connect to. |
-| -logdir <directory>                 | The location where the log file should be created. A full or relative path, or an environment variable followed by a colon. |
+| -erroremail <email_address>         | The email address that start, error and stop messages should be sent TO. |
+| -exportdir <directory>              | The location where bulk export files will be created. |
+| -instance <name>                    | The name of this replicator instance. |
 | -interval <seconds>                 | The number of seconds the replicator should sleep if it finds no instructions to process. |
-| -verbose                            | Enable verbose logging. |
 | -keyvalues                          | Record the key values being used to relate ISAM records to SQL rows. |
 | -loaderrors                         | Log failing records during a bulk load operation to a file. |
-| -exportdir <directory>              | The location where bulk export files will be created. |
-| -erroremail <email_address>         | The email address that start, error and stop messages should be sent TO. |
+| -logdir <directory>                 | The location where the log file should be created. A full or relative path, or an environment variable followed by a colon. |
 | -mailfrom <email_address>           | The email address that replicator messages should be sent FROM. |
-| -stoponerror                        | Set to YES to cause the replicator to stop if an error is encountered. |
 | -mailserver <smtp_server>           | The DNS name or IP address of the SMTP mail server that will be used to send messages. |
-| -instance <name>                    | The name of this replicator instance. |
+| -maxcolumns <columns>               | The maximum number of columns in a database table. Default is 254. |
+| -maxcursors <cursors>               | The maximum number of database cursors. Allow 4 per table. Default is 128. |
+| -stoponerror                        | Cause the replicator to stop if an error is encountered. |
+| -verbose                            | Enable verbose logging. |
+
 
 ### Environment Variables
 
 | Environment Variable                | Description                                                                                                                 |
 | ----------------------------------- | -------------                                                                                                               |
 | REPLICATOR_DATABASE                 | SQL connection database connection string identifying the SQL Server database to connect to.                                |
-| REPLICATOR_LOGDIR                   | The location where the log file should be created. A full or relative path, or an environment variable followed by a colon. |
+| REPLICATOR_ERROR_EMAIL              | The email address that start, error and stop messages should be sent TO.                                                    |
+| REPLICATOR_EXPORT                   | The location where buld export files will be created.                                                                       |
+| REPLICATOR_INSTANCE                 | The name of this replicator instance.                                                                                       |
 | REPLICATOR_INTERVAL                 | The number of seconds the replicator should sleep if it finds no instructions to process.                                   |
-| REPLICATOR_FULL_LOG                 | Set to YES to cause more verbose logging to be used.                                                                        |
 | REPLICATOR_LOG_KEYS                 | Set to YES to cause the key values being used to relate ISAM records to SQL rows.                                           |
 | REPLICATOR_LOG_BULK_LOAD_EXCEPTIONS | Set to YES to cause failing records during a bulk load operation to be logged to a file.                                    |
-| REPLICATOR_EXPORT                   | The location where buld export files will be created.                                                                       |
-| REPLICATOR_ERROR_EMAIL              | The email address that start, error and stop messages should be sent TO.                                                    |
+| REPLICATOR_LOGDIR                   | The location where the log file should be created. A full or relative path, or an environment variable followed by a colon. |
 | REPLICATOR_EMAIL_SENDER             | The email address that replicator messages should be sent FROM.                                                             |
-| REPLICATOR_ERROR_STOP               | Set to YES to cause the replicator to stop if an error is encountered.                                                      |
 | REPLICATOR_SMTP_SERVER              | The DNS name or IP address of the SMTP mail server that will be used to send messages.                                      |
-| REPLICATOR_INSTANCE                 | The name of this replicator instance.                                                                                       |
+| REPLICATOR_MAX_COLUMNS              | The maximum number of columns in a database table. Default is 254. |
+| REPLICATOR_MAX_CURSORS              | The maximum number of database cursors. Allow 4 per table. Default is 128. |
+| REPLICATOR_ERROR_STOP               | Set to YES to cause the replicator to stop if an error is encountered.                                                      |
+| REPLICATOR_FULL_LOG                 | Set to YES to cause more verbose logging to be used.                                                                        |
 
 ***
 
