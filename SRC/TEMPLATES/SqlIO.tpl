@@ -1589,6 +1589,12 @@ proc
 	init local_data
 	ok = true
 
+	;;If we are logging exceptions, delete any existing exceptions file.
+	if (^passed(a_logex) && a_logex)
+	begin
+		xcall delet("REPLICATOR_LOGDIR:<structure_name>_data_exceptions.log")
+	end
+
 	;;Open the data file associated with the structure
 
 	if (%<structure_name>_io(IO_OPEN_INP,filechn)!=IO_OK)
@@ -1695,12 +1701,12 @@ insert_data,
 				data cnt, int
 				;;Open the log file
 				if (!ex_ch)
-					open(ex_ch=0,o:s,"<structure_name>_data_exceptions.log")
+					open(ex_ch=0,o:s,"REPLICATOR_LOGDIR:<structure_name>_data_exceptions.log")
 				;;Log the exceptions
 				for cnt from 1 thru ex_mc
 					writes(ex_ch,^m(<structure_name>[cnt],ex_mh))
 				if (^passed(a_terminal)&&a_terminal)
-					writes(a_terminal,"Exceptions were logged to <structure_name>_data_exceptions.log")
+					writes(a_terminal,"Exceptions were logged to REPLICATOR_LOGDIR:<structure_name>_data_exceptions.log")
 			end
 			else
 			begin
