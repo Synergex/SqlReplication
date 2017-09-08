@@ -93,6 +93,20 @@ proc
 		writes(Settings.TerminalChannel,"SQL Replicator Log")
 	end
 
+	;;Should we log major events to the system log in addition to the log file?
+	if (CommandLineParser.Parse("syslog")) then
+	begin
+		Settings.SystemLog = true
+	end
+	else
+	begin
+		;;Or via an environment variable?
+		data tmpval, a3
+		xcall getlog("REPLICATOR_SYSTEM_LOG",tmpval,length)
+		Settings.SystemLog = ((length>0)&&(tmpval.eq."YES"))
+	end
+
+	;;Do we have a log file location on the command line?
 	if (CommandLineParser.Parse("logdir",clValues))
 	begin
 		using clValues.Count select
@@ -110,7 +124,8 @@ proc
 		data tmpchn, i4, 0
 		open(tmpchn,o:s,Settings.LogFileName)
 		close tmpchn
-		log("Replicator startup")
+		;;Record the startup
+		xcall log("Replicator startup")
 	end
 	catch (ex)
 	begin
@@ -143,12 +158,12 @@ proc
 				Settings.InstanceName = (string)clValues[0]
 			(0),
 			begin
-				log("ERROR: Missing value after the -instance option")
+				xcall errorlog("Missing value after the -instance option")
 				ok = false
 			end
 			(),
 			begin
-				log("ERROR: Only one value may follow the -instance option")
+				xcall errorlog("Only one value may follow the -instance option")
 				ok = false
 			end
 			endusing
@@ -177,19 +192,19 @@ proc
 				end
 				catch (e, @Exception)
 				begin
-					log("ERROR: Invalid value after the -interval option")
+					xcall errorlog("Invalid value after the -interval option")
 					ok = false
 				end
 				endtry
 			end
 			(0),
 			begin
-				log("ERROR: Missing value after the -interval option")
+				xcall errorlog("Missing value after the -interval option")
 				ok = false
 			end
 			(),
 			begin
-				log("ERROR: Only one value may follow the -interval option")
+				xcall errorlog("Only one value may follow the -interval option")
 				ok = false
 			end
 			endusing
@@ -202,7 +217,7 @@ proc
 			if (length>0)
 				Settings.SleepTime = %integer(tmpval(1:length))
 		end
-		log("Sleep interval is " + %string(Settings.SleepTime) + " seconds.")
+		xcall log("Sleep interval is " + %string(Settings.SleepTime) + " seconds.")
 	end
 
 	if (ok)
@@ -265,12 +280,12 @@ proc
 			end
 			(0),
 			begin
-				log("ERROR: Missing value after the -erroremail option")
+				xcall errorlog("Missing value after the -erroremail option")
 				ok = false
 			end
 			(),
 			begin
-				log("ERROR: Only one value may follow the -erroremail option")
+				xcall errorlog("Only one value may follow the -erroremail option")
 				ok = false
 			end
 			endusing
@@ -297,12 +312,12 @@ proc
 			end
 			(0),
 			begin
-				log("ERROR: Missing value after the -mailserver option")
+				xcall errorlog("Missing value after the -mailserver option")
 				ok = false
 			end
 			(),
 			begin
-				log("ERROR: Only one value may follow the -mailserver option")
+				xcall errorlog("Only one value may follow the -mailserver option")
 				ok = false
 			end
 			endusing
@@ -329,12 +344,12 @@ proc
 			end
 			(0),
 			begin
-				log("ERROR: Missing value after the -mailfrom option")
+				xcall errorlog("Missing value after the -mailfrom option")
 				ok = false
 			end
 			(),
 			begin
-				log("ERROR: Only one value may follow the -mailfrom option")
+				xcall errorlog("Only one value may follow the -mailfrom option")
 				ok = false
 			end
 			endusing
@@ -378,19 +393,19 @@ proc
 				end
 				catch (e, @Exception)
 				begin
-					log("ERROR: Invalid value after the -maxcols option")
+					xcall errorlog("Invalid value after the -maxcols option")
 					ok = false
 				end
 				endtry
 			end
 			(0),
 			begin
-				log("ERROR: Missing value after the -maxcols option")
+				xcall errorlog("Missing value after the -maxcols option")
 				ok = false
 			end
 			(),
 			begin
-				log("ERROR: Only one value may follow the -maxcols option")
+				xcall errorlog("Only one value may follow the -maxcols option")
 				ok = false
 			end
 			endusing
@@ -419,19 +434,19 @@ proc
 				end
 				catch (e, @Exception)
 				begin
-					log("ERROR: Invalid value after the -maxcursors option")
+					xcall errorlog("Invalid value after the -maxcursors option")
 					ok = false
 				end
 				endtry
 			end
 			(0),
 			begin
-				log("ERROR: Missing value after the -maxcursors option")
+				xcall errorlog("Missing value after the -maxcursors option")
 				ok = false
 			end
 			(),
 			begin
-				log("ERROR: Only one value may follow the -maxcursors option")
+				xcall errorlog("Only one value may follow the -maxcursors option")
 				ok = false
 			end
 			endusing
@@ -463,14 +478,14 @@ proc
 			end
 			catch (ex, @Exception)
 			begin
-				log("ERROR: Failed to create transaction log file " + Settings.TransactionFile + " - Error: " + e.Message)
+				xcall errorlog("Failed to create transaction log file " + Settings.TransactionFile + " - Error was: " + e.Message)
 				ok = false
 			end
 			endtry
 		end
 		catch (e, @Exception)
 		begin
-			log("ERROR: Failed to open transaction log file " + Settings.TransactionFile + " - Error: " + e.Message)
+			xcall errorlog("Failed to open transaction log file " + Settings.TransactionFile + " - Error was: " + e.Message)
 			ok = false
 		end
 		endtry
@@ -487,7 +502,7 @@ proc
 		end
 		catch (ex)
 		begin
-			log("ERROR: Failed to open transaction log file " + Settings.TransactionFile)
+			xcall errorlog("Failed to open transaction log file " + Settings.TransactionFile)
 			ok = false
 		end
 		endtry
@@ -505,12 +520,12 @@ proc
 			end
 			(0),
 			begin
-				log("ERROR: Missing value after the -database option")
+				xcall errorlog("Missing value after the -database option")
 				ok = false
 			end
 			(),
 			begin
-				log("ERROR: Only one value may follow the -database option")
+				xcall errorlog("Only one value may follow the -database option")
 				ok = false
 			end
 			endusing
@@ -525,7 +540,7 @@ proc
 			else
 			begin
 				;;We don't have a database connect string so we can't continue!
-				log("ERROR: No database connect string was found. Define environment variable REPLICATOR_DATABASE.")
+				xcall errorlog("No database connect string was found. Use command line option -database or define environment variable REPLICATOR_DATABASE.")
 				ok = false
 			end
 		end
@@ -542,7 +557,7 @@ proc
 		Settings.DatabaseChannel = 1
 		if (%ssc_init(Settings.DatabaseChannel,Settings.MaxCursors,Settings.MaxColumns)==SSQL_FAILURE)
 		begin
-			log("ERROR: Failed to initialize SQL Connection")
+			xcall errorlog("Failed to initialize SQL Connection")
 			ok = false
 		end
 	end
@@ -554,11 +569,7 @@ proc
 		begin
 			;;Failed to connect
 			xcall ssc_getemsg(Settings.DatabaseChannel,dberrtxt,length)
-			log("ERROR: Failed to connect to database")
-			log(" - Connect string:")
-			log("   " + Settings.DatabaseConnectString)
-			log(" - Error message :")
-			log("   " + dberrtxt(1,length))
+			xcall errorlog("Failed to connect to database. Connect string was: " + Settings.DatabaseConnectString + " Error message was : " + dberrtxt(1,length))
 			ok = false
 
 			;;If we're sending emails then let's record the connect failure
@@ -594,13 +605,37 @@ proc
 		;;Create a namespace to record information about Synergy data files that we have opened.
 		Settings.ChannelInfo = %nspc_open(,%size(structure_data))
 
-		log("--- Processing instructions ----------------------")
+		xcall log("--- Processing instructions ----------------------")
 
 		;;If we're sending emails then let's record the server startup
 		if (Settings.CanSendEmail())
 		begin
 			data body = new string[#] {"The SQL replicator process was started."}
 			xcall SendEmail("STARTED",body)
+		end
+
+		;;If were writing to the system log, record the startup
+		if (Settings.SystemLog)
+		begin
+			data message, string, "Startup of replicator instance " + Settings.InstanceName + %char(13) + %char(10)
+			message += "Database connect string is " + Settings.DatabaseConnectString + %char(13) + %char(10)
+			message += "Transaction file is " + Settings.TransactionFile + %char(13) + %char(10)
+			message += "Log file is " + Settings.LogFileName + %char(13) + %char(10)
+			message += "Sleep interval is " + %string(Settings.SleepTime) + " seconds. " + %char(13) + %char(10)
+			if (Settings.StopOnError) then
+				message += "Replicator will stop if any error is encountered" + %char(13) + %char(10)
+			else
+				message += "Replicator will attempt to continue if errors are encountered" + %char(13) + %char(10)
+			if (Settings.CanSendEmail()) then
+			begin
+				message += "Replicator is configured to send email messages to " + Settings.ErrorEmail + %char(13) + %char(10)
+				message += "Emails will be sent from " + Settings.EmailSender + %char(13) + %char(10)
+				message += "Email server is " + Settings.EmailServer + %char(13) + %char(10)
+			end
+			else
+				message += "Replicator is NOT configured to send email messages" + %char(13) + %char(10)
+
+			xcall syn_reportevent(D_EVENTLOG_INFORMATION_TYPE,message)
 		end
 
 		;;Main loop
@@ -631,7 +666,7 @@ proc
 					;;If we don't have the file open by now then we probably have a configuration problem
 					if (!structure_data.structure_chan)
 					begin
-						log("ERROR: Abnormal replicator shutdown")
+						xcall errorlog("Abnormal replicator shutdown")
 						exitloop
 					end
 				end
@@ -763,7 +798,7 @@ CheckFileTable,
 		;;If we failed to open the file then we have a serious problem!
 		if (!structure_data.structure_chan)
 		begin
-			log("ERROR: Failed to open ISAM file for structure " + %atrim(instruction.structure_name))
+			xcall errorlog("Failed to open ISAM file for structure " + %atrim(instruction.structure_name))
 			return
 		end
 
@@ -800,8 +835,7 @@ CheckFileTable,
 		if (structure_data.structure_keynum>=0) then
 		begin
 			;;Report the key that will be used
-			if (Settings.FullLogging)
-				log(" - Key " + %string(structure_data.structure_keynum) + " will be used to access the ISAM file")
+			xcall verboselog(" - Key " + %string(structure_data.structure_keynum) + " will be used to access the ISAM file")
 
 			;;And save the structure name
 			structure_data.structure_name = instruction.structure_name
@@ -816,7 +850,7 @@ CheckFileTable,
 			;;But just in case, this will cause the replicator to abort
 			close structure_data.structure_chan
 			clear structure_data.structure_chan
-			log("ERROR: File for structure " + %atrim(instruction.structure_name) + " has no unique key!")
+			xcall errorlog("File for structure " + %atrim(instruction.structure_name) + " has no unique key!")
 		end
 	end
 
@@ -827,8 +861,7 @@ CheckFileTable,
 ;;
 OpenFile,
 
-	if (Settings.FullLogging)
-		log("Opening file " + %atrim(instruction.structure_name))
+	xcall verboselog("Opening file " + %atrim(instruction.structure_name))
 
 	try
 	begin
@@ -844,14 +877,12 @@ OpenFile,
 
 	if (status == IO_OK) then
 	begin
-		if (Settings.FullLogging)
-			log(" - File opened")
+		xcall verboselog(" - File opened")
 		call CheckTable
 	end
 	else
 	begin
-		if (Settings.FullLogging)
-			log(" - Failed to open file!")
+		xcall verboselog(" - Failed to open file!")
 		clear structure_data.structure_chan
 		xcall LogFunctionError(functionName,status,dberrtxt)
 	end
@@ -863,8 +894,7 @@ OpenFile,
 ;;
 CheckTable,
 
-	if (Settings.FullLogging)
-		log("Checking if table " + %atrim(instruction.structure_name) + " exists")
+	xcall verboselog("Checking if table " + %atrim(instruction.structure_name) + " exists")
 
 	try
 	begin
@@ -880,12 +910,10 @@ CheckTable,
 
 	using status select
 	(1),
-		if (Settings.FullLogging)
-			log(" - Table exists")
+		xcall verboselog(" - Table exists")
 	(0),
 	begin
-		if (Settings.FullLogging)
-			log(" - Table not found!")
+		xcall verboselog(" - Table not found!")
 		call CreateTable
 	end
 	(<0),;Error
@@ -899,7 +927,7 @@ CheckTable,
 ;;
 CreateTable,
 
-	log("Creating table " + %atrim(instruction.structure_name))
+	xcall log("Creating table " + %atrim(instruction.structure_name))
 
 	try
 	begin
@@ -915,8 +943,7 @@ CreateTable,
 
 	if (status) then
 	begin
-		if (Settings.FullLogging)
-			log(" - Table created")
+		xcall verboselog(" - Table created")
 		call LoadTable
 	end
 	else
@@ -931,7 +958,7 @@ CreateTable,
 ;;
 LoadTable,
 
-	log("Load table " + %atrim(instruction.structure_name) + " starting at " + %TimeNow)
+	xcall log("Load table " + %atrim(instruction.structure_name) + " starting at " + %TimeNow)
 
 	try
 	begin
@@ -947,8 +974,8 @@ LoadTable,
 
 		if (status) then
 		begin
-			log(" - Load complete at " + %TimeNow)
-			log(" - " + %string(successCount) + " rows inserted, " + %string(failCount) + " rows failed.")
+			xcall log(" - Load complete at " + %TimeNow)
+			xcall log(" - " + %string(successCount) + " rows inserted, " + %string(failCount) + " rows failed.")
 			Counters.Inserts += successCount
 			Counters.Errors  += failCount
 
@@ -979,19 +1006,16 @@ DoInsert,
 
 	if (switchMode) then
 	begin
-		if (Settings.FullLogging)
-			log(" - Insert row in table " + %atrim(instruction.structure_name))
+		xcall verboselog(" - Insert row in table " + %atrim(instruction.structure_name))
 		switchMode = false
 	end
 	else
 	begin
-		if (Settings.FullLogging)
-			log("Insert row in table " + %atrim(instruction.structure_name))
+		xcall verboselog("Insert row in table " + %atrim(instruction.structure_name))
 		if (Settings.LogKeys)
 		begin
 			keyValue = %keyVal(structure_data.structure_chan,instruction.record,structure_data.structure_keynum)
-			if (Settings.FullLogging)
-				Log(" - Key: " + keyValue)
+			xcall verboselog(" - Key: " + keyValue)
 		end
 	end
 
@@ -1014,18 +1038,16 @@ DoInsert,
 	end
 	(1),
 	begin
-		if (Settings.FullLogging)
-			log(" - Row inserted")
+		xcall verboselog(" - Row inserted")
 		Counters.Inserts += 1
 	end
 	(2),
 	begin
-		if (Settings.FullLogging)
-			log(" - Row already exists, switching to UPDATE")
+		xcall verboselog(" - Row already exists, switching to UPDATE")
 		status = IO_OK
 		if (switchDone) then
 		begin
-			log("ERROR: Too many INSERT/UPDATE mode switches!")
+			xcall errorlog("Too many INSERT/UPDATE mode switches!")
 		end
 		else
 		begin
@@ -1044,20 +1066,17 @@ DoUpdate,
 
 	if (switchMode) then
 	begin
-		if (Settings.FullLogging)
-			log(" - Update row in table " + %atrim(instruction.structure_name))
+		xcall verboselog(" - Update row in table " + %atrim(instruction.structure_name))
 		switchMode = false
 	end
 	else
 	begin
-		if (Settings.FullLogging)
-			log("Update row in table " + %atrim(instruction.structure_name))
+		xcall verboselog("Update row in table " + %atrim(instruction.structure_name))
 
 		if (Settings.LogKeys)
 		begin
 			keyValue = %keyVal(structure_data.structure_chan,instruction.record,structure_data.structure_keynum)
-			if (Settings.FullLogging)
-				Log(" - Key: " + keyValue)
+			xcall verboselog(" - Key: " + keyValue)
 		end
 	end
 
@@ -1077,18 +1096,16 @@ DoUpdate,
 	begin
 		if (rows) then
 		begin
-			if (Settings.FullLogging)
-				log(" - Row updated")
+			xcall verboselog(" - Row updated")
 			Counters.Updates += 1
 		end
 		else
 		begin
-			if (Settings.FullLogging)
-				log(" - Row not found, switching to INSERT")
+			xcall verboselog(" - Row not found, switching to INSERT")
 			status = IO_OK
 			if (switchDone) then
 			begin
-				Log("ERROR: Too many INSERT/UPDATE mode switches!")
+				xcall errorlog("Too many INSERT/UPDATE mode switches!")
 			end
 			else
 			begin
@@ -1109,14 +1126,12 @@ DoUpdate,
 ;;
 DoDelete,
 
-	if (Settings.FullLogging)
-		log("Delete row from table " + %atrim(instruction.structure_name))
+	xcall verboselog("Delete row from table " + %atrim(instruction.structure_name))
 
 	keyValue = %keyval(structure_data.structure_chan,instruction.record,structure_data.structure_keynum)
 
 	if (Settings.LogKeys)
-		if (Settings.FullLogging)
-			Log(" - Key: " + keyValue)
+		xcall verboselog(" - Key: " + keyValue)
 
 	try
 	begin
@@ -1124,14 +1139,12 @@ DoDelete,
 		status = %xsubr(functionName,Settings.DatabaseChannel,(a)keyValue,dberrtxt)
 		if (status) then
 		begin
-			if (Settings.FullLogging)
-				log(" - Row deleted")
+			xcall verboselog(" - Row deleted")
 			Counters.Deletes += 1
 		end
 		else
 		begin
-			if (Settings.FullLogging)
-				log(" - " + dberrtxt)
+			xcall verboselog(" - " + dberrtxt)
 			xcall LogFunctionError(functionName,status,dberrtxt)
 		end
 	end
@@ -1151,10 +1164,8 @@ DoCreateTable,
 	;;Create a new table (only)
 	;;If the table already exists, do nothing
 
-	if (Settings.FullLogging)
-		log("Create table " + %atrim(instruction.structure_name))
-	if (Settings.FullLogging)
-		log(" - Checking if table already exists")
+	xcall verboselog("Create table " + %atrim(instruction.structure_name))
+	xcall verboselog(" - Checking if table already exists")
 
 	try
 	begin
@@ -1163,13 +1174,11 @@ DoCreateTable,
 		using status select
 		(1),
 		begin
-			if (Settings.FullLogging)
-				log(" - Table already exists!")
+			xcall verboselog(" - Table already exists!")
 		end
 		(0),
 		begin
-			if (Settings.FullLogging)
-				log(" - Creating table")
+			xcall verboselog(" - Creating table")
 
 			try
 			begin
@@ -1177,8 +1186,7 @@ DoCreateTable,
 				status = %xsubr(functionName,Settings.DatabaseChannel,dberrtxt)
 				if (status) then
 				begin
-					if (Settings.FullLogging)
-						log(" - Table created")
+					xcall verboselog(" - Table created")
 
 					if (Settings.CanSendEmail())
 					begin
@@ -1218,9 +1226,8 @@ DoLoadTable,
 	;;Do a full load of an existing table with new data
 	;;Delete all existing data before loading new data
 
-	log("Reload table " + %atrim(instruction.structure_name))
-	if (Settings.FullLogging)
-		log(" - Checking if table exists")
+	xcall log("Reload table " + %atrim(instruction.structure_name))
+	xcall verboselog(" - Checking if table exists")
 
 	try
 	begin
@@ -1242,8 +1249,7 @@ DoLoadTable,
 	end
 	(0),
 	begin
-		if (Settings.FullLogging)
-			log(" - Table does not exist!")
+		xcall verboselog(" - Table does not exist!")
 	end
 	(<0),
 	begin
@@ -1270,15 +1276,14 @@ DoCreateAndLoadTable,
 ;;
 DoCreateCsv,
 
-	log("Export CSV for " + %atrim(instruction.structure_name) + " starting at " + %TimeNow)
+	xcall log("Export CSV for " + %atrim(instruction.structure_name) + " starting at " + %TimeNow)
 
 	try
 	begin
 		functionName = %atrim(instruction.structure_name) + "_CREATE_CSV"
 		status = %xsubr(functionName,dberrtxt)
 		if (status) then
-			if (Settings.FullLogging)
-				log(" - Done at " + %TimeNow)
+			xcall verboselog(" - Done at " + %TimeNow)
 		else
 			xcall LogFunctionError(functionName,status,dberrtxt)
 	end
@@ -1295,7 +1300,7 @@ DoCreateCsv,
 ;;
 DoDeleteAllRows,
 
-	log("Truncating table " + %atrim(instruction.structure_name))
+	xcall log("Truncating table " + %atrim(instruction.structure_name))
 
 	try
 	begin
@@ -1303,8 +1308,7 @@ DoDeleteAllRows,
 		status = %xsubr(functionName,Settings.DatabaseChannel,dberrtxt)
 		if (status) then
 		begin
-			if (Settings.FullLogging)
-				log(" - Done")
+			xcall verboselog(" - Done")
 
 			if (Settings.CanSendEmail())
 			begin
@@ -1344,7 +1348,7 @@ DoDeleteTable,
 		xcall nspc_delete(Settings.ChannelInfo,nsptr)
 	end
 
-	log("Deleting table " + %atrim(instruction.structure_name))
+	xcall log("Deleting table " + %atrim(instruction.structure_name))
 
 	try
 	begin
@@ -1352,8 +1356,7 @@ DoDeleteTable,
 		status = %xsubr(functionName,Settings.DatabaseChannel,dberrtxt)
 		if (status) then
 		begin
-			if (Settings.FullLogging)
-				log(" - Done")
+			xcall verboselog(" - Done")
 
 			if (Settings.CanSendEmail())
 			begin
@@ -1393,7 +1396,7 @@ RecordProcessId,
 		end
 		catch (ex)
 		begin
-			log("ERROR: Failed to create or write PID file! Error was " + ex.Message)
+			xcall errorlog("Failed to create or write PID file! Error was " + ex.Message)
 		end
 		finally
 		begin
@@ -1417,17 +1420,17 @@ ChangeInterval,
 			Settings.SleepTime = %integer(%atrim(instruction.record))
 			if (Settings.SleepTime >= 1) then
 			begin
-				log("Sleep time changed from " + %string(save_time) + " to " + %string(Settings.SleepTime) + " seconds")
+				xcall log("Sleep time changed from " + %string(save_time) + " to " + %string(Settings.SleepTime) + " seconds")
 			end
 			else
 			begin
-				log("ERROR: Invalid sleep time " + %string(Settings.SleepTime) + " requested")
+				xcall errorlog("Invalid sleep time " + %string(Settings.SleepTime) + " requested")
 				Settings.SleepTime = save_time
 			end
 		end
 		catch (ex)
 		begin
-			log("ERROR: Invalid sleep time " + %atrim(instruction.record) + " requested")
+			xcall errorlog("Invalid sleep time " + %atrim(instruction.record) + " requested")
 			Settings.SleepTime = save_time
 		end
 		endtry
@@ -1476,17 +1479,24 @@ subroutine ReplicatorShutdown
 		status              ,i4                 ;;Function return status
 		functionName        ,string             ;;External function name to call
 		structure_data      ,strStructureData
+		message             ,string
 	endrecord
 
 proc
 
-	log("--------------------------------------------------")
-	log("Normal shutdown of SQL replicator " + Settings.InstanceName + ". Summary of activity:")
-	log("INSERTS: " + %string(Counters.Inserts,"ZZZ,ZZZ,ZZZ,ZZX"))
-	log("UPDATES: " + %string(Counters.Updates,"ZZZ,ZZZ,ZZZ,ZZX"))
-	log("DELETES: " + %string(Counters.Deletes,"ZZZ,ZZZ,ZZZ,ZZX"))
-	log("ERRORS:  " + %string(Counters.Errors, "ZZZ,ZZZ,ZZZ,ZZX"))
-	log("--------------------------------------------------")
+	message = "--------------------------------------------------" + %char(13) + %char(10)
+	message += "Shutdown of replicator instance " + Settings.InstanceName + %char(13) + %char(10)
+	message += "INSERTS: " + %string(Counters.Inserts,"ZZZ,ZZZ,ZZZ,ZZX") + %char(13) + %char(10)
+	message += "UPDATES: " + %string(Counters.Updates,"ZZZ,ZZZ,ZZZ,ZZX") + %char(13) + %char(10)
+	message += "DELETES: " + %string(Counters.Deletes,"ZZZ,ZZZ,ZZZ,ZZX") + %char(13) + %char(10)
+	message += "ERRORS:  " + %string(Counters.Errors, "ZZZ,ZZZ,ZZZ,ZZX") + %char(13) + %char(10)
+	message += "--------------------------------------------------"
+
+	xcall log(message)
+
+	;;If were writing to the system log, record the startup
+	if (Settings.SystemLog)
+		xcall syn_reportevent(D_EVENTLOG_INFORMATION_TYPE,message)
 
 	;;If we're sending emails then let's record the shutdown
 	if (Settings.CanSendEmail())
@@ -1570,7 +1580,7 @@ proc
 
 	if (Settings.RunningOnTerminal)
 	begin
-		log("Replicator will stop in 2 seconds")
+		xcall log("Replicator will stop in 2 seconds")
 		sleep 2
 	end
 
@@ -1595,10 +1605,6 @@ proc
 		;;Log the message
 		writes(logchn,%TimeNow + message)
 
-		;;If running on the terminal, also display the message
-		if (Settings.RunningOnTerminal)
-			writes(Settings.TerminalChannel,message)
-
 		;;Close the log file
 		close logchn
 	end
@@ -1612,8 +1618,37 @@ proc
 	end
 	endtry
 
+	;;If running on the terminal, also display the message
+	if (Settings.RunningOnTerminal)
+		writes(Settings.TerminalChannel,message)
+
 	xreturn
 end
+
+;;*****************************************************************************
+;;
+subroutine errorlog
+	required in message, string
+proc
+
+	xcall log("ERROR:" + message)
+	;;Are we also logging to the system log?
+	if (Settings.SystemLog)
+		xcall syn_reportevent(D_EVENTLOG_ERROR_TYPE,message)
+
+	xreturn
+
+endsubroutine
+
+;;*****************************************************************************
+;;
+subroutine verboselog
+	required in message, string
+proc
+	if (Settings.FullLogging)
+		xcall log(message)
+	xreturn
+endsubroutine
 
 ;;*****************************************************************************
 ;;
@@ -1628,10 +1663,10 @@ subroutine LogFunctionError
 	endrecord
 proc
 
-	errorText = "ERROR: Function" + functionName + " returned error " + %string(errorNumber) + ": " + %atrim(errorMessage)
+	errorText = "Function" + functionName + " returned error " + %string(errorNumber) + ": " + %atrim(errorMessage)
 
 	;;Log the error
-	log(errorText)
+	xcall errorlog(errorText)
 
 	;;Email the error?
 	if (Settings.CanSendEmail())
@@ -1674,7 +1709,7 @@ proc
 	subjectLine = "Replicator " + Settings.InstanceName + " " + subject
 	html = ^passed(bodyhtml) && bodyhtml
 	if ((emailStatus=%SmtpMail(Settings.EmailServer,Settings.EmailSender,"SQL Replicator",,Settings.ErrorEmail,,subjectLine,body,,html)) != SMERR_SUCCESS)
-		log("ERROR: Failed to send error email. Error was " + %atrim(SmtpErrorText[emailStatus]))
+		xcall errorlog("Failed to send error email. Error was " + %atrim(SmtpErrorText[emailStatus]))
 	xreturn
 endsubroutine
 
@@ -1691,10 +1726,10 @@ function LogFunctionFail, boolean
 	endrecord
 proc
 
-	errorText = "ERROR: Function " + functionName + " failed with error " + %string(errorNumber) + ": " + %atrim(errorMessage)
+	errorText = "Function " + functionName + " failed with error " + %string(errorNumber) + ": " + %atrim(errorMessage)
 
 	;;Log the error
-	log(errorText)
+	xcall errorlog(errorText)
 
 	;;Email the error?
 	if (Settings.CanSendEmail())
@@ -1875,6 +1910,7 @@ namespace Tools
 			MaxColumns        = 254
 			RunningOnTerminal = (%tnmbr >= 0)
 			SleepTime         = 60
+			SystemLog         = false
 			TransactionFile   = "DAT:REPLICATION.ISM"
 		endmethod
 
@@ -1891,7 +1927,7 @@ namespace Tools
 		;;; <summary>
 		;;; The SQL Connection database channel that represents our connection to the database.
 		;;; </summary>
-		public static property DatabaseChannel, i4
+		public static property DatabaseChannel, int
 			method get
 			endmethod
 			method set
@@ -1929,7 +1965,7 @@ namespace Tools
 		;;; <summary>
 		;;; The channel number of the replication instruction file.
 		;;; </summary>
-		public static property InstructionChannel, i4
+		public static property InstructionChannel, int
 			method get
 			endmethod
 			method set
@@ -2063,6 +2099,16 @@ namespace Tools
 		;;; Should we stop processing and close if we encounter an error?
 		;;; </summary>
 		public static property StopOnError, boolean
+			method get
+			endmethod
+			method set
+			endmethod
+		endproperty
+
+		;;; <summary>
+		;;; Should we also log to the system log?
+		;;; </summary>
+		public static property SystemLog, boolean
 			method get
 			endmethod
 			method set

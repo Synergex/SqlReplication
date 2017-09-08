@@ -280,6 +280,7 @@ will override the equivalent environment variables.
 | -maxcolumns <columns>               | The maximum number of columns in a database table. Default is 254. |
 | -maxcursors <cursors>               | The maximum number of database cursors. Allow 4 per table. Default is 128. |
 | -stoponerror                        | Cause the replicator to stop if an error is encountered. |
+| -syslog                             | Log to the system log in addition to the log file. |
 | -verbose                            | Enable verbose logging. |
 
 
@@ -300,6 +301,7 @@ will override the equivalent environment variables.
 | REPLICATOR_MAX_COLUMNS              | The maximum number of columns in a database table. Default is 254. |
 | REPLICATOR_MAX_CURSORS              | The maximum number of database cursors. Allow 4 per table. Default is 128. |
 | REPLICATOR_ERROR_STOP               | Set to YES to cause the replicator to stop if an error is encountered.                                                      |
+| REPLICATOR_SYSTEM_LOG               | Set to YES to log to the system log in addition to the log file. |
 | REPLICATOR_FULL_LOG                 | Set to YES to cause more verbose logging to be used.                                                                        |
 
 ***
