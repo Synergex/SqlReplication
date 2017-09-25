@@ -443,6 +443,9 @@ proc
 		<IF DECIMAL>
 		&    <field_path><IF NOMORE>)==SSQL_FAILURE)<ELSE><IF COUNTER_1_LT_250>,<ELSE>)==SSQL_FAILURE)</IF COUNTER_1_LT_250></IF NOMORE>
 		</IF DECIMAL>
+		<IF INTEGER>
+		&    <field_path><IF NOMORE>)==SSQL_FAILURE)<ELSE><IF COUNTER_1_LT_250>,<ELSE>)==SSQL_FAILURE)</IF COUNTER_1_LT_250></IF NOMORE>
+		</IF INTEGER>
 		<IF DATE>
 		&    ^a(<field_path>)<IF NOMORE>)==SSQL_FAILURE)<ELSE><IF COUNTER_1_LT_250>,<ELSE>)==SSQL_FAILURE)</IF COUNTER_1_LT_250></IF NOMORE>
 		</IF DATE>
@@ -717,6 +720,9 @@ proc
 		<IF DECIMAL>
 		&    <field_path><IF NOMORE>)==SSQL_FAILURE)<ELSE><IF COUNTER_1_LT_250>,<ELSE>)==SSQL_FAILURE)</IF COUNTER_1_LT_250></IF NOMORE>
 		</IF DECIMAL>
+		<IF INTEGER>
+		&    <field_path><IF NOMORE>)==SSQL_FAILURE)<ELSE><IF COUNTER_1_LT_250>,<ELSE>)==SSQL_FAILURE)</IF COUNTER_1_LT_250></IF NOMORE>
+		</IF INTEGER>
 		<IF DATE>
 		&    ^a(<field_path>)<IF NOMORE>)==SSQL_FAILURE)<ELSE><IF COUNTER_1_LT_250>,<ELSE>)==SSQL_FAILURE)</IF COUNTER_1_LT_250></IF NOMORE>
 		</IF DATE>
@@ -1012,6 +1018,9 @@ proc
 		<IF DECIMAL>
 		&    <field_path><IF NOMORE>)==SSQL_FAILURE)<ELSE><IF COUNTER_1_LT_250>,<ELSE>)==SSQL_FAILURE)</IF COUNTER_1_LT_250></IF NOMORE>
 		</IF DECIMAL>
+		<IF INTEGER>
+		&    <field_path><IF NOMORE>)==SSQL_FAILURE)<ELSE><IF COUNTER_1_LT_250>,<ELSE>)==SSQL_FAILURE)</IF COUNTER_1_LT_250></IF NOMORE>
+		</IF INTEGER>
 		<IF DATE>
 		&    ^a(<field_path>)<IF NOMORE>)==SSQL_FAILURE)<ELSE><IF COUNTER_1_LT_250>,<ELSE>)==SSQL_FAILURE)</IF COUNTER_1_LT_250></IF NOMORE>
 		</IF DATE>
@@ -1547,6 +1556,7 @@ endfunction
 ;;; <param name="a_terminal">Terminal channel to log errors on.</param>
 ;;; <param name="a_added">Total number of successful inserts.</param>
 ;;; <param name="a_failed">Total number of failed inserts.</param>
+;;; <param name="a_progress">Report progress.</param>
 ;;; <returns>Returns true on success, otherwise false.</returns>
 
 function <structure_name>_load, ^val
@@ -1557,6 +1567,7 @@ function <structure_name>_load, ^val
 	optional in  a_terminal, i
 	optional out a_added,    n
 	optional out a_failed,   n
+	optional in  a_progress, n
 	endparams
 
 	.include "CONNECTDIR:ssql.def"
@@ -1720,6 +1731,8 @@ insert_data,
 		begin
 			;;No exceptions
 			ttl_added += attempted
+			if ^passed(a_terminal) && a_terminal && ^passed(a_progress) && a_progress
+				writes(a_terminal," - " + %string(ttl_added) + " rows inserted")
 		end
 	end
 
