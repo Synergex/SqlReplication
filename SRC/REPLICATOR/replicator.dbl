@@ -222,6 +222,22 @@ proc
 
 	if (ok)
 	begin
+		;;Is load progress reporting enabled via the command line?
+		if (CommandLineParser.Parse("progress")) then
+		begin
+			Settings.BulkLoadProgressReporting = true
+		end
+		else
+		begin
+			;;Or via an environment variable?
+			data tmpval, a10
+			xcall getlog("REPLICATOR_LOAD_PROGRESS",tmpval,length)
+			Settings.BulkLoadProgressReporting = ((length>0)&&(tmpval.eq."YES"))
+		end
+	end
+
+	if (ok)
+	begin
 		;;Is verbose logging enabled via the command line?
 		if (CommandLineParser.Parse("verbose")) then
 		begin
@@ -605,6 +621,9 @@ proc
 		;;Create a namespace to record information about Synergy data files that we have opened.
 		Settings.ChannelInfo = %nspc_open(,%size(structure_data))
 
+		xcall log("Maximum cursors: "+%string(Settings.MaxCursors))
+		xcall log("Maximum columns: "+%string(Settings.MaxColumns))
+
 		xcall log("--- Processing instructions ----------------------")
 
 		;;If we're sending emails then let's record the server startup
@@ -861,7 +880,7 @@ CheckFileTable,
 ;;
 OpenFile,
 
-	xcall verboselog("Opening file " + %atrim(instruction.structure_name))
+	xcall log("Opening file " + %atrim(instruction.structure_name))
 
 	try
 	begin
@@ -968,7 +987,7 @@ LoadTable,
 		functionName = %atrim(instruction.structure_name) + "_LOAD"
 
 		if (Settings.RunningOnTerminal) then
-			status = %xsubr(functionName,Settings.DatabaseChannel,dberrtxt,Settings.LogLoadExceptions,Settings.TerminalChannel,successCount,failCount)
+			status = %xsubr(functionName,Settings.DatabaseChannel,dberrtxt,Settings.LogLoadExceptions,Settings.TerminalChannel,successCount,failCount,Settings.BulkLoadProgressReporting)
 		else
 			status = %xsubr(functionName,Settings.DatabaseChannel,dberrtxt,Settings.LogLoadExceptions,,successCount,failCount)
 
@@ -1164,7 +1183,7 @@ DoCreateTable,
 	;;Create a new table (only)
 	;;If the table already exists, do nothing
 
-	xcall verboselog("Create table " + %atrim(instruction.structure_name))
+	xcall log("Creating table " + %atrim(instruction.structure_name))
 	xcall verboselog(" - Checking if table already exists")
 
 	try
@@ -1226,7 +1245,7 @@ DoLoadTable,
 	;;Do a full load of an existing table with new data
 	;;Delete all existing data before loading new data
 
-	xcall log("Reload table " + %atrim(instruction.structure_name))
+	xcall log("Loading table " + %atrim(instruction.structure_name))
 	xcall verboselog(" - Checking if table exists")
 
 	try
@@ -1276,7 +1295,7 @@ DoCreateAndLoadTable,
 ;;
 DoCreateCsv,
 
-	xcall log("Export CSV for " + %atrim(instruction.structure_name) + " starting at " + %TimeNow)
+	xcall log("Exporting CSV for " + %atrim(instruction.structure_name) + " starting at " + %TimeNow)
 
 	try
 	begin
@@ -2069,6 +2088,16 @@ namespace Tools
 		;;; Maximum number of columns in a database table
 		;;; </summary>
 		public static property MaxColumns, int
+			method get
+			endmethod
+			method set
+			endmethod
+		endproperty
+
+		;;; <summary>
+		;;; Should we report progress when bulk loading tables?
+		;;; </summary>
+		public static property BulkLoadProgressReporting, boolean
 			method get
 			endmethod
 			method set
