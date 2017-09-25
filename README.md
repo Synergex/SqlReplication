@@ -60,6 +60,24 @@ with this type of project, the major requirements are:
 
 ***
 
+## Recent Changes
+
+| Date | Changes |
+| ---- | ------- |
+| 25th September 2017 | Added support for integer fields in replicated record layouts (needs testing). |
+|                     | Added an option that causes bulk load operations to report progress every 1000 rows when logging to the terminal. |
+| 22nd September 2017 | Corrected a documentation error re REPLICATOR_MAX_COLS. |
+| 7th September 2017  | Added an option to allow startup, shutdown and error messages to be written to the system event log. |
+|                     | Changed replicator to write bulk load exception files in the same location as the log file. |
+|                     | Added options to allow configuration of the SQL Connection max columns and max cursors values. |
+|                     | Added more information about SQL Connection connect strings. |
+| September 6th 2017  | Added several examples of valid database connect strings. |
+| August 31st 2017    | Shortened the name of the generated routine that closes cursors. Used to be xxx_CLOSE_CURSORS, now it's xxx_CLOSE. |
+|                     | Replicator now opens and closes its log file as necessary. If running on a terminal messages are now logged to both the terminal and the log file. The "cycle log file" option is now redundant and has been removed. |
+|                     | Removed \<AUTHOR\> and \<COMPANY\> tokens from all templates and regenerated the sample code.  |
+
+***
+
 ## Requirements
 
 This example environment was originally developed using Synergy/DE V10.3.3
