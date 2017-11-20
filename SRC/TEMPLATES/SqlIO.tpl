@@ -434,9 +434,6 @@ proc
 	begin
 		if (%ssc_bind(a_dbchn,csr_<structure_name>_insert1,<REMAINING_INCLUSIVE_MAX_250>,
 	</IF COUNTER_1_EQ_1>
-		<IF USERTIMESTAMP>
-		&    tmp<FieldSqlName><IF NOMORE>)==SSQL_FAILURE)<ELSE><IF COUNTER_1_LT_250>,<ELSE>)==SSQL_FAILURE)</IF COUNTER_1_LT_250></IF NOMORE>
-		<ELSE>
 		<IF ALPHA>
 		&    <field_path><IF NOMORE>)==SSQL_FAILURE)<ELSE><IF COUNTER_1_LT_250>,<ELSE>)==SSQL_FAILURE)</IF COUNTER_1_LT_250></IF NOMORE>
 		</IF ALPHA>
@@ -452,7 +449,13 @@ proc
 		<IF TIME>
 		&    tmp<FieldSqlName><IF NOMORE>)==SSQL_FAILURE)<ELSE><IF COUNTER_1_LT_250>,<ELSE>)==SSQL_FAILURE)</IF COUNTER_1_LT_250></IF NOMORE>
 		</IF TIME>
+		<IF USER>
+		<IF USERTIMESTAMP>
+		&    tmp<FieldSqlName><IF NOMORE>)==SSQL_FAILURE)<ELSE><IF COUNTER_1_LT_250>,<ELSE>)==SSQL_FAILURE)</IF COUNTER_1_LT_250></IF NOMORE>
+		<ELSE>
+		&    <field_path><IF NOMORE>)==SSQL_FAILURE)<ELSE><IF COUNTER_1_LT_250>,<ELSE>)==SSQL_FAILURE)</IF COUNTER_1_LT_250></IF NOMORE>
 		</IF USERTIMESTAMP>
+		</IF USER>
 	<IF COUNTER_1_EQ_250>
 		begin
 			ok = false
@@ -711,9 +714,6 @@ proc
 	begin
 		if (%ssc_bind(a_dbchn,csr_<structure_name>_insert2,<REMAINING_INCLUSIVE_MAX_250>,
 	</IF COUNTER_1_EQ_1>
-		<IF USERTIMESTAMP>
-		&    tmp<FieldSqlName><IF NOMORE>)==SSQL_FAILURE)<ELSE><IF COUNTER_1_LT_250>,<ELSE>)==SSQL_FAILURE)</IF COUNTER_1_LT_250></IF NOMORE>
-		<ELSE>
 		<IF ALPHA>
 		&    <field_path><IF NOMORE>)==SSQL_FAILURE)<ELSE><IF COUNTER_1_LT_250>,<ELSE>)==SSQL_FAILURE)</IF COUNTER_1_LT_250></IF NOMORE>
 		</IF ALPHA>
@@ -729,7 +729,13 @@ proc
 		<IF TIME>
 		&    tmp<FieldSqlName><IF NOMORE>)==SSQL_FAILURE)<ELSE><IF COUNTER_1_LT_250>,<ELSE>)==SSQL_FAILURE)</IF COUNTER_1_LT_250></IF NOMORE>
 		</IF TIME>
+		<IF USER>
+		<IF USERTIMESTAMP>
+		&    tmp<FieldSqlName><IF NOMORE>)==SSQL_FAILURE)<ELSE><IF COUNTER_1_LT_250>,<ELSE>)==SSQL_FAILURE)</IF COUNTER_1_LT_250></IF NOMORE>
+		<ELSE>
+		&    <field_path><IF NOMORE>)==SSQL_FAILURE)<ELSE><IF COUNTER_1_LT_250>,<ELSE>)==SSQL_FAILURE)</IF COUNTER_1_LT_250></IF NOMORE>
 		</IF USERTIMESTAMP>
+		</IF USER>
 	<IF COUNTER_1_EQ_250>
 		begin
 			ok = false
@@ -1009,9 +1015,6 @@ proc
 	begin
 		if (%ssc_bind(a_dbchn,csr_<structure_name>_update,<REMAINING_INCLUSIVE_MAX_250>,
 	</IF COUNTER_1_EQ_1>
-		<IF USERTIMESTAMP>
-		&    tmp<FieldSqlName><IF NOMORE>)==SSQL_FAILURE)<ELSE><IF COUNTER_1_LT_250>,<ELSE>)==SSQL_FAILURE)</IF COUNTER_1_LT_250></IF NOMORE>
-		<ELSE>
 		<IF ALPHA>
 		&    <field_path><IF NOMORE>)==SSQL_FAILURE)<ELSE><IF COUNTER_1_LT_250>,<ELSE>)==SSQL_FAILURE)</IF COUNTER_1_LT_250></IF NOMORE>
 		</IF ALPHA>
@@ -1027,7 +1030,13 @@ proc
 		<IF TIME>
 		&    tmp<FieldSqlName><IF NOMORE>)==SSQL_FAILURE)<ELSE><IF COUNTER_1_LT_250>,<ELSE>)==SSQL_FAILURE)</IF COUNTER_1_LT_250></IF NOMORE>
 		</IF TIME>
+		<IF USER>
+		<IF USERTIMESTAMP>
+		&    tmp<FieldSqlName><IF NOMORE>)==SSQL_FAILURE)<ELSE><IF COUNTER_1_LT_250>,<ELSE>)==SSQL_FAILURE)</IF COUNTER_1_LT_250></IF NOMORE>
+		<ELSE>
+		&    <field_path><IF NOMORE>)==SSQL_FAILURE)<ELSE><IF COUNTER_1_LT_250>,<ELSE>)==SSQL_FAILURE)</IF COUNTER_1_LT_250></IF NOMORE>
 		</IF USERTIMESTAMP>
+		</IF USER>
 	<IF COUNTER_1_EQ_250>
 		begin
 			ok = false
@@ -1864,9 +1873,6 @@ proc
 				data buff, string, ""
 				buff = ""
 				<FIELD_LOOP>
-				<IF USERTIMESTAMP>
-				&    + %string(^d(<field_path>),"XXXX-XX-XX XX:XX:XX.XXXXXX") + "<IF MORE>|</IF MORE>"
-				<ELSE>
 				<IF ALPHA>
 				&    + %atrim(<field_path>) + "<IF MORE>|</IF MORE>"
 				</IF ALPHA>
@@ -1883,9 +1889,12 @@ proc
 				&    + %string(<field_path>,"XX:XX:XX") + "<IF MORE>|</IF MORE>"
 				</IF TIME>
 				<IF USER>
-				&    + %TmJulianToYYYYMMDD(<field_path>) - %char(0) + "<IF MORE>|</IF MORE>"
-				</IF USER>
+				<IF USERTIMESTAMP>
+				&    + %string(^d(<field_path>),"XXXX-XX-XX XX:XX:XX.XXXXXX") + "<IF MORE>|</IF MORE>"
+				<ELSE>
+				&    + %atrim(<field_path>) + "<IF MORE>|</IF MORE>"
 				</IF USERTIMESTAMP>
+				</IF USER>
 				</FIELD_LOOP>
 				writes(csvchn,buff)
 				attempted += 1
@@ -2001,6 +2010,9 @@ proc
 	<IF TIME>
 	<structureName>.<segment_name> = ^d(aKeyValue(segPos:<SEGMENT_LENGTH>))
 	</IF TIME>
+	<IF USER>
+	<structureName>.<segment_name> = aKeyValue(segPos:<SEGMENT_LENGTH>)
+	</IF USER>
 	segPos += <SEGMENT_LENGTH>
 	</SEGMENT_LOOP>
 	</UNIQUE_KEY>
