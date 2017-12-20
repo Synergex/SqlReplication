@@ -285,18 +285,19 @@ will override the equivalent environment variables.
 
 | Parameter                           | Description   |
 | ----------------------------------- | ------------- |
+| -datadir <data_location>            | The location of the replication instruction file (REPLICATOR.ISM) |
 | -database <connect_string>          | SQL connection connect string identifying the database to connect to. |
 | -erroremail <email_address>         | The email address that start, error and stop messages should be sent TO. |
-| -exportdir <directory>              | The location where bulk export files will be created. |
-| -instance <name>                    | The name of this replicator instance. |
-| -interval <seconds>                 | The number of seconds the replicator should sleep if it finds no instructions to process. |
+| -exportdir <export_location>        | The location where bulk export files will be created. |
+| -instance <instance_name>           | The name of this replicator instance. |
+| -interval <sleep_seconds>           | The number of seconds the replicator should sleep if it finds no instructions to process. |
 | -keyvalues                          | Record the key values being used to relate ISAM records to SQL rows. |
 | -loaderrors                         | Log failing records during a bulk load operation to a file. |
-| -logdir <directory>                 | The location where the log file should be created. A full or relative path, or an environment variable followed by a colon. |
+| -logdir <log_location>              | The location where the log file should be created. A full or relative path, or an environment variable followed by a colon. |
 | -mailfrom <email_address>           | The email address that replicator messages should be sent FROM. |
 | -mailserver <smtp_server>           | The DNS name or IP address of the SMTP mail server that will be used to send messages. |
-| -maxcolumns <columns>               | The maximum number of columns in a database table. Default is 254. |
-| -maxcursors <cursors>               | The maximum number of database cursors. Allow 4 per table. Default is 128. |
+| -maxcolumns <max_columns>           | The maximum number of columns in a database table. Default is 254. |
+| -maxcursors <max_cursors>           | The maximum number of database cursors. Allow 4 per table. Default is 128. |
 | -stoponerror                        | Cause the replicator to stop if an error is encountered. |
 | -syslog                             | Log to the system log in addition to the log file. |
 | -verbose                            | Enable verbose logging. |
@@ -306,6 +307,7 @@ will override the equivalent environment variables.
 
 | Environment Variable                | Description                                                                                                                 |
 | ----------------------------------- | -------------                                                                                                               |
+| REPLICATOR_DATA                     | The location of the replication instruction file (REPLICATOR.ISM)                                                           |
 | REPLICATOR_DATABASE                 | SQL connection database connection string identifying the SQL Server database to connect to.                                |
 | REPLICATOR_ERROR_EMAIL              | The email address that start, error and stop messages should be sent TO.                                                    |
 | REPLICATOR_EXPORT                   | The location where buld export files will be created.                                                                       |
@@ -324,7 +326,7 @@ will override the equivalent environment variables.
 
 ***
 
-## Running the Demo
+## Running the Demo on Windows
 
 In order to see the replication happenning use SQL Server Management Studio to
 connect to the SqlReplicationIoHooks database and display the list of tables
@@ -418,3 +420,25 @@ can obtain the required hotfix from Synergex Support. As an alternative,
 use the environment variables method of configuring the service (in
 synergy.ini as shown above).
 
+## Building and Running Replicator on Linux
+
+Refer to the various shell script files in the LINUX directory.
+
+## Building and Running Replicator on OpenVMS
+
+Refer to the various shell script files in the VMS directory.
+
+Basic steps to build on VMS:
+
+1.  Log into a privileged account (privs needed to start a detached process as SYSTEM)
+2.  Create an empty directory to deploy the code to.
+3.  Deploy the DAT, RPS, SRC and VMS folders into the new directory.
+4.  Move to the VMS folder
+5.  Execute the BUILD.COM command procedure.
+6.  Edit REPLICATOR_SETUP.COM and check settings. In particular you will need to
+    configure REPLICATOR_DATABASE based on the SQL Server database you intend to use.
+7.  Start replicator as a detached process by executing REPLICATOR_DETACH.COM
+8.  Check the log file in the [.LOG] folder and ensure that replicator was able to
+    connect to the database.
+9.  Run EXE:REPLICATORMENU and test using the EMPLOYEE file.
+10. Use REPLICATORMENU or REPLICATORSSTOP to stop the detached replicator process.

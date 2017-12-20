@@ -537,6 +537,31 @@ proc
 
 	if (ok)
 	begin
+		;;Is the queue file location specified via the command line?
+		if (CommandLineParser.Parse("datadir",clValues))
+		begin
+			using clValues.Count select
+			(1),
+			begin
+				data sts, i4
+				xcall setlog("REPLICATOR_DATA",(string)clValues[0],sts)
+			end
+			(0),
+			begin
+				xcall errorlog("Missing value after the -datadir option")
+				ok = false
+			end
+			(),
+			begin
+				xcall errorlog("Only one value may follow the -datadir option")
+				ok = false
+			end
+			endusing
+		end
+	end
+
+	if (ok)
+	begin
 		;;Is a database connect string specified via the command line?
 		if (CommandLineParser.Parse("database",clValues)) then
 		begin
