@@ -59,7 +59,11 @@ subroutine Replicate
     optional in a_record, a
     endparams
 
+.ifdef D_VMS
+    .include "REPLICATION_VMS" repository, stack record="instruction", end
+.else
     .include "REPLICATION" repository, stack record="instruction", end
+.endc
 
     static record
         chn ,i4
@@ -69,7 +73,7 @@ proc
 
     ;Do we need to open the replication transaction file?
     if (!chn)
-        open(chn=0,"U:I","DAT:REPLICATION.ISM")
+        open(chn=0,"U:I","REPLICATOR_DATA:REPLICATION.ISM")
 
     using a_action select
 

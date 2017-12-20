@@ -1,0 +1,63 @@
+IDENT	FDL_VERSION 02 "19-DEC-2017 15:56:47   OpenVMS ANALYZE/RMS_FILE Utility"
+
+SYSTEM
+	SOURCE                  OpenVMS
+
+FILE
+	ALLOCATION              16
+	BEST_TRY_CONTIGUOUS     yes
+	BUCKET_SIZE             63
+	CLUSTER_SIZE            16
+	CONTIGUOUS              no
+	EXTENSION               0
+	FILE_MONITORING         no
+	NAME                    "REPLICATION.ISM"
+	ORGANIZATION            indexed
+	GLOBAL_BUFFER_COUNT     0
+	GLBUFF_CNT_V83          0
+	GLBUFF_FLAGS_V83        none
+
+RECORD
+	BLOCK_SPAN              yes
+	CARRIAGE_CONTROL        carriage_return
+	FORMAT                  fixed
+	SIZE                    32054
+
+AREA 0
+	ALLOCATION              16
+	BEST_TRY_CONTIGUOUS     yes
+	BUCKET_SIZE             63
+	EXTENSION               0
+
+AREA 1
+	ALLOCATION              0
+	BEST_TRY_CONTIGUOUS     yes
+	BUCKET_SIZE             63
+	EXTENSION               0
+
+KEY 0
+	CHANGES                 no
+	DATA_KEY_COMPRESSION    no
+	DATA_RECORD_COMPRESSION no
+	DATA_AREA               0
+	DATA_FILL               100
+	DUPLICATES              no
+	INDEX_AREA              1
+	INDEX_COMPRESSION       no
+	INDEX_FILL              75
+	LEVEL1_INDEX_AREA       1
+	NAME                    "TRANSACTION_ID"
+	NULL_KEY                no
+	PROLOG                  3
+	SEG0_LENGTH             20
+	SEG0_POSITION           0
+	TYPE                    string
+
+ANALYSIS_OF_AREA 0
+	RECLAIMED_SPACE         0
+
+ANALYSIS_OF_AREA 1
+	RECLAIMED_SPACE         0
+
+ANALYSIS_OF_KEY 0
+	! This index is uninitialized - there are no records.

@@ -184,14 +184,24 @@
         <Folder
             Name="Other Files"
             Filters="">
+            <F N="../VMS/BUILD.COM"/>
+            <F N="../VMS/DEPARTMENT.FDL"/>
+            <F N="../VMS/EMPLOYEE.FDL"/>
+            <F N="../VMS/LIBRARY.COM"/>
+            <F N="../VMS/REPLICATION.FDL"/>
+            <F N="../VMS/REPLICATOR.OPT"/>
             <F N="../LINUX/replicator_count"/>
             <F N="../LINUX/replicator_detach"/>
+            <F N="../VMS/REPLICATOR_DETACH.COM"/>
             <F N="../LINUX/replicator_instructions"/>
             <F N="../LINUX/replicator_menu"/>
             <F N="../LINUX/replicator_run"/>
+            <F N="../VMS/REPLICATOR_RUN.COM"/>
             <F N="../LINUX/replicator_setup"/>
+            <F N="../VMS/REPLICATOR_SETUP.COM"/>
             <F N="../LINUX/replicator_status"/>
             <F N="../LINUX/replicator_stop"/>
+            <F N="../VMS/SETUP.COM"/>
             <F N="../BAT/StartService.bat"/>
             <F N="../BAT/StopService.bat"/>
         </Folder>

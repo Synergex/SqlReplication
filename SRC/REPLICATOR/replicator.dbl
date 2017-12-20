@@ -52,9 +52,13 @@ main replicator
 	.include "CONNECTDIR:ssql.def"
 	.include "INC:structureio.def"
 	.include "INC:SmtpMail.def"
+	.ifdef D_VMS
+	.include "REPLICATION_VMS" repository, record="instruction", end
+	.else
 	.include "REPLICATION" repository, record="instruction", end
+	.endc
 
-.align
+	.align
 	record
 		ok                  ,boolean            ;;Main status
 		noMoreInstructions  ,boolean            ;;End of instruction file
@@ -82,6 +86,9 @@ proc
 
 	ok = true
 	xcall flags(7004020,1)
+
+	;;Configure defaults
+	Settings.Initialize()
 
 	;;If we're running on the terminal, open the terminal channel
 	if (Settings.RunningOnTerminal)
@@ -129,11 +136,11 @@ proc
 	end
 	catch (ex)
 	begin
-		data message = "Replicator failed to open log file " + Settings.LogFileName + ". Error number " + %string(%ernum)
+		data tmpmsg = "Replicator failed to open log file " + Settings.LogFileName + ". Error number " + %string(%ernum)
 		if (Settings.RunningOnTerminal) then
-			writes(Settings.TerminalChannel,message)
+			writes(Settings.TerminalChannel,tmpmsg)
 		else
-			xcall syn_reportevent(D_EVENTLOG_ERROR_TYPE,message)
+			xcall syn_reportevent(D_EVENTLOG_ERROR_TYPE,tmpmsg)
 		ok = false
 	end
 	endtry
@@ -490,7 +497,11 @@ proc
 		begin
 			try
 			begin
-				xcall isamc(Settings.TransactionFile + ", FIXED, COMPRESS, PAGE=1024, TBYTE", 65054, 1, "START=1, LENGTH=20, NAME=TRANSACTION_ID") ;Defaults: TYPE=ALPHA, NODUPS, NOMODIFY, ASCEND
+				.ifdef D_VMS
+				xcall isamc(Settings.TransactionFile + ", FIXED", 32054, 1, "START=1, LENGTH=20, NAME=TRANSACTION_ID")
+				.else
+				xcall isamc(Settings.TransactionFile + ", FIXED, COMPRESS, PAGE=1024, TBYTE", 65054, 1, "START=1, LENGTH=20, NAME=TRANSACTION_ID")
+				.endc
 			end
 			catch (ex, @Exception)
 			begin
@@ -562,14 +573,21 @@ proc
 		end
 	end
 
+	.ifdef D_VMS
+	if (ok)
+	begin
+		xcall openelb("REPLICATOR_SH")
+	end
+	.endc
+
 	if (ok)
 	begin
 		;;Enable and Initialize SQL Connection
-.ifdef OS_VMS
+		.ifdef OS_VMS
         xcall init_ssql
-.else
+		.else
 		status = %option(48,1)
-.endc
+		.endc
 		Settings.DatabaseChannel = 1
 		if (%ssc_init(Settings.DatabaseChannel,Settings.MaxCursors,Settings.MaxColumns)==SSQL_FAILURE)
 		begin
@@ -581,20 +599,25 @@ proc
 	if (ok)
 	begin
 		;;Connect to the database
-		if (%ssc_connect(Settings.DatabaseChannel,Settings.DatabaseConnectString)==SSQL_FAILURE)
+		xcall log("Connecting to database...")
+		if (%ssc_connect(Settings.DatabaseChannel,Settings.DatabaseConnectString)==SSQL_NORMAL) then
+			xcall log("Connected")
+		else
 		begin
 			;;Failed to connect
 			xcall ssc_getemsg(Settings.DatabaseChannel,dberrtxt,length)
-			xcall errorlog("Failed to connect to database. Connect string was: " + Settings.DatabaseConnectString + " Error message was : " + dberrtxt(1,length))
+			xcall errorlog("Failed to connect to database!")
+			xcall log("Connect string was: " + Settings.DatabaseConnectString)
+			xcall log("Error message was : " + dberrtxt(1,length))
 			ok = false
 
 			;;If we're sending emails then let's record the connect failure
 			if (Settings.CanSendEmail())
 			begin
 				data body = new string[3]
-				body[1] = "Failed to connect to database."
-				body[2] = "Connect string: " + Settings.DatabaseConnectString
-				body[3] = "Error message:  " + dberrtxt(1,length)
+				body[1] = "ERROR: Failed to connect to database!"
+				body[2] = "Connect string was: " + Settings.DatabaseConnectString
+				body[3] = "Error message was :  " + dberrtxt(1,length)
 				xcall SendEmail("ERROR",body)
 			end
 		end
@@ -604,6 +627,7 @@ proc
 	if (ok && !Settings.RunningOnTerminal)
 		xcall syn_atexit(%xaddr("ReplicatorShutdown"))
 
+	.ifdef d_GUI
 	;;If there has been a failure and we're running on the terminal, pause so error messages may be read
 	if (!ok && Settings.RunningOnTerminal)
 	begin
@@ -611,6 +635,7 @@ proc
 		display(Settings.TerminalChannel,13,10,"Replicator will stop - press a key: ")
 		accept(Settings.TerminalChannel,tmpchr)
 	end
+	.endc
 
 	;;Main processing
 	if (ok)
@@ -636,25 +661,25 @@ proc
 		;;If were writing to the system log, record the startup
 		if (Settings.SystemLog)
 		begin
-			data message, string, "Startup of replicator instance " + Settings.InstanceName + %char(13) + %char(10)
-			message += "Database connect string is " + Settings.DatabaseConnectString + %char(13) + %char(10)
-			message += "Transaction file is " + Settings.TransactionFile + %char(13) + %char(10)
-			message += "Log file is " + Settings.LogFileName + %char(13) + %char(10)
-			message += "Sleep interval is " + %string(Settings.SleepTime) + " seconds. " + %char(13) + %char(10)
+			data tmpmsg, string, "Startup of replicator instance " + Settings.InstanceName + %char(13) + %char(10)
+			tmpmsg += "Database connect string is " + Settings.DatabaseConnectString + %char(13) + %char(10)
+			tmpmsg += "Transaction file is " + Settings.TransactionFile + %char(13) + %char(10)
+			tmpmsg += "Log file is " + Settings.LogFileName + %char(13) + %char(10)
+			tmpmsg += "Sleep interval is " + %string(Settings.SleepTime) + " seconds. " + %char(13) + %char(10)
 			if (Settings.StopOnError) then
-				message += "Replicator will stop if any error is encountered" + %char(13) + %char(10)
+				tmpmsg += "Replicator will stop if any error is encountered" + %char(13) + %char(10)
 			else
-				message += "Replicator will attempt to continue if errors are encountered" + %char(13) + %char(10)
+				tmpmsg += "Replicator will attempt to continue if errors are encountered" + %char(13) + %char(10)
 			if (Settings.CanSendEmail()) then
 			begin
-				message += "Replicator is configured to send email messages to " + Settings.ErrorEmail + %char(13) + %char(10)
-				message += "Emails will be sent from " + Settings.EmailSender + %char(13) + %char(10)
-				message += "Email server is " + Settings.EmailServer + %char(13) + %char(10)
+				tmpmsg += "Replicator is configured to send email messages to " + Settings.ErrorEmail + %char(13) + %char(10)
+				tmpmsg += "Emails will be sent from " + Settings.EmailSender + %char(13) + %char(10)
+				tmpmsg += "Email server is " + Settings.EmailServer + %char(13) + %char(10)
 			end
 			else
-				message += "Replicator is NOT configured to send email messages" + %char(13) + %char(10)
+				tmpmsg += "Replicator is NOT configured to send email messages" + %char(13) + %char(10)
 
-			xcall syn_reportevent(D_EVENTLOG_INFORMATION_TYPE,message)
+			xcall syn_reportevent(D_EVENTLOG_INFORMATION_TYPE,tmpmsg)
 		end
 
 		;;Main loop
@@ -1411,7 +1436,11 @@ RecordProcessId,
 		begin
 			xcall delet(pidFileSpec)
 			open(pidFileChannel=0,o:s,pidFileSpec)
+			.ifdef D_VMS
+			writes(pidFileChannel,%hex(%jbno,4))
+			.else
 			writes(pidFileChannel,%string(%jbno))
+			.endc
 		end
 		catch (ex)
 		begin
@@ -1597,11 +1626,13 @@ proc
 		xcall delet(pidFileSpec)
 	end
 
+	.ifdef D_GUI
 	if (Settings.RunningOnTerminal)
 	begin
 		xcall log("Replicator will stop in 2 seconds")
 		sleep 2
 	end
+	.endc
 
 	xreturn
 
@@ -1629,11 +1660,11 @@ proc
 	end
 	catch (ex)
 	begin
-		data message = "Replicator failed to open log file " + Settings.LogFileName + ". Error number " + %string(%ernum)
+		data tmpmsg = "Replicator failed to open log file " + Settings.LogFileName + ". Error number " + %string(%ernum)
 		if (Settings.RunningOnTerminal) then
-			writes(Settings.TerminalChannel,message)
+			writes(Settings.TerminalChannel,tmpmsg)
 		else
-			xcall syn_reportevent(D_EVENTLOG_ERROR_TYPE,message)
+			xcall syn_reportevent(D_EVENTLOG_ERROR_TYPE,tmpmsg)
 	end
 	endtry
 
@@ -1650,10 +1681,10 @@ subroutine errorlog
 	required in message, string
 proc
 
-	xcall log("ERROR:" + message)
+	xcall log("ERROR: " + message)
 	;;Are we also logging to the system log?
 	if (Settings.SystemLog)
-		xcall syn_reportevent(D_EVENTLOG_ERROR_TYPE,message)
+		xcall syn_reportevent(D_EVENTLOG_ERROR_TYPE,"ERROR: " + message)
 
 	xreturn
 
@@ -1811,7 +1842,7 @@ namespace Tools
 			required out a_optvals      ,@ArrayList     ;;Returned option values
 			endparams
 
-.define MAXARGS 256
+			.define MAXARGS 256
 
 			stack record localData
 				fstatus         ,boolean                ;;Function return status
@@ -1824,7 +1855,7 @@ namespace Tools
 				option_value    ,String
 			endrecord
 
-.undefine MAXARGS
+			.undefine MAXARGS
 
 		proc
 			init localData
@@ -1918,9 +1949,17 @@ namespace Tools
 	;;; <summary>
 	;;; Represents various settings used within the replicator application.
 	;;; </summary>
+	.ifdef D_VMS
+	public class Settings
+	.else
 	public static class Settings
+		.endc
 
-		static method Settings
+		;;; <summary>
+		;;; Configure default settings
+		;;; Can't use a static constructor because VMS doesn't support them
+		;;; </summary>
+		public static method Initialize, void
 		proc
 			ErrorSleepTime    = 0.5
 			InstanceName      = "DEFAULT"
@@ -1930,7 +1969,7 @@ namespace Tools
 			RunningOnTerminal = (%tnmbr >= 0)
 			SleepTime         = 60
 			SystemLog         = false
-			TransactionFile   = "DAT:REPLICATION.ISM"
+			TransactionFile   = "REPLICATOR_DATA:REPLICATION.ISM"
 		endmethod
 
 		;;; <summary>
@@ -2055,7 +2094,7 @@ namespace Tools
 			endmethod
 		endproperty
 
-	;;; Include key data in debug logs?
+		;;; Include key data in debug logs?
 		;;; </summary>
 		public static property LogKeys, boolean
 			method get

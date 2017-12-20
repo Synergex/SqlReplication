@@ -92,7 +92,11 @@ namespace <NAMESPACE>
                 key_spos ,8d5
                 key_slen ,8d3
             endrecord
+            .ifdef D_VMS
+            .include "REPLICATION_VMS" repository, structure="strInstruction", end
+            .else
             .include "REPLICATION" repository, structure="strInstruction", end
+            .endc
         proc
             ;;Make sure the channel is to an indexed file and open in update mode
             xcall getfa(aChannel,"OMD",openMode)

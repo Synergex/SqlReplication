@@ -1,0 +1,204 @@
+IDENT	FDL_VERSION 02 "19-DEC-2017 15:45:01   OpenVMS ANALYZE/RMS_FILE Utility"
+
+SYSTEM
+	SOURCE                  OpenVMS
+
+FILE
+	ALLOCATION              16848
+	BEST_TRY_CONTIGUOUS     yes
+	BUCKET_SIZE             16
+	CLUSTER_SIZE            16
+	CONTIGUOUS              no
+	EXTENSION               0
+	FILE_MONITORING         no
+	NAME                    "EMPLOYEE.ISM"
+	ORGANIZATION            indexed
+	GLOBAL_BUFFER_COUNT     0
+	GLBUFF_CNT_V83          0
+	GLBUFF_FLAGS_V83        none
+
+RECORD
+	BLOCK_SPAN              yes
+	CARRIAGE_CONTROL        carriage_return
+	FORMAT                  fixed
+	SIZE                    300
+
+AREA 0
+	ALLOCATION              15408
+	BEST_TRY_CONTIGUOUS     yes
+	BUCKET_SIZE             16
+	EXTENSION               0
+
+AREA 1
+	ALLOCATION              16
+	BEST_TRY_CONTIGUOUS     yes
+	BUCKET_SIZE             16
+	EXTENSION               0
+
+AREA 2
+	ALLOCATION              1424
+	BEST_TRY_CONTIGUOUS     yes
+	BUCKET_SIZE             16
+	EXTENSION               0
+
+KEY 0
+	CHANGES                 no
+	DATA_KEY_COMPRESSION    no
+	DATA_RECORD_COMPRESSION no
+	DATA_AREA               0
+	DATA_FILL               100
+	DUPLICATES              no
+	INDEX_AREA              1
+	INDEX_COMPRESSION       no
+	INDEX_FILL              75
+	LEVEL1_INDEX_AREA       1
+	NAME                    "EMP_ID"
+	NULL_KEY                no
+	PROLOG                  3
+	SEG0_LENGTH             6
+	SEG0_POSITION           0
+	TYPE                    string
+
+KEY 1
+	CHANGES                 yes
+	DATA_KEY_COMPRESSION    no
+	DATA_AREA               2
+	DATA_FILL               75
+	DUPLICATES              yes
+	INDEX_AREA              2
+	INDEX_COMPRESSION       no
+	INDEX_FILL              50
+	LEVEL1_INDEX_AREA       2
+	NAME                    "EMP_DEPT"
+	NULL_KEY                no
+	SEG0_LENGTH             15
+	SEG0_POSITION           46
+	TYPE                    string
+
+KEY 2
+	CHANGES                 yes
+	DATA_KEY_COMPRESSION    no
+	DATA_AREA               2
+	DATA_FILL               75
+	DUPLICATES              yes
+	INDEX_AREA              2
+	INDEX_COMPRESSION       no
+	INDEX_FILL              50
+	LEVEL1_INDEX_AREA       2
+	NAME                    "EMP_LAST_NAME"
+	NULL_KEY                no
+	SEG0_LENGTH             20
+	SEG0_POSITION           26
+	TYPE                    string
+
+KEY 3
+	CHANGES                 yes
+	DATA_KEY_COMPRESSION    no
+	DATA_AREA               2
+	DATA_FILL               75
+	DUPLICATES              yes
+	INDEX_AREA              2
+	INDEX_COMPRESSION       no
+	INDEX_FILL              50
+	LEVEL1_INDEX_AREA       2
+	NAME                    "STATE_CODE"
+	NULL_KEY                no
+	SEG0_LENGTH             2
+	SEG0_POSITION           215
+	TYPE                    string
+
+KEY 4
+	CHANGES                 yes
+	DATA_KEY_COMPRESSION    no
+	DATA_AREA               2
+	DATA_FILL               75
+	DUPLICATES              yes
+	INDEX_AREA              2
+	INDEX_COMPRESSION       no
+	INDEX_FILL              50
+	LEVEL1_INDEX_AREA       2
+	NAME                    "ZIP_CODE"
+	NULL_KEY                no
+	SEG0_LENGTH             5
+	SEG0_POSITION           217
+	TYPE                    string
+
+ANALYSIS_OF_AREA 0
+	RECLAIMED_SPACE         0
+
+ANALYSIS_OF_AREA 1
+	RECLAIMED_SPACE         0
+
+ANALYSIS_OF_AREA 2
+	RECLAIMED_SPACE         0
+
+ANALYSIS_OF_KEY 0
+	DATA_FILL               98
+	DATA_KEY_COMPRESSION    0
+	DATA_RECORD_COMPRESSION 0
+	DATA_RECORD_COUNT       25000
+	DATA_SPACE_OCCUPIED     15392
+	DEPTH                   1
+	INDEX_COMPRESSION       0
+	INDEX_FILL              94
+	INDEX_SPACE_OCCUPIED    16
+	LEVEL1_RECORD_COUNT     962
+	MEAN_DATA_LENGTH        300
+	MEAN_INDEX_LENGTH       8
+	LONGEST_RECORD_LENGTH   300
+
+ANALYSIS_OF_KEY 1
+	DATA_FILL               73
+	DATA_KEY_COMPRESSION    0
+	DATA_RECORD_COUNT       21
+	DATA_SPACE_OCCUPIED     336
+	DEPTH                   1
+	DUPLICATES_PER_SIDR     1189
+	INDEX_COMPRESSION       0
+	INDEX_FILL              1
+	INDEX_SPACE_OCCUPIED    16
+	LEVEL1_RECORD_COUNT     8
+	MEAN_DATA_LENGTH        5969
+	MEAN_INDEX_LENGTH       17
+
+ANALYSIS_OF_KEY 2
+	DATA_FILL               62
+	DATA_KEY_COMPRESSION    0
+	DATA_RECORD_COUNT       303
+	DATA_SPACE_OCCUPIED     416
+	DEPTH                   1
+	DUPLICATES_PER_SIDR     82
+	INDEX_COMPRESSION       0
+	INDEX_FILL              7
+	INDEX_SPACE_OCCUPIED    16
+	LEVEL1_RECORD_COUNT     26
+	MEAN_DATA_LENGTH        435
+	MEAN_INDEX_LENGTH       22
+
+ANALYSIS_OF_KEY 3
+	DATA_FILL               72
+	DATA_KEY_COMPRESSION    0
+	DATA_RECORD_COUNT       30
+	DATA_SPACE_OCCUPIED     336
+	DEPTH                   1
+	DUPLICATES_PER_SIDR     832
+	INDEX_COMPRESSION       0
+	INDEX_FILL              0
+	INDEX_SPACE_OCCUPIED    16
+	LEVEL1_RECORD_COUNT     14
+	MEAN_DATA_LENGTH        4171
+	MEAN_INDEX_LENGTH       4
+
+ANALYSIS_OF_KEY 4
+	DATA_FILL               91
+	DATA_KEY_COMPRESSION    0
+	DATA_RECORD_COUNT       325
+	DATA_SPACE_OCCUPIED     272
+	DEPTH                   1
+	DUPLICATES_PER_SIDR     76
+	INDEX_COMPRESSION       0
+	INDEX_FILL              1
+	INDEX_SPACE_OCCUPIED    16
+	LEVEL1_RECORD_COUNT     17
+	MEAN_DATA_LENGTH        392
+	MEAN_INDEX_LENGTH       7

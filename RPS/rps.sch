@@ -3,10 +3,10 @@
 ;
 ;  REPOSITORY     : C:\DEV\PUBLIC\SqlReplicationIoHooks\RPS\rpsmain.ism
 ;                 : C:\DEV\PUBLIC\SqlReplicationIoHooks\RPS\rpstext.ism
-;                 : Version 10.3.3c
+;                 : Version 10.3.3d
 ;
-;  GENERATED      : 29-JUN-2017, 09:57:41
-;                 : Version 10.3.3c
+;  GENERATED      : 19-DEC-2017, 16:51:23
+;                 : Version 10.3.3d
 ;  EXPORT OPTIONS : [ALL] 
  
  
@@ -231,6 +231,25 @@ Key TRANSACTION_ID   ACCESS   Order ASCENDING   Dups NO   Density 100
    Description "Transaction ID (timestamp)"
    Segment FIELD   TRANSACTION_ID
  
+Structure REPLICATION_VMS   DBL ISAM
+   Description "Replication request queue (OpenVMS)"
+ 
+Field TRANSACTION_ID   Type ALPHA   Size 20
+   Description "Unique transaction ID (timestamp)"
+ 
+Field ACTION   Type DECIMAL   Size 2
+   Description "Replicator action"
+ 
+Field STRUCTURE_NAME   Type ALPHA   Size 32
+   Description "the SDMS structure name"
+ 
+Field RECORD   Type ALPHA   Size 32000
+   Description "Record affected"
+ 
+Key TRANSACTION_ID   ACCESS   Order ASCENDING   Dups NO   Density 100
+   Description "Transaction ID (timestamp)"
+   Segment FIELD   TRANSACTION_ID
+ 
 File DEPARTMENT   DBL ISAM   "DAT:DEPARTMENT.ISM"
    Description "Department master file"
    Compress
@@ -241,8 +260,13 @@ File EMPLOYEE   DBL ISAM   "DAT:EMPLOYEE.ISM"
    Compress
    Assign EMPLOYEE
  
-File REPLICATION   DBL ISAM   "DAT:REPLICATION.ISM"
+File REPLICATION   DBL ISAM   "REPLICATOR_DATA:REPLICATION.ISM"
    Description "SQL replication request queue file"
    Addressing 40BIT   Compress   Terabyte
    Assign REPLICATION
+ 
+File REPLICATION_VMS   DBL ISAM   "REPLICATOR_DATA:REPLICATION.ISM"
+   Description "SQL replication request queue file (VMS)"
+   Addressing 40BIT
+   Assign REPLICATION_VMS
  

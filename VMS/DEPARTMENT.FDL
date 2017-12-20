@@ -1,0 +1,114 @@
+IDENT	FDL_VERSION 02 "19-DEC-2017 15:44:55   OpenVMS ANALYZE/RMS_FILE Utility"
+
+SYSTEM
+	SOURCE                  OpenVMS
+
+FILE
+	ALLOCATION              80
+	BEST_TRY_CONTIGUOUS     yes
+	BUCKET_SIZE             16
+	CLUSTER_SIZE            16
+	CONTIGUOUS              no
+	EXTENSION               0
+	FILE_MONITORING         no
+	NAME                    "DEPARTMENT.ISM"
+	ORGANIZATION            indexed
+	GLOBAL_BUFFER_COUNT     0
+	GLBUFF_CNT_V83          0
+	GLBUFF_FLAGS_V83        none
+
+RECORD
+	BLOCK_SPAN              yes
+	CARRIAGE_CONTROL        carriage_return
+	FORMAT                  fixed
+	SIZE                    71
+
+AREA 0
+	ALLOCATION              32
+	BEST_TRY_CONTIGUOUS     yes
+	BUCKET_SIZE             16
+	EXTENSION               0
+
+AREA 1
+	ALLOCATION              16
+	BEST_TRY_CONTIGUOUS     yes
+	BUCKET_SIZE             16
+	EXTENSION               0
+
+AREA 2
+	ALLOCATION              32
+	BEST_TRY_CONTIGUOUS     yes
+	BUCKET_SIZE             16
+	EXTENSION               0
+
+KEY 0
+	CHANGES                 no
+	DATA_KEY_COMPRESSION    no
+	DATA_RECORD_COMPRESSION no
+	DATA_AREA               0
+	DATA_FILL               100
+	DUPLICATES              no
+	INDEX_AREA              1
+	INDEX_COMPRESSION       no
+	INDEX_FILL              75
+	LEVEL1_INDEX_AREA       1
+	NAME                    "dept_id"
+	NULL_KEY                no
+	PROLOG                  3
+	SEG0_LENGTH             15
+	SEG0_POSITION           0
+	TYPE                    string
+
+KEY 1
+	CHANGES                 yes
+	DATA_KEY_COMPRESSION    no
+	DATA_AREA               2
+	DATA_FILL               75
+	DUPLICATES              yes
+	INDEX_AREA              2
+	INDEX_COMPRESSION       no
+	INDEX_FILL              50
+	LEVEL1_INDEX_AREA       2
+	NAME                    "dept_manager"
+	NULL_KEY                no
+	SEG0_LENGTH             6
+	SEG0_POSITION           65
+	TYPE                    string
+
+ANALYSIS_OF_AREA 0
+	RECLAIMED_SPACE         0
+
+ANALYSIS_OF_AREA 1
+	RECLAIMED_SPACE         0
+
+ANALYSIS_OF_AREA 2
+	RECLAIMED_SPACE         0
+
+ANALYSIS_OF_KEY 0
+	DATA_FILL               7
+	DATA_KEY_COMPRESSION    0
+	DATA_RECORD_COMPRESSION 0
+	DATA_RECORD_COUNT       8
+	DATA_SPACE_OCCUPIED     16
+	DEPTH                   1
+	INDEX_COMPRESSION       0
+	INDEX_FILL              0
+	INDEX_SPACE_OCCUPIED    16
+	LEVEL1_RECORD_COUNT     1
+	MEAN_DATA_LENGTH        71
+	MEAN_INDEX_LENGTH       17
+	LONGEST_RECORD_LENGTH   71
+
+ANALYSIS_OF_KEY 1
+	DATA_FILL               1
+	DATA_KEY_COMPRESSION    0
+	DATA_RECORD_COUNT       8
+	DATA_SPACE_OCCUPIED     16
+	DEPTH                   1
+	DUPLICATES_PER_SIDR     0
+	INDEX_COMPRESSION       0
+	INDEX_FILL              0
+	INDEX_SPACE_OCCUPIED    16
+	LEVEL1_RECORD_COUNT     1
+	MEAN_DATA_LENGTH        13
+	MEAN_INDEX_LENGTH       8
