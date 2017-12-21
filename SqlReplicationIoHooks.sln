@@ -56,8 +56,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "VMS", "VMS", "{D858AA93-37A
 		VMS\SETUP.COM = VMS\SETUP.COM
 	EndProjectSection
 EndProject
-Project("{BBD0F5D1-1CC4-42FD-BA4C-A96779C64378}") = "client", "PRJVS\client\client.synproj", "{565E96AC-4AD7-4EFC-AF7A-CC11F0A7D20E}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -116,16 +114,6 @@ Global
 		{16FF74C0-7FEA-4D0E-92A8-74300D18CD66}.Release|x64.Build.0 = Release|Any CPU
 		{16FF74C0-7FEA-4D0E-92A8-74300D18CD66}.Release|x86.ActiveCfg = Release|Any CPU
 		{16FF74C0-7FEA-4D0E-92A8-74300D18CD66}.Release|x86.Build.0 = Release|Any CPU
-		{565E96AC-4AD7-4EFC-AF7A-CC11F0A7D20E}.Debug|Any CPU.ActiveCfg = Debug|x86
-		{565E96AC-4AD7-4EFC-AF7A-CC11F0A7D20E}.Debug|x64.ActiveCfg = Debug|x64
-		{565E96AC-4AD7-4EFC-AF7A-CC11F0A7D20E}.Debug|x64.Build.0 = Debug|x64
-		{565E96AC-4AD7-4EFC-AF7A-CC11F0A7D20E}.Debug|x86.ActiveCfg = Debug|x86
-		{565E96AC-4AD7-4EFC-AF7A-CC11F0A7D20E}.Debug|x86.Build.0 = Debug|x86
-		{565E96AC-4AD7-4EFC-AF7A-CC11F0A7D20E}.Release|Any CPU.ActiveCfg = Release|x86
-		{565E96AC-4AD7-4EFC-AF7A-CC11F0A7D20E}.Release|x64.ActiveCfg = Release|x64
-		{565E96AC-4AD7-4EFC-AF7A-CC11F0A7D20E}.Release|x64.Build.0 = Release|x64
-		{565E96AC-4AD7-4EFC-AF7A-CC11F0A7D20E}.Release|x86.ActiveCfg = Release|x86
-		{565E96AC-4AD7-4EFC-AF7A-CC11F0A7D20E}.Release|x86.Build.0 = Release|x86
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

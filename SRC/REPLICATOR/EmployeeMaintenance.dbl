@@ -1,0 +1,339 @@
+;;*****************************************************************************
+;;
+;; File:        EmployeeMaintenance.dbl
+;;
+;; Type:        Application (maintenance program)
+;;
+;; Description: Maintains records in the employee file.
+;;
+;;*****************************************************************************
+;;
+;; Copyright (c) 2017, Synergex International, Inc.
+;; All rights reserved.
+;;
+;; Redistribution and use in source and binary forms, with or without
+;; modification, are permitted provided that the following conditions are met:
+;;
+;; * Redistributions of source code must retain the above copyright notice,
+;;   this list of conditions and the following disclaimer.
+;;
+;; * Redistributions in binary form must reproduce the above copyright notice,
+;;   this list of conditions and the following disclaimer in the documentation
+;;   and/or other materials provided with the distribution.
+;;
+;; THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+;; AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+;; IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+;; ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+;; LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+;; CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+;; SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+;; INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+;; CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+;; ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+;; POSSIBILITY OF SUCH DAMAGE.
+;;
+;;*****************************************************************************
+
+main EmployeeMaintenance
+
+	.include "INC:structureio.def"
+
+	record
+		ok,				i4
+		tt,				i4
+		ech,			i4
+		dch,			i4
+		employee,		strEmployee
+		saveEmployee,	strEmployee
+		department,		strDepartment
+		tmpvar,			a80
+		fldnum,			d2
+		paid,			a8
+	endrecord
+
+proc
+	ok = true
+	open(tt=0,i,"tt:")
+	xcall flags(7004000,1)
+
+	display(tt,$scr_clr(screen))
+
+	if (%employee_io(IO_OPEN_UPD,ech) != IO_OK)
+	begin
+		display(tt,"Failed to open employee file!")
+		ok = false
+	end
+
+	if (ok && %department_io(IO_OPEN_UPD,dch) != IO_OK)
+	begin
+		display(tt,"Failed to open department file!")
+		ok = false
+	end
+
+	;;Main processing
+
+	repeat
+	begin
+		;;Display the employee maintenance screen
+		call DisplayScreen
+
+		;;Enter an employee #
+		repeat
+		begin
+			display(tt,$scr_pos(4,27),$scr_clr(eol))
+			reads(tt,tmpvar(1:6))
+
+			;;Ignore blank
+			if (!tmpvar)
+				nextloop
+
+			;;Exit?
+			if (tmpvar=="E")
+			begin
+				;;All done, exit
+				ok = false
+				exitloop
+			end
+
+			;;Got a potential employee number
+			try
+			begin
+				employee.emp_id = tmpvar(1:6)
+				exitloop
+			end
+			catch (e, @Exception)
+			begin
+				display(tt,$scr_pos(4,37),$scr_clr(eol),"Invalid employee number!")
+				reads(tt,tmpvar(1:1))
+				display(tt,$scr_pos(4,37),$scr_clr(eol))
+			end
+			endtry
+		end
+
+		;;Are we all done?
+		if (!ok)
+			exitloop
+
+		;;Read the employee record
+
+		using %employee_io(IO_READ,ech,^a(employee.emp_id),0,employee,IO_LOCK,,tmpvar) select
+		(IO_OK),
+		begin
+			;;Display the employee data
+			call DisplayData
+			saveEmployee = employee
+		end
+		(IO_NOT_FOUND,IO_EOF),
+		begin
+			display(tt,$scr_pos(4,37),$scr_clr(eol),"Record not found!")
+			reads(tt,tmpvar(1:1))
+			display(tt,$scr_pos(4,37),$scr_clr(eol))
+			nextloop
+		end
+		(IO_LOCKED),
+		begin
+			display(tt,$scr_pos(4,37),$scr_clr(eol),"Record locked!")
+			reads(tt,tmpvar(1:1))
+			display(tt,$scr_pos(4,37),$scr_clr(eol))
+			nextloop
+		end
+		(),
+		begin
+			display(tt,$scr_pos(4,37),$scr_clr(eol),%atrim(tmpvar))
+			reads(tt,tmpvar(1:1))
+			display(tt,$scr_pos(4,37),$scr_clr(eol))
+			nextloop
+		end
+		endusing
+
+		;;Get the field number to edit
+		repeat
+		begin
+			display(tt,$scr_pos(23,2),$scr_clr(eol),"Field to edit (E to exit) : ")
+			reads(tt,tmpvar(1:2))
+			if (!tmpvar || tmpvar=="E")
+			begin
+				;;All done, exit
+				ok = false
+				exitloop
+			end
+			try
+			begin
+				fldnum = tmpvar(1:2)
+			end
+			catch (e, @Exception)
+			begin
+				;;Bad field number, just ignore it and try again
+				nextloop
+			end
+			endtry
+
+			;;Edit a field
+			call EditField
+		end
+
+		if (!ok)
+		begin
+			;TODO: Save changes?
+
+			if (employee!=saveEmployee)
+			begin
+				repeat
+				begin
+					display(tt,$scr_pos(23,2),$scr_clr(eol),"Save changes (Y/N) : ")
+					reads(tt,tmpvar(1:1))
+					using tmpvar select
+					("Y"),
+					begin
+						using %employee_io(IO_UPDATE,ech,,,employee,,,tmpvar) select
+						(IO_OK),
+							nop
+						(),
+						begin
+							display(tt,$scr_pos(23,2),$scr_clr(eol),%atrim(tmpvar))
+							reads(tt,tmpvar(1:1))
+							display(tt,$scr_pos(23,2),$scr_clr(eol))
+						end
+						endusing
+						exitloop
+					end
+					("N"),
+					begin
+						unlock ech
+						exitloop
+					end
+					endusing
+				end
+			end
+
+			ok = true
+		end
+
+	end
+
+	if (ech && %chopen(ech))
+		close ech
+
+	if (dch && %chopen(dch))
+		close dch
+
+	display(tt,$scr_clr(screen))
+	close tt
+
+	stop
+
+DisplayScreen,
+
+	display(tt,$scr_clr(screen),
+	&	$scr_pos( 2,2),"Employee Maintenance",
+	&	$scr_pos( 4,2),"Employee # (E to exit) :",
+	&	$scr_pos( 6,2),"1.   First name :",
+	&	$scr_pos( 7,2),"2.    Last name :",
+	&	$scr_pos( 8,2),"3.   Department :",
+	&	$scr_pos( 9,2),"      Hire date :",
+	&	$scr_pos(10,2),"      Hire date :",
+	&	$scr_pos(11,2),"     Work phone :",
+	&	$scr_pos(12,2),"     Home phone :",
+	&	$scr_pos(13,2),"     Cell phone :",
+	&	$scr_pos(14,2),"           Paid :",
+	&	$scr_pos(15,2),"  Date of birth :",
+	&	$scr_pos(16,2),"  Email address :",
+	&	$scr_pos(17,2),"        Address :")
+
+	return
+
+DisplayData,
+
+	call GetDepartmentName
+
+	paid = employee.emp_paid == 1 ? "Hourly" : "Salaried"
+
+	display(tt,
+	&	$scr_pos( 6,20),employee.emp_first_name,
+	&	$scr_pos( 7,20),employee.emp_last_name,
+	&	$scr_pos( 8,20),%atrim(employee.emp_dept)," (",%atrim(department.dept_name),")",
+	&	$scr_pos( 9,20),^a(employee.emp_hire_date(5:2)),"/",^a(employee.emp_hire_date(7:2)),"/",^a(employee.emp_hire_date(1:4)),
+	&	$scr_pos(10,20),^a(employee.emp_hire_time(1:2)),":",^a(employee.emp_hire_time(3:2)),
+	&	$scr_pos(11,20),employee.emp_phone_home,
+	&	$scr_pos(12,20),employee.emp_phone_work,
+	&	$scr_pos(13,20),employee.emp_phone_cell,
+	&	$scr_pos(14,20), paid,
+	&	$scr_pos(15,20),^a(employee.emp_date_of_birth(5:2)),"/",^a(employee.emp_date_of_birth(7:2)),"/",^a(employee.emp_date_of_birth(1:4)),
+	&	$scr_pos(16,20),employee.emp_email,
+	&	$scr_pos(17,20),%atrim(employee.emp_address_street),", ",%atrim(employee.emp_address_city),", ",employee.emp_address_state,", ",^a(employee.emp_address_zip))
+
+	return
+
+EditField,
+
+	using fldnum select
+	(1),	call FirstName
+	(2),	call LastName
+	(3),	call Department
+	endusing
+
+	return
+
+FirstName,
+
+	xcall flags(20,1)
+	display(tt,$scr_pos(6,20))
+	reads(tt,employee.emp_first_name)
+	xcall flags(20,0)
+
+	return
+
+LastName,
+
+	xcall flags(20,1)
+	display(tt,$scr_pos(7,20))
+	reads(tt,employee.emp_last_name)
+	xcall flags(20,0)
+
+	return
+
+Department,
+
+	repeat
+	begin
+		display(tt,$scr_pos(8,20),$scr_clr(eol))
+		reads(tt,employee.emp_dept)
+
+		;;Required field
+		if (!employee.emp_dept)
+			nextloop
+
+		call GetDepartmentName
+
+		;;Validate against department file
+		using department.dept_name select
+		("Not found!"),
+		begin
+			display(tt,$scr_pos(8,40),$scr_clr(eol),%atrim(department.dept_name))
+			reads(tt,tmpvar(1:1))
+		end
+		(),
+		begin
+			;;Valid department
+			display(tt,$scr_pos(8,20),%atrim(employee.emp_dept)," (",%atrim(department.dept_name),")")
+			exitloop
+		end
+		endusing
+	end
+
+	return
+
+GetDepartmentName,
+
+	;;Lookup department record
+	using %department_io(IO_READ,dch,employee.emp_dept,0,department,,,tmpvar) select
+	(IO_OK),
+		nop
+	(),
+		department.dept_name = "Not found!"
+	endusing
+
+	return
+
+endmain

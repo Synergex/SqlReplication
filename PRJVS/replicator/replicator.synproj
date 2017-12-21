@@ -77,6 +77,9 @@
     <Compile Include="..\..\SRC\REPLICATOR\EmployeeDataReport.dbl">
       <Link>EmployeeDataReport.dbl</Link>
     </Compile>
+    <Compile Include="..\..\SRC\REPLICATOR\EmployeeMaintenance.dbl">
+      <Link>EmployeeMaintenance.dbl</Link>
+    </Compile>
     <Compile Include="..\..\SRC\REPLICATOR\InstructionCount.dbl">
       <Link>InstructionCount.dbl</Link>
     </Compile>
