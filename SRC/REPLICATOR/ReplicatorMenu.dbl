@@ -141,7 +141,7 @@ proc
 			data tmpvar, a1, " "
 			open(chn=0,"I:I","REPLICATOR_DATA:REPLICATION.ISM")
 
-			display(tt,$SCR_POS(4,2),$SCR_CLR(EOS),"Operation             Table                           Unique Key",
+			display(tt,$SCR_POS(4,2),$SCR_CLR(EOS),"Operation             Table                           Affected Record",
 			&	$SCR_POS(5,2),              "--------------------  ------------------------------  ------------------------")
 
 			find(chn,,^FIRST) [EOF=eof]

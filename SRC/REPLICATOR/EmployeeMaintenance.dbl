@@ -46,10 +46,12 @@ main EmployeeMaintenance
 		dch,			i4
 		employee,		strEmployee
 		saveEmployee,	strEmployee
+		saveEmployeeId,	d^size(employee.emp_id)
 		department,		strDepartment
 		tmpvar,			a80
 		fldnum,			d2
 		paid,			a8
+		allDone,		boolean
 	endrecord
 
 proc
@@ -84,35 +86,39 @@ proc
 			display(tt,$scr_pos(4,27),$scr_clr(eol))
 			reads(tt,tmpvar(1:6))
 
-			;;Ignore blank
-			if (!tmpvar)
+			using tmpvar select
+			(" "),
+			begin
 				nextloop
-
-			;;Exit?
-			if (tmpvar=="E")
+			end
+			("E"),
 			begin
 				;;All done, exit
-				ok = false
+				allDone = true
 				exitloop
 			end
-
-			;;Got a potential employee number
-			try
+			(),
 			begin
-				employee.emp_id = tmpvar(1:6)
-				exitloop
+				;;Got a potential employee number
+				try
+				begin
+					employee.emp_id = tmpvar(1:6)
+					saveEmployeeId = employee.emp_id
+					exitloop
+				end
+				catch (e, @Exception)
+				begin
+					display(tt,$scr_pos(4,27),$scr_clr(eol),%atrim(tmpvar(1:6))," - invalid employee number!")
+					reads(tt,tmpvar(1:1))
+					display(tt,$scr_pos(4,37),$scr_clr(eol))
+				end
+				endtry
 			end
-			catch (e, @Exception)
-			begin
-				display(tt,$scr_pos(4,37),$scr_clr(eol),"Invalid employee number!")
-				reads(tt,tmpvar(1:1))
-				display(tt,$scr_pos(4,37),$scr_clr(eol))
-			end
-			endtry
-		end
+			endusing
+		end ;of employee number entry
 
 		;;Are we all done?
-		if (!ok)
+		if (allDone)
 			exitloop
 
 		;;Read the employee record
@@ -126,7 +132,7 @@ proc
 		end
 		(IO_NOT_FOUND,IO_EOF),
 		begin
-			display(tt,$scr_pos(4,37),$scr_clr(eol),"Record not found!")
+			display(tt,$scr_pos(4,27),$scr_clr(eol),^a(saveEmployeeId)," - record not found!")
 			reads(tt,tmpvar(1:1))
 			display(tt,$scr_pos(4,37),$scr_clr(eol))
 			nextloop
@@ -148,69 +154,98 @@ proc
 		endusing
 
 		;;Get the field number to edit
+
+		allDone = false
+
 		repeat
 		begin
-			display(tt,$scr_pos(23,2),$scr_clr(eol),"Field to edit (E to exit) : ")
+			display(tt,$scr_pos(23,2),$scr_clr(eol),"Field to edit (D to delete, E to exit) : ")
 			reads(tt,tmpvar(1:2))
-			if (!tmpvar || tmpvar=="E")
+
+			using tmpvar select
+			("E ","  "),
 			begin
 				;;All done, exit
-				ok = false
+				if (employee!=saveEmployee)
+				begin
+					repeat
+					begin
+						display(tt,$scr_pos(23,2),$scr_clr(eol),"Save changes (Y/N) : ")
+						reads(tt,tmpvar(1:1))
+						using tmpvar select
+						("Y"),
+						begin
+							using %employee_io(IO_UPDATE,ech,,,employee,,,tmpvar) select
+							(IO_OK),
+								nop
+							(),
+							begin
+								display(tt,$scr_pos(23,2),$scr_clr(eol),%atrim(tmpvar))
+								reads(tt,tmpvar(1:1))
+								display(tt,$scr_pos(23,2),$scr_clr(eol))
+							end
+							endusing
+							exitloop
+						end
+						("N"),
+						begin
+							unlock ech
+							exitloop
+						end
+						endusing
+					end
+				end
 				exitloop
 			end
-			try
+			("D "),
 			begin
-				fldnum = tmpvar(1:2)
-			end
-			catch (e, @Exception)
-			begin
-				;;Bad field number, just ignore it and try again
-				nextloop
-			end
-			endtry
-
-			;;Edit a field
-			call EditField
-		end
-
-		if (!ok)
-		begin
-			;TODO: Save changes?
-
-			if (employee!=saveEmployee)
-			begin
+				;;Delete
 				repeat
 				begin
-					display(tt,$scr_pos(23,2),$scr_clr(eol),"Save changes (Y/N) : ")
+					display(tt,$scr_pos(23,2),$scr_clr(eol),"Delete (Y/N) ? ")
 					reads(tt,tmpvar(1:1))
 					using tmpvar select
 					("Y"),
 					begin
-						using %employee_io(IO_UPDATE,ech,,,employee,,,tmpvar) select
-						(IO_OK),
-							nop
-						(),
-						begin
-							display(tt,$scr_pos(23,2),$scr_clr(eol),%atrim(tmpvar))
-							reads(tt,tmpvar(1:1))
-							display(tt,$scr_pos(23,2),$scr_clr(eol))
-						end
-						endusing
+						xcall employee_io(IO_DELETE,ech)
+						;;All done, exit
+						allDone = true
 						exitloop
 					end
 					("N"),
-					begin
-						unlock ech
 						exitloop
-					end
+					(),
+						nop
 					endusing
 				end
 			end
+			(),
+			begin
+				try
+				begin
+					fldnum = tmpvar(1:2)
+				end
+				catch (e, @Exception)
+				begin
+					;;Bad field number, just ignore it and try again
+					nextloop
+				end
+				endtry
 
-			ok = true
-		end
+				;;Edit a field
+				call EditField
+			end
+			endusing
 
-	end
+			if (allDone)
+			begin
+				allDone = false
+				exitloop
+			end
+
+		end ;of field editing loop
+
+	end ;of main processing loop
 
 	if (ech && %chopen(ech))
 		close ech
