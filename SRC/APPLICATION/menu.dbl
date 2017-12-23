@@ -70,6 +70,11 @@ proc
 ;
 setup,
 
+	.ifdef D_VMS
+	;;XCALL XSUBR and I/O Hooks in shared images REQUIRE OPENELB to be used
+	xcall openelb("REPLICATOR_SH")
+	.endc
+
     ;Start UI Toolkit
     xcall u_start("EXE:tkapp.ism",1,0,,30,100)
 
