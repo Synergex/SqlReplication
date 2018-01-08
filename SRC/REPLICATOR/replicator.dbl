@@ -1985,10 +1985,14 @@ namespace Tools
 		;;; Can't use a static constructor because VMS doesn't support them
 		;;; </summary>
 		public static method Initialize, void
+			record 
+				now, a20
+			endrecord
 		proc
+			now = %datetime
 			ErrorSleepTime    = 0.5
 			InstanceName      = "DEFAULT"
-			LogFileName       = "REPLICATOR_LOGDIR:replicator_" + %datetime + ".log"
+			LogFileName       = "REPLICATOR_LOGDIR:replicator_" + now(1:8) + "_" + now(9:6) + ".log"
 			MaxCursors        = 128
 			MaxColumns        = 254
 			RunningOnTerminal = (%tnmbr >= 0)
@@ -1996,6 +2000,7 @@ namespace Tools
 			SystemLog         = false
 			TransactionFile   = "REPLICATOR_DATA:REPLICATION.ISM"
 		endmethod
+
 
 		;;; <summary>
 		;;; A synergy namespace used to store information about SDMS channels that the replicator currently has open
