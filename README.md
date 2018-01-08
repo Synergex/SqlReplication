@@ -338,7 +338,12 @@ Start the replicator process by selecting select Replicator -> Start Replicator
 from the application menu. You should see some messages, including:
 
     SQL Replicator Log
-    Sleep interval is 2 seconds
+    Replicator startup
+    Processing interval is 5 seconds
+    Connecting to database...
+    Connected
+    Maximum cursors: 128
+    Maximum columns: 254
     --- Processing instructions ------------------
 
 Next pick Applications -> Employee Maintenance, then cick on the search button
@@ -420,9 +425,13 @@ can obtain the required hotfix from Synergex Support. As an alternative,
 use the environment variables method of configuring the service (in
 synergy.ini as shown above).
 
+***
+
 ## Building and Running Replicator on Linux
 
 Refer to the various shell script files in the LINUX directory.
+
+***
 
 ## Building and Running Replicator on OpenVMS
 
@@ -438,7 +447,9 @@ Basic steps to build on VMS:
 6.  Edit REPLICATOR_SETUP.COM and check settings. In particular you will need to
     configure REPLICATOR_DATABASE based on the SQL Server database you intend to use.
 7.  Start replicator as a detached process by executing REPLICATOR_DETACH.COM
-8.  Check the log file in the [.LOG] folder and ensure that replicator was able to
+8.  Or start the replicator as an interactive process by executing REPLICATOR_RUN.COM_
+8.  Check the log file in the [.LOG] folder and ensure that replicator was able to 
     connect to the database.
 9.  Run EXE:REPLICATORMENU and test using the EMPLOYEE file.
-10. Use REPLICATORMENU or REPLICATORSSTOP to stop the detached replicator process.
+10. Use the S command in REPLICATORMENU or run EXE:REPLICATORSSTOP.EXE to stop the
+    replicator process.

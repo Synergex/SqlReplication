@@ -224,7 +224,7 @@ proc
 			if (length>0)
 				Settings.SleepTime = %integer(tmpval(1:length))
 		end
-		xcall log("Sleep interval is " + %string(Settings.SleepTime) + " seconds.")
+		xcall log("Processing interval is " + %string(Settings.SleepTime) + " seconds.")
 	end
 
 	if (ok)
@@ -1493,17 +1493,17 @@ ChangeInterval,
 			Settings.SleepTime = %integer(%atrim(instruction.record))
 			if (Settings.SleepTime >= 1) then
 			begin
-				xcall log("Sleep time changed from " + %string(save_time) + " to " + %string(Settings.SleepTime) + " seconds")
+				xcall log("Processing interval changed from " + %string(save_time) + " to " + %string(Settings.SleepTime) + " seconds")
 			end
 			else
 			begin
-				xcall errorlog("Invalid sleep time " + %string(Settings.SleepTime) + " requested")
+				xcall errorlog("Invalid processing interval of " + %string(Settings.SleepTime) + " seconds requested")
 				Settings.SleepTime = save_time
 			end
 		end
 		catch (ex)
 		begin
-			xcall errorlog("Invalid sleep time " + %atrim(instruction.record) + " requested")
+			xcall errorlog("Invalid processing interval " + %atrim(instruction.record) + " requested")
 			Settings.SleepTime = save_time
 		end
 		endtry
