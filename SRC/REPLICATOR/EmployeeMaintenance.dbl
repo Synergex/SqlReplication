@@ -46,7 +46,6 @@ main EmployeeMaintenance
 		dch,			i4
 		employee,		strEmployee
 		saveEmployee,	strEmployee
-		saveEmployeeId,	d^size(employee.emp_id)
 		department,		strDepartment
 		tmpvar,			a80
 		fldnum,			d2
@@ -60,6 +59,21 @@ proc
 	xcall flags(7004000,1)
 
 	display(tt,$scr_clr(screen))
+
+	.ifdef D_VMS
+	;;On VMS it is necessary to use XCALL OPENELB in order that I/O hooks
+	;;in shared images can be called.
+	try
+	begin
+		xcall openelb("REPLICATOR_SH")
+	end
+	catch (ex, @Exception)
+	begin
+		display(tt,"ERROR: Failed to activate shared image REPLICATOR_SH")
+		stop
+	end
+	endtry
+	.endc
 
 	if (%employee_io(IO_OPEN_UPD,ech) != IO_OK)
 	begin
@@ -83,6 +97,8 @@ proc
 		;;Enter an employee #
 		repeat
 		begin
+			init employee
+
 			display(tt,$scr_pos(4,27),$scr_clr(eol))
 			reads(tt,tmpvar(1:6))
 
@@ -99,20 +115,19 @@ proc
 			end
 			(),
 			begin
-				;;Got a potential employee number
-				try
+				;;We have a potential employee number
+				if (%IsNumeric(tmpvar(1:6))) then
 				begin
 					employee.emp_id = tmpvar(1:6)
-					saveEmployeeId = employee.emp_id
 					exitloop
 				end
-				catch (e, @Exception)
+				else
 				begin
-					display(tt,$scr_pos(4,27),$scr_clr(eol),%atrim(tmpvar(1:6))," - invalid employee number!")
+					display(tt,$scr_pos(23,2),"Invalid employee number!")
 					reads(tt,tmpvar(1:1))
-					display(tt,$scr_pos(4,37),$scr_clr(eol))
+					display(tt,$scr_pos(23,2),$scr_clr(eol))
+					nextloop
 				end
-				endtry
 			end
 			endusing
 		end ;of employee number entry
@@ -122,33 +137,42 @@ proc
 			exitloop
 
 		;;Read the employee record
-
+		saveEmployee = employee
 		using %employee_io(IO_READ,ech,^a(employee.emp_id),0,employee,IO_LOCK,,tmpvar) select
 		(IO_OK),
 		begin
-			;;Display the employee data
-			call DisplayData
+			;;Save and display the employee data
 			saveEmployee = employee
+			call DisplayData
 		end
 		(IO_NOT_FOUND,IO_EOF),
 		begin
-			display(tt,$scr_pos(4,27),$scr_clr(eol),^a(saveEmployeeId)," - record not found!")
-			reads(tt,tmpvar(1:1))
-			display(tt,$scr_pos(4,37),$scr_clr(eol))
+			repeat
+			begin
+				display(tt,$scr_pos(23,2),$scr_clr(eol),"Not found, create (Y/N) ? ")
+				reads(tt,tmpvar(1:1))
+				display(tt,$scr_pos(23,2),$scr_clr(eol))
+
+				using tmpvar select
+				("Y"),
+				begin
+					employee = saveEmployee
+					call CreateNew
+					exitloop
+				end
+				("N"),
+				begin
+					exitloop
+				end
+				endusing
+			end
 			nextloop
 		end
 		(IO_LOCKED),
 		begin
-			display(tt,$scr_pos(4,37),$scr_clr(eol),"Record locked!")
+			display(tt,$scr_pos(23,2),"Record locked!")
 			reads(tt,tmpvar(1:1))
-			display(tt,$scr_pos(4,37),$scr_clr(eol))
-			nextloop
-		end
-		(),
-		begin
-			display(tt,$scr_pos(4,37),$scr_clr(eol),%atrim(tmpvar))
-			reads(tt,tmpvar(1:1))
-			display(tt,$scr_pos(4,37),$scr_clr(eol))
+			display(tt,$scr_pos(23,2),$scr_clr(eol))
 			nextloop
 		end
 		endusing
@@ -202,7 +226,7 @@ proc
 				;;Delete
 				repeat
 				begin
-					display(tt,$scr_pos(23,2),$scr_clr(eol),"Delete (Y/N) ? ")
+					display(tt,$scr_pos(23,2),$scr_clr(eol),"Confirm delete (Y/N) ? ")
 					reads(tt,tmpvar(1:1))
 					using tmpvar select
 					("Y"),
@@ -214,8 +238,6 @@ proc
 					end
 					("N"),
 						exitloop
-					(),
-						nop
 					endusing
 				end
 			end
@@ -267,7 +289,7 @@ DisplayScreen,
 	&	$scr_pos( 7,2),"2.    Last name :",
 	&	$scr_pos( 8,2),"3.   Department :",
 	&	$scr_pos( 9,2),"      Hire date :",
-	&	$scr_pos(10,2),"      Hire date :",
+	&	$scr_pos(10,2),"      Hire time :",
 	&	$scr_pos(11,2),"     Work phone :",
 	&	$scr_pos(12,2),"     Home phone :",
 	&	$scr_pos(13,2),"     Cell phone :",
@@ -285,19 +307,25 @@ DisplayData,
 	paid = employee.emp_paid == 1 ? "Hourly" : "Salaried"
 
 	display(tt,
-	&	$scr_pos( 6,20),employee.emp_first_name,
-	&	$scr_pos( 7,20),employee.emp_last_name,
-	&	$scr_pos( 8,20),%atrim(employee.emp_dept)," (",%atrim(department.dept_name),")",
-	&	$scr_pos( 9,20),^a(employee.emp_hire_date(5:2)),"/",^a(employee.emp_hire_date(7:2)),"/",^a(employee.emp_hire_date(1:4)),
-	&	$scr_pos(10,20),^a(employee.emp_hire_time(1:2)),":",^a(employee.emp_hire_time(3:2)),
-	&	$scr_pos(11,20),employee.emp_phone_home,
-	&	$scr_pos(12,20),employee.emp_phone_work,
-	&	$scr_pos(13,20),employee.emp_phone_cell,
+	&	$scr_pos( 6,20), employee.emp_first_name,
+	&	$scr_pos( 7,20), employee.emp_last_name,
+	&	$scr_pos( 8,20), %atrim(employee.emp_dept)," - ",%atrim(department.dept_name),
+	&	$scr_pos(11,20), employee.emp_phone_home,
+	&	$scr_pos(12,20), employee.emp_phone_work,
+	&	$scr_pos(13,20), employee.emp_phone_cell,
 	&	$scr_pos(14,20), paid,
-	&	$scr_pos(15,20),^a(employee.emp_date_of_birth(5:2)),"/",^a(employee.emp_date_of_birth(7:2)),"/",^a(employee.emp_date_of_birth(1:4)),
-	&	$scr_pos(16,20),employee.emp_email,
-	&	$scr_pos(17,20),%atrim(employee.emp_address_street),", ",%atrim(employee.emp_address_city),", ",employee.emp_address_state,", ",^a(employee.emp_address_zip))
+	&	$scr_pos(16,20), employee.emp_email,
+	&	$scr_pos(17,20), %atrim(employee.emp_address_street),", ",%atrim(employee.emp_address_city),", ",employee.emp_address_state,", ",%string(employee.emp_address_zip,"ZZZZZ"))
 
+	if (employee.emp_hire_date)
+		display(tt,$scr_pos( 9,20),^a(employee.emp_hire_date(5:2)),"/",^a(employee.emp_hire_date(7:2)),"/",^a(employee.emp_hire_date(1:4)))
+
+	if (employee.emp_hire_time)
+		display(tt,$scr_pos(10,20),^a(employee.emp_hire_time(1:2)),":",^a(employee.emp_hire_time(3:2)))
+
+	if (employee.emp_date_of_birth)
+		display(tt,$scr_pos(15,20),^a(employee.emp_date_of_birth(5:2)),"/",^a(employee.emp_date_of_birth(7:2)),"/",^a(employee.emp_date_of_birth(1:4)))
+		
 	return
 
 EditField,
@@ -351,7 +379,7 @@ Department,
 		(),
 		begin
 			;;Valid department
-			display(tt,$scr_pos(8,20),%atrim(employee.emp_dept)," (",%atrim(department.dept_name),")")
+			display(tt,$scr_pos(8,20),%atrim(employee.emp_dept)," - ",%atrim(department.dept_name))
 			exitloop
 		end
 		endusing
@@ -368,6 +396,40 @@ GetDepartmentName,
 	(),
 		department.dept_name = "Not found!"
 	endusing
+
+	return
+
+CreateNew,
+
+	;;Arriving here, emp_id is already populated and the remainder of the employee record has been initialized
+
+	call FirstName
+	call LastName
+	call Department
+
+	repeat
+	begin
+		display(tt,$scr_pos(23,2),$scr_clr(eol),"Save new employee (Y/N) : ")
+		reads(tt,tmpvar(1:1))
+		using tmpvar select
+		("Y"),
+		begin
+			;;Save the new record
+			if (%employee_io(IO_CREATE,ech,,,employee) != IO_OK)
+			begin
+				display(tt,$scr_pos(23,2),$scr_clr(eol),"Failed to create employee!")
+				reads(tt,tmpvar(1:1))	
+			end
+			exitloop
+		end
+		("N"),
+		begin
+			exitloop
+		end
+		endusing
+	end
+		
+	call DisplayScreen
 
 	return
 

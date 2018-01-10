@@ -904,7 +904,7 @@ CheckFileTable,
 		if (structure_data.structure_keynum>=0) then
 		begin
 			;;Report the key that will be used
-			xcall verboselog(" - Key " + %string(structure_data.structure_keynum) + " will be used to access the ISAM file")
+			xcall verboselog(" - Key " + %string(structure_data.structure_keynum) + " will be used to synchronize changes")
 
 			;;And save the structure name
 			structure_data.structure_name = instruction.structure_name
@@ -1651,6 +1651,15 @@ proc
 		xcall delet(pidFileSpec)
 	end
 
+	;;Make sure that the keyboard input buffer is empty
+	if (Settings.RunningOnTerminal)
+	begin
+		data tmpvar, a1
+		while (%ttsts)
+			accept(Settings.TerminalChannel,tmpvar)
+	end
+
+	;;On Windows, give the user the chance to read the final messages
 	.ifdef D_GUI
 	if (Settings.RunningOnTerminal)
 	begin

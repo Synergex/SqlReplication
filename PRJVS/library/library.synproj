@@ -86,6 +86,12 @@
     <Compile Include="..\..\SRC\LIBRARY\EmployeeSqlIO.dbl">
       <Link>EmployeeSqlIO.dbl</Link>
     </Compile>
+    <Compile Include="..\..\SRC\LIBRARY\GenerateDepartmentData.dbl">
+      <Link>GenerateDepartmentData.dbl</Link>
+    </Compile>
+    <Compile Include="..\..\SRC\LIBRARY\GenerateEmployeeData.dbl">
+      <Link>GenerateEmployeeData.dbl</Link>
+    </Compile>
     <Compile Include="..\..\SRC\LIBRARY\IsDate.dbl">
       <Link>IsDate.dbl</Link>
     </Compile>

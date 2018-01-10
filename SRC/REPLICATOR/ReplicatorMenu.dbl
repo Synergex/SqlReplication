@@ -53,7 +53,7 @@ main ReplicatorMenu
 	.else
 	.include "REPLICATION" repository, record="instruction", end
 	.endc
-	record outbuf
+	record outbuf 
 		operation,  a20
 		,           a2
 		table,      a30
@@ -70,20 +70,18 @@ proc
 	xcall flags(7004000,1)
 	open(tt=0,i,"tt:")
 
+	.ifdef D_VMS
 	try
 	begin
 		xcall openelb("REPLICATOR_SH")
 	end
 	catch (ex, @Exception)
 	begin
-		.ifdef D_VMS
 		display(tt,"ERROR: Failed to activate shared image REPLICATOR_SH")
-		.else
-		display(tt,"ERROR: Failed to activate ELB EXE:library.elb")
-		.endc
 		stop
 	end
 	endtry
+	.endc
 
 	display(tt,$SCR_POS(1,1),$SCR_CLR(SCREEN))
 
@@ -114,7 +112,10 @@ proc
 
 		display(tt,$SCR_POS(12,2),"T.  Set current table")
 
-		display(tt,$SCR_POS(14,2),"E.  Exit")
+		if (windows)
+			display(tt,$SCR_POS(14,2),"M.  Start maintenance program")
+
+		display(tt,$SCR_POS(16,2),"E.  Exit")
 
 		if (tableName)
 		begin
@@ -130,6 +131,12 @@ proc
 		reads(tt,option)
 
 		using option select
+
+		("M "),
+		begin
+			if (windows)
+				xcall spawn("dbr EXE:employeemaintenance.dbr",D_NOWINDOW|D_NOWAIT)
+		end
 
 		("SR"),
 		begin

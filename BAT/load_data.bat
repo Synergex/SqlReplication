@@ -17,8 +17,5 @@ fconvert -it DAT:EMPLOYEE.SEQ   -oi DAT:EMPLOYEE.ISM   -d XDL:EMPLOYEE.XDL
 echo Creating new replication log...
 dbs DBLDIR:bldism -k XDL:REPLICATION.XDL
 
-echo Compiling window library...
-dbr WND:script -c EXE:tkapp.ism -i "%ROOT%SRC\APPLICATION\employee_maint_tab.wsc"
-
 popd
 endlocal

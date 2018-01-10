@@ -185,6 +185,8 @@
             <F N="../SRC/LIBRARY/DepartmentIO.dbl"/>
             <F N="../SRC/LIBRARY/EmployeeIO.dbl"/>
             <F N="../SRC/LIBRARY/EmployeeSqlIO.dbl"/>
+            <F N="../SRC/LIBRARY/GenerateDepartmentData.dbl"/>
+            <F N="../SRC/LIBRARY/GenerateEmployeeData.dbl"/>
             <F N="../SRC/LIBRARY/IsDate.dbl"/>
             <F N="../SRC/LIBRARY/IsNumeric.dbl"/>
             <F N="../SRC/LIBRARY/IsTime.dbl"/>

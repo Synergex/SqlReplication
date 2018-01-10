@@ -170,6 +170,7 @@
             Name="Source Files"
             Filters="*.dbl;*.tpl;*.dbc">
             <F N="../SRC/REPLICATOR/EmployeeDataReport.dbl"/>
+            <F N="../SRC/REPLICATOR/EmployeeMaintenance.dbl"/>
             <F N="../SRC/REPLICATOR/InstructionCount.dbl"/>
             <F N="../SRC/REPLICATOR/replicator.dbl"/>
             <F N="../SRC/REPLICATOR/ReplicatorMenu.dbl"/>
@@ -704,7 +705,7 @@
         <ExecMacro CmdLine="syn_set RPSTFIL=%(ROOT)RPS\rpstext.ism"/>
         <ExecMacro CmdLine="syn_set SYNEXPDIR=%(ROOT)PROTO"/>
         <ExecMacro CmdLine="syn_set SYNIMPDIR=%(ROOT)PROTO"/>
-        <ExecMacro CmdLine="syn_set REPLICATOR_DATABASE=VTX12_SQLNATIVE://SqlReplicationIoHooks/.///Trusted_connection=yes"/>
+        <ExecMacro CmdLine="syn_set REPLICATOR_DATABASE=net:SqlReplication/SqlReplicationPassword/SqlReplicationIoHooks/SISQL2016///@1958:SISQL2016!VTX12_SQLNATIVE"/>
         <ExecMacro CmdLine="syn_set REPLICATOR_LOGDIR=EXE:"/>
         <ExecMacro CmdLine="syn_set REPLICATOR_INTERVAL=2"/>
         <ExecMacro CmdLine="syn_set REPLICATOR_FULL_LOG=YES"/>
