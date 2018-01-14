@@ -53,6 +53,11 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "VMS", "VMS", "{D858AA93-37A
 		VMS\SETUP.COM = VMS\SETUP.COM
 	EndProjectSection
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "LINUX", "LINUX", "{8D5C12A2-DA99-49AF-A21C-35ADD94E780B}"
+	ProjectSection(SolutionItems) = preProject
+		LINUX\setup = LINUX\setup
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
