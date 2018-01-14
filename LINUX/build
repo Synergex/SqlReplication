@@ -1,7 +1,6 @@
-
 . ./setup
 
-dblproto -out library LIBSRC:*.dbl
+dblproto -out library $LIBSRC/*.dbl
 dbl -o OBJ:library.dbo LIBSRC:ConfigureReplication.dbl LIBSRC:DepartmentIO.dbl LIBSRC:EmployeeIO.dbl LIBSRC:EmployeeSqlIO.dbl LIBSRC:IsDate.dbl LIBSRC:IsNumeric.dbl LIBSRC:IsTime.dbl LIBSRC:LastRecordCache.dbl LIBSRC:PopulateReplicationKey.dbl LIBSRC:Replicate.dbl LIBSRC:ReplicationIoHooks.dbl LIBSRC:ReplicatorControl.dbl LIBSRC:SmtpMail.dbl
 dblink -l EXE:library.elb OBJ:library.dbo
 
