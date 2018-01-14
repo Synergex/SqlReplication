@@ -40,8 +40,6 @@
 
 # Put us in the same folder as the script and execute replicator_setup
 
-BASEDIR=$(dirname "$0")
-cd $BASEDIR
 . ./replicator_setup
 
 # Is the replicator process already running?

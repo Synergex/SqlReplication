@@ -37,14 +37,12 @@
 #
 #*****************************************************************************
 
-BASEDIR=$(dirname "$0")
-
 export REPLICATOR_INSTANCE=INSTANCE1
-export REPLICATOR_DATABASE=net:SqlReplicationUser/SqlReplicationPassword/SqlReplicationDSN@192.168.93.12!VTX12_SQLNATIVE
-export REPLICATOR_LOGDIR=$BASEDIR
+export REPLICATOR_DATABASE=net:SqlReplication/SqlReplicationPassword/SqlReplicationIoHooks/SISQL2016///@1958:192.168.93.12!VTX12_SQLNATIVE
+export REPLICATOR_LOGDIR=../LOG
 export REPLICATOR_INTERVAL=2
 export REPLICATOR_FULL_LOG=YES
 export REPLICATOR_LOG_KEYS=YES
 export REPLICATOR_LOG_BULK_LOAD_EXCEPTIONS=YES
-export EXE=$BASEDIR
-export DAT=$BASEDIR
+export EXE=../EXE
+export DAT=../DAT
