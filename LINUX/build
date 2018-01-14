@@ -1,0 +1,15 @@
+
+. ./setup
+
+dblproto -out library LIBSRC:*.dbl
+dbl -o OBJ:library.dbo LIBSRC:ConfigureReplication.dbl LIBSRC:DepartmentIO.dbl LIBSRC:EmployeeIO.dbl LIBSRC:EmployeeSqlIO.dbl LIBSRC:IsDate.dbl LIBSRC:IsNumeric.dbl LIBSRC:IsTime.dbl LIBSRC:LastRecordCache.dbl LIBSRC:PopulateReplicationKey.dbl LIBSRC:Replicate.dbl LIBSRC:ReplicationIoHooks.dbl LIBSRC:ReplicatorControl.dbl LIBSRC:SmtpMail.dbl
+dblink -l EXE:library.elb OBJ:library.dbo
+
+dbl -o OBJ:employeemaintenance.dbo REPSRC:EmployeeMaintenance.dbl
+dblink -o EXE:employeemaintenance.dbr OBJ:employeemaintenance.dbo EXE:library.elb
+
+dbl -o OBJ:replicator.dbo REPSRC:replicator.dbl
+dblink -o EXE:replicator.dbr OBJ:replicator.dbo EXE:library.elb
+
+dbl -o OBJ:replicatormenu.dbo REPSRC:ReplicatorMenu.dbl
+dblink -o EXE:replicatormenu.dbr OBJ:replicatormenu.dbo EXE:library.elb

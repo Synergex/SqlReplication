@@ -1811,7 +1811,7 @@ function <structure_name>_create_csv, ^val
 
 	.include "CONNECTDIR:ssql.def"
 	.include "<STRUCTURE_NOALIAS>" repository, record="<structure_name>", end
-	.include "INC:STRUCTUREIO.DEF"
+	.include "INC:structureio.def"
 
 	.define EXCEPTION_BUFSZ 100
 

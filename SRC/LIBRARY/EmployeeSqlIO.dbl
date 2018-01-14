@@ -1717,7 +1717,7 @@ function employee_create_csv, ^val
 
 	.include "CONNECTDIR:ssql.def"
 	.include "EMPLOYEE" repository, record="employee", end
-	.include "INC:STRUCTUREIO.DEF"
+	.include "INC:structureio.def"
 
 	.define EXCEPTION_BUFSZ 100
 
