@@ -5,7 +5,7 @@
 ;                 : C:\DEV\PUBLIC\SqlReplicationIoHooks\RPS\rpstext.ism
 ;                 : Version 10.3.3d
 ;
-;  GENERATED      : 19-DEC-2017, 16:51:23
+;  GENERATED      : 15-JAN-2018, 13:08:25
 ;                 : Version 10.3.3d
 ;  EXPORT OPTIONS : [ALL] 
  
@@ -49,6 +49,28 @@ Template PHONE_NUMBER   Type DECIMAL   Size 10
    Description "Phone Number"
    Prompt "Phone"   Info Line "Enter a telephone number"   Format PHONE
    Report Just LEFT   Input Just LEFT   Blankifzero
+ 
+Structure DEPARTMENT   DBL ISAM
+   Description "Department Master File"
+ 
+Field DEPT_ID   Template DEPARTMENT_ID
+   Prompt "Department"
+ 
+Field DEPT_NAME   Template DEPARTMENT_NAME   Dimension 1
+   Prompt "Description"   User Text "@CODEGEN_DISPLAY_FIELD"
+ 
+Field DEPT_MANAGER   Template EMPLOYEE_ID
+   Description "Department manager"
+   Prompt "Manager"
+ 
+Key DEPT_ID   ACCESS   Order ASCENDING   Dups NO
+   Description "Department ID"
+   Segment FIELD   DEPT_ID
+ 
+Key DEPT_MANAGER   ACCESS   Order ASCENDING   Dups YES   Insert END
+   Modifiable YES   Krf 001
+   Description "Department manager"
+   Segment FIELD   DEPT_MANAGER  SegType ALPHA
  
 Structure EMPLOYEE   DBL ISAM
    Description "Employee Master File"
@@ -158,59 +180,6 @@ Key ZIP_CODE   ACCESS   Order ASCENDING   Dups YES   Insert END
    Modifiable YES   Krf 004
    Description "Zip code"
    Segment FIELD   EMP_ADDRESS_ZIP  SegType ALPHA  SegOrder ASCENDING
- 
-Structure DEPARTMENT   DBL ISAM
-   Description "Department Master File"
- 
-Field DEPT_ID   Template DEPARTMENT_ID
-   Prompt "Department"
- 
-Field DEPT_NAME   Template DEPARTMENT_NAME   Dimension 1
-   Prompt "Description"   User Text "@CODEGEN_DISPLAY_FIELD"
- 
-Field DEPT_MANAGER   Template EMPLOYEE_ID
-   Description "Department manager"
-   Prompt "Manager"
- 
-Key DEPT_ID   ACCESS   Order ASCENDING   Dups NO
-   Description "Department ID"
-   Segment FIELD   DEPT_ID
- 
-Key DEPT_MANAGER   ACCESS   Order ASCENDING   Dups YES   Insert END
-   Modifiable YES   Krf 001
-   Description "Department manager"
-   Segment FIELD   DEPT_MANAGER  SegType ALPHA
- 
-Structure EMPLOYEE_INPUT   DBL ISAM
-   Description "Employee Master File (For Input)"
-   User Text "@NOCODEGEN"
- 
-Group EMPLOYEE   Reference EMPLOYEE   Type ALPHA
-   Description "Employee structure"
- 
-Field EMP_DEPT_DSP   Template DEPARTMENT_NAME
-   Readonly
- 
-Structure EMPLOYEE_CRITERIA   DBL ISAM
-   Description "Employee Master File (Search Criteria)"
-   User Text "@NOCODEGEN"
- 
-Field MODE   Type DECIMAL   Size 1
-   Description "Search mode"
-   Radio
-   Selection List 0 0 0  Entries "Employee ID", "Last Name", "Department"
-   Enumerated 10 1 1
-   Change Method "employee_mntmode"
- 
-Field FIELD1   Template EMPLOYEE_ID
- 
-Field FIELD2   Template PERSON_LAST_NAME
-   Noprompt
-   Norequired
- 
-Field FIELD3   Template DEPARTMENT_ID
-   Noprompt
-   Norequired
  
 Structure REPLICATION   DBL ISAM
    Description "Replication request queue"

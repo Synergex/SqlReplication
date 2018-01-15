@@ -63,8 +63,6 @@ namespace SynPSG.ReplicationDemo
 			required in aStructureName, string
 			endparams
 			parent(aChannel)
-;			parent(aChannel,IOEventMask.Close|IOEventMask.Store,IOEventMask.Read|IOEventMask.Reads|IOEventMask.Write|IOEventMask.Store|IOEventMask.Delete)
-;			parent(aChannel,IOEventMask.Auto,IOEventMask.Auto)
 			record
 				openMode, a3
 				thisKey, i4

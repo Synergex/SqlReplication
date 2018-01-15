@@ -15,12 +15,4 @@ rem ONE TIME ONLY - Generate manually maintained routines
 rem codegen -e -r -lf  -t ConfigureReplication    -o "%ROOT%\SRC\LIBRARY" -n SynPSG.ReplicationDemo
 rem codegen -e -r -lf  -t PopulateReplicationKey  -o "%ROOT%\SRC\LIBRARY" -n SynPSG.ReplicationDemo
 
-rem Generate file data report programs
-codegen -e -r -lf -s EMPLOYEE -t FileDataReport        -o "%ROOT%\SRC\REPLICATOR"
-
-rem Generate maintenance program components
-codegen -e -r -lf -s EMPLOYEE    -t tk_maint_tab       -o "%ROOT%\SRC\APPLICATION" -n SynPSG.ReplicationDemo
-codegen -e -r -lf -s DEPARTMENT  -t tk_change tk_drill -o "%ROOT%\SRC\APPLICATION" -n SynPSG.ReplicationDemo
-
-
 endlocal
