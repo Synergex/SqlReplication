@@ -107,7 +107,9 @@ proc
 		display(tt,$SCR_POS(6,2), "S.  Stop Replicator")
 		display(tt,$SCR_POS(7,2), "V.  View instructions")
 		display(tt,$SCR_POS(8,2), "P.  Purge instructions")
+		.ifndef D_VMS
 		display(tt,$SCR_POS(9,2), "Q.  Instruction count")
+		.endc
 		display(tt,$SCR_POS(10,2),"I.  Change interval")
 
 		display(tt,$SCR_POS(12,2),"T.  Set current table")
@@ -241,6 +243,7 @@ eof,        close chn
 			display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Command executed")
 		end
 
+		.ifndef D_VMS
 		("Q "),
 		begin
 			data chn, i4
@@ -255,6 +258,7 @@ eof,        close chn
 				accept(tt,chn)
 			nextloop
 		end
+		.endc
 
 		("I "),
 		begin
