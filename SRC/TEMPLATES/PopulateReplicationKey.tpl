@@ -1,3 +1,4 @@
+<CODEGEN_FILENAME>PopulateReplicationKey.dbl</CODEGEN_FILENAME>
 ;;*****************************************************************************
 ;;
 ;; File:        PopulateReplicationKey.dbl
@@ -29,8 +30,8 @@ subroutine PopulateReplicationKey
 		fileExt,  a20
 	endrecord
 
-	;;Include the structure for each record type that needs REPLICATION_KEY populating on STORE
-;    .include "SOME_STRUCTURE" repository, structure="strSomeStructure"
+    ;;Include the structure for each record type that needs REPLICATION_KEY populating on STORE
+;   .include "SOME_STRUCTURE" repository, structure="strSomeStructure"
 
 proc
 	xcall filnm(channel,fileSpec)

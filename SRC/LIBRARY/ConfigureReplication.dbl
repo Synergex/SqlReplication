@@ -4,8 +4,6 @@
 ;;
 ;; Description: Adds replication I/O hooks to channels
 ;;
-;; Author:      Steve Ives
-;;
 ;;*****************************************************************************
 ;;
 ;; Copyright (c) 2016, Synergex International, Inc.
@@ -39,8 +37,12 @@ import SynPSG.ReplicationDemo
 subroutine ConfigureReplication
 	required in channel, n
 	endparams
+
 	stack record
 		openMode, a3
+		fileSpec, a128
+		fileName, a80
+		fileExt,  a20
 	endrecord
 
 	.define common global common
@@ -52,29 +54,22 @@ subroutine ConfigureReplication
 	endexternal
 
 proc
+	;;Get the file spec from the open channel
+	xcall filnm(channel,fileSpec)
+	xcall parse(fileSpec,,,,,fileName,fileExt)
+	fileSpec = %atrim(fileName) + fileExt
+	upcase fileSpec
 
 	;;Default to NOT populating a REPLICATION_KEY field for this channel
 	repkey_required[channel] = 0
 
+	;;Get the open mode of the channel
 	xcall getfa(channel,"OMD",openMode)
 
-	if (openMode=="U:I")
+	using openMode select
+	("U:I"),
 	begin
-		data fileSpec, a128
-		data fileName, a80
-		data fileExt,  a20
-
-		xcall filnm(channel,fileSpec)
-		xcall parse(fileSpec,,,,,fileName,fileExt)
-
-		fileSpec = %atrim(fileName) + fileExt
-
-		upcase fileSpec
-
 		using fileSpec select
-
-		("EMPLOYEE.ISM"),
-			new ReplicationIoHooks(channel,"EMPLOYEE")
 
 ;       ;;A single-record layout file that already had a unique key
 ;       ("FILE1.ISM"),
@@ -98,8 +93,22 @@ proc
 ;           repkey_required[channel] = 1
 ;       end
 
+		("EMPLOYEE.ISM"),
+			new ReplicationIoHooks(channel,"EMPLOYEE")
+
 		endusing
 	end
+	("U:R"),
+	begin
+		using fileSpec select
+
+;		;;A relative file
+;       ("FILE1.DDF"),
+;           new ReplicationIoHooksRel(channel,"FILE1")
+
+		endusing
+	end
+	endusing
 
 	xreturn
 

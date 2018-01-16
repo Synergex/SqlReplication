@@ -5,7 +5,7 @@
 ;                 : C:\DEV\PUBLIC\SqlReplicationIoHooks\RPS\rpstext.ism
 ;                 : Version 10.3.3d
 ;
-;  GENERATED      : 15-JAN-2018, 13:08:25
+;  GENERATED      : 15-JAN-2018, 21:36:25
 ;                 : Version 10.3.3d
 ;  EXPORT OPTIONS : [ALL] 
  
@@ -16,7 +16,7 @@ Enumeration REPLICATION_INSTRUCTION
    Description "SQL Replication Instruction"
    Members CREATE_ROW 1, UPDATE_ROW 2, DELETE_ROW 3, CREATE_TABLE 4,
           LOAD_TABLE 5, CREATE_AND_LOAD_TABLE 6, DELETE_ALL_ROWS 7,
-          DELETE_TABLE 8, SHUTDOWN 9, CREATE_CSV 11,
+          DELETE_TABLE 8, SHUTDOWN 9, UPDATE_RELATIVE 10, CREATE_CSV 11,
           DELETE_ALL_INSTRUCTIONS 20, CLOSE_FILE 21, CHANGE_INTERVAL 22
  
 Template DEPARTMENT_ID   Type ALPHA   Size 15
@@ -181,6 +181,24 @@ Key ZIP_CODE   ACCESS   Order ASCENDING   Dups YES   Insert END
    Description "Zip code"
    Segment FIELD   EMP_ADDRESS_ZIP  SegType ALPHA  SegOrder ASCENDING
  
+Structure RELSTR   RELATIVE
+   Description "Relative structure"
+ 
+Field FIELD1   Type ALPHA   Size 1
+   Description "Field 1"
+ 
+Field FIELD2   Type DECIMAL   Size 2
+   Description "Field 2"
+ 
+Field FIELD3   Type DATE   Size 8   Stored YYYYMMDD
+   Description "Field 3"
+ 
+Field FIELD4   Type TIME   Size 6   Stored HHMMSS
+   Description "Field 4"
+ 
+Key RECORD_NUMBER   ACCESS   Order ASCENDING   Dups NO
+   Segment RECORD NUMBER
+ 
 Structure REPLICATION   DBL ISAM
    Description "Replication request queue"
  
@@ -228,6 +246,10 @@ File EMPLOYEE   DBL ISAM   "DAT:EMPLOYEE.ISM"
    Description "Employee master file"
    Compress
    Assign EMPLOYEE
+ 
+File RELFILE   RELATIVE   "DAT:RELFILE.DDF"
+   Description "Relative file"
+   Assign RELSTR
  
 File REPLICATION   DBL ISAM   "REPLICATOR_DATA:REPLICATION.ISM"
    Description "SQL replication request queue file"

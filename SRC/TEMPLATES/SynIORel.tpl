@@ -6,14 +6,14 @@
 <PROVIDE_FILE>structureio.def</PROVIDE_FILE>
 ;//*****************************************************************************
 ;//
-;// Title:       SynIO.tpl
+;// Title:       SynIORel.tpl
 ;//
 ;// Description: This template generates a Synergy function which performs
-;//              file IO for a specific structure / file defined in repository.
+;//              Relative file IO for a specific structure / file defined in repository.
 ;//
 ;// Author:      Steve Ives, Synergex Professional Services Group
 ;//
-;// Copyright    ©2009 Synergex International Corporation.  All rights reserved.
+;// Copyright    ©2018 Synergex International Corporation.  All rights reserved.
 ;//
 ;;*****************************************************************************
 ;;
@@ -21,11 +21,11 @@
 ;;
 ;; Type:        Function (<structure_name>_io)
 ;;
-;; Description: Performs file I/O for the file <FILE_NAME>
+;; Description: Performs relative file I/O for the file <FILE_NAME>
 ;;
 ;;*****************************************************************************
 ;;
-;; Copyright (c) 2009, Synergex International, Inc.
+;; Copyright (c) 2018, Synergex International, Inc.
 ;; All rights reserved.
 ;;
 ;; Redistribution and use in source and binary forms, with or without
@@ -61,11 +61,9 @@ function <structure_name>_io ,^val
 
 	required in    a_mode       ,n  ;;Access type
 	required inout a_channel    ,n  ;;Channel
-	optional in    a_key        ,a  ;;Key value
-	optional in    a_keynum     ,n  ;;Key number
+	optional in    a_recnum     ,n  ;;Record number
 	optional inout <structure_name>, str<StructureName>
 	optional in    a_lock       ,n  ;;If passed and TRUE, lock record
-	optional in    a_partial    ,n  ;;Do a partial key lookup
 	optional out   a_errtxt     ,a  ;;Returned error text
 	endparams
 
@@ -73,49 +71,23 @@ function <structure_name>_io ,^val
 	.include "INC:sqlgbl.def"
 
 	stack record localData
-		keyno                   ,int    ;;Key number
-		keylen                  ,int    ;;Key length
 		lock                    ,int    ;;Lock record?
 		pos                     ,int    ;;Position in a string
 		errorNumber             ,int
 		lineNumber              ,int
 		errorMessage            ,a45
 		errmsg                  ,a45    ;;Error message
-		keyValue                ,a255   ;;Hold original key
+		recNum                  ,d28    ;;Hold original record number
 	endrecord
 
-	<IF STRUCTURE_TAGS>
-	.define TAG_MATCH <TAG_LOOP><TAGLOOP_CONNECTOR_C><structure_name>.<TAGLOOP_FIELD_NAME><TAGLOOP_OPERATOR_C><TAGLOOP_TAG_VALUE></TAG_LOOP>
-
-	</IF STRUCTURE_TAGS>
 proc
 
 	init localData
 
 	onerror fatalIoError
 
-	if ^passed(a_key)
-	begin
-		keyValue = a_key
-		if (^passed(a_partial)&&a_partial) then
-			keylen = %trim(a_key)
-		else
-			keylen = ^size(a_key)
-	end
-
-	if ^passed(a_keynum) then
-		keyno=a_keynum
-	else
-		keyno=0
-
-	if (!^passed(a_key) && ^passed(<structure_name>))
-	begin
-		keyValue = %keyval(a_channel,<structure_name>,keyno)
-		if (^passed(a_partial)&&a_partial) then
-			keylen = %trim(%keyval(a_channel,<structure_name>,keyno))
-		else
-			keylen = ^len(%keyval(a_channel,<structure_name>,keyno))
-	end
+	if ^passed(a_recnum)
+		recNum = a_recnum
 
 	if (!^passed(a_lock)) then
 		lock = Q_NO_LOCK
@@ -129,101 +101,30 @@ proc
 
 	(IO_OPEN_INP),
 	begin
-		open(a_channel=0,i:i,"<FILE_NAME>") [ERR=openError]
+		open(a_channel=0,i:r,"<FILE_NAME>") [ERR=openError]
 	end
 
 	(IO_OPEN_UPD),
 	begin
-		open(a_channel=0,u:i,"<FILE_NAME>") [ERR=openError]
+		open(a_channel=0,u:r,"<FILE_NAME>") [ERR=openError]
 		<IF DEFINED_ATTACH_IO_HOOKS>
 		xcall ConfigureReplication(a_channel)
 		</IF>
 	end
 
-	(IO_FIND),
-	begin
-		find(a_channel,,keyValue(1:keylen),KEYNUM:keyno) [$ERR_EOF=endOfFile,$ERR_LOCKED=recordLocked,$ERR_KEYNOT=keyNotFound]
-	end
-
-	(IO_FIND_FIRST),
-	begin
-		.ifdef TAG_VALUE
-		find(a_channel,,TAG_VALUE,KEYNUM:keyno) [$ERR_EOF=endOfFile,$ERR_LOCKED=recordLocked,$ERR_KEYNOT=keyNotFound]
-		.else
-		find(a_channel,,^FIRST,KEYNUM:keyno)    [$ERR_EOF=endOfFile,$ERR_LOCKED=recordLocked,$ERR_KEYNOT=keyNotFound]
-		.endc
-	end
-
 	(IO_READ_FIRST),
 	begin
-		<IF STRUCTURE_TAGS>
-		find(a_channel,,^FIRST,KEYNUM:keyno,LOCK:lock) [$ERR_EOF=endOfFile,$ERR_LOCKED=recordLocked,$ERR_KEYNOT=keyNotFound]
-		repeat
-		begin
-			reads(a_channel,<structure_name>,LOCK:lock) [$ERR_EOF=endOfFile,$ERR_LOCKED=recordLocked,$ERR_KEYNOT=keyNotFound]
-			if (TAG_MATCH) then
-				exitloop
-			else
-				unlock a_channel
-		end
-		<ELSE>
-		read(a_channel,<structure_name>,^FIRST,KEYNUM:keyno)    [$ERR_EOF=endOfFile,$ERR_LOCKED=recordLocked,$ERR_KEYNOT=keyNotFound]
-		</IF STRUCTURE_TAGS>
+		read(a_channel,<structure_name>,^FIRST)    [$ERR_EOF=endOfFile,$ERR_LOCKED=recordLocked,$ERR_KEYNOT=keyNotFound]
 	end
 
 	(IO_READ),
 	begin
-		read(a_channel,<structure_name>,keyValue(1:keylen),KEYNUM:keyno,LOCK:lock) [$ERR_EOF=endOfFile,$ERR_LOCKED=recordLocked,$ERR_KEYNOT=keyNotFound]
+		read(a_channel,<structure_name>,recNum,LOCK:lock) [$ERR_EOF=endOfFile,$ERR_LOCKED=recordLocked,$ERR_KEYNOT=keyNotFound]
 	end
 
 	(IO_READ_NEXT),
 	begin
-		<IF STRUCTURE_TAGS>
-		repeat
-		begin
-			reads(a_channel,<structure_name>,LOCK:lock) [$ERR_EOF=endOfFile,$ERR_LOCKED=recordLocked,$ERR_KEYNOT=keyNotFound]
-			if (TAG_MATCH)
-				exitloop
-		end
-		<ELSE>
-		reads(a_channel,<structure_name>,LOCK:lock) [$ERR_EOF=endOfFile,$ERR_LOCKED=recordLocked,$ERR_KEYNOT=keyNotFound]
-		</IF STRUCTURE_TAGS>
-	end
-
-	(IO_CREATE),
-	begin
-		<IF DEFINED_CLEAN_DATA>
-		<FIELD_LOOP>
-		<IF DECIMAL>
-		if ((!<field_path>)||(!%IsNumeric(^a(<field_path>))))
-			clear <field_path>
-		</IF>
-		<IF DATE>
-		if (!<field_path>||!%IsDate(^a(<field_path>)))
-			clear <field_path>
-		</IF>
-		<IF TIME>
-		if (!<field_path>||!%IsTime(^a(<field_path>)))
-			clear <field_path>
-		</IF>
-		</FIELD_LOOP>
-		</IF>
-
-		if (repkey_required[a_channel]) then
-		begin
-			repeat
-			begin
-				xcall PopulateReplicationKey(a_channel,<structure_name>)
-				store(a_channel,<structure_name>) [$ERR_NODUPS=timeStampClash]
-				exitloop
-timeStampClash,
-				sleep 0.01
-			end
-		end
-		else
-		begin
-			store(a_channel,<structure_name>) [$ERR_NODUPS=duplicateKey]
-		end
+		reads(a_channel,<structure_name>,,LOCK:lock) [$ERR_EOF=endOfFile,$ERR_LOCKED=recordLocked,$ERR_KEYNOT=keyNotFound]
 	end
 
 	(IO_UPDATE),
@@ -244,12 +145,7 @@ timeStampClash,
 		</IF>
 		</FIELD_LOOP>
 		</IF>
-		write(a_channel,<structure_name>) [$ERR_NOCURR=noCurrentRecord]
-	end
-
-	(IO_DELETE),
-	begin
-		delete(a_channel) [$ERR_NOCURR=noCurrentRecord]
+		write(a_channel,<structure_name>,recNum) [$ERR_NOCURR=noCurrentRecord]
 	end
 
 	(IO_UNLOCK),

@@ -1,0 +1,896 @@
+;;*****************************************************************************
+;;
+;; File:        RelstrSqlIO.dbl
+;;
+;; Type:        Functions
+;;
+;; Description: Various functions that performs SQL I/O for RELSTR
+;;
+;;*****************************************************************************
+;;
+;; Copyright (c) 2009, Synergex International, Inc.
+;; All rights reserved.
+;;
+;; Redistribution and use in source and binary forms, with or without
+;; modification, are permitted provided that the following conditions are met:
+;;
+;; * Redistributions of source code must retain the above copyright notice,
+;;   this list of conditions and the following disclaimer.
+;;
+;; * Redistributions in binary form must reproduce the above copyright notice,
+;;   this list of conditions and the following disclaimer in the documentation
+;;   and/or other materials provided with the distribution.
+;;
+;; THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+;; AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+;; IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+;; ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+;; LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+;; CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+;; SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+;; INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+;; CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+;; ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+;; POSSIBILITY OF SUCH DAMAGE.
+;;
+;;*****************************************************************************
+;; WARNING: THIS CODE WAS CODE GENERATED AND WILL BE OVERWRITTEN IF CODE
+;;          GENERATION IS RE-EXECUTED FOR THIS PROJECT.
+;;*****************************************************************************
+
+;;*****************************************************************************
+;;; <summary>
+;;; Determines if the Relstr table exists in the database.
+;;; </summary>
+;;; <param name="a_dbchn">Connected database channel.</param>
+;;; <param name="a_errtxt">Returned error text.</param>
+;;; <returns>Returns 1 if the table exists, otherwise a number indicating the type of error.</returns>
+
+function relstr_exists, ^val
+
+	required in  a_dbchn,  i
+	optional out a_errtxt, a
+	endparams
+
+	.include "CONNECTDIR:ssql.def"
+
+	stack record local_data
+		error       ,int    ;;Returned error number
+		dberror     ,int    ;;Database error number
+		cursor      ,int    ;;Database cursor
+		length      ,int    ;;Length of a string
+		table_name  ,a128   ;;Retrieved table name
+		errtxt      ,a256   ;;Error message text
+	endrecord
+
+proc
+
+	init local_data
+
+	;;Open a cursor for the SELECT statement
+
+	if (%ssc_open(a_dbchn,cursor,"SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME='Relstr'",SSQL_SELECT)==SSQL_FAILURE)
+	begin
+		error=-1
+		if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+			errtxt="Failed to open cursor"
+	end
+
+	;;Bind host variables to receive the data
+
+	if (!error)
+	begin
+		if (%ssc_define(a_dbchn,cursor,1,table_name)==SSQL_FAILURE)
+		begin
+			error=-1
+			if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+				errtxt="Failed to bind variable"
+		end
+	end
+
+	;;Move data to host variables
+
+	if (!error)
+	begin
+		if (%ssc_move(a_dbchn,cursor,1)==SSQL_NORMAL)
+				error = 1 ;; Table exists
+	end
+
+	;;Close the database cursor
+
+	if (cursor)
+	begin
+		if (%ssc_close(a_dbchn,cursor)==SSQL_FAILURE)
+		begin
+			if (!error)
+			begin
+				error=-1
+				if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+					errtxt="Failed to close cursor"
+			end
+		end
+	end
+
+	;;If there was an error message, return it to the calling routine
+
+	if (^passed(a_errtxt))
+	begin
+		if (error) then
+			a_errtxt = errtxt
+		else
+			a_errtxt = ""
+	end
+
+	freturn error
+
+endfunction
+
+;;*****************************************************************************
+;;; <summary>
+;;; Creates the Relstr table in the database.
+;;; </summary>
+;;; <param name="a_dbchn">Connected database channel.</param>
+;;; <param name="a_errtxt">Returned error text.</param>
+;;; <returns>Returns true on success, otherwise false.</returns>
+
+function relstr_create, ^val
+
+	required in  a_dbchn,  i
+	optional out a_errtxt, a
+	endparams
+
+	.include "CONNECTDIR:ssql.def"
+
+	.align
+	stack record local_data
+		ok          ,boolean    ;;Return status
+		dberror     ,int        ;;Database error number
+		cursor      ,int        ;;Database cursor
+		length      ,int        ;;Length of a string
+		transaction ,int        ;;Transaction in process
+		errtxt      ,a512       ;;Returned error message text
+		sql         ,string     ;;SQL statement
+	endrecord
+
+proc
+
+	init local_data
+	ok = true
+
+	;;Start a database transaction
+
+	if (%ssc_commit(a_dbchn,SSQL_TXON)==SSQL_NORMAL) then
+		transaction=1
+	else
+	begin
+		ok = false
+		if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+			errtxt="Failed to start transaction"
+	end
+
+	;;Create the database table and primary key constraint
+
+	if (ok)
+	begin
+		sql = 'CREATE TABLE "Relstr" ('
+		& + '"RecordNumber" INT NOT NULL,'
+		& + '"Field1" VARCHAR(1),'
+		& + '"Field2" DECIMAL(2),'
+		& + '"Field3" DATE,'
+		& + '"Field4" TIME(0)'
+		& + 'CONSTRAINT PK_Relstr PRIMARY KEY CLUSTERED("RecordNumber" ASC)'
+		& + ')'
+
+		call open_cursor
+
+		if (ok)
+		begin
+			call execute_cursor
+			call close_cursor
+		end
+	end
+
+	;;Grant access permissions
+
+	if (ok)
+	begin
+		sql = 'GRANT ALL ON "Relstr" TO PUBLIC'
+
+		call open_cursor
+
+		if (ok)
+		begin
+			call execute_cursor
+			call close_cursor
+		end
+	end
+
+	;;Commit or rollback the transaction
+
+	if (transaction)
+	begin
+		if (ok) then
+		begin
+			;;Success, commit the transaction
+			if (%ssc_commit(a_dbchn,SSQL_TXOFF)==SSQL_FAILURE)
+			begin
+				ok = false
+				if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+					errtxt="Failed to commit transaction"
+			end
+		end
+		else
+		begin
+			;;There was an error, rollback the transaction
+			xcall ssc_rollback(a_dbchn,SSQL_TXOFF)
+		end
+	end
+
+	;;If there was an error message, return it to the calling routine
+
+	if (^passed(a_errtxt))
+	begin
+		if (ok) then
+			a_errtxt = ""
+		else
+			a_errtxt = errtxt
+	end
+
+	freturn ok
+
+open_cursor,
+
+	if (%ssc_open(a_dbchn,cursor,(a)sql,SSQL_NONSEL)==SSQL_FAILURE)
+	begin
+		ok = false
+		if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+			errtxt="Failed to open cursor"
+	end
+
+	return
+
+execute_cursor,
+
+	if (%ssc_execute(a_dbchn,cursor,SSQL_STANDARD)==SSQL_FAILURE)
+	begin
+		ok = false
+		if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+			errtxt="Failed to execute SQL statement"
+	end
+
+	return
+
+close_cursor,
+
+	if (cursor)
+	begin
+		if (%ssc_close(a_dbchn,cursor)==SSQL_FAILURE)
+		begin
+			if (ok)
+			begin
+				ok = false
+				if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+					errtxt="Failed to close cursor"
+			end
+		end
+		clear cursor
+	end
+
+	return
+
+endfunction
+
+;;*****************************************************************************
+;;; <summary>
+;;; Updates a row in the Relstr table.
+;;; </summary>
+;;; <param name="a_dbchn">Connected database channel.</param>
+;;; <param name="a_recnum">record number.</param>
+;;; <param name="a_data">Record containing data to update.</param>
+;;; <param name="a_rows">Returned number of rows affected.</param>
+;;; <param name="a_errtxt">Returned error text.</param>
+;;; <returns>Returns true on success, otherwise false.</returns>
+
+function relstr_update_row, ^val
+
+	required in  a_dbchn,  i
+	required in  a_recnum, n
+	required in  a_data,   a
+	optional out a_rows,   i
+	optional out a_errtxt, a
+	endparams
+
+	.include "CONNECTDIR:ssql.def"
+
+	stack record local_data
+		ok          ,boolean    ;;OK to continue
+		openAndBind	,boolean	;;Should we open the cursor and bind data this time?
+		transaction ,boolean    ;;Transaction in progress
+		dberror     ,int        ;;Database error number
+		cursor      ,int        ;;Database cursor
+		length      ,int        ;;Length of a string
+		rows        ,int        ;;Number of rows updated
+		errtxt      ,a256       ;;Error message text
+	endrecord
+
+	literal
+		sql         ,a*, 'UPDATE Relstr SET '
+		& +              '"Field1"=:1,'
+		& +              '"Field2"=:2,'
+		& +              '"Field3"=:3,'
+		& +              '"Field4"=:4'
+		& +              ' WHERE "RecordNumber"=:4'
+	endliteral
+
+	.include "RELSTR" repository, static record="relstr", end
+
+	static record
+		tmpField4, a7      ;;Storage for HH:MM:SS time field
+		,a1                         ;;In case there are no user timestamp, date or JJJJJJ date fields
+	endrecord
+
+	global common
+		csr_relstr_update, i4
+	endcommon
+proc
+
+	init local_data
+	ok = true
+
+	openAndBind = (csr_relstr_update == 0)
+
+	if (^passed(a_rows))
+		clear a_rows
+
+	;;Load the data into the bound record
+
+	relstr = a_data
+
+	;;Start a database transaction
+
+	if (%ssc_commit(a_dbchn,SSQL_TXON)==SSQL_NORMAL) then
+		transaction = true
+	else
+	begin
+		ok = false
+		if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+			errtxt="Failed to start transaction"
+	end
+
+	;;Open a cursor for the UPDATE statement
+
+	if (ok && openAndBind)
+	begin
+		if (%ssc_open(a_dbchn,csr_relstr_update,sql,SSQL_NONSEL,SSQL_STANDARD)==SSQL_FAILURE)
+		begin
+			ok = false
+			if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+				errtxt="Failed to open cursor"
+		end
+	end
+
+	;;Bind the host variables for data to be updated
+
+	if (ok && openAndBind)
+	begin
+		if (%ssc_bind(a_dbchn,csr_relstr_update,4,
+		&    relstr.field1,
+		&    relstr.field2,
+		&    ^a(relstr.field3),
+		&    tmpField4)==SSQL_FAILURE)
+		begin
+			ok = false
+			if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+				errtxt="Failed to bind variables"
+		end
+	end
+
+	;;Bind the host variables for the key segments / WHERE clause
+
+	if (ok && openAndBind)
+	begin
+		if (%ssc_bind(a_dbchn,csr_relstr_update,1,a_recnum)==SSQL_FAILURE)
+		begin
+			ok = false
+			if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+				errtxt="Failed to bind key variables"
+		end
+	end
+
+	;;Update the row in the database
+
+	if (ok)
+	begin
+		;;Clean up any alpha fields
+
+		relstr.field1 = %atrim(relstr.field1) + %char(0)
+		
+		;;Clean up any decimal fields
+
+		if ((!relstr.field2)||(!%IsNumeric(^a(relstr.field2))))
+			clear relstr.field2
+
+		;;Clean up any date fields
+
+		if ((!relstr.field3)||(!%IsDate(^a(relstr.field3))))
+			^a(relstr.field3(1:1)) = %char(0)
+
+		;;Clean up any time fields
+
+		if ((!relstr.field4)||(!%IsTime(^a(relstr.field4))))
+			^a(relstr.field4(1:1)) = %char(0)
+
+		;;Assign any time and user-defined timestamp fields
+
+		tmpField4 = %string(relstr.field4,"XX:XX:XX")
+
+		if (%ssc_execute(a_dbchn,csr_relstr_update,SSQL_STANDARD,,rows)==SSQL_NORMAL) then
+		begin
+			if (^passed(a_rows))
+				a_rows = rows
+		end
+		else
+		begin
+			ok = false
+			if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+				errtxt="Failed to execute SQL statement"
+		end
+	end
+
+	;;Commit or rollback the transaction
+
+	if (transaction)
+	begin
+		if (ok) then
+		begin
+			;;Success, commit the transaction
+			if (%ssc_commit(a_dbchn,SSQL_TXOFF)==SSQL_FAILURE)
+			begin
+				ok = false
+				if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+					errtxt="Failed to commit transaction"
+			end
+		end
+		else
+		begin
+			;;There was an error, rollback the transaction
+			xcall ssc_rollback(a_dbchn,SSQL_TXOFF)
+		end
+	end
+
+	;;Return error message
+
+	if (^passed(a_errtxt))
+	begin
+		if (ok) then
+			a_errtxt = ""
+		else
+			a_errtxt = errtxt
+	end
+
+	freturn ok
+
+endfunction
+
+;;*****************************************************************************
+;;; <summary>
+;;; Deletes all rows from the Relstr table.
+;;; </summary>
+;;; <param name="a_dbchn">Connected database channel.</param>
+;;; <param name="a_errtxt">Returned error text.</param>
+;;; <returns>Returns true on success, otherwise false.</returns>
+
+function relstr_clear, ^val
+
+	required in  a_dbchn,  i
+	optional out a_errtxt, a
+	endparams
+
+	.include "CONNECTDIR:ssql.def"
+
+	stack record local_data
+		ok          ,boolean    ;;Return status
+		dberror     ,int        ;;Database error number
+		cursor      ,int        ;;Database cursor
+		length      ,int        ;;Length of a string
+		transaction ,int        ;;Transaction in process
+		errtxt      ,a512       ;;Returned error message text
+		sql         ,string     ;;SQL statement
+	endrecord
+
+proc
+
+	init local_data
+	ok = true
+
+	;;Start a database transaction
+
+	if (%ssc_commit(a_dbchn,SSQL_TXON)==SSQL_NORMAL) then
+		transaction=1
+	else
+	begin
+		ok = false
+		if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+			errtxt="Failed to start transaction"
+	end
+
+	;;Open cursor for the SQL statement
+
+	if (ok)
+	begin
+		sql = 'TRUNCATE TABLE "Relstr"'
+		if (%ssc_open(a_dbchn,cursor,(a)sql,SSQL_NONSEL)==SSQL_FAILURE)
+		begin
+			ok = false
+			if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+				errtxt="Failed to open cursor"
+		end
+	end
+
+	;;Execute SQL statement
+
+	if (ok)
+	begin
+		if (%ssc_execute(a_dbchn,cursor,SSQL_STANDARD)==SSQL_FAILURE)
+		begin
+			ok = false
+			if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+				errtxt="Failed to execute SQL statement"
+		end
+	end
+
+	;;Close the database cursor
+
+	if (cursor)
+	begin
+		if (%ssc_close(a_dbchn,cursor)==SSQL_FAILURE)
+		begin
+			if (ok)
+			begin
+				ok = false
+				if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+					errtxt="Failed to close cursor"
+			end
+		end
+	end
+
+	;;Commit or rollback the transaction
+
+	if (transaction)
+	begin
+		if (ok) then
+		begin
+			;;Success, commit the transaction
+			if (%ssc_commit(a_dbchn,SSQL_TXOFF)==SSQL_FAILURE)
+			begin
+				ok = false
+				if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+					errtxt="Failed to commit transaction"
+			end
+		end
+		else
+		begin
+			;;There was an error, rollback the transaction
+			xcall ssc_rollback(a_dbchn,SSQL_TXOFF)
+		end
+	end
+
+	;;If there was an error message, return it to the calling routine
+
+	if (^passed(a_errtxt))
+	begin
+		if (ok) then
+			a_errtxt = ""
+		else
+			a_errtxt = errtxt
+	end
+
+	freturn ok
+
+endfunction
+
+;;*****************************************************************************
+;;; <summary>
+;;; Deletes the Relstr table from the database.
+;;; </summary>
+;;; <param name="a_dbchn">Connected database channel.</param>
+;;; <param name="a_errtxt">Returned error text.</param>
+;;; <returns>Returns true on success, otherwise false.</returns>
+
+function relstr_drop, ^val
+
+	required in  a_dbchn,  i
+	optional out a_errtxt, a
+	endparams
+
+	.include "CONNECTDIR:ssql.def"
+
+	stack record local_data
+		ok          ,boolean    ;;Return status
+		dberror     ,int        ;;Database error number
+		cursor      ,int        ;;Database cursor
+		length      ,int        ;;Length of a string
+		transaction ,int        ;;Transaction in progress
+		errtxt      ,a256       ;;Returned error message text
+	endrecord
+
+proc
+
+	init local_data
+	ok = true
+
+	;;Close any open cursors
+
+	xcall relstr_close(a_dbchn)
+
+	;;Start a database transaction
+
+	if (%ssc_commit(a_dbchn,SSQL_TXON)==SSQL_NORMAL) then
+		transaction=1
+	else
+	begin
+		ok = false
+		if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+			errtxt="Failed to start transaction"
+	end
+
+	;;Open cursor for DROP TABLE statement
+
+	if (ok)
+	begin
+		if (%ssc_open(a_dbchn,cursor,"DROP TABLE Relstr",SSQL_NONSEL)==SSQL_FAILURE)
+		begin
+			ok = false
+			if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+				errtxt="Failed to open cursor"
+		end
+	end
+
+	;;Execute DROP TABLE statement
+
+	if (ok)
+	begin
+		if (%ssc_execute(a_dbchn,cursor,SSQL_STANDARD)==SSQL_FAILURE)
+		begin
+			if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_NORMAL) then
+			begin
+				;;Check if the error was that the table did not exist
+				if (dberror==-3701) then
+					clear errtxt
+				else
+					ok = false
+			end
+			else
+			begin
+				errtxt="Failed to execute SQL statement"
+				ok = false
+			end
+		end
+	end
+
+	;;Close the database cursor
+
+	if (cursor)
+	begin
+		if (%ssc_close(a_dbchn,cursor)==SSQL_FAILURE)
+		begin
+			if (ok)
+			begin
+				ok = false
+				if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+					errtxt="Failed to close cursor"
+			end
+		end
+	end
+
+	;;Commit or rollback the transaction
+
+	if (transaction)
+	begin
+		if (ok) then
+		begin
+			;;Success, commit the transaction
+			if (%ssc_commit(a_dbchn,SSQL_TXOFF)==SSQL_FAILURE)
+			begin
+				ok = false
+				if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+					errtxt="Failed to commit transaction"
+			end
+		end
+		else
+		begin
+			;;There was an error, rollback the transaction
+			xcall ssc_rollback(a_dbchn,SSQL_TXOFF)
+		end
+	end
+
+	;;If there was an error message, return it to the calling routine
+
+	if (^passed(a_errtxt))
+	begin
+		if (ok) then
+			a_errtxt = ""
+		else
+			a_errtxt = errtxt
+	end
+
+	freturn ok
+
+endfunction
+
+;;*****************************************************************************
+;;; <summary>
+;;; Close cursors associated with the Relstr table.
+;;; </summary>
+;;; <param name="a_dbchn">Connected database channel</param>
+
+subroutine relstr_close
+
+	required in  a_dbchn, i
+	endparams
+
+	.include "CONNECTDIR:ssql.def"
+
+	external common
+		csr_relstr_update,  i4
+	endcommon
+
+proc
+
+	if (csr_relstr_update)
+	begin
+		if (%ssc_close(a_dbchn,csr_relstr_update))
+			nop
+		clear csr_relstr_update
+	end
+
+	xreturn
+
+endsubroutine
+
+;;*****************************************************************************
+;;; <summary>
+;;; Exports DAT:RELFILE.DDF to a CSV file.
+;;; </summary>
+;;; <param name="a_errtxt">Returned error text.</param>
+;;; <returns>Returns true on success, otherwise false.</returns>
+
+function relstr_create_csv, ^val
+
+	optional out a_errtxt, a
+	endparams
+
+	.include "CONNECTDIR:ssql.def"
+	.include "RELSTR" repository, record="relstr", end
+	.include "INC:structureio.def"
+
+	.define EXCEPTION_BUFSZ 100
+
+	stack record local_data
+		ok          ,boolean    ;;Return status
+		filechn     ,int        ;;Data file channel
+		csvchn      ,int        ;;CSV file channel
+		errnum      ,int        ;;Error number
+		attempted   ,int        ;;Number of records exported
+		errtxt      ,a256       ;;Error message text
+	endrecord
+
+proc
+
+	init local_data
+	ok = true
+
+	;;Open the data file associated with the structure
+
+	if (%relstr_io(IO_OPEN_INP,filechn)!=IO_OK)
+	begin
+		ok = false
+		errtxt = "Failed to open file DAT:RELFILE.DDF"
+		clear filechn
+	end
+
+	;;Open the CSV file
+
+	if (ok)
+	begin
+		open(csvchn=0,o:s,"REPLICATOR_EXPORT:relstr.csv")
+		writes(csvchn,"Field1|Field2|Field3|Field4")
+	end
+
+	if (ok)
+	begin
+		;;Read records from the input file
+
+		repeat
+		begin
+
+			;;Get the next record from the input file
+
+			errnum = %relstr_io(IO_READ_NEXT,filechn,,relstr)
+
+			using errnum select
+			(IO_OK),
+			begin
+				data buff, string, ""
+				buff = ""
+				&    + %atrim(relstr.field1) + "|"
+				&    + %string(relstr.field2) + "|"
+				&    + %atrim(^a(relstr.field3)) + "|"
+				&    + %string(relstr.field4,"XX:XX:XX") + ""
+				writes(csvchn,buff)
+				attempted += 1
+			end
+			(IO_EOF),
+				exitloop
+			(),
+			begin
+				ok = false
+				errtxt = "Unexpected response " + %string(errnum) + " from %relstr_io"
+				exitloop
+			end
+			endusing
+		end
+	end
+
+	;;Close the CSV file
+
+	if (csvchn)
+		close csvchn
+
+	;;Create the SQL command file
+
+	if (ok)
+	begin
+		data csvdir, a128
+		data csvlen, i4
+		data csvfile, string, ""
+
+		xcall getlog("CSV",csvdir,csvlen)
+
+		if (csvlen)
+			csvfile = %atrim(csvdir)
+
+		if (csvfile.EndsWith("\")) then
+			csvfile = csvfile + "relstr.csv"
+		else
+			csvfile = csvfile + "\relstr.csv"
+
+		open(csvchn=0,o:s,"REPLICATOR_EXPORT:relstr.sql")
+
+		writes(csvchn,"")
+		writes(csvchn,"/*")
+		writes(csvchn,"Use <put database name here>")
+		writes(csvchn,"GO")
+		writes(csvchn,"*/")
+		writes(csvchn,"")
+		writes(csvchn,"TRUNCATE TABLE Relstr")
+		writes(csvchn,"GO")
+		writes(csvchn,"")
+		writes(csvchn,"BULK INSERT Relstr")
+		writes(csvchn,"    FROM '" + csvfile + "'")
+		writes(csvchn,"    WITH")
+		writes(csvchn,"    (")
+		writes(csvchn,"        FIRSTROW=2,")
+		writes(csvchn,"        FIELDTERMINATOR='|',")
+		writes(csvchn,"        ROWTERMINATOR ='\n'")
+		writes(csvchn,"    )")
+		writes(csvchn,"GO")
+		writes(csvchn,"")
+
+		close csvchn
+	end
+
+	;;Close the file
+
+	if (filechn)
+		xcall relstr_io(IO_CLOSE,filechn)
+
+	;;Return the error text
+
+	if (^passed(a_errtxt))
+		a_errtxt = errtxt
+
+	freturn ok
+
+endfunction
+

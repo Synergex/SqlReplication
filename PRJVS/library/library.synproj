@@ -107,11 +107,20 @@
     <Compile Include="..\..\SRC\LIBRARY\PopulateReplicationKey.dbl">
       <Link>PopulateReplicationKey.dbl</Link>
     </Compile>
+    <Compile Include="..\..\SRC\LIBRARY\RelstrIO.dbl">
+      <Link>RelstrIO.dbl</Link>
+    </Compile>
+    <Compile Include="..\..\SRC\LIBRARY\RelstrSqlIO.dbl">
+      <Link>RelstrSqlIO.dbl</Link>
+    </Compile>
     <Compile Include="..\..\SRC\LIBRARY\Replicate.dbl">
       <Link>Replicate.dbl</Link>
     </Compile>
     <Compile Include="..\..\SRC\LIBRARY\ReplicationIoHooks.dbl">
       <Link>ReplicationIoHooks.dbl</Link>
+    </Compile>
+    <Compile Include="..\..\SRC\LIBRARY\ReplicationIoHooksRel.dbl">
+      <Link>ReplicationIoHooksRel.dbl</Link>
     </Compile>
     <Compile Include="..\..\SRC\LIBRARY\ReplicatorControl.dbl">
       <Link>ReplicatorControl.dbl</Link>

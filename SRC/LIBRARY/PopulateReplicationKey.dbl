@@ -4,7 +4,7 @@
 ;;
 ;; Description: Put unique replication key
 ;;
-;; Author:      Steve Ives
+;; Author:      Steve Ives, Synergex Professional Services Group
 ;;
 ;;*****************************************************************************
 ;;
@@ -29,8 +29,8 @@ subroutine PopulateReplicationKey
 		fileExt,  a20
 	endrecord
 
-	;;Include the structure for each record type that needs REPLICATION_KEY populating on STORE
-;	.include "SOME_STRUCTURE" repository, structure="strSomeStructure"
+    ;;Include the structure for each record type that needs REPLICATION_KEY populating on STORE
+;   .include "SOME_STRUCTURE" repository, structure="strSomeStructure"
 
 proc
 	xcall filnm(channel,fileSpec)
@@ -42,8 +42,8 @@ proc
 
 	;;Add a section to fill out the REPLICATION_KEY field for each file / record type
 	using fileSpec select
-;   ("SOMEFILE.ISM"),
-;       ^m(strSomeStructure.replication_key,aRecord) = %datetime
+;	("SOMEFILE.ISM"),
+;   	^m(strSomeStructure.replication_key,aRecord) = %datetime
 	(),
 		nop
 	endusing

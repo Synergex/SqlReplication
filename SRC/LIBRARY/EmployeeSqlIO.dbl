@@ -1723,7 +1723,6 @@ function employee_create_csv, ^val
 
 	stack record local_data
 		ok          ,boolean    ;;Return status
-		firstRecord ,boolean    ;;Is this the first record
 		filechn     ,int        ;;Data file channel
 		csvchn      ,int        ;;CSV file channel
 		errnum      ,int        ;;Error number
@@ -1757,21 +1756,12 @@ proc
 	begin
 		;;Read records from the input file
 
-		firstRecord = true
 		repeat
 		begin
 
 			;;Get the next record from the input file
 
-			if (firstRecord) then
-			begin
-				errnum = %employee_io(IO_READ_FIRST,filechn,,,employee)
-				firstRecord = false
-			end
-			else
-			begin
-				errnum = %employee_io(IO_READ_NEXT,filechn,,,employee)
-			end
+			errnum = %employee_io(IO_READ_NEXT,filechn,,,employee)
 
 			using errnum select
 			(IO_OK),

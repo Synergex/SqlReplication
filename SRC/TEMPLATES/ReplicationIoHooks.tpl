@@ -1,13 +1,10 @@
 <CODEGEN_FILENAME>ReplicationIoHooks.dbl</CODEGEN_FILENAME>
-<PROCESS_TEMPLATE>SynIO</PROCESS_TEMPLATE>
-<PROCESS_TEMPLATE>SqlIO</PROCESS_TEMPLATE>
-<PROCESS_TEMPLATE>replicate</PROCESS_TEMPLATE>
-<PROCESS_TEMPLATE>LastRecordCache</PROCESS_TEMPLATE>
 ;//*****************************************************************************
 ;//
 ;// Title:      ReplicationIoHooks.tpl
 ;//
 ;// Description:Template to generate an IO Hooks class for use with SQL replication
+;//             of ISAM files.
 ;//
 ;// Author:     Steve Ives, Synergex Professional Services Group
 ;//
@@ -19,7 +16,7 @@
 ;;
 ;; Type:        Class (ReplicationIoHooks)
 ;;
-;; Description: An I/O Hooks class that implements SQL data replication
+;; Description: An I/O Hooks class that implements SQL data replication for ISAM files
 ;;
 ;;*****************************************************************************
 ;;

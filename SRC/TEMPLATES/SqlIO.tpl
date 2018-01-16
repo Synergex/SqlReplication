@@ -191,12 +191,25 @@ proc
 	if (ok)
 	begin
 		sql = 'CREATE TABLE "<StructureName>" ('
+		<IF STRUCTURE_RELATIVE>
+		& + '"RecordNumber" INT NOT NULL,'
+		</IF STRUCTURE_RELATIVE>
 		<FIELD_LOOP>
+		<IF STRUCTURE_RELATIVE>
+		& + '"<FieldSqlName>" <FIELD_SQLTYPE><IF REQUIRED> NOT NULL</IF><,>'
+		</IF STRUCTURE_RELATIVE>
+		<IF STRUCTURE_ISAM>
 		& + '"<FieldSqlName>" <FIELD_SQLTYPE><IF REQUIRED> NOT NULL</IF><IF LAST><IF STRUCTURE_HAS_UNIQUE_PK>,</IF STRUCTURE_HAS_UNIQUE_PK><ELSE>,</IF LAST>'
+		</IF STRUCTURE_ISAM>
 		</FIELD_LOOP>
+		<IF STRUCTURE_ISAM>
 		<IF STRUCTURE_HAS_UNIQUE_PK>
 		& + 'CONSTRAINT PK_<StructureName> PRIMARY KEY CLUSTERED(<PRIMARY_KEY><SEGMENT_LOOP>"<SegmentName>" <SEGMENT_ORDER><,></SEGMENT_LOOP></PRIMARY_KEY>)'
 		</IF STRUCTURE_HAS_UNIQUE_PK>
+		</IF STRUCTURE_ISAM>
+		<IF STRUCTURE_RELATIVE>
+		& + 'CONSTRAINT PK_<StructureName> PRIMARY KEY CLUSTERED("RecordNumber" ASC)'
+		</IF STRUCTURE_RELATIVE>
 		& + ')'
 
 		call open_cursor
@@ -208,6 +221,7 @@ proc
 		end
 	end
 
+	<IF STRUCTURE_ISAM>
 	<IF STRUCTURE_HAS_UNIQUE_PK>
 	<ELSE>
 	;;The structure has no unique primary key, so no primary key constraint was added to the table. Create an index instead.
@@ -243,6 +257,7 @@ proc
 	end
 
 	</ALTERNATE_KEY_LOOP>
+	</IF STRUCTURE_ISAM>
 	;;Grant access permissions
 
 	if (ok)
@@ -333,6 +348,7 @@ close_cursor,
 
 endfunction
 
+<IF STRUCTURE_ISAM>
 ;;*****************************************************************************
 ;;; <summary>
 ;;; Insert a row into the <StructureName> table.
@@ -900,11 +916,15 @@ proc
 
 endfunction
 
+</IF STRUCTURE_ISAM>
 ;;*****************************************************************************
 ;;; <summary>
 ;;; Updates a row in the <StructureName> table.
 ;;; </summary>
 ;;; <param name="a_dbchn">Connected database channel.</param>
+<IF STRUCTURE_RELATIVE>
+;;; <param name="a_recnum">record number.</param>
+</IF STRUCTURE_RELATIVE>
 ;;; <param name="a_data">Record containing data to update.</param>
 ;;; <param name="a_rows">Returned number of rows affected.</param>
 ;;; <param name="a_errtxt">Returned error text.</param>
@@ -913,6 +933,9 @@ endfunction
 function <structure_name>_update_row, ^val
 
 	required in  a_dbchn,  i
+	<IF STRUCTURE_RELATIVE>
+	required in  a_recnum, n
+	</IF STRUCTURE_RELATIVE>
 	required in  a_data,   a
 	optional out a_rows,   i
 	optional out a_errtxt, a
@@ -944,7 +967,12 @@ function <structure_name>_update_row, ^val
 		& +              '"<FieldSqlName>"=:<COUNTER_1_VALUE><,>'
 		</IF USERTIMESTAMP>
 		</FIELD_LOOP>
+		<IF STRUCTURE_ISAM>
 		& +              ' WHERE <UNIQUE_KEY><SEGMENT_LOOP><COUNTER_1_INCREMENT>"<SegmentName>"=:<COUNTER_1_VALUE> <AND> </SEGMENT_LOOP></UNIQUE_KEY>'
+		</IF STRUCTURE_ISAM>
+		<IF STRUCTURE_RELATIVE>
+		& +              ' WHERE "RecordNumber"=:<COUNTER_1_VALUE>'
+		</IF STRUCTURE_RELATIVE>
 	endliteral
 
 	.include "<STRUCTURE_NOALIAS>" repository, static record="<structure_name>", end
@@ -1061,7 +1089,12 @@ proc
 
 	if (ok && openAndBind)
 	begin
+		<IF STRUCTURE_ISAM>
 		if (%ssc_bind(a_dbchn,csr_<structure_name>_update,<UNIQUE_KEY><KEY_SEGMENTS>,<SEGMENT_LOOP><IF DATEORTIME>^a(</IF DATEORTIME><structure_name>.<segment_name><IF DATEORTIME>)</IF DATEORTIME><,></SEGMENT_LOOP></UNIQUE_KEY>)==SSQL_FAILURE)
+		</IF STRUCTURE_ISAM>
+		<IF STRUCTURE_RELATIVE>
+		if (%ssc_bind(a_dbchn,csr_<structure_name>_update,1,a_recnum)==SSQL_FAILURE)
+		</IF STRUCTURE_RELATIVE>
 		begin
 			ok = false
 			if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
@@ -1173,6 +1206,7 @@ proc
 
 endfunction
 
+<IF STRUCTURE_ISAM>
 ;;*****************************************************************************
 ;;; <summary>
 ;;; Deletes a row from the <StructureName> table.
@@ -1309,6 +1343,7 @@ proc
 
 endfunction
 
+</IF STRUCTURE_ISAM>
 ;;*****************************************************************************
 ;;; <summary>
 ;;; Deletes all rows from the <StructureName> table.
@@ -1555,6 +1590,7 @@ proc
 
 endfunction
 
+<IF STRUCTURE_ISAM>
 ;;*****************************************************************************
 ;;; <summary>
 ;;; Load all data from <FILE_NAME> into the <StructureName> table.
@@ -1751,6 +1787,7 @@ insert_data,
 
 endfunction
 
+</IF STRUCTURE_ISAM>
 ;;*****************************************************************************
 ;;; <summary>
 ;;; Close cursors associated with the <StructureName> table.
@@ -1765,13 +1802,16 @@ subroutine <structure_name>_close
 	.include "CONNECTDIR:ssql.def"
 
 	external common
+		<IF STRUCTURE_ISAM>
 		csr_<structure_name>_insert1, i4
 		csr_<structure_name>_insert2, i4
+		</IF STRUCTURE_ISAM>
 		csr_<structure_name>_update,  i4
 	endcommon
 
 proc
 
+	<IF STRUCTURE_ISAM>
 	if (csr_<structure_name>_insert1)
 	begin
 		if (%ssc_close(a_dbchn,csr_<structure_name>_insert1))
@@ -1786,6 +1826,7 @@ proc
 		clear csr_<structure_name>_insert2
 	end
 
+	</IF STRUCTURE_ISAM>
 	if (csr_<structure_name>_update)
 	begin
 		if (%ssc_close(a_dbchn,csr_<structure_name>_update))
@@ -1817,7 +1858,6 @@ function <structure_name>_create_csv, ^val
 
 	stack record local_data
 		ok          ,boolean    ;;Return status
-		firstRecord ,boolean    ;;Is this the first record
 		filechn     ,int        ;;Data file channel
 		csvchn      ,int        ;;CSV file channel
 		errnum      ,int        ;;Error number
@@ -1851,21 +1891,17 @@ proc
 	begin
 		;;Read records from the input file
 
-		firstRecord = true
 		repeat
 		begin
 
 			;;Get the next record from the input file
 
-			if (firstRecord) then
-			begin
-				errnum = %<structure_name>_io(IO_READ_FIRST,filechn,,,<structure_name>)
-				firstRecord = false
-			end
-			else
-			begin
-				errnum = %<structure_name>_io(IO_READ_NEXT,filechn,,,<structure_name>)
-			end
+			<IF STRUCTURE_ISAM>
+			errnum = %<structure_name>_io(IO_READ_NEXT,filechn,,,<structure_name>)
+			</IF STRUCTURE_ISAM>
+			<IF STRUCTURE_RELATIVE>
+			errnum = %<structure_name>_io(IO_READ_NEXT,filechn,,<structure_name>)
+			</IF STRUCTURE_RELATIVE>
 
 			using errnum select
 			(IO_OK),
@@ -1973,6 +2009,7 @@ proc
 
 endfunction
 
+<IF STRUCTURE_ISAM>
 ;;*****************************************************************************
 ;;; <summary>
 ;;; Loads a unique key value into the respective fields in a record.
@@ -2020,3 +2057,4 @@ proc
 	freturn <structureName>
 
 endfunction
+</IF STRUCTURE_ISAM>

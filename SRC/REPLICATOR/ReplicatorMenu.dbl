@@ -182,6 +182,8 @@ proc
 						outbuf.operation = "Create row"
 					(REPLICATION_INSTRUCTION.UPDATE_ROW),
 						outbuf.operation = "Update row"
+					(REPLICATION_INSTRUCTION.UPDATE_RELATIVE),
+						outbuf.operation = "Update row (rel)"
 					(REPLICATION_INSTRUCTION.DELETE_ROW),
 						outbuf.operation = "Delete row"
 					(REPLICATION_INSTRUCTION.CREATE_TABLE),

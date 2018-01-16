@@ -1,14 +1,14 @@
 ;;*****************************************************************************
 ;;
-;; File:        EmployeeIO.dbl
+;; File:        RelstrIO.dbl
 ;;
-;; Type:        Function (employee_io)
+;; Type:        Function (relstr_io)
 ;;
-;; Description: Performs file I/O for the file DAT:EMPLOYEE.ISM
+;; Description: Performs relative file I/O for the file DAT:RELFILE.DDF
 ;;
 ;;*****************************************************************************
 ;;
-;; Copyright (c) 2009, Synergex International, Inc.
+;; Copyright (c) 2018, Synergex International, Inc.
 ;; All rights reserved.
 ;;
 ;; Redistribution and use in source and binary forms, with or without
@@ -38,17 +38,15 @@
 ;;          GENERATION IS RE-EXECUTED FOR THIS PROJECT.
 ;;*****************************************************************************
 
-.include "EMPLOYEE" repository, structure="strEmployee", end
+.include "RELSTR" repository, structure="strRelstr", end
 
-function employee_io ,^val
+function relstr_io ,^val
 
 	required in    a_mode       ,n  ;;Access type
 	required inout a_channel    ,n  ;;Channel
-	optional in    a_key        ,a  ;;Key value
-	optional in    a_keynum     ,n  ;;Key number
-	optional inout employee, strEmployee
+	optional in    a_recnum     ,n  ;;Record number
+	optional inout relstr, strRelstr
 	optional in    a_lock       ,n  ;;If passed and TRUE, lock record
-	optional in    a_partial    ,n  ;;Do a partial key lookup
 	optional out   a_errtxt     ,a  ;;Returned error text
 	endparams
 
@@ -56,15 +54,13 @@ function employee_io ,^val
 	.include "INC:sqlgbl.def"
 
 	stack record localData
-		keyno                   ,int    ;;Key number
-		keylen                  ,int    ;;Key length
 		lock                    ,int    ;;Lock record?
 		pos                     ,int    ;;Position in a string
 		errorNumber             ,int
 		lineNumber              ,int
 		errorMessage            ,a45
 		errmsg                  ,a45    ;;Error message
-		keyValue                ,a255   ;;Hold original key
+		recNum                  ,d28    ;;Hold original record number
 	endrecord
 
 proc
@@ -73,28 +69,8 @@ proc
 
 	onerror fatalIoError
 
-	if ^passed(a_key)
-	begin
-		keyValue = a_key
-		if (^passed(a_partial)&&a_partial) then
-			keylen = %trim(a_key)
-		else
-			keylen = ^size(a_key)
-	end
-
-	if ^passed(a_keynum) then
-		keyno=a_keynum
-	else
-		keyno=0
-
-	if (!^passed(a_key) && ^passed(employee))
-	begin
-		keyValue = %keyval(a_channel,employee,keyno)
-		if (^passed(a_partial)&&a_partial) then
-			keylen = %trim(%keyval(a_channel,employee,keyno))
-		else
-			keylen = ^len(%keyval(a_channel,employee,keyno))
-	end
+	if ^passed(a_recnum)
+		recNum = a_recnum
 
 	if (!^passed(a_lock)) then
 		lock = Q_NO_LOCK
@@ -108,100 +84,39 @@ proc
 
 	(IO_OPEN_INP),
 	begin
-		open(a_channel=0,i:i,"DAT:EMPLOYEE.ISM") [ERR=openError]
+		open(a_channel=0,i:r,"DAT:RELFILE.DDF") [ERR=openError]
 	end
 
 	(IO_OPEN_UPD),
 	begin
-		open(a_channel=0,u:i,"DAT:EMPLOYEE.ISM") [ERR=openError]
+		open(a_channel=0,u:r,"DAT:RELFILE.DDF") [ERR=openError]
 		xcall ConfigureReplication(a_channel)
-	end
-
-	(IO_FIND),
-	begin
-		find(a_channel,,keyValue(1:keylen),KEYNUM:keyno) [$ERR_EOF=endOfFile,$ERR_LOCKED=recordLocked,$ERR_KEYNOT=keyNotFound]
-	end
-
-	(IO_FIND_FIRST),
-	begin
-		.ifdef TAG_VALUE
-		find(a_channel,,TAG_VALUE,KEYNUM:keyno) [$ERR_EOF=endOfFile,$ERR_LOCKED=recordLocked,$ERR_KEYNOT=keyNotFound]
-		.else
-		find(a_channel,,^FIRST,KEYNUM:keyno)    [$ERR_EOF=endOfFile,$ERR_LOCKED=recordLocked,$ERR_KEYNOT=keyNotFound]
-		.endc
 	end
 
 	(IO_READ_FIRST),
 	begin
-		read(a_channel,employee,^FIRST,KEYNUM:keyno)    [$ERR_EOF=endOfFile,$ERR_LOCKED=recordLocked,$ERR_KEYNOT=keyNotFound]
+		read(a_channel,relstr,^FIRST)    [$ERR_EOF=endOfFile,$ERR_LOCKED=recordLocked,$ERR_KEYNOT=keyNotFound]
 	end
 
 	(IO_READ),
 	begin
-		read(a_channel,employee,keyValue(1:keylen),KEYNUM:keyno,LOCK:lock) [$ERR_EOF=endOfFile,$ERR_LOCKED=recordLocked,$ERR_KEYNOT=keyNotFound]
+		read(a_channel,relstr,recNum,LOCK:lock) [$ERR_EOF=endOfFile,$ERR_LOCKED=recordLocked,$ERR_KEYNOT=keyNotFound]
 	end
 
 	(IO_READ_NEXT),
 	begin
-		reads(a_channel,employee,LOCK:lock) [$ERR_EOF=endOfFile,$ERR_LOCKED=recordLocked,$ERR_KEYNOT=keyNotFound]
-	end
-
-	(IO_CREATE),
-	begin
-		if ((!employee.emp_id)||(!%IsNumeric(^a(employee.emp_id))))
-			clear employee.emp_id
-		if (!employee.emp_hire_date||!%IsDate(^a(employee.emp_hire_date)))
-			clear employee.emp_hire_date
-		if ((!employee.emp_paid)||(!%IsNumeric(^a(employee.emp_paid))))
-			clear employee.emp_paid
-		if ((!employee.emp_home_ok)||(!%IsNumeric(^a(employee.emp_home_ok))))
-			clear employee.emp_home_ok
-		if (!employee.emp_date_of_birth||!%IsDate(^a(employee.emp_date_of_birth)))
-			clear employee.emp_date_of_birth
-		if (!employee.emp_hire_time||!%IsTime(^a(employee.emp_hire_time)))
-			clear employee.emp_hire_time
-		if ((!employee.emp_address_zip)||(!%IsNumeric(^a(employee.emp_address_zip))))
-			clear employee.emp_address_zip
-
-		if (repkey_required[a_channel]) then
-		begin
-			repeat
-			begin
-				xcall PopulateReplicationKey(a_channel,employee)
-				store(a_channel,employee) [$ERR_NODUPS=timeStampClash]
-				exitloop
-timeStampClash,
-				sleep 0.01
-			end
-		end
-		else
-		begin
-			store(a_channel,employee) [$ERR_NODUPS=duplicateKey]
-		end
+		reads(a_channel,relstr,,LOCK:lock) [$ERR_EOF=endOfFile,$ERR_LOCKED=recordLocked,$ERR_KEYNOT=keyNotFound]
 	end
 
 	(IO_UPDATE),
 	begin
-		if ((!employee.emp_id)||(!%IsNumeric(^a(employee.emp_id))))
-			clear employee.emp_id
-		if (!employee.emp_hire_date||!%IsDate(^a(employee.emp_hire_date)))
-			clear employee.emp_hire_date
-		if ((!employee.emp_paid)||(!%IsNumeric(^a(employee.emp_paid))))
-			clear employee.emp_paid
-		if ((!employee.emp_home_ok)||(!%IsNumeric(^a(employee.emp_home_ok))))
-			clear employee.emp_home_ok
-		if (!employee.emp_date_of_birth||!%IsDate(^a(employee.emp_date_of_birth)))
-			clear employee.emp_date_of_birth
-		if (!employee.emp_hire_time||!%IsTime(^a(employee.emp_hire_time)))
-			clear employee.emp_hire_time
-		if ((!employee.emp_address_zip)||(!%IsNumeric(^a(employee.emp_address_zip))))
-			clear employee.emp_address_zip
-		write(a_channel,employee) [$ERR_NOCURR=noCurrentRecord]
-	end
-
-	(IO_DELETE),
-	begin
-		delete(a_channel) [$ERR_NOCURR=noCurrentRecord]
+		if ((!relstr.field2)||(!%IsNumeric(^a(relstr.field2))))
+			clear relstr.field2
+		if (!relstr.field3||!%IsDate(^a(relstr.field3)))
+			clear relstr.field3
+		if (!relstr.field4||!%IsTime(^a(relstr.field4)))
+			clear relstr.field4
+		write(a_channel,relstr,recNum) [$ERR_NOCURR=noCurrentRecord]
 	end
 
 	(IO_UNLOCK),
@@ -318,9 +233,9 @@ openError,
 
 endfunction
 
-function employee_length ,^val
+function relstr_length ,^val
 	endparams
 proc
-	freturn 300
+	freturn 17
 endfunction
 

@@ -4,7 +4,7 @@
 ;;
 ;; Type:        Class (ReplicationIoHooks)
 ;;
-;; Description: An I/O Hooks class that implements SQL data replication
+;; Description: An I/O Hooks class that implements SQL data replication for ISAM files
 ;;
 ;;*****************************************************************************
 ;;
@@ -43,200 +43,200 @@ import Synergex.SynergyDE.Select
 
 namespace SynPSG.ReplicationDemo
 
-	;;-------------------------------------------------------------------------
-	;;I/O hooks class that implements SQL Replication
-	;;
-	public sealed class ReplicationIoHooks extends IOHooks
+    ;;-------------------------------------------------------------------------
+    ;;I/O hooks class that implements SQL Replication
+    ;;
+    public sealed class ReplicationIoHooks extends IOHooks
 
-		private mStructureName, string
-		private mActive, boolean, false
-		private mMultiTable, boolean
-		private mChannel, int, 0
-		private mFillTimeStamp, boolean, false
-		private mTimeStampPos, int, 0
+        private mStructureName, string
+        private mActive, boolean, false
+        private mMultiTable, boolean
+        private mChannel, int, 0
+        private mFillTimeStamp, boolean, false
+        private mTimeStampPos, int, 0
 
-		;;---------------------------------------------------------------------
-		;;Constructor
+        ;;---------------------------------------------------------------------
+        ;;Constructor
 
-		public method ReplicationIoHooks
-			required in aChannel, n
-			required in aStructureName, string
-			endparams
-			parent(aChannel)
-			record
-				openMode, a3
-				thisKey, i4
-			endrecord
-			record keyinfo
-				keypos ,d5
-				keylen ,d3
-				keydup ,d1
-				keyasc ,d1
-				keymod ,d1
-				keynam ,a15
-				key_spos ,8d5
-				key_slen ,8d3
-			endrecord
-			.ifdef D_VMS
-			.include "REPLICATION_VMS" repository, structure="strInstruction", end
-			.else
-			.include "REPLICATION" repository, structure="strInstruction", end
-			.endc
-		proc
-			;;Make sure the channel is to an indexed file and open in update mode
-			xcall getfa(aChannel,"OMD",openMode)
-			if (openMode=="U:I")
-			begin
+        public method ReplicationIoHooks
+            required in aChannel, n
+            required in aStructureName, string
+            endparams
+            parent(aChannel)
+            record
+                openMode, a3
+                thisKey, i4
+            endrecord
+            record keyinfo
+                keypos ,d5
+                keylen ,d3
+                keydup ,d1
+                keyasc ,d1
+                keymod ,d1
+                keynam ,a15
+                key_spos ,8d5
+                key_slen ,8d3
+            endrecord
+            .ifdef D_VMS
+            .include "REPLICATION_VMS" repository, structure="strInstruction", end
+            .else
+            .include "REPLICATION" repository, structure="strInstruction", end
+            .endc
+        proc
+            ;;Make sure the channel is to an indexed file and open in update mode
+            xcall getfa(aChannel,"OMD",openMode)
+            if (openMode=="U:I")
+            begin
 
-				;;Check that the record length is not over the maximum we can support
-				data recLen, int
-				xcall getfa(aChannel,"RSZ",recLen)
-				if (recLen > ^size(strInstruction.record))
-					exit
+                ;;Check that the record length is not over the maximum we can support
+                data recLen, int
+                xcall getfa(aChannel,"RSZ",recLen)
+                if (recLen > ^size(strInstruction.record))
+                    exit
 
-				;;Search for a unique key
-				for thisKey from 0 thru %isinfo(aChannel,"NUMKEYS") - 1
-				begin
-					if (!%isinfo(aChannel,"DUPS",thisKey))
-					begin
-						;;Found one
-						mActive = true
-						LastRecordCache.Init(aChannel)
+                ;;Search for a unique key
+                for thisKey from 0 thru %isinfo(aChannel,"NUMKEYS") - 1
+                begin
+                    if (!%isinfo(aChannel,"DUPS",thisKey))
+                    begin
+                        ;;Found one
+                        mActive = true
+                        LastRecordCache.Init(aChannel)
 
-						;;Is it REPLICATION_KEY and 20 long? If so we will cause the PRE STORE hook
-						;;to fill the key with a timestamp value for new records.
-						xcall iskey(aChannel,thisKey,keyinfo)
-						upcase keyinfo.keynam
-						if ((mFillTimeStamp=(keyinfo.keynam=="REPLICATION_KEY"))&&(keylen==20))
-							mTimeStampPos = keypos
+                        ;;Is it REPLICATION_KEY and 20 long? If so we will cause the PRE STORE hook
+                        ;;to fill the key with a timestamp value for new records.
+                        xcall iskey(aChannel,thisKey,keyinfo)
+                        upcase keyinfo.keynam
+                        if ((mFillTimeStamp=(keyinfo.keynam=="REPLICATION_KEY"))&&(keylen==20))
+                            mTimeStampPos = keypos
 
-						;;Good to go
-						exitloop
-					end
-				end
+                        ;;Good to go
+                        exitloop
+                    end
+                end
 
-				if (mActive)
-				begin
-					;;Record the channel number and structure name
-					mChannel = aChannel
-					if (mMultiTable = aStructureName.StartsWith("MULTI_")) then
-						mStructureName = aStructureName - "MULTI_"
-					else
-						mStructureName = aStructureName
-				end
+                if (mActive)
+                begin
+                    ;;Record the channel number and structure name
+                    mChannel = aChannel
+                    if (mMultiTable = aStructureName.StartsWith("MULTI_")) then
+                        mStructureName = aStructureName - "MULTI_"
+                    else
+                        mStructureName = aStructureName
+                end
 
-			end
-		endmethod
+            end
+        endmethod
 
-		;;---------------------------------------------------------------------
-		;;READ hooks
+        ;;---------------------------------------------------------------------
+        ;;READ hooks
 
-		public override method read_post_operation_hook, void
-			required inout       aRecord, a
-			optional in mismatch aKey,    n
-			optional in          aRfa,    a
-			optional in          aKeynum, n
-			required in          aFlags,  IOFlags
-			required inout       aError,  int
-			endparams
-		proc
-			if (mActive && !aError && !(aFlags&IOFlags.LOCK_NO_LOCK))
-			begin
-				;;Record the record that was just read (to support delete)
-				LastRecordCache.Update(mChannel,aRecord)
-			end
-		endmethod
+        public override method read_post_operation_hook, void
+            required inout       aRecord, a
+            optional in mismatch aKey,    n
+            optional in          aRfa,    a
+            optional in          aKeynum, n
+            required in          aFlags,  IOFlags
+            required inout       aError,  int
+            endparams
+        proc
+            if (mActive && !aError && !(aFlags&IOFlags.LOCK_NO_LOCK))
+            begin
+                ;;Record the record that was just read (to support delete)
+                LastRecordCache.Update(mChannel,aRecord)
+            end
+        endmethod
 
-		public override method reads_post_operation_hook ,void
-			required inout aRecord, a
-			optional in    aRfa,    a
-			required in    aFlags,  IOFlags
-			required inout aError,  int
-			endparams
-		proc
-			if (mActive && !aError && !(aFlags&IOFlags.LOCK_NO_LOCK))
-			begin
-				;;Record the record that was just read (to support delete)
-				LastRecordCache.Update(mChannel,aRecord)
-			end
-		endmethod
+        public override method reads_post_operation_hook ,void
+            required inout aRecord, a
+            optional in    aRfa,    a
+            required in    aFlags,  IOFlags
+            required inout aError,  int
+            endparams
+        proc
+            if (mActive && !aError && !(aFlags&IOFlags.LOCK_NO_LOCK))
+            begin
+                ;;Record the record that was just read (to support delete)
+                LastRecordCache.Update(mChannel,aRecord)
+            end
+        endmethod
 
-		;;---------------------------------------------------------------------
-		;;WRITE hooks
+        ;;---------------------------------------------------------------------
+        ;;WRITE hooks
 
-		public override method write_post_operation_hook, void
-			required inout       aRecord, a
-			optional in          aRecnum, n
-			optional in          aRfa,    a
-			required in          aFlags,  IOFlags
-			required inout       aError,  int
-			endparams
-		proc
-			;;A record was just updated. If it changed then replicate the change.
-			if (mActive && !aError)
-				if (LastRecordCache.HasChanged(mChannel,aRecord))
-					xcall replicate(REPLICATION_INSTRUCTION.UPDATE_ROW,getTableName(aRecord),aRecord)
-		endmethod
+        public override method write_post_operation_hook, void
+            required inout       aRecord, a
+            optional in          aRecnum, n
+            optional in          aRfa,    a
+            required in          aFlags,  IOFlags
+            required inout       aError,  int
+            endparams
+        proc
+            ;;A record was just updated. If it changed then replicate the change.
+            if (mActive && !aError)
+                if (LastRecordCache.HasChanged(mChannel,aRecord))
+                    xcall replicate(REPLICATION_INSTRUCTION.UPDATE_ROW,getTableName(aRecord),aRecord)
+        endmethod
 
-		;;---------------------------------------------------------------------
-		;;STORE hooks
+        ;;---------------------------------------------------------------------
+        ;;STORE hooks
 
-		public override method store_pre_operation_hook, void
-			required inout aRecord, a
-			required in    aFlags,  IOFlags
-			endparams
-		proc
-			;;If we're using REPLICATION_KEY, and the program has no populated it, then
-			;;then add a timestamp value for the new record. This MAY NOT result in a
-			;;unique value, which in that case will result in a duplicate key error from
-			;; the STORE.
-			if (mActive && mFillTimeStamp && !aRecord(mTimeStampPos:20))
-				aRecord(mTimeStampPos:20) = %datetime
-		endmethod
+        public override method store_pre_operation_hook, void
+            required inout aRecord, a
+            required in    aFlags,  IOFlags
+            endparams
+        proc
+            ;;If we're using REPLICATION_KEY, and the program has no populated it, then
+            ;;then add a timestamp value for the new record. This MAY NOT result in a
+            ;;unique value, which in that case will result in a duplicate key error from
+            ;; the STORE.
+            if (mActive && mFillTimeStamp && !aRecord(mTimeStampPos:20))
+                aRecord(mTimeStampPos:20) = %datetime
+        endmethod
 
-		public override method store_post_operation_hook, void
-			required inout       aRecord, a
-			optional in          aRfa,    a
-			required in          aFlags,  IOFlags
-			required inout       aError,  int
-			endparams
-		proc
-			;;A new record was just created. Replicate the change.
-			if (mActive && !aError)
-				xcall replicate(REPLICATION_INSTRUCTION.CREATE_ROW,getTableName(aRecord),aRecord)
-		endmethod
+        public override method store_post_operation_hook, void
+            required inout       aRecord, a
+            optional in          aRfa,    a
+            required in          aFlags,  IOFlags
+            required inout       aError,  int
+            endparams
+        proc
+            ;;A new record was just created. Replicate the change.
+            if (mActive && !aError)
+                xcall replicate(REPLICATION_INSTRUCTION.CREATE_ROW,getTableName(aRecord),aRecord)
+        endmethod
 
-		;;---------------------------------------------------------------------
-		;;DELETE hooks
+        ;;---------------------------------------------------------------------
+        ;;DELETE hooks
 
-		public override method delete_post_operation_hook, void
-			required inout aError, int
-			endparams
-		proc
-			;;A record was just deleted. Replicate the change.
-			if (mActive && !aError)
-				xcall replicate(REPLICATION_INSTRUCTION.DELETE_ROW,getTableName(LastRecordCache.Retrieve(mChannel)),LastRecordCache.Retrieve(mChannel))
-		endmethod
+        public override method delete_post_operation_hook, void
+            required inout aError, int
+            endparams
+        proc
+            ;;A record was just deleted. Replicate the change.
+            if (mActive && !aError)
+                xcall replicate(REPLICATION_INSTRUCTION.DELETE_ROW,getTableName(LastRecordCache.Retrieve(mChannel)),LastRecordCache.Retrieve(mChannel))
+        endmethod
 
-		;;---------------------------------------------------------------------
-		;;CLOSE hooks
+        ;;---------------------------------------------------------------------
+        ;;CLOSE hooks
 
-		public override method close_pre_operation_hook, void
-			required in aFlags, IOFlags
-			endparams
-		proc
-			if (mActive)
-				LastRecordCache.Clear(mChannel)
-		endmethod
+        public override method close_pre_operation_hook, void
+            required in aFlags, IOFlags
+            endparams
+        proc
+            if (mActive)
+                LastRecordCache.Clear(mChannel)
+        endmethod
 
-		;;-------------------------------------------------------------------------------------
-		;;Custom code for multi-record layout files
+        ;;-------------------------------------------------------------------------------------
+        ;;Custom code for multi-record layout files
 
-		;.include "ONE_OF_THE_STRUCTURES" repository, structure="strSomething", end
+        ;.include "ONE_OF_THE_STRUCTURES" repository, structure="strSomething", end
 
-		private method getTableName, string
-			required in aRecord, a
-		proc
+        private method getTableName, string
+            required in aRecord, a
+        proc
 ;            if (mMultiTable) then
 ;            begin
 ;                using mStructureName select
@@ -257,13 +257,13 @@ namespace SynPSG.ReplicationDemo
 ;            end
 ;            else
 ;            begin
-			mreturn mStructureName
+                mreturn mStructureName
 ;            end
 
-		endmethod
+        endmethod
 
-		;;-------------------------------------------------------------------------------------
+        ;;-------------------------------------------------------------------------------------
 
-	endclass
+    endclass
 
 endnamespace
