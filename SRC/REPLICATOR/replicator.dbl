@@ -728,6 +728,7 @@ proc
 				if ( (instruction.action==(i)REPLICATION_INSTRUCTION.CREATE_ROW)
 				&	|| (instruction.action==(i)REPLICATION_INSTRUCTION.UPDATE_ROW)
 				&	|| (instruction.action==(i)REPLICATION_INSTRUCTION.DELETE_ROW)
+				&	|| (instruction.action==(i)REPLICATION_INSTRUCTION.INSERT_RELATIVE)
 				&	|| (instruction.action==(i)REPLICATION_INSTRUCTION.UPDATE_RELATIVE)
 				&	)
 				begin
@@ -754,11 +755,14 @@ proc
 				(REPLICATION_INSTRUCTION.UPDATE_ROW),
 					call DoUpdate
 
-				(REPLICATION_INSTRUCTION.UPDATE_RELATIVE),
-					call DoUpdateRelative
-
 				(REPLICATION_INSTRUCTION.DELETE_ROW),
 					call DoDelete
+
+				(REPLICATION_INSTRUCTION.INSERT_RELATIVE),
+					call DoInsertRelative
+
+				(REPLICATION_INSTRUCTION.UPDATE_RELATIVE),
+					call DoUpdateRelative
 
 				;;"Special" processing requests
 
@@ -1107,7 +1111,7 @@ LoadTable,
 	return
 
 ;;-----------------------------------------------------------------------------
-;; Add a new row
+;; Add a new row (ISAM)
 ;;
 DoInsert,
 
@@ -1167,6 +1171,68 @@ DoInsert,
 	return
 
 ;;-----------------------------------------------------------------------------
+;; Add a new row (RELATIVE)
+;;
+DoInsertRelative,
+
+	if (switchMode) then
+	begin
+		xcall verboselog(" - Insert row in table " + %atrim(instruction.structure_name))
+		switchMode = false
+	end
+	else
+	begin
+		xcall verboselog("Insert row in table " + %atrim(instruction.structure_name))
+		if (Settings.LogKeys)
+		begin
+			data pos, i4, %instr(1,instruction.record,":")
+			recordNumber = instruction.record(1:pos-1)
+			instruction.record = instruction.record(pos+1:structure_data.structure_size)
+			xcall verboselog(" - Record #: " + %string(recordNumber))
+		end
+	end
+
+	try
+	begin
+		functionName = %atrim(instruction.structure_name) + '_INSERT_ROW'
+		status = %xsubr(functionName,Settings.DatabaseChannel,recordNumber,instruction.record(1,structure_data.structure_size),dberrtxt)
+	end
+	catch (ex, @SynException)
+	begin
+		ok = %LogFunctionFail(functionName,ex.Errno,ex.Message)
+		return
+	end
+	endtry
+
+	using status select
+	(0),
+	begin
+		xcall LogFunctionError(functionName,status,dberrtxt)
+	end
+	(1),
+	begin
+		xcall verboselog(" - Row inserted")
+		Counters.Inserts += 1
+	end
+	(2),
+	begin
+		xcall verboselog(" - Row already exists, switching to UPDATE")
+		status = IO_OK
+		if (switchDone) then
+		begin
+			xcall errorlog("Too many INSERT/UPDATE mode switches!")
+		end
+		else
+		begin
+			switchMode = true
+			call DoUpdateRelative
+		end
+	end
+	endusing
+
+	return
+
+;;-----------------------------------------------------------------------------
 ;; Update an existing row (ISAM)
 ;;
 DoUpdate,
@@ -1216,7 +1282,7 @@ DoUpdate,
 			end
 			else
 			begin
-				switchDone = true
+				switchMode = true
 				call DoInsert
 			end
 		end
@@ -1229,27 +1295,27 @@ DoUpdate,
 	return
 
 ;;-----------------------------------------------------------------------------
-;; Update an existing row (relative)
+;; Update an existing row (RELATIVE)
 ;;
 DoUpdateRelative,
 
-;    if (switchMode) then
-;    begin
-;        xcall verboselog(" - Update row in table " + %atrim(instruction.structure_name))
-;        switchMode = false
-;    end
-;    else
-;    begin
-	xcall verboselog("Update row in table " + %atrim(instruction.structure_name))
-
-	if (Settings.LogKeys)
+	if (switchMode) then
 	begin
-		data pos, i4, %instr(1,instruction.record,":")
-		recordNumber = instruction.record(1:pos-1)
-		instruction.record = instruction.record(pos+1:structure_data.structure_size)
-		xcall verboselog(" - Record #: " + %string(recordNumber))
+		xcall verboselog(" - Update row in table " + %atrim(instruction.structure_name))
+		switchMode = false
 	end
-;    end
+	else
+	begin
+		xcall verboselog("Update row in table " + %atrim(instruction.structure_name))
+
+		if (Settings.LogKeys)
+		begin
+			data pos, i4, %instr(1,instruction.record,":")
+			recordNumber = instruction.record(1:pos-1)
+			instruction.record = instruction.record(pos+1:structure_data.structure_size)
+			xcall verboselog(" - Record #: " + %string(recordNumber))
+		end
+	end
 
 	try
 	begin
@@ -1272,18 +1338,17 @@ DoUpdateRelative,
 		end
 		else
 		begin
-			xcall verboselog(" - Row not found!")
-;            xcall verboselog(" - Row not found, switching to INSERT")
-;            status = IO_OK
-;            if (switchDone) then
-;            begin
-;                xcall errorlog("Too many INSERT/UPDATE mode switches!")
-;            end
-;            else
-;            begin
-;                switchDone = true
-;                call DoInsert
-;            end
+            xcall verboselog(" - Row not found, switching to INSERT")
+            status = IO_OK
+            if (switchDone) then
+            begin
+                xcall errorlog("Too many INSERT/UPDATE mode switches!")
+            end
+            else
+            begin
+                switchMode = true
+                call DoInsertRelative
+            end
 		end
 	end
 	else

@@ -80,43 +80,11 @@ namespace SynPSG.ReplicationDemo
                 if (recLen > ^size(strInstruction.record))
                     exit
 
+                ;;Record the channel number and structure name
+                mChannel = aChannel
+                mTableName = aTableName
                 mActive = true
-                LastRecordCache.Init(aChannel)
-
-                if (mActive)
-                begin
-                    ;;Record the channel number and structure name
-                    mChannel = aChannel
-                    mTableName = aTableName
-                end
             end
-        endmethod
-
-        ;;---------------------------------------------------------------------
-        ;;READ hooks
-
-        public override method read_post_operation_hook, void
-            required inout       aRecord, a
-            optional in mismatch aKey,    n
-            optional in          aRfa,    a
-            optional in          aKeynum, n
-            required in          aFlags,  IOFlags
-            required inout       aError,  int
-            endparams
-        proc
-            if (mActive && !aError && !(aFlags&IOFlags.LOCK_NO_LOCK))
-                LastRecordCache.Update(mChannel,aRecord)
-        endmethod
-
-        public override method reads_post_operation_hook ,void
-            required inout aRecord, a
-            optional in    aRfa,    a
-            required in    aFlags,  IOFlags
-            required inout aError,  int
-            endparams
-        proc
-            if (mActive && !aError && !(aFlags&IOFlags.LOCK_NO_LOCK))
-                LastRecordCache.Update(mChannel,aRecord)
         endmethod
 
         ;;---------------------------------------------------------------------
@@ -132,8 +100,7 @@ namespace SynPSG.ReplicationDemo
         proc
             ;;A record was just written. If it changed then replicate the change.
             if (mActive && !aError)
-                if (LastRecordCache.HasChanged(mChannel,aRecord))
-                    xcall replicate(REPLICATION_INSTRUCTION.UPDATE_RELATIVE,mTableName,%string(aRecnum)+":"+aRecord)
+                xcall replicate(REPLICATION_INSTRUCTION.UPDATE_RELATIVE,mTableName,%string(aRecnum)+":"+aRecord)
         endmethod
 
         ;;-------------------------------------------------------------------------------------

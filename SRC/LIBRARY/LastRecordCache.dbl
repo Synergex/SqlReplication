@@ -44,62 +44,62 @@ import Synergex.SynergyDE.Select
 
 namespace SynPSG.ReplicationDemo
 
-	.ifdef D_VMS
-	public class LastRecordCache
-	.else
-	public static class LastRecordCache
-		.endc
-		private static cache, [#]string
+    .ifdef D_VMS
+    public class LastRecordCache
+    .else
+    public static class LastRecordCache
+    .endc
+        private static cache, [#]string
 
-		.ifdef D_VMS
+        .ifdef D_VMS
         private static cacheInitialized, boolean, false
-		.else
-		static method LastRecordCache
-		proc
-			cache = new string[1024]
-		endmethod
-		.endc	
-		public static method Init, void
-			required in aChannel, int
-			endparams
-		proc
-			.ifdef D_VMS
+        .else
+        static method LastRecordCache
+        proc
+            cache = new string[1024]
+        endmethod
+        .endc   
+        public static method Init, void
+            required in aChannel, int
+            endparams
+        proc
+            .ifdef D_VMS
             if (!cacheInitialized)
             begin
                 cache = new string[1024]
                 cacheInitialized = true
             end
-			.endc
-			cache[aChannel] = ""
-		endmethod
+            .endc
+            cache[aChannel] = ""
+        endmethod
 
-		public static method Update, void
-			required in aChannel, int
-			required in aData, string
-			endparams
-		proc
-			cache[aChannel] = aData
-		endmethod
+        public static method Update, void
+            required in aChannel, int
+            required in aData, string
+            endparams
+        proc
+            cache[aChannel] = aData
+        endmethod
 
-		public static method HasChanged, boolean
-			required in aChannel, int
-			required in aData, string
-			endparams
-		proc
-			mreturn (aData != cache[aChannel])
-		endmethod
+        public static method HasChanged, boolean
+            required in aChannel, int
+            required in aData, string
+            endparams
+        proc
+            mreturn (aData != cache[aChannel])
+        endmethod
 
-		public static method Retrieve, string
-			required in aChannel, int
-		proc
-			mreturn cache[aChannel]
-		endmethod
+        public static method Retrieve, string
+            required in aChannel, int
+        proc
+            mreturn cache[aChannel]
+        endmethod
 
-		public static method Clear, void
-			required in aChannel, int
-		proc
-			cache[aChannel] = ^null
-		endmethod
-	endclass
+        public static method Clear, void
+            required in aChannel, int
+        proc
+            cache[aChannel] = ^null
+        endmethod
+    endclass
 
 endnamespace

@@ -56,19 +56,32 @@ import Synergex.SynergyDE.Select
 
 namespace <NAMESPACE>
 
+    .ifdef D_VMS
+    public class LastRecordCache
+    .else
     public static class LastRecordCache
-
+    .endc
         private static cache, [#]string
 
+        .ifdef D_VMS
+        private static cacheInitialized, boolean, false
+        .else
         static method LastRecordCache
         proc
             cache = new string[1024]
         endmethod
-
+        .endc   
         public static method Init, void
             required in aChannel, int
             endparams
         proc
+            .ifdef D_VMS
+            if (!cacheInitialized)
+            begin
+                cache = new string[1024]
+                cacheInitialized = true
+            end
+            .endc
             cache[aChannel] = ""
         endmethod
 

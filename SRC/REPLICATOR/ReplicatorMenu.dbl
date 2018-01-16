@@ -70,7 +70,11 @@ proc
 
 	try
 	begin
+		.ifdef D_VMS
 		xcall openelb("REPLICATOR_SH")
+		.else
+		xcall openelb("EXE:library.elb")
+		.endc
 	end
 	catch (ex, @Exception)
 	begin

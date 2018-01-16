@@ -60,7 +60,7 @@ namespace <NAMESPACE>
     ;;
     public sealed class ReplicationIoHooks extends IOHooks
 
-        private mStructureName, string
+        private mTableName, string
         private mActive, boolean, false
         private mMultiTable, boolean
         private mChannel, int, 0
@@ -72,7 +72,7 @@ namespace <NAMESPACE>
 
         public method ReplicationIoHooks
             required in aChannel, n
-            required in aStructureName, string
+            required in aTableName, string
             endparams
             parent(aChannel)
             record
@@ -131,10 +131,10 @@ namespace <NAMESPACE>
                 begin
                     ;;Record the channel number and structure name
                     mChannel = aChannel
-                    if (mMultiTable = aStructureName.StartsWith("MULTI_")) then
-                        mStructureName = aStructureName - "MULTI_"
+                    if (mMultiTable = aTableName.StartsWith("MULTI_")) then
+                        mTableName = aTableName - "MULTI_"
                     else
-                        mStructureName = aStructureName
+                        mTableName = aTableName
                 end
 
             end
@@ -186,8 +186,14 @@ namespace <NAMESPACE>
         proc
             ;;A record was just updated. If it changed then replicate the change.
             if (mActive && !aError)
+			begin
                 if (LastRecordCache.HasChanged(mChannel,aRecord))
-                    xcall replicate(REPLICATION_INSTRUCTION.UPDATE_ROW,getTableName(aRecord),aRecord)
+				begin
+					data tableName, string, getTableName(aRecord)
+					if (tableName(1:1)!="*")
+	                    xcall replicate(REPLICATION_INSTRUCTION.UPDATE_ROW,tableName,aRecord)
+				end
+			end
         endmethod
 
         ;;---------------------------------------------------------------------
@@ -215,7 +221,11 @@ namespace <NAMESPACE>
         proc
             ;;A new record was just created. Replicate the change.
             if (mActive && !aError)
-                xcall replicate(REPLICATION_INSTRUCTION.CREATE_ROW,getTableName(aRecord),aRecord)
+			begin
+				data tableName, string, getTableName(aRecord)
+				if (tableName(1:1)!="*")
+	                xcall replicate(REPLICATION_INSTRUCTION.CREATE_ROW,tableName,aRecord)
+			end
         endmethod
 
         ;;---------------------------------------------------------------------
@@ -227,7 +237,11 @@ namespace <NAMESPACE>
         proc
             ;;A record was just deleted. Replicate the change.
             if (mActive && !aError)
-                xcall replicate(REPLICATION_INSTRUCTION.DELETE_ROW,getTableName(LastRecordCache.Retrieve(mChannel)),LastRecordCache.Retrieve(mChannel))
+			begin
+				data tableName, string, getTableName(LastRecordCache.Retrieve(mChannel))
+				if (tableName(1:1)!="*")
+	                xcall replicate(REPLICATION_INSTRUCTION.DELETE_ROW,tableName,LastRecordCache.Retrieve(mChannel))
+			end
         endmethod
 
         ;;---------------------------------------------------------------------
@@ -244,18 +258,19 @@ namespace <NAMESPACE>
         ;;-------------------------------------------------------------------------------------
         ;;Custom code for multi-record layout files
 
-        ;.include "ONE_OF_THE_STRUCTURES" repository, structure="strSomething", end
-
         private method getTableName, string
             required in aRecord, a
         proc
 ;            if (mMultiTable) then
 ;            begin
-;                using mStructureName select
+;                using mTableName select
+;
+;				 ;An example of a file with multple record formats, each of which is replicated to a different table.
 ;                ("FILENAME"),
 ;                begin
 ;                    data rec, strSomething, aRecord
 ;                    ;;Make sure you cover all the bases here, if not it'll be a problem!
+;					 ;;The structures you will need should be available because they are public in the _IO routines
 ;                    if (rec.some_tag_field=="1") then
 ;                        mreturn "STRUCTURE1"
 ;                    if (rec.some_tag_field=="2") then
@@ -263,13 +278,28 @@ namespace <NAMESPACE>
 ;                    if (rec.some_tag_field=="3")
 ;                        mreturn "STRUCTURE3"
 ;                end
-;               (),
-;                    mreturn "*BUG*"
+;
+;				 ;An example of a file with a header record defined using one structure, and data with another.
+;                ("FILENAME"),
+;                begin
+;                    data rec, strSomething, aRecord
+;                    ;;Make sure you cover all the bases here, if not it'll be a problem!
+;					 ;;The structures you will need should be available because they are public in the _IO routines
+;                    if (rec.some_tag_field=="HEADER") then
+;                        mreturn "*IGNORE"
+;                    if (rec.some_tag_field=="DATA") then
+;                        mreturn "STRUCTURE"
+;                end
+;
+;				 ;Anything else, the programmer forgot to declare it here.
+;				 ;Returning anything beginning with * will cause the replication request to be ignored
+;                (),
+;                    mreturn "*BUG"
 ;                endusing
 ;            end
 ;            else
 ;            begin
-                mreturn mStructureName
+                mreturn mTableName
 ;            end
 
         endmethod
