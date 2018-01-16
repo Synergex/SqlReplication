@@ -36,7 +36,6 @@
 ;;
 ;;*****************************************************************************
 
-import SynPSG.ReplicationDemo
 import System.Collections
 import Tools
 
@@ -44,6 +43,7 @@ structure strStructureData
 	structure_name      ,a32    ;;Name of structure
 	structure_chan      ,i4     ;;ISAM channel being used
 	structure_size      ,i4     ;;Record length
+	structure_type      ,a10    ;;Type (DBL ISAM, RELATIVE)
 	structure_keynum    ,i4     ;;Key number of unique key being used
 endstructure
 
@@ -72,7 +72,8 @@ main replicator
 		rows                ,i4                 ;;Number of rows affected
 		functionName        ,string             ;;External function to call
 		primaryKey          ,string             ;;Primary key of current record
-		keyValue            ,string             ;;Key value of the current record
+		keyValue            ,string             ;;Key value of the current ISAM record
+		recordNumber        ,d28                ;;Record number of the current relative record
 		dberrtxt            ,a1024
 		structure_data      ,strStructureData
 		clValues            ,@ArrayList         ;;Values of a command-line parameter
@@ -609,7 +610,7 @@ proc
 	begin
 		;;Enable and Initialize SQL Connection
 		.ifdef OS_VMS
-        xcall init_ssql
+		xcall init_ssql
 		.else
 		status = %option(48,1)
 		.endc
@@ -727,6 +728,7 @@ proc
 				if ( (instruction.action==(i)REPLICATION_INSTRUCTION.CREATE_ROW)
 				&	|| (instruction.action==(i)REPLICATION_INSTRUCTION.UPDATE_ROW)
 				&	|| (instruction.action==(i)REPLICATION_INSTRUCTION.DELETE_ROW)
+				&	|| (instruction.action==(i)REPLICATION_INSTRUCTION.UPDATE_RELATIVE)
 				&	)
 				begin
 					;;Check if we already have the file open
@@ -751,6 +753,9 @@ proc
 
 				(REPLICATION_INSTRUCTION.UPDATE_ROW),
 					call DoUpdate
+
+				(REPLICATION_INSTRUCTION.UPDATE_RELATIVE),
+					call DoUpdateRelative
 
 				(REPLICATION_INSTRUCTION.DELETE_ROW),
 					call DoDelete
@@ -884,9 +889,25 @@ CheckFileTable,
 		end
 		endtry
 
-		;;Search the first unique key. There should always be one, because without one the
-		;;constructor in the I/O hooks class would not activate replication for the file.
+		;;Get the type of the file
+		try
 		begin
+			functionName = %atrim(instruction.structure_name) + "_TYPE"
+			xcall xsubr(functionName,structure_data.structure_type)
+		end
+		catch (ex, @SynException)
+		begin
+			ok = %LogFunctionFail(functionName,ex.Errno,ex.Message)
+			return
+		end
+		endtry
+
+		using structure_data.structure_type select
+            
+		("DBL ISAM"),
+		begin
+			;;Search the first unique key. There should always be one, because without one the
+			;;constructor in the I/O hooks class would not activate replication for the file.
 			data thisKey, i4
 			structure_data.structure_keynum = -1
 			for thisKey from 0 thru %isinfo(structure_data.structure_chan,"NUMKEYS") - 1
@@ -898,13 +919,37 @@ CheckFileTable,
 					exitloop
 				end
 			end
-		end
 
-		;;Did we find a unique key?
-		if (structure_data.structure_keynum>=0) then
+			;;Did we find a unique key?
+			if (structure_data.structure_keynum>=0) then
+			begin
+				;;Report the key that will be used
+				xcall verboselog(" - Key " + %string(structure_data.structure_keynum) + " will be used to synchronize data")
+
+				;;And save the structure name
+				structure_data.structure_name = instruction.structure_name
+
+				;;Record the new open file in the namespace
+				nsptr = %nspc_add(Settings.ChannelInfo,instruction.structure_name,structure_data)
+			end
+			else
+			begin
+				;;In theory we should never get here because CodeGen should not be able to create the
+				;;required code if no unique key is present.
+				;;But just in case, this will cause the replicator to abort
+				close structure_data.structure_chan
+				clear structure_data.structure_chan
+				xcall errorlog("File for structure " + %atrim(instruction.structure_name) + " has no unique key!")
+			end
+		end
+        
+		("RELATIVE"),
 		begin
-			;;Report the key that will be used
-			xcall verboselog(" - Key " + %string(structure_data.structure_keynum) + " will be used to access the ISAM file")
+			;;Report that record numbers will be used
+			xcall verboselog(" - Record numbers will be used to synchronize data")
+
+			;;Set the key number to -1 to prevent it being used accidentally
+			structure_data.structure_keynum = -1
 
 			;;And save the structure name
 			structure_data.structure_name = instruction.structure_name
@@ -912,15 +957,8 @@ CheckFileTable,
 			;;Record the new open file in the namespace
 			nsptr = %nspc_add(Settings.ChannelInfo,instruction.structure_name,structure_data)
 		end
-		else
-		begin
-			;;In theory we should never get here because CodeGen should not be able to create the
-			;;required code if no unique key is present.
-			;;But just in case, this will cause the replicator to abort
-			close structure_data.structure_chan
-			clear structure_data.structure_chan
-			xcall errorlog("File for structure " + %atrim(instruction.structure_name) + " has no unique key!")
-		end
+        
+		endusing
 	end
 
 	return
@@ -1129,7 +1167,7 @@ DoInsert,
 	return
 
 ;;-----------------------------------------------------------------------------
-;; Update an existing row
+;; Update an existing row (ISAM)
 ;;
 DoUpdate,
 
@@ -1181,6 +1219,71 @@ DoUpdate,
 				switchDone = true
 				call DoInsert
 			end
+		end
+	end
+	else
+	begin
+		xcall LogFunctionError(functionName,status,dberrtxt)
+	end
+
+	return
+
+;;-----------------------------------------------------------------------------
+;; Update an existing row (relative)
+;;
+DoUpdateRelative,
+
+;    if (switchMode) then
+;    begin
+;        xcall verboselog(" - Update row in table " + %atrim(instruction.structure_name))
+;        switchMode = false
+;    end
+;    else
+;    begin
+	xcall verboselog("Update row in table " + %atrim(instruction.structure_name))
+
+	if (Settings.LogKeys)
+	begin
+		data pos, i4, %instr(1,instruction.record,":")
+		recordNumber = instruction.record(1:pos-1)
+		instruction.record = instruction.record(pos+1:structure_data.structure_size)
+		xcall verboselog(" - Record #: " + %string(recordNumber))
+	end
+;    end
+
+	try
+	begin
+		functionName = %atrim(instruction.structure_name) + '_UPDATE_ROW'
+		status = %xsubr(functionName,Settings.DatabaseChannel,recordNumber,instruction.record(1,structure_data.structure_size),rows,dberrtxt)
+	end
+	catch (ex, @SynException)
+	begin
+		ok = %LogFunctionFail(functionName,ex.Errno,ex.Message)
+		return
+	end
+	endtry
+
+	if (status) then
+	begin
+		if (rows) then
+		begin
+			xcall verboselog(" - Row updated")
+			Counters.Updates += 1
+		end
+		else
+		begin
+			xcall verboselog(" - Row not found!")
+;            xcall verboselog(" - Row not found, switching to INSERT")
+;            status = IO_OK
+;            if (switchDone) then
+;            begin
+;                xcall errorlog("Too many INSERT/UPDATE mode switches!")
+;            end
+;            else
+;            begin
+;                switchDone = true
+;                call DoInsert
+;            end
 		end
 	end
 	else

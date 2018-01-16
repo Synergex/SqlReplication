@@ -39,11 +39,11 @@
 main InstructionCount
 
 proc
-    xcall flags(7004020,1)
-    open(1,o,"tt:")
+	xcall flags(7004020,1)
+	open(1,o,"tt:")
 	open(2,i:i,"REPLICATOR_DATA:REPLICATION.ISM")
-    writes(1,"Instruction count: " + %string(%isinfo(2,"NUMRECS")))
-    close 2
-    close 1
-    stop
+	writes(1,"Instruction count: " + %string(%isinfo(2,"NUMRECS")))
+	close 2
+	close 1
+	stop
 endmain

@@ -35,12 +35,10 @@
 ;;
 ;;*****************************************************************************
 
-import SynPSG.ReplicationDemo
-
 main ReplicatorStop
 
 proc
-    xcall flags(7000000,1)
-    xcall Replicate(REPLICATION_INSTRUCTION.SHUTDOWN)
-    stop
+	xcall flags(7000000,1)
+	xcall Replicate(REPLICATION_INSTRUCTION.SHUTDOWN)
+	stop
 endmain

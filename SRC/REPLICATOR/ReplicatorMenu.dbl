@@ -35,8 +35,6 @@
 ;;
 ;;*****************************************************************************
 
-import SynPSG.ReplicationDemo
-
 main ReplicatorMenu
 	record
 		tt,         i4
@@ -49,11 +47,11 @@ main ReplicatorMenu
 		tableName,  a30
 	endrecord
 	.ifdef D_VMS
-    .include "REPLICATION_VMS" repository, record="instruction", end
+	.include "REPLICATION_VMS" repository, record="instruction", end
 	.else
 	.include "REPLICATION" repository, record="instruction", end
 	.endc
-	record outbuf 
+	record outbuf
 		operation,  a20
 		,           a2
 		table,      a30
@@ -70,18 +68,20 @@ proc
 	xcall flags(7004000,1)
 	open(tt=0,i,"tt:")
 
-	.ifdef D_VMS
 	try
 	begin
 		xcall openelb("REPLICATOR_SH")
 	end
 	catch (ex, @Exception)
 	begin
+		.ifdef D_VMS
 		display(tt,"ERROR: Failed to activate shared image REPLICATOR_SH")
+		.else
+		display(tt,"ERROR: Failed to activate ELB EXE:library.elb")
+		.endc
 		stop
 	end
 	endtry
-	.endc
 
 	display(tt,$SCR_POS(1,1),$SCR_CLR(SCREEN))
 
@@ -245,7 +245,7 @@ eof,        close chn
 			display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Command executed")
 		end
 
-		.ifndef D_VMS
+			.ifndef D_VMS
 		("Q "),
 		begin
 			data chn, i4
@@ -260,7 +260,7 @@ eof,        close chn
 				accept(tt,chn)
 			nextloop
 		end
-		.endc
+			.endc
 
 		("I "),
 		begin
@@ -296,7 +296,7 @@ eof,        close chn
 				;;Call the _LENGTH rotuine to make sure we have code for the table
 				try
 				begin
-                    data length, int, %xsubr(%atrim(tableName) + "_LENGTH")
+					data length, int, %xsubr(%atrim(tableName) + "_LENGTH")
 					display(tt,$SCR_POS(2,55),$SCR_CLR(EOL),%atrim(tableName))
 					nextloop
 				end
