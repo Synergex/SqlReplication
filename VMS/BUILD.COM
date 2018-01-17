@@ -9,18 +9,19 @@ $ WRITE SYS$OUTPUT "Prototyping library routines..."
 $ DBLPROTO -OUT LIBRARY LIBSRC:*.DBL
 $ !
 $ WRITE SYS$OUTPUT "Compiling library routines..."
-$ DIB/DEB/OBJ=OBJ:LIBRARY.OBJ -
+$ DIB/OPT/OBJ=OBJ:LIBRARY.OBJ -
    LIBSRC:ConfigureReplication.dbl -
  + LIBSRC:DepartmentIO.dbl -
  + LIBSRC:EmployeeIO.dbl -
  + LIBSRC:EmployeeSqlIO.dbl -
+ + LIBSRC:IOHooksISAM.dbl -
+ + LIBSRC:IOHooksRELATIVE.dbl -
  + LIBSRC:IsDate.dbl -
  + LIBSRC:IsNumeric.dbl -
  + LIBSRC:IsTime.dbl -
  + LIBSRC:LastRecordCache.dbl -
  + LIBSRC:PopulateReplicationKey.dbl - 
  + LIBSRC:Replicate.dbl -
- + LIBSRC:ReplicationIoHooks.dbl -
  + LIBSRC:SmtpMail.dbl
 $ !
 $ WRITE SYS$OUTPUT "Creating object library LIBRARY.OLB..."
@@ -35,13 +36,13 @@ $ WRITE SYS$OUTPUT "Compiling replicator and utilities..."
 $ !
 $ OPTIONS_FILE="''HERE'REPLICATOR.OPT/OPT"
 $ !
-$ DIB/OPT/OBJ=OBJ: REPSRC:EMPLOYEEMAINTENANCE.DBL
-$ LINK/EXE=EXE:EMPLOYEEMAINTENANCE.EXE OBJ:EMPLOYEEMAINTENANCE.OBJ,'OPTIONS_FILE
-$ !
 $ DIB/OPT/OBJ=OBJ: REPSRC:REPLICATOR.DBL
 $ LINK/EXE=EXE:REPLICATOR.EXE OBJ:REPLICATOR.OBJ,'OPTIONS_FILE
 $ !
 $ DIB/OPT/OBJ=OBJ: REPSRC:ReplicatorMenu.dbl
 $ LINK/EXE=EXE:ReplicatorMenu.exe OBJ:ReplicatorMenu.obj,'OPTIONS_FILE
+$ !
+$ DIB/OPT/OBJ=OBJ: REPSRC:EMPLOYEEMAINTENANCE.DBL
+$ LINK/EXE=EXE:EMPLOYEEMAINTENANCE.EXE OBJ:EMPLOYEEMAINTENANCE.OBJ,'OPTIONS_FILE
 $ !
 $ EXIT
