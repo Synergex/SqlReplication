@@ -4,11 +4,11 @@
 ;;
 ;; Type:        Function (relstr_io)
 ;;
-;; Description: Performs relative file I/O for the file DAT:RELFILE.DDF
+;; Description: Performs file I/O for the file DAT:RELFILE.DDF
 ;;
 ;;*****************************************************************************
 ;;
-;; Copyright (c) 2018, Synergex International, Inc.
+;; Copyright (c) 2009, Synergex International, Inc.
 ;; All rights reserved.
 ;;
 ;; Redistribution and use in source and binary forms, with or without
@@ -54,13 +54,13 @@ function relstr_io ,^val
     .include "INC:sqlgbl.def"
 
     stack record localData
+        recordNumber            ,d28    ;;Relative record number
         lock                    ,int    ;;Lock record?
         pos                     ,int    ;;Position in a string
         errorNumber             ,int
         lineNumber              ,int
         errorMessage            ,a45
         errmsg                  ,a45    ;;Error message
-        recNum                  ,d28    ;;Hold original record number
     endrecord
 
 proc
@@ -70,8 +70,8 @@ proc
     onerror fatalIoError
 
     if ^passed(a_recnum)
-        recNum = a_recnum
-
+        recordNumber = a_recnum
+    
     if (!^passed(a_lock)) then
         lock = Q_NO_LOCK
     else
@@ -100,7 +100,7 @@ proc
 
     (IO_READ),
     begin
-        read(a_channel,relstr,recNum,LOCK:lock) [$ERR_EOF=endOfFile,$ERR_LOCKED=recordLocked,$ERR_KEYNOT=keyNotFound]
+        read(a_channel,relstr,recordNumber,LOCK:lock) [$ERR_EOF=endOfFile,$ERR_LOCKED=recordLocked,$ERR_KEYNOT=keyNotFound]
     end
 
     (IO_READ_NEXT),
@@ -116,7 +116,7 @@ proc
             clear relstr.field3
         if (!relstr.field4||!%IsTime(^a(relstr.field4)))
             clear relstr.field4
-        write(a_channel,relstr,recNum) [$ERR_NOCURR=noCurrentRecord]
+        write(a_channel,relstr,recordNumber) [$ERR_NOCURR=noCurrentRecord]
     end
 
     (IO_UNLOCK),

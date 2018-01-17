@@ -174,7 +174,6 @@
             <F N="../SRC/TEMPLATES/SqlIO.tpl"/>
             <F N="../SRC/TEMPLATES/structureio.def"/>
             <F N="../SRC/TEMPLATES/SynIO.tpl"/>
-            <F N="../SRC/TEMPLATES/SynIORel.tpl"/>
         </Folder>
         <Folder
             Name="Source Files"

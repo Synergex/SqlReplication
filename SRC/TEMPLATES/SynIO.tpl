@@ -61,11 +61,18 @@ function <structure_name>_io ,^val
 
     required in    a_mode       ,n  ;;Access type
     required inout a_channel    ,n  ;;Channel
+    <IF STRUCTURE_ISAM>
     optional in    a_key        ,a  ;;Key value
     optional in    a_keynum     ,n  ;;Key number
+    </IF STRUCTURE_ISAM>
+    <IF STRUCTURE_RELATIVE>
+    optional in    a_recnum     ,n  ;;Record number
+    </IF STRUCTURE_RELATIVE>
     optional inout <structure_name>, str<StructureName>
     optional in    a_lock       ,n  ;;If passed and TRUE, lock record
+    <IF STRUCTURE_ISAM>
     optional in    a_partial    ,n  ;;Do a partial key lookup
+    </IF STRUCTURE_ISAM>
     optional out   a_errtxt     ,a  ;;Returned error text
     endparams
 
@@ -73,27 +80,35 @@ function <structure_name>_io ,^val
     .include "INC:sqlgbl.def"
 
     stack record localData
+        <IF STRUCTURE_ISAM>
         keyno                   ,int    ;;Key number
         keylen                  ,int    ;;Key length
+        keyValue                ,a255   ;;Hold original key
+        </IF STRUCTURE_ISAM>
+        <IF STRUCTURE_RELATIVE>
+        recordNumber            ,d28    ;;Relative record number
+        </IF STRUCTURE_RELATIVE>
         lock                    ,int    ;;Lock record?
         pos                     ,int    ;;Position in a string
         errorNumber             ,int
         lineNumber              ,int
         errorMessage            ,a45
         errmsg                  ,a45    ;;Error message
-        keyValue                ,a255   ;;Hold original key
     endrecord
 
+    <IF STRUCTURE_ISAM>
     <IF STRUCTURE_TAGS>
     .define TAG_MATCH <TAG_LOOP><TAGLOOP_CONNECTOR_C><structure_name>.<TAGLOOP_FIELD_NAME><TAGLOOP_OPERATOR_C><TAGLOOP_TAG_VALUE></TAG_LOOP>
 
     </IF STRUCTURE_TAGS>
+    </IF STRUCTURE_ISAM>
 proc
 
     init localData
 
     onerror fatalIoError
 
+    <IF STRUCTURE_ISAM>
     if ^passed(a_key)
     begin
         keyValue = a_key
@@ -117,6 +132,12 @@ proc
             keylen = ^len(%keyval(a_channel,<structure_name>,keyno))
     end
 
+    </IF STRUCTURE_ISAM>
+    <IF STRUCTURE_RELATIVE>
+    if ^passed(a_recnum)
+        recordNumber = a_recnum
+    
+    </IF STRUCTURE_RELATIVE>
     if (!^passed(a_lock)) then
         lock = Q_NO_LOCK
     else
@@ -129,22 +150,25 @@ proc
 
     (IO_OPEN_INP),
     begin
-        open(a_channel=0,i:i,"<FILE_NAME>") [ERR=openError]
+        open(a_channel=0,<IF STRUCTURE_ISAM>i:i</IF STRUCTURE_ISAM><IF STRUCTURE_RELATIVE>i:r</IF STRUCTURE_RELATIVE>,"<FILE_NAME>") [ERR=openError]
     end
 
     (IO_OPEN_UPD),
     begin
-        open(a_channel=0,u:i,"<FILE_NAME>") [ERR=openError]
+        open(a_channel=0,<IF STRUCTURE_ISAM>u:i</IF STRUCTURE_ISAM><IF STRUCTURE_RELATIVE>u:r</IF STRUCTURE_RELATIVE>,"<FILE_NAME>") [ERR=openError]
         <IF DEFINED_ATTACH_IO_HOOKS>
         xcall ConfigureReplication(a_channel)
         </IF>
     end
 
+    <IF STRUCTURE_ISAM>
     (IO_FIND),
     begin
         find(a_channel,,keyValue(1:keylen),KEYNUM:keyno) [$ERR_EOF=endOfFile,$ERR_LOCKED=recordLocked,$ERR_KEYNOT=keyNotFound]
     end
 
+    </IF STRUCTURE_ISAM>
+    <IF STRUCTURE_ISAM>
     (IO_FIND_FIRST),
     begin
         .ifdef TAG_VALUE
@@ -154,8 +178,10 @@ proc
         .endc
     end
 
+    </IF STRUCTURE_ISAM>
     (IO_READ_FIRST),
     begin
+        <IF STRUCTURE_ISAM>
         <IF STRUCTURE_TAGS>
         find(a_channel,,^FIRST,KEYNUM:keyno,LOCK:lock) [$ERR_EOF=endOfFile,$ERR_LOCKED=recordLocked,$ERR_KEYNOT=keyNotFound]
         repeat
@@ -169,15 +195,25 @@ proc
         <ELSE>
         read(a_channel,<structure_name>,^FIRST,KEYNUM:keyno)    [$ERR_EOF=endOfFile,$ERR_LOCKED=recordLocked,$ERR_KEYNOT=keyNotFound]
         </IF STRUCTURE_TAGS>
+        </IF STRUCTURE_ISAM>
+        <IF STRUCTURE_RELATIVE>
+        read(a_channel,<structure_name>,^FIRST)    [$ERR_EOF=endOfFile,$ERR_LOCKED=recordLocked,$ERR_KEYNOT=keyNotFound]
+        </IF STRUCTURE_RELATIVE>
     end
 
     (IO_READ),
     begin
+        <IF STRUCTURE_ISAM>
         read(a_channel,<structure_name>,keyValue(1:keylen),KEYNUM:keyno,LOCK:lock) [$ERR_EOF=endOfFile,$ERR_LOCKED=recordLocked,$ERR_KEYNOT=keyNotFound]
+        </IF STRUCTURE_ISAM>
+        <IF STRUCTURE_RELATIVE>
+        read(a_channel,<structure_name>,recordNumber,LOCK:lock) [$ERR_EOF=endOfFile,$ERR_LOCKED=recordLocked,$ERR_KEYNOT=keyNotFound]
+        </IF STRUCTURE_RELATIVE>
     end
 
     (IO_READ_NEXT),
     begin
+        <IF STRUCTURE_ISAM>
         <IF STRUCTURE_TAGS>
         repeat
         begin
@@ -188,8 +224,13 @@ proc
         <ELSE>
         reads(a_channel,<structure_name>,LOCK:lock) [$ERR_EOF=endOfFile,$ERR_LOCKED=recordLocked,$ERR_KEYNOT=keyNotFound]
         </IF STRUCTURE_TAGS>
+        </IF STRUCTURE_ISAM>
+        <IF STRUCTURE_RELATIVE>
+        reads(a_channel,<structure_name>,LOCK:lock) [$ERR_EOF=endOfFile,$ERR_LOCKED=recordLocked,$ERR_KEYNOT=keyNotFound]
+        </IF STRUCTURE_RELATIVE>
     end
 
+    <IF STRUCTURE_ISAM>
     (IO_CREATE),
     begin
         <IF DEFINED_CLEAN_DATA>
@@ -226,6 +267,7 @@ timeStampClash,
         end
     end
 
+    </IF STRUCTURE_ISAM>
     (IO_UPDATE),
     begin
         <IF DEFINED_CLEAN_DATA>
@@ -244,14 +286,16 @@ timeStampClash,
         </IF>
         </FIELD_LOOP>
         </IF>
-        write(a_channel,<structure_name>) [$ERR_NOCURR=noCurrentRecord]
+        write(a_channel,<structure_name><IF STRUCTURE_RELATIVE>,recordNumber</IF STRUCTURE_RELATIVE>) [$ERR_NOCURR=noCurrentRecord]
     end
 
+    <IF STRUCTURE_ISAM>
     (IO_DELETE),
     begin
         delete(a_channel) [$ERR_NOCURR=noCurrentRecord]
     end
 
+    </IF STRUCTURE_ISAM>
     (IO_UNLOCK),
     begin
         unlock a_channel

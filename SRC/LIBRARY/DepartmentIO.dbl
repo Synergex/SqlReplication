@@ -58,13 +58,13 @@ function department_io ,^val
     stack record localData
         keyno                   ,int    ;;Key number
         keylen                  ,int    ;;Key length
+        keyValue                ,a255   ;;Hold original key
         lock                    ,int    ;;Lock record?
         pos                     ,int    ;;Position in a string
         errorNumber             ,int
         lineNumber              ,int
         errorMessage            ,a45
         errmsg                  ,a45    ;;Error message
-        keyValue                ,a255   ;;Hold original key
     endrecord
 
 proc
