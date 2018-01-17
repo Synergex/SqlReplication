@@ -20,7 +20,8 @@ are to be replicated. If your application already uses one or more subroutines
 to open its data files then those subroutines will be the only places that you
 need to alter, and the required change will typically be the addition of just
 a few lines of code to those routines. The code in the generated I/O hooks
-class detects and records changes to the ISAM files that are being replicated.
+class detects and records changes to the ISAM and relative files that are
+being replicated.
 
 Once this change information is being recorded a single process called the
 "replicator" is used to cause those changes to be mirrored to corresponding
