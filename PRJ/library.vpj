@@ -166,17 +166,15 @@
             <F N="../SRC/TEMPLATES/IsNumeric.dbl"/>
             <F N="../SRC/TEMPLATES/IsTime.dbl"/>
             <F N="../SRC/TEMPLATES/LastRecordCache.tpl"/>
-            <F N="../SRC/TEMPLATES/PopulateReplicationKey.dbl"/>
+            <F N="../SRC/TEMPLATES/PopulateReplicationKey.tpl"/>
             <F N="../SRC/TEMPLATES/replicate.tpl"/>
             <F N="../SRC/TEMPLATES/ReplicationIoHooks.tpl"/>
+            <F N="../SRC/TEMPLATES/ReplicationIoHooksRel.tpl"/>
             <F N="../SRC/TEMPLATES/sqlgbl.def"/>
             <F N="../SRC/TEMPLATES/SqlIO.tpl"/>
             <F N="../SRC/TEMPLATES/structureio.def"/>
             <F N="../SRC/TEMPLATES/SynIO.tpl"/>
-            <F N="../SRC/TEMPLATES/tk_change.tpl"/>
-            <F N="../SRC/TEMPLATES/tk_drill.tpl"/>
-            <F N="../SRC/TEMPLATES/tk_lookup.tpl"/>
-            <F N="../SRC/TEMPLATES/tk_maint_tab.tpl"/>
+            <F N="../SRC/TEMPLATES/SynIORel.tpl"/>
         </Folder>
         <Folder
             Name="Source Files"
@@ -192,9 +190,11 @@
             <F N="../SRC/LIBRARY/IsTime.dbl"/>
             <F N="../SRC/LIBRARY/LastRecordCache.dbl"/>
             <F N="../SRC/LIBRARY/PopulateReplicationKey.dbl"/>
+            <F N="../SRC/LIBRARY/RelstrIO.dbl"/>
+            <F N="../SRC/LIBRARY/RelstrSqlIO.dbl"/>
             <F N="../SRC/LIBRARY/Replicate.dbl"/>
             <F N="../SRC/LIBRARY/ReplicationIoHooks.dbl"/>
-            <F N="../SRC/LIBRARY/ReplicatorControl.dbl"/>
+            <F N="../SRC/LIBRARY/ReplicationIoHooksRel.dbl"/>
             <F N="../SRC/LIBRARY/SmtpMail.dbl"/>
         </Folder>
         <Folder

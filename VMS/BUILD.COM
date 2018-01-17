@@ -21,7 +21,6 @@ $ DIB/DEB/OBJ=OBJ:LIBRARY.OBJ -
  + LIBSRC:PopulateReplicationKey.dbl - 
  + LIBSRC:Replicate.dbl -
  + LIBSRC:ReplicationIoHooks.dbl -
- + LIBSRC:ReplicatorControl.dbl -
  + LIBSRC:SmtpMail.dbl
 $ !
 $ WRITE SYS$OUTPUT "Creating object library LIBRARY.OLB..."
