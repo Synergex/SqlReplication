@@ -398,9 +398,9 @@ proc
 
     if (ok)
     begin
-        ;;Load data into bound record
-
-        relstr = a_data
+        ;;Load the data into the bound record
+        
+		relstr = a_data
 
         ;;Clean up any alpha fields
 
@@ -1196,7 +1196,7 @@ function relstr_load, ^val
         .include "RELSTR" repository, group="inprec"
     endstructure
     .include "RELSTR" repository, structure="RELSTR", end
-    .include "RELSTR" repository, stack record="TMPREC", end
+    .include "RELSTR" repository, stack record="tmprec", end
     .include "INC:structureio.def"
 
     .define BUFFER_ROWS     1000

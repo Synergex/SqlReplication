@@ -480,9 +480,9 @@ proc
 
     if (ok)
     begin
-        ;;Load data into bound record
-
-        employee = a_data
+        ;;Load the data into the bound record
+        
+		employee = a_data
 
         ;;Clean up any alpha fields
 
@@ -1487,7 +1487,7 @@ function employee_load, ^val
 
     .include "CONNECTDIR:ssql.def"
     .include "EMPLOYEE" repository, structure="inpbuf", end
-    .include "EMPLOYEE" repository, stack record="TMPREC", end
+    .include "EMPLOYEE" repository, stack record="tmprec", end
     .include "INC:structureio.def"
 
     .define BUFFER_ROWS     1000
