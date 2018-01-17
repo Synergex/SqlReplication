@@ -49,10 +49,6 @@ subroutine ConfigureReplication
 	.include "INC:sqlgbl.def"
 	.undefine common
 
-	external function
-		doFile, boolean
-	endexternal
-
 proc
 	;;Get the file spec from the open channel
 	xcall filnm(channel,fileSpec)
