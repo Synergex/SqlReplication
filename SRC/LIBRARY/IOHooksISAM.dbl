@@ -1,8 +1,8 @@
 ;;*****************************************************************************
 ;;
-;; File:        ReplicationIoHooks.dbl
+;; File:        IoHooksISAM.dbl
 ;;
-;; Type:        Class (ReplicationIoHooks)
+;; Type:        Class (IoHooksISAM)
 ;;
 ;; Description: An I/O Hooks class that implements SQL data replication for ISAM files
 ;;
@@ -46,7 +46,7 @@ namespace SynPSG.ReplicationDemo
     ;;-------------------------------------------------------------------------
     ;;I/O hooks class that implements SQL Replication
     ;;
-    public sealed class ReplicationIoHooks extends IOHooks
+    public sealed class IoHooksISAM extends IOHooks
 
         private mTableName, string
         private mActive, boolean, false
@@ -58,7 +58,7 @@ namespace SynPSG.ReplicationDemo
         ;;---------------------------------------------------------------------
         ;;Constructor
 
-        public method ReplicationIoHooks
+        public method IoHooksISAM
             required in aChannel, n
             required in aTableName, string
             endparams

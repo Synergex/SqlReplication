@@ -162,13 +162,14 @@
             Filters="*.tpl">
             <F N="../SRC/TEMPLATES/ConfigureReplication.tpl"/>
             <F N="../SRC/TEMPLATES/FileDataReport.tpl"/>
+            <F N="../SRC/TEMPLATES/IOHooksISAM.tpl"/>
+            <F N="../SRC/TEMPLATES/IOHooksRELATIVE.tpl"/>
             <F N="../SRC/TEMPLATES/IsDate.dbl"/>
             <F N="../SRC/TEMPLATES/IsNumeric.dbl"/>
             <F N="../SRC/TEMPLATES/IsTime.dbl"/>
             <F N="../SRC/TEMPLATES/LastRecordCache.tpl"/>
             <F N="../SRC/TEMPLATES/PopulateReplicationKey.tpl"/>
             <F N="../SRC/TEMPLATES/replicate.tpl"/>
-            <F N="../SRC/TEMPLATES/ReplicationIoHooks.tpl"/>
             <F N="../SRC/TEMPLATES/sqlgbl.def"/>
             <F N="../SRC/TEMPLATES/SqlIO.tpl"/>
             <F N="../SRC/TEMPLATES/structureio.def"/>
@@ -183,6 +184,8 @@
             <F N="../SRC/LIBRARY/EmployeeSqlIO.dbl"/>
             <F N="../SRC/LIBRARY/GenerateDepartmentData.dbl"/>
             <F N="../SRC/LIBRARY/GenerateEmployeeData.dbl"/>
+            <F N="../SRC/LIBRARY/IOHooksISAM.dbl"/>
+            <F N="../SRC/LIBRARY/IOHooksRELATIVE.dbl"/>
             <F N="../SRC/LIBRARY/IsDate.dbl"/>
             <F N="../SRC/LIBRARY/IsNumeric.dbl"/>
             <F N="../SRC/LIBRARY/IsTime.dbl"/>
@@ -191,8 +194,6 @@
             <F N="../SRC/LIBRARY/RelstrIO.dbl"/>
             <F N="../SRC/LIBRARY/RelstrSqlIO.dbl"/>
             <F N="../SRC/LIBRARY/Replicate.dbl"/>
-            <F N="../SRC/LIBRARY/ReplicationIoHooks.dbl"/>
-            <F N="../SRC/LIBRARY/ReplicationIoHooksRel.dbl"/>
             <F N="../SRC/LIBRARY/SmtpMail.dbl"/>
         </Folder>
         <Folder

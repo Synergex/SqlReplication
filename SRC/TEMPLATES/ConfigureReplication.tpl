@@ -74,28 +74,28 @@ proc
 
 ;       ;;A single-record layout file that already had a unique key
 ;       ("FILE1.ISM"),
-;           new ReplicationIoHooks(channel,"FILE1")
+;           new IoHooksISAM(channel,"FILE1")
 ;
 ;       ;;A single-record layout file with REPLICATION_KEY added
 ;       ("FILE2.ISM"),
 ;       begin
-;           new ReplicationIoHooks(channel,"FILE2")
+;           new IoHooksISAM(channel,"FILE2")
 ;           repkey_required[channel] = 1
 ;       end
 ;
 ;       ;;A multi-record layout file that already had a unique key
 ;       ("FILE3.ISM"), ;;Multiple possibilities (FILE3A, FILE3B, FILE3C)
-;           new ReplicationIoHooks(channel,"MULTI_FILE3")
+;           new IoHooksISAM(channel,"MULTI_FILE3")
 ;
 ;       ;;A multi-record layout file with REPLICATION_KEY added
 ;       ("FILE4.ISM"), ;;Multiple possibilities (FILE4A, FILE4B, FILE4C)
 ;       begin
-;           new ReplicationIoHooks(channel,"MULTI_FILE4")
+;           new IoHooksISAM(channel,"MULTI_FILE4")
 ;           repkey_required[channel] = 1
 ;       end
 
 		("EMPLOYEE.ISM"),
-			new ReplicationIoHooks(channel,"EMPLOYEE")
+			new IoHooksISAM(channel,"EMPLOYEE")
 
 		endusing
 	end
@@ -105,7 +105,7 @@ proc
 
 ;		;;A relative file
 ;       ("FILE1.DDF"),
-;           new ReplicationIoHooksRel(channel,"FILE1")
+;           new IoHooksRELATIVE(channel,"FILE1")
 
 		endusing
 	end

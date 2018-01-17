@@ -1,10 +1,9 @@
-<CODEGEN_FILENAME>ReplicationIoHooksRel.dbl</CODEGEN_FILENAME>
+<CODEGEN_FILENAME>IOHooksRELATIVE.dbl</CODEGEN_FILENAME>
 ;//*****************************************************************************
 ;//
-;// Title:      ReplicationIoHooksRel.tpl
+;// Title:      IOHooksRELATIVE.tpl
 ;//
-;// Description:Template to generate an IO Hooks class for use with SQL replication
-;//             of relative files.
+;// Description:IO Hooks class for use with SQL replication of relative files.
 ;//
 ;// Author:     Steve Ives, Synergex Professional Services Group
 ;//
@@ -12,9 +11,9 @@
 ;//
 ;;*****************************************************************************
 ;;
-;; File:        ReplicationIoHooksRel.dbl
+;; File:        IOHooksRELATIVE.dbl
 ;;
-;; Type:        Class (ReplicationIoHooksRel)
+;; Type:        Class (IOHooksRELATIVE)
 ;;
 ;; Description: An I/O Hooks class that implements SQL data replication for relative files
 ;;
@@ -58,7 +57,7 @@ namespace <NAMESPACE>
     ;;-------------------------------------------------------------------------
     ;;I/O hooks class that implements SQL Replication for relative files
     ;;
-    public sealed class ReplicationIoHooksRel extends IOHooks
+    public sealed class IOHooksRELATIVE extends IOHooks
 
         private mTableName, string
         private mActive, boolean, false
@@ -67,7 +66,7 @@ namespace <NAMESPACE>
         ;;---------------------------------------------------------------------
         ;;Constructor
 
-        public method ReplicationIoHooksRel
+        public method IOHooksRELATIVE
             required in aChannel, n
             required in aTableName, string
             endparams

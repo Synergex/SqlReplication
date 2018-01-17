@@ -92,6 +92,12 @@
     <Compile Include="..\..\SRC\LIBRARY\GenerateEmployeeData.dbl">
       <Link>GenerateEmployeeData.dbl</Link>
     </Compile>
+    <Compile Include="..\..\SRC\LIBRARY\IOHooksISAM.dbl">
+      <Link>IOHooksISAM.dbl</Link>
+    </Compile>
+    <Compile Include="..\..\SRC\LIBRARY\IOHooksRELATIVE.dbl">
+      <Link>IOHooksRELATIVE.dbl</Link>
+    </Compile>
     <Compile Include="..\..\SRC\LIBRARY\IsDate.dbl">
       <Link>IsDate.dbl</Link>
     </Compile>
@@ -115,12 +121,6 @@
     </Compile>
     <Compile Include="..\..\SRC\LIBRARY\Replicate.dbl">
       <Link>Replicate.dbl</Link>
-    </Compile>
-    <Compile Include="..\..\SRC\LIBRARY\ReplicationIoHooks.dbl">
-      <Link>ReplicationIoHooks.dbl</Link>
-    </Compile>
-    <Compile Include="..\..\SRC\LIBRARY\ReplicationIoHooksRel.dbl">
-      <Link>ReplicationIoHooksRel.dbl</Link>
     </Compile>
     <Compile Include="..\..\SRC\LIBRARY\SmtpMail.dbl">
       <Link>SmtpMail.dbl</Link>

@@ -1,8 +1,8 @@
 ;;*****************************************************************************
 ;;
-;; File:        ReplicationIoHooksRel.dbl
+;; File:        IOHooksRELATIVE.dbl
 ;;
-;; Type:        Class (ReplicationIoHooksRel)
+;; Type:        Class (IOHooksRELATIVE)
 ;;
 ;; Description: An I/O Hooks class that implements SQL data replication for relative files
 ;;
@@ -46,7 +46,7 @@ namespace SynPSG.ReplicationDemo
     ;;-------------------------------------------------------------------------
     ;;I/O hooks class that implements SQL Replication for relative files
     ;;
-    public sealed class ReplicationIoHooksRel extends IOHooks
+    public sealed class IOHooksRELATIVE extends IOHooks
 
         private mTableName, string
         private mActive, boolean, false
@@ -55,7 +55,7 @@ namespace SynPSG.ReplicationDemo
         ;;---------------------------------------------------------------------
         ;;Constructor
 
-        public method ReplicationIoHooksRel
+        public method IOHooksRELATIVE
             required in aChannel, n
             required in aTableName, string
             endparams

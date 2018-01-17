@@ -1,10 +1,9 @@
-<CODEGEN_FILENAME>ReplicationIoHooks.dbl</CODEGEN_FILENAME>
+<CODEGEN_FILENAME>IOHooksISAM.dbl</CODEGEN_FILENAME>
 ;//*****************************************************************************
 ;//
-;// Title:      ReplicationIoHooks.tpl
+;// Title:      IoHooksISAM.tpl
 ;//
-;// Description:Template to generate an IO Hooks class for use with SQL replication
-;//             of ISAM files.
+;// Description:IO Hooks class for use with SQL replication of ISAM files.
 ;//
 ;// Author:     Steve Ives, Synergex Professional Services Group
 ;//
@@ -12,9 +11,9 @@
 ;//
 ;;*****************************************************************************
 ;;
-;; File:        ReplicationIoHooks.dbl
+;; File:        IoHooksISAM.dbl
 ;;
-;; Type:        Class (ReplicationIoHooks)
+;; Type:        Class (IoHooksISAM)
 ;;
 ;; Description: An I/O Hooks class that implements SQL data replication for ISAM files
 ;;
@@ -58,7 +57,7 @@ namespace <NAMESPACE>
     ;;-------------------------------------------------------------------------
     ;;I/O hooks class that implements SQL Replication
     ;;
-    public sealed class ReplicationIoHooks extends IOHooks
+    public sealed class IoHooksISAM extends IOHooks
 
         private mTableName, string
         private mActive, boolean, false
@@ -70,7 +69,7 @@ namespace <NAMESPACE>
         ;;---------------------------------------------------------------------
         ;;Constructor
 
-        public method ReplicationIoHooks
+        public method IoHooksISAM
             required in aChannel, n
             required in aTableName, string
             endparams
