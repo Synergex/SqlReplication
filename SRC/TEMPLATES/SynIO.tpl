@@ -217,16 +217,16 @@ proc
         <IF STRUCTURE_TAGS>
         repeat
         begin
-            reads(a_channel,<structure_name>,LOCK:lock) [$ERR_EOF=endOfFile,$ERR_LOCKED=recordLocked,$ERR_KEYNOT=keyNotFound]
+            reads(a_channel,<structure_name>,,LOCK:lock) [$ERR_EOF=endOfFile,$ERR_LOCKED=recordLocked,$ERR_KEYNOT=keyNotFound]
             if (TAG_MATCH)
                 exitloop
         end
         <ELSE>
-        reads(a_channel,<structure_name>,LOCK:lock) [$ERR_EOF=endOfFile,$ERR_LOCKED=recordLocked,$ERR_KEYNOT=keyNotFound]
+        reads(a_channel,<structure_name>,,LOCK:lock) [$ERR_EOF=endOfFile,$ERR_LOCKED=recordLocked,$ERR_KEYNOT=keyNotFound]
         </IF STRUCTURE_TAGS>
         </IF STRUCTURE_ISAM>
         <IF STRUCTURE_RELATIVE>
-        reads(a_channel,<structure_name>,LOCK:lock) [$ERR_EOF=endOfFile,$ERR_LOCKED=recordLocked,$ERR_KEYNOT=keyNotFound]
+        reads(a_channel,<structure_name>,,LOCK:lock) [$ERR_EOF=endOfFile,$ERR_LOCKED=recordLocked,$ERR_KEYNOT=keyNotFound]
         </IF STRUCTURE_RELATIVE>
     end
 

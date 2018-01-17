@@ -169,7 +169,6 @@
             <F N="../SRC/TEMPLATES/PopulateReplicationKey.tpl"/>
             <F N="../SRC/TEMPLATES/replicate.tpl"/>
             <F N="../SRC/TEMPLATES/ReplicationIoHooks.tpl"/>
-            <F N="../SRC/TEMPLATES/ReplicationIoHooksRel.tpl"/>
             <F N="../SRC/TEMPLATES/sqlgbl.def"/>
             <F N="../SRC/TEMPLATES/SqlIO.tpl"/>
             <F N="../SRC/TEMPLATES/structureio.def"/>

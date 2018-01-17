@@ -122,9 +122,6 @@
     <Compile Include="..\..\SRC\LIBRARY\ReplicationIoHooksRel.dbl">
       <Link>ReplicationIoHooksRel.dbl</Link>
     </Compile>
-    <Compile Include="..\..\SRC\LIBRARY\ReplicatorControl.dbl">
-      <Link>ReplicatorControl.dbl</Link>
-    </Compile>
     <Compile Include="..\..\SRC\LIBRARY\SmtpMail.dbl">
       <Link>SmtpMail.dbl</Link>
     </Compile>

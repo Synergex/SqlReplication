@@ -142,7 +142,7 @@ proc
 
     (IO_READ_NEXT),
     begin
-        reads(a_channel,department,LOCK:lock) [$ERR_EOF=endOfFile,$ERR_LOCKED=recordLocked,$ERR_KEYNOT=keyNotFound]
+        reads(a_channel,department,,LOCK:lock) [$ERR_EOF=endOfFile,$ERR_LOCKED=recordLocked,$ERR_KEYNOT=keyNotFound]
     end
 
     (IO_CREATE),
