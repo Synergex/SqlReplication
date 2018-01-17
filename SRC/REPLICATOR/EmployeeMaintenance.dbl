@@ -190,35 +190,20 @@ proc
 			("E ","  "),
 			begin
 				;;All done, exit
-				if (employee!=saveEmployee)
+				using %employee_io(IO_UPDATE,ech,,,employee,,,tmpvar) select
+				(IO_OK),
 				begin
-					repeat
-					begin
-						display(tt,$scr_pos(23,2),$scr_clr(eol),"Save changes (Y/N) : ")
-						reads(tt,tmpvar(1:1))
-						using tmpvar select
-						("Y"),
-						begin
-							using %employee_io(IO_UPDATE,ech,,,employee,,,tmpvar) select
-							(IO_OK),
-								nop
-							(),
-							begin
-								display(tt,$scr_pos(23,2),$scr_clr(eol),%atrim(tmpvar))
-								reads(tt,tmpvar(1:1))
-								display(tt,$scr_pos(23,2),$scr_clr(eol))
-							end
-							endusing
-							exitloop
-						end
-						("N"),
-						begin
-							unlock ech
-							exitloop
-						end
-						endusing
-					end
+					display(tt,$scr_pos(23,2),$scr_clr(eol),"Employee record saved")
+					sleep 0.5
+					display(tt,$scr_pos(23,2),$scr_clr(eol))
 				end
+				(),
+				begin
+					display(tt,$scr_pos(23,2),$scr_clr(eol),%atrim(tmpvar))
+					reads(tt,tmpvar(1:1))
+					display(tt,$scr_pos(23,2),$scr_clr(eol))
+				end
+				endusing
 				exitloop
 			end
 			("D "),
@@ -341,7 +326,7 @@ EditField,
 FirstName,
 
 	xcall flags(20,1)
-	display(tt,$scr_pos(6,20))
+	display(tt,$scr_pos(6,20),$scr_clr(eol))
 	reads(tt,employee.emp_first_name)
 	xcall flags(20,0)
 
@@ -350,7 +335,7 @@ FirstName,
 LastName,
 
 	xcall flags(20,1)
-	display(tt,$scr_pos(7,20))
+	display(tt,$scr_pos(7,20),$scr_clr(eol))
 	reads(tt,employee.emp_last_name)
 	xcall flags(20,0)
 
