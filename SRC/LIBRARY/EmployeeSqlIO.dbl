@@ -1461,7 +1461,7 @@ endfunction
 
 ;;*****************************************************************************
 ;;; <summary>
-;;; Load all data from DAT:EMPLOYEE.ISM into the Employee table.
+;;; Load all data from REPLICATOR_DATA:EMPLOYEE.ISM into the Employee table.
 ;;; </summary>
 ;;; <param name="a_dbchn">Connected database channel.</param>
 ;;; <param name="a_errtxt">Returned error text.</param>
@@ -1524,7 +1524,7 @@ proc
     if (%EmployeeIO(IO_OPEN_INP,filechn)!=IO_OK)
     begin
         ok = false
-        errtxt = "Failed to open file DAT:EMPLOYEE.ISM"
+        errtxt = "Failed to open file REPLICATOR_DATA:EMPLOYEE.ISM"
         clear filechn
     end
 
@@ -1707,7 +1707,7 @@ endsubroutine
 
 ;;*****************************************************************************
 ;;; <summary>
-;;; Exports DAT:EMPLOYEE.ISM to a CSV file.
+;;; Exports REPLICATOR_DATA:EMPLOYEE.ISM to a CSV file.
 ;;; </summary>
 ;;; <param name="a_errtxt">Returned error text.</param>
 ;;; <returns>Returns true on success, otherwise false.</returns>
@@ -1742,7 +1742,7 @@ proc
     if (%EmployeeIO(IO_OPEN_INP,filechn)!=IO_OK)
     begin
         ok = false
-        errtxt = "Failed to open file DAT:EMPLOYEE.ISM"
+        errtxt = "Failed to open file REPLICATOR_DATA:EMPLOYEE.ISM"
         clear filechn
     end
 

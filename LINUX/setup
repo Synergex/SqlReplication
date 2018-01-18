@@ -7,7 +7,6 @@ export SYNEXPDIR=../PROTO
 export SYNIMPDIR=../PROTO
 export OBJ=../OBJ
 export EXE=../EXE
-export DAT=../DAT
 export XDL=../XDL
 export REPLICATOR_DATA=../DAT
 export RPSMFIL=../RPS/rpsmain.ism
@@ -21,12 +20,12 @@ if [ ! -f $RPSMFIL ]; then
     dbr RPS:rpsutl -i ../RPS/rps.sch -ia -ir  
 fi
 
-if [ ! -f $DAT/DEPARTMENT.ISM ]; then
-    fconvert -it $DAT/DEPARTMENT.SEQ -oi $DAT/DEPARTMENT.ISM -d $XDL/DEPARTMENT.XDL  
+if [ ! -f $REPLICATOR_DATA/DEPARTMENT.ISM ]; then
+    fconvert -it $REPLICATOR_DATA/DEPARTMENT.SEQ -oi $REPLICATOR_DATA/DEPARTMENT.ISM -d $XDL/DEPARTMENT.XDL  
 fi
 
-if [ ! -f $DAT/EMPLOYEE.ISM ]; then
-    fconvert -it $DAT/EMPLOYEE.SEQ -oi $DAT/EMPLOYEE.ISM -d $XDL/EMPLOYEE.XDL 
+if [ ! -f $REPLICATOR_DATA/EMPLOYEE.ISM ]; then
+    fconvert -it $REPLICATOR_DATA/EMPLOYEE.SEQ -oi $REPLICATOR_DATA/EMPLOYEE.ISM -d $XDL/EMPLOYEE.XDL 
 fi
 
 if [ ! -f $REPLICATOR_DATA/REPLICATION.ISM ]; then

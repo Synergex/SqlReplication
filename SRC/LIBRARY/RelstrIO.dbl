@@ -4,7 +4,7 @@
 ;;
 ;; Type:        Function (RelstrIO)
 ;;
-;; Description: Performs file I/O for the file DAT:RELFILE.DDF
+;; Description: Performs file I/O for the file REPLICATOR_DATA:RELFILE.DDF
 ;;
 ;;*****************************************************************************
 ;;
@@ -84,12 +84,12 @@ proc
 
     (IO_OPEN_INP),
     begin
-        open(a_channel=0,i:r,"DAT:RELFILE.DDF") [ERR=openError]
+        open(a_channel=0,i:r,"REPLICATOR_DATA:RELFILE.DDF") [ERR=openError]
     end
 
     (IO_OPEN_UPD),
     begin
-        open(a_channel=0,u:r,"DAT:RELFILE.DDF") [ERR=openError]
+        open(a_channel=0,u:r,"REPLICATOR_DATA:RELFILE.DDF") [ERR=openError]
         xcall ConfigureReplication(a_channel)
     end
 

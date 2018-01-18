@@ -1164,7 +1164,7 @@ endfunction
 
 ;;*****************************************************************************
 ;;; <summary>
-;;; Load all data from DAT:RELFILE.DDF into the Relstr table.
+;;; Load all data from REPLICATOR_DATA:RELFILE.DDF into the Relstr table.
 ;;; </summary>
 ;;; <param name="a_dbchn">Connected database channel.</param>
 ;;; <param name="a_errtxt">Returned error text.</param>
@@ -1233,7 +1233,7 @@ proc
     if (%RelstrIO(IO_OPEN_INP,filechn)!=IO_OK)
     begin
         ok = false
-        errtxt = "Failed to open file DAT:RELFILE.DDF"
+        errtxt = "Failed to open file REPLICATOR_DATA:RELFILE.DDF"
         clear filechn
     end
 
@@ -1403,7 +1403,7 @@ endsubroutine
 
 ;;*****************************************************************************
 ;;; <summary>
-;;; Exports DAT:RELFILE.DDF to a CSV file.
+;;; Exports REPLICATOR_DATA:RELFILE.DDF to a CSV file.
 ;;; </summary>
 ;;; <param name="a_errtxt">Returned error text.</param>
 ;;; <returns>Returns true on success, otherwise false.</returns>
@@ -1438,7 +1438,7 @@ proc
     if (%RelstrIO(IO_OPEN_INP,filechn)!=IO_OK)
     begin
         ok = false
-        errtxt = "Failed to open file DAT:RELFILE.DDF"
+        errtxt = "Failed to open file REPLICATOR_DATA:RELFILE.DDF"
         clear filechn
     end
 

@@ -4,7 +4,7 @@
 ;;
 ;; Type:        Function (EmployeeIO)
 ;;
-;; Description: Performs file I/O for the file DAT:EMPLOYEE.ISM
+;; Description: Performs file I/O for the file REPLICATOR_DATA:EMPLOYEE.ISM
 ;;
 ;;*****************************************************************************
 ;;
@@ -108,12 +108,12 @@ proc
 
     (IO_OPEN_INP),
     begin
-        open(a_channel=0,i:i,"DAT:EMPLOYEE.ISM") [ERR=openError]
+        open(a_channel=0,i:i,"REPLICATOR_DATA:EMPLOYEE.ISM") [ERR=openError]
     end
 
     (IO_OPEN_UPD),
     begin
-        open(a_channel=0,u:i,"DAT:EMPLOYEE.ISM") [ERR=openError]
+        open(a_channel=0,u:i,"REPLICATOR_DATA:EMPLOYEE.ISM") [ERR=openError]
         xcall ConfigureReplication(a_channel)
     end
 

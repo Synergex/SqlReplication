@@ -5,11 +5,19 @@ $ !
 $ @SETUP.COM
 $ !
 $ !------------------------------------------------------------------------------------
+$ WRITE SYS$OUTPUT "Loading repository schema..."
+$ !
+$ RPSUTL:==$RPS:RPSUTL.EXE
+$ !
+$ RPSUTL -i [-.RPS]REPLICATION.SCH -ia -ir
+$ !
+$ !------------------------------------------------------------------------------------
 $ WRITE SYS$OUTPUT "Prototyping library routines..."
+$ !
 $ DBLPROTO -OUT LIBRARY LIBSRC:*.DBL
 $ !
 $ WRITE SYS$OUTPUT "Compiling library routines..."
-$ DIB/OPT/OBJ=OBJ:LIBRARY.OBJ -
+$ DIB/OPT/VECTORS=VECTORS/OBJ=OBJ:LIBRARY.OBJ -
    LIBSRC:ConfigureReplication.dbl -
  + LIBSRC:DepartmentIO.dbl -
  + LIBSRC:EmployeeIO.dbl -
@@ -45,5 +53,18 @@ $ LINK/EXE=EXE:ReplicatorMenu.exe OBJ:ReplicatorMenu.obj,'OPTIONS_FILE
 $ !
 $ DIB/OPT/OBJ=OBJ: REPSRC:EMPLOYEEMAINTENANCE.DBL
 $ LINK/EXE=EXE:EMPLOYEEMAINTENANCE.EXE OBJ:EMPLOYEEMAINTENANCE.OBJ,'OPTIONS_FILE
+$ !
+$ !------------------------------------------------------------------------------------
+$ WRITE SYS$OUTPUT "Cleaning up..."
+$ !
+$ PURGE/KEEP=3/NOCONFIRM/NOLOG RPSMFIL
+$ PURGE/KEEP=3/NOCONFIRM/NOLOG RPSTFIL
+$ PURGE/KEEP=3/NOCONFIRM/NOLOG LIBSRC:
+$ PURGE/KEEP=3/NOCONFIRM/NOLOG REPSRC:
+$ PURGE/NOCONFIRM/NOLOG [-.RPS]*.SCH
+$ PURGE/NOCONFIRM/NOLOG LIBRARY.COM
+$ PURGE/NOCONFIRM/NOLOG VECTORS.VEC
+$ PURGE/NOCONFIRM/NOLOG OBJ:
+$ PURGE/NOCONFIRM/NOLOG EXE:
 $ !
 $ EXIT

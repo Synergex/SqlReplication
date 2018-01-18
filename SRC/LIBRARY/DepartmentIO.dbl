@@ -4,7 +4,7 @@
 ;;
 ;; Type:        Function (DepartmentIO)
 ;;
-;; Description: Performs file I/O for the file DAT:DEPARTMENT.ISM
+;; Description: Performs file I/O for the file REPLICATOR_DATA:DEPARTMENT.ISM
 ;;
 ;;*****************************************************************************
 ;;
@@ -108,12 +108,12 @@ proc
 
     (IO_OPEN_INP),
     begin
-        open(a_channel=0,i:i,"DAT:DEPARTMENT.ISM") [ERR=openError]
+        open(a_channel=0,i:i,"REPLICATOR_DATA:DEPARTMENT.ISM") [ERR=openError]
     end
 
     (IO_OPEN_UPD),
     begin
-        open(a_channel=0,u:i,"DAT:DEPARTMENT.ISM") [ERR=openError]
+        open(a_channel=0,u:i,"REPLICATOR_DATA:DEPARTMENT.ISM") [ERR=openError]
     end
 
     (IO_FIND),
