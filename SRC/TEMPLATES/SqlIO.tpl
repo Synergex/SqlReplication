@@ -389,14 +389,14 @@ function <StructureName>Insert, ^val
     literal
         sql         ,a*, "INSERT INTO <StructureName> ("
         <COUNTER_1_RESET>
-        <COUNTER_1_INCREMENT>
         <IF STRUCTURE_RELATIVE>
         & +              '"RecordNumber",'
-        </IF STRUCTURE_RELATIVE>
+		<COUNTER_1_INCREMENT>
+		</IF STRUCTURE_RELATIVE>
         <FIELD_LOOP>
-        & +              '"<FieldSqlName>"<,>'
+		& +              '"<FieldSqlName>"<,>'
         </FIELD_LOOP>
-        & +              ") VALUES(:1,<FIELD_LOOP><COUNTER_1_INCREMENT><IF USERTIMESTAMP>CONVERT(DATETIME2,:<COUNTER_1_VALUE>,21)<,><ELSE>:<COUNTER_1_VALUE><,></IF USERTIMESTAMP></FIELD_LOOP>)"
+		& +              ") VALUES(<IF STRUCTURE_RELATIVE>:1</IF STRUCTURE_RELATIVE>,<FIELD_LOOP><COUNTER_1_INCREMENT><IF USERTIMESTAMP>CONVERT(DATETIME2,:<COUNTER_1_VALUE>,21)<,><ELSE>:<COUNTER_1_VALUE><,></IF USERTIMESTAMP></FIELD_LOOP>)"
     endliteral
 
     static record
