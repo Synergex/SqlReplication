@@ -14,6 +14,7 @@ $ DIB/OPT/OBJ=OBJ:LIBRARY.OBJ -
  + LIBSRC:DepartmentIO.dbl -
  + LIBSRC:EmployeeIO.dbl -
  + LIBSRC:EmployeeSqlIO.dbl -
+ + LIBSRC:GetReplicatedTables.dbl -
  + LIBSRC:IOHooksISAM.dbl -
  + LIBSRC:IOHooksRELATIVE.dbl -
  + LIBSRC:IsDate.dbl -

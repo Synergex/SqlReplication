@@ -1,7 +1,7 @@
 . ./setup
 
 dblproto -out library $LIBSRC/*.dbl
-dbl -o OBJ:library.dbo LIBSRC:ConfigureReplication.dbl LIBSRC:DepartmentIO.dbl LIBSRC:EmployeeIO.dbl LIBSRC:EmployeeSqlIO.dbl LIBSRC:IOHooksISAM.dbl LIBSRC:IOHooksRELATIVE.dbl LIBSRC:IsDate.dbl LIBSRC:IsNumeric.dbl LIBSRC:IsTime.dbl LIBSRC:LastRecordCache.dbl LIBSRC:PopulateReplicationKey.dbl LIBSRC:Replicate.dbl LIBSRC:SmtpMail.dbl
+dbl -o OBJ:library.dbo LIBSRC:ConfigureReplication.dbl LIBSRC:DepartmentIO.dbl LIBSRC:EmployeeIO.dbl LIBSRC:EmployeeSqlIO.dbl LIBSRC:GetReplicatedTables.dbl LIBSRC:IOHooksISAM.dbl LIBSRC:IOHooksRELATIVE.dbl LIBSRC:IsDate.dbl LIBSRC:IsNumeric.dbl LIBSRC:IsTime.dbl LIBSRC:LastRecordCache.dbl LIBSRC:PopulateReplicationKey.dbl LIBSRC:Replicate.dbl LIBSRC:SmtpMail.dbl
 dblink -l EXE:library.elb OBJ:library.dbo
 
 dbl -o OBJ:replicator.dbo REPSRC:replicator.dbl
