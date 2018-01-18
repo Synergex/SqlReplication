@@ -46,7 +46,7 @@
 ;;; <param name="a_errtxt">Returned error text.</param>
 ;;; <returns>Returns 1 if the table exists, otherwise a number indicating the type of error.</returns>
 
-function employee_exists, ^val
+function EmployeeExists, ^val
 
     required in  a_dbchn,  i
     optional out a_errtxt, a
@@ -133,7 +133,7 @@ endfunction
 ;;; <param name="a_errtxt">Returned error text.</param>
 ;;; <returns>Returns true on success, otherwise false.</returns>
 
-function employee_create, ^val
+function EmployeeCreate, ^val
 
     required in  a_dbchn,  i
     optional out a_errtxt, a
@@ -361,7 +361,7 @@ endfunction
 ;;; <param name="a_errtxt">Returned error text.</param>
 ;;; <returns>Returns 1 if the row was inserted, 2 to indicate the row already exists, or 0 if an error occurred.</returns>
 
-function employee_insert_row, ^val
+function EmployeeInsert, ^val
 
     required in  a_dbchn,  i
     required in  a_data,   a
@@ -403,11 +403,9 @@ function employee_insert_row, ^val
         & +              ") VALUES(:1,:2,:3,:4,:5,:6,:7,:8,:9,:10,:11,:12,:13,:14,:15,:16,:17,:18)"
     endliteral
 
-    .include "EMPLOYEE" repository, static record="employee", end
-
     static record
+        employee, strEMPLOYEE
         tmpEmpHireTime, a5      ;;Storage for HH:MM time field
-        ,a1                         ;;In case there are no user timestamp, date or JJJJJJ date fields
     endrecord
 
     global common
@@ -482,7 +480,7 @@ proc
     begin
         ;;Load the data into the bound record
         
-		employee = a_data
+        employee = a_data
 
         ;;Clean up any alpha fields
 
@@ -596,7 +594,7 @@ endfunction
 ;;; <param name="a_terminal">Terminal number channel to log errors on.</param>
 ;;; <returns>Returns true on success, otherwise false.</returns>
 
-function employee_insert_rows, ^val
+function EmployeeInsertRows, ^val
 
     required in  a_dbchn,     i
     required in  a_data,      i
@@ -864,7 +862,7 @@ endfunction
 ;;; <param name="a_errtxt">Returned error text.</param>
 ;;; <returns>Returns true on success, otherwise false.</returns>
 
-function employee_update_row, ^val
+function EmployeeUpdate, ^val
 
     required in  a_dbchn,  i
     required in  a_data,   a
@@ -907,11 +905,9 @@ function employee_update_row, ^val
         & +              ' WHERE "EmpId"=:18  '
     endliteral
 
-    .include "EMPLOYEE" repository, static record="employee", end
-
     static record
+        employee, strEMPLOYEE
         tmpEmpHireTime, a5      ;;Storage for HH:MM time field
-        ,a1                         ;;In case there are no user timestamp, date or JJJJJJ date fields
     endrecord
 
     global common
@@ -1096,7 +1092,7 @@ endfunction
 ;;; <param name="a_errtxt">Returned error text.</param>
 ;;; <returns>Returns true on success, otherwise false.</returns>
 
-function employee_delete_row, ^val
+function EmployeeDelete, ^val
 
     required in  a_dbchn,  i
     required in  a_key,    a
@@ -1127,6 +1123,8 @@ proc
 
     ;;Put the unique key value into the record
 
+;TODO: NEED TO FIGURE OUT HOW TO DEAL WITH this
+;      THE PASSED IN KEY VALUE WILL BE A KEY ON THE MAPPED FILE
     employee = %EmployeeKeyToRecord(a_key)
 
     ;;Start a database transaction
@@ -1223,7 +1221,7 @@ endfunction
 ;;; <param name="a_errtxt">Returned error text.</param>
 ;;; <returns>Returns true on success, otherwise false.</returns>
 
-function employee_clear, ^val
+function EmployeeClear, ^val
 
     required in  a_dbchn,  i
     optional out a_errtxt, a
@@ -1340,7 +1338,7 @@ endfunction
 ;;; <param name="a_errtxt">Returned error text.</param>
 ;;; <returns>Returns true on success, otherwise false.</returns>
 
-function employee_drop, ^val
+function EmployeeDrop, ^val
 
     required in  a_dbchn,  i
     optional out a_errtxt, a
@@ -1364,7 +1362,7 @@ proc
 
     ;;Close any open cursors
 
-    xcall employee_close(a_dbchn)
+    xcall EmployeeClose(a_dbchn)
 
     ;;Start a database transaction
 
@@ -1474,7 +1472,7 @@ endfunction
 ;;; <param name="a_progress">Report progress.</param>
 ;;; <returns>Returns true on success, otherwise false.</returns>
 
-function employee_load, ^val
+function EmployeeLoad, ^val
 
     required in  a_dbchn,    i
     optional out a_errtxt,   a
@@ -1523,7 +1521,7 @@ proc
 
     ;;Open the data file associated with the structure
 
-    if (%employee_io(IO_OPEN_INP,filechn)!=IO_OK)
+    if (%EmployeeIO(IO_OPEN_INP,filechn)!=IO_OK)
     begin
         ok = false
         errtxt = "Failed to open file DAT:EMPLOYEE.ISM"
@@ -1544,25 +1542,25 @@ proc
             ;;Get the next record from the input file
             if (firstRecord) then
             begin
-                errnum = %employee_io(IO_READ_FIRST,filechn,,,tmprec)
+                errnum = %EmployeeIO(IO_READ_FIRST,filechn,,,tmprec)
                 firstRecord = false
             end
             else
             begin
-                errnum = %employee_io(IO_READ_NEXT,filechn,,,tmprec)
+                errnum = %EmployeeIO(IO_READ_NEXT,filechn,,,tmprec)
             end
 
             using errnum select
             (IO_OK),
-			begin
+            begin
                 nop
-			end
+            end
             (IO_EOF),
                 exitloop
             (),
             begin
                 ok = false
-                errtxt = "Unexpected response " + %string(errnum) + " from %employee_io"
+                errtxt = "Unexpected response " + %string(errnum) + " from %EmployeeIO"
                 exitloop
             end
             endusing
@@ -1590,7 +1588,7 @@ proc
     ;;Close the file
 
     if (filechn)
-        xcall employee_io(IO_CLOSE,filechn)
+        xcall EmployeeIO(IO_CLOSE,filechn)
 
     ;;Close the exceptions log file
 
@@ -1615,7 +1613,7 @@ insert_data,
 
     attempted = (%mem_proc(DM_GETSIZE,mh)/^size(inpbuf))
 
-    if (%employee_insert_rows(a_dbchn,mh,errtxt,ex_mh,a_terminal))
+    if (%EmployeeInsertRows(a_dbchn,mh,errtxt,ex_mh,a_terminal))
     begin
         ;;Any exceptions?
         if (ex_mh) then
@@ -1667,7 +1665,7 @@ endfunction
 ;;; </summary>
 ;;; <param name="a_dbchn">Connected database channel</param>
 
-subroutine employee_close
+subroutine EmployeeClose
 
     required in  a_dbchn, i
     endparams
@@ -1714,7 +1712,7 @@ endsubroutine
 ;;; <param name="a_errtxt">Returned error text.</param>
 ;;; <returns>Returns true on success, otherwise false.</returns>
 
-function employee_create_csv, ^val
+function EmployeeCreateCsv, ^val
 
     optional out a_errtxt, a
     endparams
@@ -1741,7 +1739,7 @@ proc
 
     ;;Open the data file associated with the structure
 
-    if (%employee_io(IO_OPEN_INP,filechn)!=IO_OK)
+    if (%EmployeeIO(IO_OPEN_INP,filechn)!=IO_OK)
     begin
         ok = false
         errtxt = "Failed to open file DAT:EMPLOYEE.ISM"
@@ -1765,7 +1763,7 @@ proc
 
             ;;Get the next record from the input file
 
-            errnum = %employee_io(IO_READ_NEXT,filechn,,,employee)
+            errnum = %EmployeeIO(IO_READ_NEXT,filechn,,,employee)
 
             using errnum select
             (IO_OK),
@@ -1797,7 +1795,7 @@ proc
             (),
             begin
                 ok = false
-                errtxt = "Unexpected response " + %string(errnum) + " from %employee_io"
+                errtxt = "Unexpected response " + %string(errnum) + " from %EmployeeIO"
                 exitloop
             end
             endusing
@@ -1855,7 +1853,7 @@ proc
     ;;Close the file
 
     if (filechn)
-        xcall employee_io(IO_CLOSE,filechn)
+        xcall EmployeeIO(IO_CLOSE,filechn)
 
     ;;Return the error text
 
@@ -1895,3 +1893,4 @@ proc
     freturn employee
 
 endfunction
+

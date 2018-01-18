@@ -46,7 +46,7 @@
 ;;; <param name="a_errtxt">Returned error text.</param>
 ;;; <returns>Returns 1 if the table exists, otherwise a number indicating the type of error.</returns>
 
-function relstr_exists, ^val
+function RelstrExists, ^val
 
     required in  a_dbchn,  i
     optional out a_errtxt, a
@@ -133,7 +133,7 @@ endfunction
 ;;; <param name="a_errtxt">Returned error text.</param>
 ;;; <returns>Returns true on success, otherwise false.</returns>
 
-function relstr_create, ^val
+function RelstrCreate, ^val
 
     required in  a_dbchn,  i
     optional out a_errtxt, a
@@ -290,10 +290,10 @@ endfunction
 ;;; <param name="a_errtxt">Returned error text.</param>
 ;;; <returns>Returns 1 if the row was inserted, 2 to indicate the row already exists, or 0 if an error occurred.</returns>
 
-function relstr_insert_row, ^val
+function RelstrInsert, ^val
 
     required in  a_dbchn,  i
-	required in  a_recnum, n
+    required in  a_recnum, n
     required in  a_data,   a
     optional out a_errtxt, a
     endparams
@@ -309,7 +309,7 @@ function relstr_insert_row, ^val
         transaction ,int        ;;Transaction in progress
         length      ,int        ;;Length of a string
         errtxt      ,a256       ;;Error message text
-		recordNumber,d28		;;Relative record number
+        recordNumber,d28        ;;Relative record number
     endrecord
 
     literal
@@ -322,11 +322,9 @@ function relstr_insert_row, ^val
         & +              ") VALUES(:1,:2,:3,:4,:5)"
     endliteral
 
-    .include "RELSTR" repository, static record="relstr", end
-
     static record
+        relstr, strRELSTR
         tmpField4, a7      ;;Storage for HH:MM:SS time field
-        ,a1                         ;;In case there are no user timestamp, date or JJJJJJ date fields
     endrecord
 
     global common
@@ -338,7 +336,7 @@ proc
     init local_data
     ok = true
     sts = 1
-	recordNumber = a_recnum
+    recordNumber = a_recnum
     openAndBind = (csr_relstr_insert1 == 0)
 
     ;;Start a database transaction
@@ -368,7 +366,7 @@ proc
 
     ;;Bind the host variables for data to be inserted
 
-	if (ok && openAndBind)
+    if (ok && openAndBind)
     begin
         if (%ssc_bind(a_dbchn,csr_relstr_insert1,1,recordNumber)==SSQL_FAILURE)
         begin
@@ -377,7 +375,7 @@ proc
             if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
                 errtxt="Failed to bind variables"
         end
-	end
+    end
 
     if (ok && openAndBind)
     begin
@@ -400,7 +398,7 @@ proc
     begin
         ;;Load the data into the bound record
         
-		relstr = a_data
+        relstr = a_data
 
         ;;Clean up any alpha fields
 
@@ -497,7 +495,7 @@ endfunction
 ;;; <param name="a_terminal">Terminal number channel to log errors on.</param>
 ;;; <returns>Returns true on success, otherwise false.</returns>
 
-function relstr_insert_rows, ^val
+function RelstrInsertRows, ^val
 
     required in  a_dbchn,     i
     required in  a_data,      i
@@ -739,7 +737,7 @@ endfunction
 ;;; <param name="a_errtxt">Returned error text.</param>
 ;;; <returns>Returns true on success, otherwise false.</returns>
 
-function relstr_update_row, ^val
+function RelstrUpdate, ^val
 
     required in  a_dbchn,  i
     required in  a_recnum, n
@@ -770,11 +768,9 @@ function relstr_update_row, ^val
         & +              ' WHERE "RecordNumber"=:5'
     endliteral
 
-    .include "RELSTR" repository, static record="relstr", end
-
     static record
+        relstr, strRELSTR
         tmpField4, a7      ;;Storage for HH:MM:SS time field
-        ,a1                         ;;In case there are no user timestamp, date or JJJJJJ date fields
     endrecord
 
     global common
@@ -928,7 +924,7 @@ endfunction
 ;;; <param name="a_errtxt">Returned error text.</param>
 ;;; <returns>Returns true on success, otherwise false.</returns>
 
-function relstr_clear, ^val
+function RelstrClear, ^val
 
     required in  a_dbchn,  i
     optional out a_errtxt, a
@@ -1045,7 +1041,7 @@ endfunction
 ;;; <param name="a_errtxt">Returned error text.</param>
 ;;; <returns>Returns true on success, otherwise false.</returns>
 
-function relstr_drop, ^val
+function RelstrDrop, ^val
 
     required in  a_dbchn,  i
     optional out a_errtxt, a
@@ -1069,7 +1065,7 @@ proc
 
     ;;Close any open cursors
 
-    xcall relstr_close(a_dbchn)
+    xcall RelstrClose(a_dbchn)
 
     ;;Start a database transaction
 
@@ -1179,7 +1175,7 @@ endfunction
 ;;; <param name="a_progress">Report progress.</param>
 ;;; <returns>Returns true on success, otherwise false.</returns>
 
-function relstr_load, ^val
+function RelstrLoad, ^val
 
     required in  a_dbchn,    i
     optional out a_errtxt,   a
@@ -1234,7 +1230,7 @@ proc
 
     ;;Open the data file associated with the structure
 
-    if (%relstr_io(IO_OPEN_INP,filechn)!=IO_OK)
+    if (%RelstrIO(IO_OPEN_INP,filechn)!=IO_OK)
     begin
         ok = false
         errtxt = "Failed to open file DAT:RELFILE.DDF"
@@ -1255,27 +1251,27 @@ proc
             ;;Get the next record from the input file
             if (firstRecord) then
             begin
-                errnum = %relstr_io(IO_READ_FIRST,filechn,,tmprec)
+                errnum = %RelstrIO(IO_READ_FIRST,filechn,,tmprec)
                 firstRecord = false
             end
             else
             begin
-                errnum = %relstr_io(IO_READ_NEXT,filechn,,tmprec)
+                errnum = %RelstrIO(IO_READ_NEXT,filechn,,tmprec)
             end
 
             using errnum select
             (IO_OK),
-			begin
+            begin
                 recordNumber += 1
-				if (!tmprec)
-					nextloop
-			end
+                if (!tmprec)
+                    nextloop
+            end
             (IO_EOF),
                 exitloop
             (),
             begin
                 ok = false
-                errtxt = "Unexpected response " + %string(errnum) + " from %relstr_io"
+                errtxt = "Unexpected response " + %string(errnum) + " from %RelstrIO"
                 exitloop
             end
             endusing
@@ -1304,7 +1300,7 @@ proc
     ;;Close the file
 
     if (filechn)
-        xcall relstr_io(IO_CLOSE,filechn)
+        xcall RelstrIO(IO_CLOSE,filechn)
 
     ;;Close the exceptions log file
 
@@ -1329,7 +1325,7 @@ insert_data,
 
     attempted = (%mem_proc(DM_GETSIZE,mh)/^size(inpbuf))
 
-    if (%relstr_insert_rows(a_dbchn,mh,errtxt,ex_mh,a_terminal))
+    if (%RelstrInsertRows(a_dbchn,mh,errtxt,ex_mh,a_terminal))
     begin
         ;;Any exceptions?
         if (ex_mh) then
@@ -1381,7 +1377,7 @@ endfunction
 ;;; </summary>
 ;;; <param name="a_dbchn">Connected database channel</param>
 
-subroutine relstr_close
+subroutine RelstrClose
 
     required in  a_dbchn, i
     endparams
@@ -1412,7 +1408,7 @@ endsubroutine
 ;;; <param name="a_errtxt">Returned error text.</param>
 ;;; <returns>Returns true on success, otherwise false.</returns>
 
-function relstr_create_csv, ^val
+function RelstrCreateCsv, ^val
 
     optional out a_errtxt, a
     endparams
@@ -1439,7 +1435,7 @@ proc
 
     ;;Open the data file associated with the structure
 
-    if (%relstr_io(IO_OPEN_INP,filechn)!=IO_OK)
+    if (%RelstrIO(IO_OPEN_INP,filechn)!=IO_OK)
     begin
         ok = false
         errtxt = "Failed to open file DAT:RELFILE.DDF"
@@ -1463,7 +1459,7 @@ proc
 
             ;;Get the next record from the input file
 
-            errnum = %relstr_io(IO_READ_NEXT,filechn,,relstr)
+            errnum = %RelstrIO(IO_READ_NEXT,filechn,,relstr)
 
             using errnum select
             (IO_OK),
@@ -1482,7 +1478,7 @@ proc
             (),
             begin
                 ok = false
-                errtxt = "Unexpected response " + %string(errnum) + " from %relstr_io"
+                errtxt = "Unexpected response " + %string(errnum) + " from %RelstrIO"
                 exitloop
             end
             endusing
@@ -1540,7 +1536,7 @@ proc
     ;;Close the file
 
     if (filechn)
-        xcall relstr_io(IO_CLOSE,filechn)
+        xcall RelstrIO(IO_CLOSE,filechn)
 
     ;;Return the error text
 
@@ -1550,4 +1546,5 @@ proc
     freturn ok
 
 endfunction
+
 

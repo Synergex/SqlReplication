@@ -2,7 +2,7 @@
 ;;
 ;; File:        RelstrIO.dbl
 ;;
-;; Type:        Function (relstr_io)
+;; Type:        Function (RelstrIO)
 ;;
 ;; Description: Performs file I/O for the file DAT:RELFILE.DDF
 ;;
@@ -38,19 +38,19 @@
 ;;          GENERATION IS RE-EXECUTED FOR THIS PROJECT.
 ;;*****************************************************************************
 
-.include "RELSTR" repository, structure="strRelstr", end
+.include "RELSTR" repository, structure="strRELSTR", end
 
-function relstr_io ,^val
+function RelstrIO ,^val
 
     required in    a_mode       ,n  ;;Access type
     required inout a_channel    ,n  ;;Channel
     optional in    a_recnum     ,n  ;;Record number
-    optional inout relstr, strRelstr
+    optional inout relstr, strRELSTR
     optional in    a_lock       ,n  ;;If passed and TRUE, lock record
     optional out   a_errtxt     ,a  ;;Returned error text
     endparams
 
-    .INCLUDE "INC:structureio.def"
+    .include "INC:structureio.def"
     .include "INC:sqlgbl.def"
 
     stack record localData
@@ -233,13 +233,13 @@ openError,
 
 endfunction
 
-function relstr_length ,^val
+function RelstrLength ,^val
     endparams
 proc
     freturn 17
 endfunction
 
-function relstr_type, ^val
+function RelstrType, ^val
     required out fileType, a
     endparams
 proc

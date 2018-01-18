@@ -36,368 +36,394 @@
 ;;*****************************************************************************
 
 main ReplicatorMenu
-	record
-		tt,         i4
-		system,     d4
-		runtime,    d4
-		windows,    boolean
-		unix,       boolean
-		pid,        int
-		option,     a2
-		tableName,  a30
-	endrecord
-	.ifdef D_VMS
-	.include "REPLICATION_VMS" repository, record="instruction", end
-	.else
-	.include "REPLICATION" repository, record="instruction", end
-	.endc
-	record outbuf
-		operation,  a20
-		,           a2
-		table,      a30
-		,           a2
-		keyval,     a24
-	endrecord
+    record
+        tt,         i4
+        system,     d4
+        runtime,    d4
+        windows,    boolean
+        unix,       boolean
+        pid,        int
+        option,     a2
+        tableName,  a30
+    endrecord
+    .ifdef D_VMS
+    .include "REPLICATION_VMS" repository, record="instruction", end
+    .else
+    .include "REPLICATION" repository, record="instruction", end
+    .endc
+    record outbuf
+        operation,  a20
+        ,           a2
+        table,      a30
+        ,           a2
+        keyval,     a24
+    endrecord
 
 proc
 
-	xcall envrn(system,runtime)
-	windows = ((runtime==101)||(runtime==104))
-	unix = (system==8)
+    xcall envrn(system,runtime)
+    windows = ((runtime==101)||(runtime==104))
+    unix = (system==8)
 
-	xcall flags(7004000,1)
-	open(tt=0,i,"tt:")
+    xcall flags(7004000,1)
+    open(tt=0,i,"tt:")
 
-	try
-	begin
-		.ifdef D_VMS
-		xcall openelb("REPLICATOR_SH")
-		.else
-		xcall openelb("EXE:library.elb")
-		.endc
-	end
-	catch (ex, @Exception)
-	begin
-		.ifdef D_VMS
-		display(tt,"ERROR: Failed to activate shared image REPLICATOR_SH")
-		.else
-		display(tt,"ERROR: Failed to activate ELB EXE:library.elb")
-		.endc
-		stop
-	end
-	endtry
+    try
+    begin
+        .ifdef D_VMS
+        xcall openelb("REPLICATOR_SH")
+        .else
+        xcall openelb("EXE:library.elb")
+        .endc
+    end
+    catch (ex, @Exception)
+    begin
+        .ifdef D_VMS
+        display(tt,"ERROR: Failed to activate shared image REPLICATOR_SH")
+        .else
+        display(tt,"ERROR: Failed to activate ELB EXE:library.elb")
+        .endc
+        stop
+    end
+    endtry
 
-	display(tt,$SCR_POS(1,1),$SCR_CLR(SCREEN))
+    display(tt,$SCR_POS(1,1),$SCR_CLR(SCREEN))
 
-	display(tt,$SCR_POS(2,2),"Replicator Control Menu")
+    display(tt,$SCR_POS(2,2),"Replicator Control Menu")
 
-	display(tt,$SCR_POS(2,40),"Current table: None")
+    display(tt,$SCR_POS(2,40),"Current table: None")
 
-	repeat
-	begin
+    repeat
+    begin
 
-		display(tt,$SCR_POS(4,1),$SCR_CLR(EOS))
+        display(tt,$SCR_POS(4,1),$SCR_CLR(EOS))
 
-		if (windows) then
-		begin
-			display(tt,$SCR_POS(4,2),"SR. Start Replicator (Normal)")
-			display(tt,$SCR_POS(5,2),"SD. Start Replicator (Debug)")
-		end
-		else if (unix)
-		begin
-			display(tt,$SCR_POS(4,2),"SR. Start Replicator (Detached)")
-		end
+        if (windows) then
+        begin
+            display(tt,$SCR_POS(4,2),"SR. Start Replicator (Normal)")
+            display(tt,$SCR_POS(5,2),"SD. Start Replicator (Debug)")
+        end
+        else if (unix)
+        begin
+            display(tt,$SCR_POS(4,2),"SR. Start Replicator (Detached)")
+        end
 
-		display(tt,$SCR_POS(6,2), "S.  Stop Replicator")
-		display(tt,$SCR_POS(7,2), "V.  View instructions")
-		display(tt,$SCR_POS(8,2), "P.  Purge instructions")
-		.ifndef D_VMS
-		display(tt,$SCR_POS(9,2), "Q.  Instruction count")
-		.endc
-		display(tt,$SCR_POS(10,2),"I.  Change interval")
+        display(tt,$SCR_POS(6,2), "S.  Stop Replicator")
+        display(tt,$SCR_POS(7,2), "V.  View instructions")
+        display(tt,$SCR_POS(8,2), "P.  Purge instructions")
+        .ifndef D_VMS
+        display(tt,$SCR_POS(9,2), "Q.  Instruction count")
+        .endc
+        display(tt,$SCR_POS(10,2),"I.  Change interval")
 
-		display(tt,$SCR_POS(12,2),"T.  Set current table")
+        display(tt,$SCR_POS(12,2),"A.  Available tables")
+        display(tt,$SCR_POS(13,2),"T.  Set current table")
 
-		if (windows)
-			display(tt,$SCR_POS(14,2),"M.  Start maintenance program")
+        if (windows)
+            display(tt,$SCR_POS(14,2),"M.  Start maintenance program")
 
-		display(tt,$SCR_POS(16,2),"E.  Exit")
+        display(tt,$SCR_POS(16,2),"E.  Exit")
 
-		if (tableName)
-		begin
-			display(tt,$SCR_POS( 6,40),"C.  Create table")
-			display(tt,$SCR_POS( 7,40),"L.  Load table")
-			display(tt,$SCR_POS( 8,40),"CL. Create and load table")
-			display(tt,$SCR_POS( 9,40),"TR. Truncate table")
-			display(tt,$SCR_POS(10,40),"D.  Delete table")
-			display(tt,$SCR_POS(11,40),"X.  Export to CSV")
-		end
+        if (tableName)
+        begin
+            display(tt,$SCR_POS( 6,40),"C.  Create table")
+            display(tt,$SCR_POS( 7,40),"L.  Load table")
+            display(tt,$SCR_POS( 8,40),"CL. Create and load table")
+            display(tt,$SCR_POS( 9,40),"TR. Truncate table")
+            display(tt,$SCR_POS(10,40),"D.  Delete table")
+            display(tt,$SCR_POS(11,40),"X.  Export to CSV")
+        end
 
-		display(tt,$SCR_POS(23,2),$SCR_CLR(EOS),"Select an option: ")
-		reads(tt,option)
+        display(tt,$SCR_POS(23,2),$SCR_CLR(EOS),"Select an option: ")
+        reads(tt,option)
 
-		using option select
+        using option select
 
-		("M "),
-		begin
-			if (windows)
-				xcall spawn("dbr EXE:employeemaintenance.dbr",D_NOWINDOW|D_NOWAIT)
-		end
+        ("M "),
+        begin
+            if (windows)
+                xcall spawn("dbr EXE:employeemaintenance.dbr",D_NOWINDOW|D_NOWAIT)
+        end
 
-		("SR"),
-		begin
-			if (windows) then
-				xcall spawn("dbr EXE:replicator.dbr",D_NOWINDOW|D_NOWAIT)
-			else if (unix)
-				xcall spawn("nohup dbr EXE:replicator </dev/null >/dev/null 2>&1 &")
-		end
+        ("SR"),
+        begin
+            if (windows) then
+                xcall spawn("dbr EXE:replicator.dbr",D_NOWINDOW|D_NOWAIT)
+            else if (unix)
+                xcall spawn("nohup dbr EXE:replicator </dev/null >/dev/null 2>&1 &")
+        end
 
-		("SD"),
-			if (windows)
-				xcall spawn("dbr -d EXE:replicator.dbr",D_NOWINDOW|D_NOWAIT)
+        ("SD"),
+            if (windows)
+                xcall spawn("dbr -d EXE:replicator.dbr",D_NOWINDOW|D_NOWAIT)
 
-		("S "),
-		begin
-			xcall Replicate(REPLICATION_INSTRUCTION.SHUTDOWN)
-			display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Command queued")
-		end
+        ("S "),
+        begin
+            xcall Replicate(REPLICATION_INSTRUCTION.SHUTDOWN)
+            display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Command queued")
+        end
 
-		("V "),
-		begin
-			data chn, i4
-			data row, i4
-			data tmpvar, a1, " "
-			open(chn=0,"I:I","REPLICATOR_DATA:REPLICATION.ISM")
+        ("V "),
+        begin
+            data chn, i4
+            data row, i4
+            data tmpvar, a1, " "
+            open(chn=0,"I:I","REPLICATOR_DATA:REPLICATION.ISM")
 
-			display(tt,$SCR_POS(4,2),$SCR_CLR(EOS),"Operation             Table                           Affected Record",
-			&	$SCR_POS(5,2),              "--------------------  ------------------------------  ------------------------")
+            display(tt,$SCR_POS(4,2),$SCR_CLR(EOS),"Operation             Table                           Affected Record",
+            &   $SCR_POS(5,2),              "--------------------  ------------------------------  ------------------------")
 
-			find(chn,,^FIRST) [EOF=eof]
+            find(chn,,^FIRST) [EOF=eof]
 
-			repeat
-			begin
-				for row from 6 thru 21
-				begin
-					reads(chn,instruction,eof)
-					clear outbuf
+            repeat
+            begin
+                for row from 6 thru 21
+                begin
+                    reads(chn,instruction,eof)
+                    clear outbuf
 
-					using instruction.action select
-					(REPLICATION_INSTRUCTION.CREATE_ROW),
-						outbuf.operation = "Create row"
-					(REPLICATION_INSTRUCTION.UPDATE_ROW),
-						outbuf.operation = "Update row"
-					(REPLICATION_INSTRUCTION.UPDATE_RELATIVE),
-						outbuf.operation = "Update row (rel)"
-					(REPLICATION_INSTRUCTION.DELETE_ROW),
-						outbuf.operation = "Delete row"
-					(REPLICATION_INSTRUCTION.CREATE_TABLE),
-						outbuf.operation = "Create table"
-					(REPLICATION_INSTRUCTION.LOAD_TABLE),
-						outbuf.operation = "Load table"
-					(REPLICATION_INSTRUCTION.CREATE_AND_LOAD_TABLE),
-						outbuf.operation = "Create & load table"
-					(REPLICATION_INSTRUCTION.DELETE_ALL_ROWS),
-						outbuf.operation = "Truncate table"
-					(REPLICATION_INSTRUCTION.DELETE_TABLE),
-						outbuf.operation = "Delete table"
-					(REPLICATION_INSTRUCTION.SHUTDOWN),
-						outbuf.operation = "Shutdown"
-					(REPLICATION_INSTRUCTION.DELETE_ALL_INSTRUCTIONS),
-						outbuf.operation = "Purge instructions"
-					(REPLICATION_INSTRUCTION.CLOSE_FILE),
-						outbuf.operation = "Close file"
-					endusing
+                    using instruction.action select
+                    (REPLICATION_INSTRUCTION.CREATE_ROW),
+                        outbuf.operation = "Create row"
+                    (REPLICATION_INSTRUCTION.UPDATE_ROW),
+                        outbuf.operation = "Update row"
+                    (REPLICATION_INSTRUCTION.UPDATE_RELATIVE),
+                        outbuf.operation = "Update row (rel)"
+                    (REPLICATION_INSTRUCTION.DELETE_ROW),
+                        outbuf.operation = "Delete row"
+                    (REPLICATION_INSTRUCTION.CREATE_TABLE),
+                        outbuf.operation = "Create table"
+                    (REPLICATION_INSTRUCTION.LOAD_TABLE),
+                        outbuf.operation = "Load table"
+                    (REPLICATION_INSTRUCTION.CREATE_AND_LOAD_TABLE),
+                        outbuf.operation = "Create & load table"
+                    (REPLICATION_INSTRUCTION.DELETE_ALL_ROWS),
+                        outbuf.operation = "Truncate table"
+                    (REPLICATION_INSTRUCTION.DELETE_TABLE),
+                        outbuf.operation = "Delete table"
+                    (REPLICATION_INSTRUCTION.SHUTDOWN),
+                        outbuf.operation = "Shutdown"
+                    (REPLICATION_INSTRUCTION.DELETE_ALL_INSTRUCTIONS),
+                        outbuf.operation = "Purge instructions"
+                    (REPLICATION_INSTRUCTION.CLOSE_FILE),
+                        outbuf.operation = "Close file"
+                    endusing
 
-					outbuf.table = instruction.structure_name
-					outbuf.keyval = instruction.record
+                    outbuf.table = instruction.structure_name
+                    outbuf.keyval = instruction.record
 
-					display(tt,$scr_pos(row,2),outbuf)
-				end
+                    display(tt,$scr_pos(row,2),outbuf)
+                end
 
-				display(tt,$SCR_POS(23,2),"Press a key for more, or M for menu: ")
+                display(tt,$SCR_POS(23,2),"Press a key for more, or M for menu: ")
 
-				if (tmpvar=="M") then
-					exitloop
-				else
-				begin
-					accept(tt,tmpvar)
-					while (%ttsts)
-						accept(tt,tmpvar)
-				end
+                if (tmpvar=="M") then
+                    exitloop
+                else
+                begin
+                    accept(tt,tmpvar)
+                    while (%ttsts)
+                        accept(tt,tmpvar)
+                end
 
-				display(tt,$scr_pos(6,1),$scr_clr(EOS))
+                display(tt,$scr_pos(6,1),$scr_clr(EOS))
 
-			end
+            end
 
 eof,        close chn
 
-			if (tmpvar!="M")
-			begin
-				display(tt,$SCR_POS(23,2),$SCR_CLR(EOS),"No more instructions. Press a key: ")
-				begin
-					accept(tt,tmpvar)
-					while (%ttsts)
-						accept(tt,tmpvar)
-				end
-			end
-			nextloop
-		end
+            if (tmpvar!="M")
+            begin
+                display(tt,$SCR_POS(23,2),$SCR_CLR(EOS),"No more instructions. Press a key: ")
+                begin
+                    accept(tt,tmpvar)
+                    while (%ttsts)
+                        accept(tt,tmpvar)
+                end
+            end
+            nextloop
+        end
 
-		("P "),
-		begin
-			xcall Replicate(REPLICATION_INSTRUCTION.DELETE_ALL_INSTRUCTIONS)
-			display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Command executed")
-		end
+        ("P "),
+        begin
+            xcall Replicate(REPLICATION_INSTRUCTION.DELETE_ALL_INSTRUCTIONS)
+            display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Command executed")
+        end
 
-			.ifndef D_VMS
-		("Q "),
-		begin
-			data chn, i4
-			data msg, a50
-			open(chn=0,"I:I","REPLICATOR_DATA:REPLICATION.ISM")
-			msg = %string(%isinfo(chn,"NUMRECS"),"ZZZ,ZZZ,ZZX") [LEFT]
-			msg = %atrim(msg) + " outstanding instructions"
-			display(tt,$scr_pos(23,2),$scr_clr(EOL),%atrim(msg))
-			close chn
-			accept(tt,chn)
-			while (%ttsts)
-				accept(tt,chn)
-			nextloop
-		end
-			.endc
+        .ifndef D_VMS
+        ("Q "),
+        begin
+            data chn, i4
+            data msg, a50
+            open(chn=0,"I:I","REPLICATOR_DATA:REPLICATION.ISM")
+            msg = %string(%isinfo(chn,"NUMRECS"),"ZZZ,ZZZ,ZZX") [LEFT]
+            msg = %atrim(msg) + " outstanding instructions"
+            display(tt,$scr_pos(23,2),$scr_clr(EOL),%atrim(msg))
+            close chn
+            accept(tt,chn)
+            while (%ttsts)
+                accept(tt,chn)
+            nextloop
+        end
+        .endc
 
-		("I "),
-		begin
-			data interval, a5
-			display(tt,$SCR_POS(23,2),$SCR_CLR(EOS),"Interval (seconds): ")
-			reads(tt,interval)
+        ("I "),
+        begin
+            data interval, a5
+            display(tt,$SCR_POS(23,2),$SCR_CLR(EOS),"Interval (seconds): ")
+            reads(tt,interval)
 
-			if (interval) then
-			begin
-				if (%IsNumeric(interval)) then
-				begin
-					xcall Replicate(REPLICATION_INSTRUCTION.CHANGE_INTERVAL,,%atrim(interval))
-					display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Command queued")
-				end
-				else
-				begin
-					display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Invalid interval!")
-				end
-			end
-			else
-			begin
-				nextloop
-			end
-		end
+            if (interval) then
+            begin
+                if (%IsNumeric(interval)) then
+                begin
+                    xcall Replicate(REPLICATION_INSTRUCTION.CHANGE_INTERVAL,,%atrim(interval))
+                    display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Command queued")
+                end
+                else
+                begin
+                    display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Invalid interval!")
+                end
+            end
+            else
+            begin
+                nextloop
+            end
+        end
 
-		("T "),
-		begin
-			display(tt,$SCR_POS(23,2),$SCR_CLR(EOS),"Table name: ")
-			reads(tt,tableName)
+        ("A "),
+        begin
+            data row, i4
+            data tables, @System.Collections.ArrayList
+            data name, string
 
-			if (tableName) then
-			begin
-				;;Call the _LENGTH rotuine to make sure we have code for the table
-				try
-				begin
-					data length, int, %xsubr(%atrim(tableName) + "_LENGTH")
-					display(tt,$SCR_POS(2,55),$SCR_CLR(EOL),%atrim(tableName))
-					nextloop
-				end
-				catch (ex, @SynException)
-				begin
-					display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Table not found!")
-					display(tt,$SCR_POS(2,55),$SCR_CLR(EOL),"None")
-					clear tableName
-				end
-				endtry
-			end
-			else
-			begin
-				display(tt,$SCR_POS(2,55),$SCR_CLR(EOL),"None")
-				nextloop
-			end
-		end
+            xcall GetReplicatedTables(tables)
+            
+            display(tt,
+            &   $SCR_POS(4,2),$SCR_CLR(EOS),"Table",
+            &   $SCR_POS(5,2),              "------------------------------",
+            &   $SCR_POS(6,1))
 
-		("C "),
-		begin
-			if (tableName) then
-			begin
-				xcall Replicate(REPLICATION_INSTRUCTION.CREATE_TABLE,tableName)
-				display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Command queued")
-			end
-			else
-				display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Invalid option!")
-		end
+            foreach name in tables
+                writes(tt," " + name)
 
-		("L "),
-		begin
-			if (tableName) then
-			begin
-				xcall Replicate(REPLICATION_INSTRUCTION.LOAD_TABLE,tableName)
-				display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Command queued")
-			end
-			else
-				display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Invalid option!")
-		end
+            display(tt,13,10," Press a key: ")
+            begin
+                data tmpvar, a1
+                accept(tt,tmpvar)
+                while (%ttsts)
+                    accept(tt,tmpvar)
+            end
+        end
 
-		("CL"),
-		begin
-			if (tableName) then
-			begin
-				xcall Replicate(REPLICATION_INSTRUCTION.CREATE_AND_LOAD_TABLE,tableName)
-				display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Command queued")
-			end
-			else
-				display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Invalid option!")
-		end
+        ("T "),
+        begin
+            display(tt,$SCR_POS(23,2),$SCR_CLR(EOS),"Table name: ")
+            reads(tt,tableName)
 
-		("TR"),
-		begin
-			if (tableName) then
-			begin
-				xcall Replicate(REPLICATION_INSTRUCTION.DELETE_ALL_ROWS,tableName)
-				display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Command queued")
-			end
-			else
-				display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Invalid option!")
-		end
+            if (tableName) then
+            begin
+                ;;Call the _LENGTH rotuine to make sure we have code for the table
+                try
+                begin
+                    data length, int, %xsubr(%atrim(tableName) + "Length")
+                    display(tt,$SCR_POS(2,55),$SCR_CLR(EOL),%atrim(tableName))
+                    nextloop
+                end
+                catch (ex, @SynException)
+                begin
+                    display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Table not found!")
+                    display(tt,$SCR_POS(2,55),$SCR_CLR(EOL),"None")
+                    clear tableName
+                end
+                endtry
+            end
+            else
+            begin
+                display(tt,$SCR_POS(2,55),$SCR_CLR(EOL),"None")
+                nextloop
+            end
+        end
 
-		("D "),
-		begin
-			if (tableName) then
-			begin
-				xcall Replicate(REPLICATION_INSTRUCTION.DELETE_TABLE,tableName)
-				display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Command queued")
-			end
-			else
-				display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Invalid option!")
-		end
+        ("C "),
+        begin
+            if (tableName) then
+            begin
+                xcall Replicate(REPLICATION_INSTRUCTION.CREATE_TABLE,tableName)
+                display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Command queued")
+            end
+            else
+                display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Invalid option!")
+        end
 
-		("X "),
-		begin
-			if (tableName) then
-			begin
-				xcall Replicate(REPLICATION_INSTRUCTION.CREATE_CSV,tableName)
-				display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Command queued")
-			end
-			else
-				display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Invalid option!")
-		end
+        ("L "),
+        begin
+            if (tableName) then
+            begin
+                xcall Replicate(REPLICATION_INSTRUCTION.LOAD_TABLE,tableName)
+                display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Command queued")
+            end
+            else
+                display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Invalid option!")
+        end
 
-		("E "),
-			exitloop
+        ("CL"),
+        begin
+            if (tableName) then
+            begin
+                xcall Replicate(REPLICATION_INSTRUCTION.CREATE_AND_LOAD_TABLE,tableName)
+                display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Command queued")
+            end
+            else
+                display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Invalid option!")
+        end
 
-		(),
-			display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Invalid option!")
+        ("TR"),
+        begin
+            if (tableName) then
+            begin
+                xcall Replicate(REPLICATION_INSTRUCTION.DELETE_ALL_ROWS,tableName)
+                display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Command queued")
+            end
+            else
+                display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Invalid option!")
+        end
 
-		endusing
+        ("D "),
+        begin
+            if (tableName) then
+            begin
+                xcall Replicate(REPLICATION_INSTRUCTION.DELETE_TABLE,tableName)
+                display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Command queued")
+            end
+            else
+                display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Invalid option!")
+        end
 
-		sleep 0.5
-	end
+        ("X "),
+        begin
+            if (tableName) then
+            begin
+                xcall Replicate(REPLICATION_INSTRUCTION.CREATE_CSV,tableName)
+                display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Command queued")
+            end
+            else
+                display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Invalid option!")
+        end
 
-	display(tt,$SCR_POS(1,1),$SCR_CLR(SCREEN))
-	close tt
-	stop
+        ("E "),
+            exitloop
+
+        (),
+            display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Invalid option!")
+
+        endusing
+
+        sleep 0.5
+    end
+
+    display(tt,$SCR_POS(1,1),$SCR_CLR(SCREEN))
+    close tt
+    stop
 
 endmain

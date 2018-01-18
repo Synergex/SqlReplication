@@ -19,7 +19,7 @@
 ;;
 ;; File:        <StructureName>IO.dbl
 ;;
-;; Type:        Function (<structure_name>_io)
+;; Type:        Function (<StructureName>IO)
 ;;
 ;; Description: Performs file I/O for the file <FILE_NAME>
 ;;
@@ -55,9 +55,9 @@
 ;;          GENERATION IS RE-EXECUTED FOR THIS PROJECT.
 ;;*****************************************************************************
 
-.include "<STRUCTURE_NOALIAS>" repository, structure="str<StructureName>", end
+.include "<STRUCTURE_NOALIAS>" repository, structure="str<STRUCTURE_NOALIAS>", end
 
-function <structure_name>_io ,^val
+function <StructureName>IO ,^val
 
     required in    a_mode       ,n  ;;Access type
     required inout a_channel    ,n  ;;Channel
@@ -68,7 +68,7 @@ function <structure_name>_io ,^val
     <IF STRUCTURE_RELATIVE>
     optional in    a_recnum     ,n  ;;Record number
     </IF STRUCTURE_RELATIVE>
-    optional inout <structure_name>, str<StructureName>
+    optional inout <structure_name>, str<STRUCTURE_NOALIAS>
     optional in    a_lock       ,n  ;;If passed and TRUE, lock record
     <IF STRUCTURE_ISAM>
     optional in    a_partial    ,n  ;;Do a partial key lookup
@@ -76,7 +76,7 @@ function <structure_name>_io ,^val
     optional out   a_errtxt     ,a  ;;Returned error text
     endparams
 
-    .INCLUDE "INC:structureio.def"
+    .include "INC:structureio.def"
     .include "INC:sqlgbl.def"
 
     stack record localData
@@ -410,13 +410,13 @@ openError,
 
 endfunction
 
-function <structure_name>_length ,^val
+function <StructureName>Length ,^val
     endparams
 proc
     freturn <STRUCTURE_SIZE>
 endfunction
 
-function <structure_name>_type, ^val
+function <StructureName>Type, ^val
     required out fileType, a
     endparams
 proc

@@ -8,17 +8,21 @@ set CODEGEN_TPLDIR=%ROOT%\SRC\TEMPLATES
 set CODEGEN_OUTDIR=%ROOT%\SRC\LIBRARY
 set SYNDEFNS=SynPSG.ReplicationDemo
 
+set STRUCTURES=EMPLOYEE RELSTR
+
 rem Templates that contain code that will usually be edited. Remove the -r option to prevent overwrite?
 codegen -e -r -lf -t ConfigureReplication PopulateReplicationKey IOHooksISAM 
 
 rem OK to regenerate, not structure specific
-codegen -e -r -lf -s EMPLOYEE -t LastRecordCache replicate IOHooksRelative -define ATTACH_IO_HOOKS CLEAN_DATA
+codegen -e -r -lf -t LastRecordCache replicate IOHooksRelative -define ATTACH_IO_HOOKS CLEAN_DATA
 
 rem OK to regenerate, structure specific
-codegen -e -r -lf -s EMPLOYEE -t SqlIO SynIO -define ATTACH_IO_HOOKS CLEAN_DATA
-codegen -e -r -lf -s RELSTR   -t SqlIO SynIO -define ATTACH_IO_HOOKS CLEAN_DATA
+codegen -e -r -lf -s %STRUCTURES% -t SqlIO SynIO -define ATTACH_IO_HOOKS CLEAN_DATA
 
 rem Just for the demo environment
 codegen -e -r -lf -s DEPARTMENT -t SynIO
+
+rem Templates requiring all structures at once
+codegen -e -r -lf -s %STRUCTURES% -ms -t GetReplicatedTables
 
 endlocal

@@ -64,7 +64,7 @@
 ;;; <param name="a_errtxt">Returned error text.</param>
 ;;; <returns>Returns 1 if the table exists, otherwise a number indicating the type of error.</returns>
 
-function <structure_name>_exists, ^val
+function <StructureName>Exists, ^val
 
     required in  a_dbchn,  i
     optional out a_errtxt, a
@@ -151,7 +151,7 @@ endfunction
 ;;; <param name="a_errtxt">Returned error text.</param>
 ;;; <returns>Returns true on success, otherwise false.</returns>
 
-function <structure_name>_create, ^val
+function <StructureName>Create, ^val
 
     required in  a_dbchn,  i
     optional out a_errtxt, a
@@ -360,12 +360,12 @@ endfunction
 ;;; <param name="a_errtxt">Returned error text.</param>
 ;;; <returns>Returns 1 if the row was inserted, 2 to indicate the row already exists, or 0 if an error occurred.</returns>
 
-function <structure_name>_insert_row, ^val
+function <StructureName>Insert, ^val
 
     required in  a_dbchn,  i
-	<IF STRUCTURE_RELATIVE>
-	required in  a_recnum, n
-	</IF STRUCTURE_RELATIVE>
+    <IF STRUCTURE_RELATIVE>
+    required in  a_recnum, n
+    </IF STRUCTURE_RELATIVE>
     required in  a_data,   a
     optional out a_errtxt, a
     endparams
@@ -381,27 +381,26 @@ function <structure_name>_insert_row, ^val
         transaction ,int        ;;Transaction in progress
         length      ,int        ;;Length of a string
         errtxt      ,a256       ;;Error message text
-		<IF STRUCTURE_RELATIVE>
-		recordNumber,d28		;;Relative record number
-		</IF STRUCTURE_RELATIVE>
+        <IF STRUCTURE_RELATIVE>
+        recordNumber,d28        ;;Relative record number
+        </IF STRUCTURE_RELATIVE>
     endrecord
 
     literal
         sql         ,a*, "INSERT INTO <StructureName> ("
-		<COUNTER_1_RESET>
-		<COUNTER_1_INCREMENT>
-		<IF STRUCTURE_RELATIVE>
+        <COUNTER_1_RESET>
+        <COUNTER_1_INCREMENT>
+        <IF STRUCTURE_RELATIVE>
         & +              '"RecordNumber",'
-		</IF STRUCTURE_RELATIVE>
+        </IF STRUCTURE_RELATIVE>
         <FIELD_LOOP>
         & +              '"<FieldSqlName>"<,>'
         </FIELD_LOOP>
         & +              ") VALUES(:1,<FIELD_LOOP><COUNTER_1_INCREMENT><IF USERTIMESTAMP>CONVERT(DATETIME2,:<COUNTER_1_VALUE>,21)<,><ELSE>:<COUNTER_1_VALUE><,></IF USERTIMESTAMP></FIELD_LOOP>)"
     endliteral
 
-    .include "<STRUCTURE_NOALIAS>" repository, static record="<structure_name>", end
-
     static record
+        <structure_name>, str<STRUCTURE_NOALIAS>
         <FIELD_LOOP>
         <IF USERTIMESTAMP>
         tmp<FieldSqlName>, a26     ;;Storage for user-defined timestamp field
@@ -414,7 +413,6 @@ function <structure_name>_insert_row, ^val
         </IF TIME_HHMMSS>
         </IF USERTIMESTAMP>
         </FIELD_LOOP>
-        ,a1                         ;;In case there are no user timestamp, date or JJJJJJ date fields
     endrecord
 
     global common
@@ -426,9 +424,9 @@ proc
     init local_data
     ok = true
     sts = 1
-	<IF STRUCTURE_RELATIVE>
-	recordNumber = a_recnum
-	</IF STRUCTURE_RELATIVE>
+    <IF STRUCTURE_RELATIVE>
+    recordNumber = a_recnum
+    </IF STRUCTURE_RELATIVE>
     openAndBind = (csr_<structure_name>_insert1 == 0)
 
     ;;Start a database transaction
@@ -458,8 +456,8 @@ proc
 
     ;;Bind the host variables for data to be inserted
 
-	<IF STRUCTURE_RELATIVE>
-	if (ok && openAndBind)
+    <IF STRUCTURE_RELATIVE>
+    if (ok && openAndBind)
     begin
         if (%ssc_bind(a_dbchn,csr_<structure_name>_insert1,1,recordNumber)==SSQL_FAILURE)
         begin
@@ -468,9 +466,9 @@ proc
             if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
                 errtxt="Failed to bind variables"
         end
-	end
+    end
 
-	</IF STRUCTURE_RELATIVE>
+    </IF STRUCTURE_RELATIVE>
     <COUNTER_1_RESET>
     <FIELD_LOOP>
     <COUNTER_1_INCREMENT>
@@ -527,9 +525,15 @@ proc
 
     if (ok)
     begin
-        ;;Load data into bound record
+        <IF STRUCTURE_MAPPED>
+        ;;Map the file data into the table data record
 
+        <structure_name> = %<structure_name>_map(a_data)
+        <ELSE>
+        ;;Load the data into the bound record
+        
         <structure_name> = a_data
+        </IF STRUCTURE_MAPPED>
 
         ;;Clean up any alpha fields
 
@@ -655,7 +659,7 @@ endfunction
 ;;; <param name="a_terminal">Terminal number channel to log errors on.</param>
 ;;; <returns>Returns true on success, otherwise false.</returns>
 
-function <structure_name>_insert_rows, ^val
+function <StructureName>InsertRows, ^val
 
     required in  a_dbchn,     i
     required in  a_data,      i
@@ -838,11 +842,19 @@ proc
             ;;Load data into bound record
 
             <IF STRUCTURE_ISAM>
+            <IF STRUCTURE_MAPPED>
+            <structure_name> = %<structure_name>_map(^m(inpbuf[cnt],a_data))
+            <ELSE>
             <structure_name> = ^m(inpbuf[cnt],a_data)
+            </IF STRUCTURE_MAPPED>
             </IF STRUCTURE_ISAM>
             <IF STRUCTURE_RELATIVE>
             recordNumber = ^m(inpbuf[cnt].recnum,a_data)
+            <IF STRUCTURE_MAPPED>
+            <structure_name> = %<structure_name>_map(^m(inpbuf[cnt].inprec,a_data))
+            <ELSE>
             <structure_name> = ^m(inpbuf[cnt].inprec,a_data)
+            </IF STRUCTURE_MAPPED>
             </IF STRUCTURE_RELATIVE>
 
             ;;Clean up any alpha variables
@@ -991,7 +1003,7 @@ endfunction
 ;;; <param name="a_errtxt">Returned error text.</param>
 ;;; <returns>Returns true on success, otherwise false.</returns>
 
-function <structure_name>_update_row, ^val
+function <StructureName>Update, ^val
 
     required in  a_dbchn,  i
     <IF STRUCTURE_RELATIVE>
@@ -1036,9 +1048,8 @@ function <structure_name>_update_row, ^val
         </IF STRUCTURE_RELATIVE>
     endliteral
 
-    .include "<STRUCTURE_NOALIAS>" repository, static record="<structure_name>", end
-
     static record
+        <structure_name>, str<STRUCTURE_NOALIAS>
         <FIELD_LOOP>
         <IF USERTIMESTAMP>
         tmp<FieldSqlName>, a26     ;;Storage for user-defined timestamp field
@@ -1051,7 +1062,6 @@ function <structure_name>_update_row, ^val
         </IF TIME_HHMMSS>
         </IF USERTIMESTAMP>
         </FIELD_LOOP>
-        ,a1                         ;;In case there are no user timestamp, date or JJJJJJ date fields
     endrecord
 
     global common
@@ -1069,7 +1079,11 @@ proc
 
     ;;Load the data into the bound record
 
+    <IF STRUCTURE_MAPPED>
+    <structure_name> = %<structure_name>_map(a_data)
+    <ELSE>
     <structure_name> = a_data
+    </IF STRUCTURE_MAPPED>
 
     ;;Start a database transaction
 
@@ -1277,7 +1291,7 @@ endfunction
 ;;; <param name="a_errtxt">Returned error text.</param>
 ;;; <returns>Returns true on success, otherwise false.</returns>
 
-function <structure_name>_delete_row, ^val
+function <StructureName>Delete, ^val
 
     required in  a_dbchn,  i
     required in  a_key,    a
@@ -1308,6 +1322,8 @@ proc
 
     ;;Put the unique key value into the record
 
+;TODO: NEED TO FIGURE OUT HOW TO DEAL WITH this
+;      THE PASSED IN KEY VALUE WILL BE A KEY ON THE MAPPED FILE
     <structureName> = %<StructureName>KeyToRecord(a_key)
 
     ;;Start a database transaction
@@ -1413,7 +1429,7 @@ endfunction
 ;;; <param name="a_errtxt">Returned error text.</param>
 ;;; <returns>Returns true on success, otherwise false.</returns>
 
-function <structure_name>_clear, ^val
+function <StructureName>Clear, ^val
 
     required in  a_dbchn,  i
     optional out a_errtxt, a
@@ -1530,7 +1546,7 @@ endfunction
 ;;; <param name="a_errtxt">Returned error text.</param>
 ;;; <returns>Returns true on success, otherwise false.</returns>
 
-function <structure_name>_drop, ^val
+function <StructureName>Drop, ^val
 
     required in  a_dbchn,  i
     optional out a_errtxt, a
@@ -1554,7 +1570,7 @@ proc
 
     ;;Close any open cursors
 
-    xcall <structure_name>_close(a_dbchn)
+    xcall <StructureName>Close(a_dbchn)
 
     ;;Start a database transaction
 
@@ -1653,7 +1669,7 @@ endfunction
 
 ;;*****************************************************************************
 ;;; <summary>
-;;; Load all data from <FILE_NAME> into the <StructureName> table.
+;;; Load all data from <IF STRUCTURE_MAPPED><MAPPED_FILE><ELSE><FILE_NAME></IF STRUCTURE_MAPPED> into the <StructureName> table.
 ;;; </summary>
 ;;; <param name="a_dbchn">Connected database channel.</param>
 ;;; <param name="a_errtxt">Returned error text.</param>
@@ -1664,7 +1680,7 @@ endfunction
 ;;; <param name="a_progress">Report progress.</param>
 ;;; <returns>Returns true on success, otherwise false.</returns>
 
-function <structure_name>_load, ^val
+function <StructureName>Load, ^val
 
     required in  a_dbchn,    i
     optional out a_errtxt,   a
@@ -1677,16 +1693,28 @@ function <structure_name>_load, ^val
 
     .include "CONNECTDIR:ssql.def"
     <IF STRUCTURE_ISAM>
+    <IF STRUCTURE_MAPPED>
+    .include "<MAPPED_STRUCTURE>" repository, structure="inpbuf", end
+    <ELSE>
     .include "<STRUCTURE_NOALIAS>" repository, structure="inpbuf", end
+    </IF STRUCTURE_MAPPED>
     </IF STRUCTURE_ISAM>
     <IF STRUCTURE_RELATIVE>
     structure inpbuf
         recnum, d28
+        <IF STRUCTURE_MAPPED>
+        .include "<MAPPED_STRUCTURE>" repository, group="inprec"
+        <ELSE>
         .include "<STRUCTURE_NOALIAS>" repository, group="inprec"
+        </IF STRUCTURE_MAPPED>
     endstructure
     .include "<STRUCTURE_NOALIAS>" repository, structure="<STRUCTURE_NAME>", end
     </IF STRUCTURE_RELATIVE>
-    .include "<STRUCTURE_NOALIAS>" repository, stack record="TMPREC", end
+    <IF STRUCTURE_MAPPED>
+    .include "<MAPPED_STRUCTURE>" repository, stack record="tmprec", end
+    <ELSE>
+    .include "<STRUCTURE_NOALIAS>" repository, stack record="tmprec", end
+    </IF STRUCTURE_MAPPED>
     .include "INC:structureio.def"
 
     .define BUFFER_ROWS     1000
@@ -1728,10 +1756,10 @@ proc
 
     ;;Open the data file associated with the structure
 
-    if (%<structure_name>_io(IO_OPEN_INP,filechn)!=IO_OK)
+    if (%<IF STRUCTURE_MAPPED><MappedStructure><ELSE><StructureName></IF STRUCTURE_MAPPED>IO(IO_OPEN_INP,filechn)!=IO_OK)
     begin
         ok = false
-        errtxt = "Failed to open file <FILE_NAME>"
+        errtxt = "Failed to open file <IF STRUCTURE_MAPPED><MAPPED_FILE><ELSE><FILE_NAME></IF STRUCTURE_MAPPED>"
         clear filechn
     end
 
@@ -1750,41 +1778,41 @@ proc
             if (firstRecord) then
             begin
                 <IF STRUCTURE_ISAM>
-                errnum = %<structure_name>_io(IO_READ_FIRST,filechn,,,tmprec)
+                errnum = %<IF STRUCTURE_MAPPED><MappedStructure><ELSE><StructureName></IF STRUCTURE_MAPPED>IO(IO_READ_FIRST,filechn,,,tmprec)
                 </IF STRUCTURE_ISAM>
                 <IF STRUCTURE_RELATIVE>
-                errnum = %<structure_name>_io(IO_READ_FIRST,filechn,,tmprec)
+                errnum = %<IF STRUCTURE_MAPPED><MappedStructure><ELSE><StructureName></IF STRUCTURE_MAPPED>IO(IO_READ_FIRST,filechn,,tmprec)
                 </IF STRUCTURE_RELATIVE>
                 firstRecord = false
             end
             else
             begin
                 <IF STRUCTURE_ISAM>
-                errnum = %<structure_name>_io(IO_READ_NEXT,filechn,,,tmprec)
+                errnum = %<IF STRUCTURE_MAPPED><MappedStructure><ELSE><StructureName></IF STRUCTURE_MAPPED>IO(IO_READ_NEXT,filechn,,,tmprec)
                 </IF STRUCTURE_ISAM>
                 <IF STRUCTURE_RELATIVE>
-                errnum = %<structure_name>_io(IO_READ_NEXT,filechn,,tmprec)
+                errnum = %<IF STRUCTURE_MAPPED><MappedStructure><ELSE><StructureName></IF STRUCTURE_MAPPED>IO(IO_READ_NEXT,filechn,,tmprec)
                 </IF STRUCTURE_RELATIVE>
             end
 
             using errnum select
             (IO_OK),
-			begin
+            begin
                 <IF STRUCTURE_ISAM>
                 nop
                 </IF STRUCTURE_ISAM>
                 <IF STRUCTURE_RELATIVE>
                 recordNumber += 1
-				if (!tmprec)
-					nextloop
+                if (!tmprec)
+                    nextloop
                 </IF STRUCTURE_RELATIVE>
-			end
+            end
             (IO_EOF),
                 exitloop
             (),
             begin
                 ok = false
-                errtxt = "Unexpected response " + %string(errnum) + " from %<structure_name>_io"
+                errtxt = "Unexpected response " + %string(errnum) + " from %<IF STRUCTURE_MAPPED><MappedStructure><ELSE><StructureName></IF STRUCTURE_MAPPED>IO"
                 exitloop
             end
             endusing
@@ -1818,7 +1846,7 @@ proc
     ;;Close the file
 
     if (filechn)
-        xcall <structure_name>_io(IO_CLOSE,filechn)
+        xcall <IF STRUCTURE_MAPPED><MappedStructure><ELSE><StructureName></IF STRUCTURE_MAPPED>IO(IO_CLOSE,filechn)
 
     ;;Close the exceptions log file
 
@@ -1843,7 +1871,7 @@ insert_data,
 
     attempted = (%mem_proc(DM_GETSIZE,mh)/^size(inpbuf))
 
-    if (%<structure_name>_insert_rows(a_dbchn,mh,errtxt,ex_mh,a_terminal))
+    if (%<StructureName>InsertRows(a_dbchn,mh,errtxt,ex_mh,a_terminal))
     begin
         ;;Any exceptions?
         if (ex_mh) then
@@ -1895,7 +1923,7 @@ endfunction
 ;;; </summary>
 ;;; <param name="a_dbchn">Connected database channel</param>
 
-subroutine <structure_name>_close
+subroutine <StructureName>Close
 
     required in  a_dbchn, i
     endparams
@@ -1941,12 +1969,12 @@ endsubroutine
 
 ;;*****************************************************************************
 ;;; <summary>
-;;; Exports <FILE_NAME> to a CSV file.
+;;; Exports <IF STRUCTURE_MAPPED><MAPPED_FILE><ELSE><FILE_NAME></IF STRUCTURE_MAPPED> to a CSV file.
 ;;; </summary>
 ;;; <param name="a_errtxt">Returned error text.</param>
 ;;; <returns>Returns true on success, otherwise false.</returns>
 
-function <structure_name>_create_csv, ^val
+function <StructureName>CreateCsv, ^val
 
     optional out a_errtxt, a
     endparams
@@ -1973,10 +2001,10 @@ proc
 
     ;;Open the data file associated with the structure
 
-    if (%<structure_name>_io(IO_OPEN_INP,filechn)!=IO_OK)
+    if (%<IF STRUCTURE_MAPPED><MappedStructure><ELSE><StructureName></IF STRUCTURE_MAPPED>IO(IO_OPEN_INP,filechn)!=IO_OK)
     begin
         ok = false
-        errtxt = "Failed to open file <FILE_NAME>"
+        errtxt = "Failed to open file <IF STRUCTURE_MAPPED><MAPPED_FILE><ELSE><FILE_NAME></IF STRUCTURE_MAPPED>"
         clear filechn
     end
 
@@ -1998,10 +2026,10 @@ proc
             ;;Get the next record from the input file
 
             <IF STRUCTURE_ISAM>
-            errnum = %<structure_name>_io(IO_READ_NEXT,filechn,,,<structure_name>)
+            errnum = %<IF STRUCTURE_MAPPED><MappedStructure><ELSE><StructureName></IF STRUCTURE_MAPPED>IO(IO_READ_NEXT,filechn,,,<structure_name>)
             </IF STRUCTURE_ISAM>
             <IF STRUCTURE_RELATIVE>
-            errnum = %<structure_name>_io(IO_READ_NEXT,filechn,,<structure_name>)
+            errnum = %<IF STRUCTURE_MAPPED><MappedStructure><ELSE><StructureName></IF STRUCTURE_MAPPED>IO(IO_READ_NEXT,filechn,,<structure_name>)
             </IF STRUCTURE_RELATIVE>
 
             using errnum select
@@ -2041,7 +2069,7 @@ proc
             (),
             begin
                 ok = false
-                errtxt = "Unexpected response " + %string(errnum) + " from %<structure_name>_io"
+                errtxt = "Unexpected response " + %string(errnum) + " from %<IF STRUCTURE_MAPPED><MappedStructure><ELSE><StructureName></IF STRUCTURE_MAPPED>IO"
                 exitloop
             end
             endusing
@@ -2099,7 +2127,7 @@ proc
     ;;Close the file
 
     if (filechn)
-        xcall <structure_name>_io(IO_CLOSE,filechn)
+        xcall <IF STRUCTURE_MAPPED><MappedStructure><ELSE><StructureName></IF STRUCTURE_MAPPED>IO(IO_CLOSE,filechn)
 
     ;;Return the error text
 
@@ -2159,3 +2187,32 @@ proc
 
 endfunction
 </IF STRUCTURE_ISAM>
+
+<IF STRUCTURE_MAPPED>
+function <structure_name>_map, a
+    .include "<MAPPED_STRUCTURE>" repository, required in group="<mapped_structure>"
+    endparams
+    .include "<STRUCTURE_NAME>" repository, stack record="<structure_name>"
+proc
+    init <structure_name>
+    ;;Store the record
+    <FIELD_LOOP>
+    <field_path> = <mapped_path_conv>
+    </FIELD_LOOP>
+    freturn <structure_name>
+endfunction
+
+function <structure_name>_unmap, a
+    .include "<STRUCTURE_NAME>" repository, required in group="<structure_name>"
+    endparams
+    .include "<MAPPED_STRUCTURE>" repository, stack record="<mapped_structure>"
+proc
+    init <mapped_structure>
+    ;;Store the record
+    <FIELD_LOOP>
+    <mapped_path> = <field_path_conv>
+    </FIELD_LOOP>
+    freturn <mapped_structure>
+endfunction
+
+</IF STRUCTURE_MAPPED>

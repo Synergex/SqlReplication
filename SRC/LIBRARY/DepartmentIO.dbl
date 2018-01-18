@@ -2,7 +2,7 @@
 ;;
 ;; File:        DepartmentIO.dbl
 ;;
-;; Type:        Function (department_io)
+;; Type:        Function (DepartmentIO)
 ;;
 ;; Description: Performs file I/O for the file DAT:DEPARTMENT.ISM
 ;;
@@ -38,21 +38,21 @@
 ;;          GENERATION IS RE-EXECUTED FOR THIS PROJECT.
 ;;*****************************************************************************
 
-.include "DEPARTMENT" repository, structure="strDepartment", end
+.include "DEPARTMENT" repository, structure="strDEPARTMENT", end
 
-function department_io ,^val
+function DepartmentIO ,^val
 
     required in    a_mode       ,n  ;;Access type
     required inout a_channel    ,n  ;;Channel
     optional in    a_key        ,a  ;;Key value
     optional in    a_keynum     ,n  ;;Key number
-    optional inout department, strDepartment
+    optional inout department, strDEPARTMENT
     optional in    a_lock       ,n  ;;If passed and TRUE, lock record
     optional in    a_partial    ,n  ;;Do a partial key lookup
     optional out   a_errtxt     ,a  ;;Returned error text
     endparams
 
-    .INCLUDE "INC:structureio.def"
+    .include "INC:structureio.def"
     .include "INC:sqlgbl.def"
 
     stack record localData
@@ -289,13 +289,13 @@ openError,
 
 endfunction
 
-function department_length ,^val
+function DepartmentLength ,^val
     endparams
 proc
     freturn 71
 endfunction
 
-function department_type, ^val
+function DepartmentType, ^val
     required out fileType, a
     endparams
 proc

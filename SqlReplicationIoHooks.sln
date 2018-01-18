@@ -13,6 +13,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Templates", "Templates", "{
 	ProjectSection(SolutionItems) = preProject
 		SRC\TEMPLATES\ConfigureReplication.tpl = SRC\TEMPLATES\ConfigureReplication.tpl
 		SRC\TEMPLATES\FileDataReport.tpl = SRC\TEMPLATES\FileDataReport.tpl
+		SRC\TEMPLATES\GetReplicatedTables.tpl = SRC\TEMPLATES\GetReplicatedTables.tpl
 		SRC\TEMPLATES\IOHooksISAM.tpl = SRC\TEMPLATES\IOHooksISAM.tpl
 		SRC\TEMPLATES\IOHooksRELATIVE.tpl = SRC\TEMPLATES\IOHooksRELATIVE.tpl
 		SRC\TEMPLATES\IsDate.dbl = SRC\TEMPLATES\IsDate.dbl

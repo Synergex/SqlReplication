@@ -1,0 +1,10 @@
+import System.Collections
+
+subroutine GetReplicatedTables
+    required out tables, @ArrayList
+proc
+    tables = new ArrayList()
+    tables.Add((string)"Employee")
+    tables.Add((string)"Relstr")
+    xreturn
+endsubroutine

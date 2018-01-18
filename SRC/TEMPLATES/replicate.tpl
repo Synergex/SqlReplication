@@ -55,7 +55,7 @@
 subroutine Replicate
 
     required in a_action, REPLICATION_INSTRUCTION
-    optional in a_structure, a
+    optional in a_tablename, a
     optional in a_record, a
     endparams
 
@@ -116,8 +116,8 @@ proc
 
         instruction.action = (i)a_action
 
-        if (^passed(a_structure) && a_structure)
-            instruction.structure_name = a_structure
+        if (^passed(a_tablename) && a_tablename)
+            instruction.structure_name = a_tablename
 
         if (^passed(a_record) && a_record)
             instruction.record = a_record

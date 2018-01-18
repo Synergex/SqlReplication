@@ -2,7 +2,7 @@
 ;;
 ;; File:        EmployeeIO.dbl
 ;;
-;; Type:        Function (employee_io)
+;; Type:        Function (EmployeeIO)
 ;;
 ;; Description: Performs file I/O for the file DAT:EMPLOYEE.ISM
 ;;
@@ -38,21 +38,21 @@
 ;;          GENERATION IS RE-EXECUTED FOR THIS PROJECT.
 ;;*****************************************************************************
 
-.include "EMPLOYEE" repository, structure="strEmployee", end
+.include "EMPLOYEE" repository, structure="strEMPLOYEE", end
 
-function employee_io ,^val
+function EmployeeIO ,^val
 
     required in    a_mode       ,n  ;;Access type
     required inout a_channel    ,n  ;;Channel
     optional in    a_key        ,a  ;;Key value
     optional in    a_keynum     ,n  ;;Key number
-    optional inout employee, strEmployee
+    optional inout employee, strEMPLOYEE
     optional in    a_lock       ,n  ;;If passed and TRUE, lock record
     optional in    a_partial    ,n  ;;Do a partial key lookup
     optional out   a_errtxt     ,a  ;;Returned error text
     endparams
 
-    .INCLUDE "INC:structureio.def"
+    .include "INC:structureio.def"
     .include "INC:sqlgbl.def"
 
     stack record localData
@@ -318,13 +318,13 @@ openError,
 
 endfunction
 
-function employee_length ,^val
+function EmployeeLength ,^val
     endparams
 proc
     freturn 300
 endfunction
 
-function employee_type, ^val
+function EmployeeType, ^val
     required out fileType, a
     endparams
 proc

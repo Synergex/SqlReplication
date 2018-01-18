@@ -35,77 +35,79 @@
 import SynPSG.ReplicationDemo
 
 subroutine ConfigureReplication
-	required in channel, n
-	endparams
+    required in channel, n
+    endparams
 
-	stack record
-		openMode, a3
-		fileSpec, a128
-		fileName, a80
-		fileExt,  a20
-	endrecord
+    stack record
+        openMode, a3
+        fileSpec, a128
+        fileName, a80
+        fileExt,  a20
+    endrecord
 
-	.define common global common
-	.include "INC:sqlgbl.def"
-	.undefine common
+    .define common global common
+    .include "INC:sqlgbl.def"
+    .undefine common
 
 proc
-	;;Get the file spec from the open channel
-	xcall filnm(channel,fileSpec)
-	xcall parse(fileSpec,,,,,fileName,fileExt)
-	fileSpec = %atrim(fileName) + fileExt
-	upcase fileSpec
+    ;;Get the file spec from the open channel
+    xcall filnm(channel,fileSpec)
+    xcall parse(fileSpec,,,,,fileName,fileExt)
+    fileSpec = %atrim(fileName) + fileExt
+    upcase fileSpec
 
-	;;Default to NOT populating a REPLICATION_KEY field for this channel
-	repkey_required[channel] = 0
+    ;;Default to NOT populating a REPLICATION_KEY field for this channel
+    repkey_required[channel] = 0
 
-	;;Get the open mode of the channel
-	xcall getfa(channel,"OMD",openMode)
+    ;;Get the open mode of the channel
+    xcall getfa(channel,"OMD",openMode)
 
-	using openMode select
-	("U:I"),
-	begin
-		using fileSpec select
+    ;;Add I/O Hooks as necessary. The second paramrter is the DATABASE TABLE NAME to replicate to.
+    
+    using openMode select
+    ("U:I"),
+    begin
+        using fileSpec select
 
 ;       ;;A single-record layout file that already had a unique key
 ;       ("FILE1.ISM"),
-;           new IoHooksISAM(channel,"FILE1")
+;           new IoHooksISAM(channel,"File1")
 ;
 ;       ;;A single-record layout file with REPLICATION_KEY added
 ;       ("FILE2.ISM"),
 ;       begin
-;           new IoHooksISAM(channel,"FILE2")
+;           new IoHooksISAM(channel,"File2")
 ;           repkey_required[channel] = 1
 ;       end
 ;
 ;       ;;A multi-record layout file that already had a unique key
 ;       ("FILE3.ISM"), ;;Multiple possibilities (FILE3A, FILE3B, FILE3C)
-;           new IoHooksISAM(channel,"MULTI_FILE3")
+;           new IoHooksISAM(channel,"MULTI_File3")
 ;
 ;       ;;A multi-record layout file with REPLICATION_KEY added
 ;       ("FILE4.ISM"), ;;Multiple possibilities (FILE4A, FILE4B, FILE4C)
 ;       begin
-;           new IoHooksISAM(channel,"MULTI_FILE4")
+;           new IoHooksISAM(channel,"MULTI_File4")
 ;           repkey_required[channel] = 1
 ;       end
 
-		("EMPLOYEE.ISM"),
-			new IoHooksISAM(channel,"EMPLOYEE")
+        ("EMPLOYEE.ISM"),
+            new IoHooksISAM(channel,"EMPLOYEE")
 
-		endusing
-	end
-	("U:R"),
-	begin
-		using fileSpec select
+        endusing
+    end
+    ("U:R"),
+    begin
+        using fileSpec select
 
-;		;;A relative file
+;       ;;A relative file
 ;       ("FILE1.DDF"),
-;           new IoHooksRELATIVE(channel,"FILE1")
+;           new IoHooksRELATIVE(channel,"File1")
 
-		endusing
-	end
-	endusing
+        endusing
+    end
+    endusing
 
-	xreturn
+    xreturn
 
 endsubroutine

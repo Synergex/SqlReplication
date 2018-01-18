@@ -75,13 +75,13 @@ proc
 	endtry
 	.endc
 
-	if (%employee_io(IO_OPEN_UPD,ech) != IO_OK)
+	if (%EmployeeIO(IO_OPEN_UPD,ech) != IO_OK)
 	begin
 		display(tt,"Failed to open employee file!")
 		ok = false
 	end
 
-	if (ok && %department_io(IO_OPEN_UPD,dch) != IO_OK)
+	if (ok && %DepartmentIO(IO_OPEN_UPD,dch) != IO_OK)
 	begin
 		display(tt,"Failed to open department file!")
 		ok = false
@@ -138,7 +138,7 @@ proc
 
 		;;Read the employee record
 		saveEmployee = employee
-		using %employee_io(IO_READ,ech,^a(employee.emp_id),0,employee,IO_LOCK,,tmpvar) select
+		using %EmployeeIO(IO_READ,ech,^a(employee.emp_id),0,employee,IO_LOCK,,tmpvar) select
 		(IO_OK),
 		begin
 			;;Save and display the employee data
@@ -190,7 +190,7 @@ proc
 			("E ","  "),
 			begin
 				;;All done, exit
-				using %employee_io(IO_UPDATE,ech,,,employee,,,tmpvar) select
+				using %EmployeeIO(IO_UPDATE,ech,,,employee,,,tmpvar) select
 				(IO_OK),
 				begin
 					display(tt,$scr_pos(23,2),$scr_clr(eol),"Employee record saved")
@@ -216,7 +216,7 @@ proc
 					using tmpvar select
 					("Y"),
 					begin
-						xcall employee_io(IO_DELETE,ech)
+						xcall EmployeeIO(IO_DELETE,ech)
 						;;All done, exit
 						allDone = true
 						exitloop
@@ -375,7 +375,7 @@ Department,
 GetDepartmentName,
 
 	;;Lookup department record
-	using %department_io(IO_READ,dch,employee.emp_dept,0,department,,,tmpvar) select
+	using %DepartmentIO(IO_READ,dch,employee.emp_dept,0,department,,,tmpvar) select
 	(IO_OK),
 		nop
 	(),
@@ -400,7 +400,7 @@ CreateNew,
 		("Y"),
 		begin
 			;;Save the new record
-			if (%employee_io(IO_CREATE,ech,,,employee) != IO_OK)
+			if (%EmployeeIO(IO_CREATE,ech,,,employee) != IO_OK)
 			begin
 				display(tt,$scr_pos(23,2),$scr_clr(eol),"Failed to create employee!")
 				reads(tt,tmpvar(1:1))	
