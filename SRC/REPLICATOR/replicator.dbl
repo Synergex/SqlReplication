@@ -200,7 +200,7 @@ proc
     if (Settings.DatabaseChannel)
         xcall ssc_release(Settings.DatabaseChannel)
 
-    ;;Release the name space
+    ;;Release the namespace
     if (Settings.ChannelInfo)
         xcall nspc_close(Settings.ChannelInfo)
 
@@ -292,7 +292,7 @@ CheckFileTable,
             
         ("DBL ISAM"),
         begin
-            ;;Search the first unique key. There should always be one, because without one the
+            ;;Search for the first unique key. There should always be one, because without one the
             ;;constructor in the I/O hooks class would not activate replication for the file.
             data thisKey, i4
             structure_data.structure_keynum = -1
