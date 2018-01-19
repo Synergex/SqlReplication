@@ -99,7 +99,8 @@ proc
 		end
 		catch (ex, @FileInUseException)
 		begin
-			open(chn=0,"U:I","REPLICATOR_DATA:REPLICATION.ISM")
+			;TODO: should be chn=0 but fails here on VMS!
+			open(chn=%syn_freechn,"U:I","REPLICATOR_DATA:REPLICATION.ISM")
 			repeat
 			begin
 				try

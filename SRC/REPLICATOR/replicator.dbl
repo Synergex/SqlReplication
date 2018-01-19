@@ -85,635 +85,17 @@ main replicator
 
 proc
 
-    ok = true
-    xcall flags(7004020,1)
+	call ConfigureEnvironment
 
-    ;;Configure defaults
-    Settings.Initialize()
-
-    ;;If we're running on the terminal, open the terminal channel
-    if (Settings.RunningOnTerminal)
-    begin
-        data tmpchn, i4, 0
-        open(tmpchn,o,"tt:")
-        Settings.TerminalChannel = tmpchn
-        display(Settings.TerminalChannel,$scr_pos(1,1),$scr_clr(SCREEN))
-        writes(Settings.TerminalChannel,"SQL Replicator Log")
-    end
-
-    ;;Should we log major events to the system log in addition to the log file?
-    if (CommandLineParser.Parse("syslog")) then
-    begin
-        Settings.SystemLog = true
-    end
-    else
-    begin
-        ;;Or via an environment variable?
-        data tmpval, a3
-        xcall getlog("REPLICATOR_SYSTEM_LOG",tmpval,length)
-        Settings.SystemLog = ((length>0)&&(tmpval.eq."YES"))
-    end
-
-    ;;Do we have a log file location on the command line?
-    if (CommandLineParser.Parse("logdir",clValues))
-    begin
-        using clValues.Count select
-        (1),
-        begin
-            data sts, i4
-            xcall setlog("REPLICATOR_LOGDIR",(string)clValues[0],sts)
-        end
-        endusing
-    end
-
-    ;;Create a new log file
-    try
-    begin
-        data tmpchn, i4, 0
-        open(tmpchn,o:s,Settings.LogFileName)
-        close tmpchn
-        ;;Record the startup
-        xcall log("Replicator startup")
-    end
-    catch (ex)
-    begin
-        data tmpmsg = "Replicator failed to open log file " + Settings.LogFileName + ". Error number " + %string(%ernum)
-        if (Settings.RunningOnTerminal) then
-            writes(Settings.TerminalChannel,tmpmsg)
-        else
-            xcall syn_reportevent(D_EVENTLOG_ERROR_TYPE,tmpmsg)
-        ok = false
-    end
-    endtry
-
-    if (ok)
-    begin
-        ;;Is an export directory specified via the command line?
-        if (CommandLineParser.Parse("exportdir",clValues) && (clValues.Count == 1))
-        begin
-            data sts, i4
-            xcall setlog("REPLICATOR_EXPORT",(string)clValues[0],sts)
-        end
-    end
-
-    if (ok)
-    begin
-        ;;Is an instance name specified via the command line?
-        if (CommandLineParser.Parse("instance",clValues)) then
-        begin
-            using clValues.Count select
-            (1),
-                Settings.InstanceName = (string)clValues[0]
-            (0),
-            begin
-                xcall errorlog("Missing value after the -instance option")
-                ok = false
-            end
-            (),
-            begin
-                xcall errorlog("Only one value may follow the -instance option")
-                ok = false
-            end
-            endusing
-        end
-        else
-        begin
-            ;;Or via an environment variable?
-            data tmpval, a80
-            xcall getlog("REPLICATOR_INSTANCE",tmpval,length)
-            if (length)
-                Settings.InstanceName = tmpval(1:length)
-        end
-    end
-
-    if (ok)
-    begin
-        ;;Is a sleep interval specified via the command line?
-        if (CommandLineParser.Parse("interval",clValues)) then
-        begin
-            using clValues.Count select
-            (1),
-            begin
-                try
-                begin
-                    Settings.SleepTime = %integer((string)clValues[0])
-                end
-                catch (e, @Exception)
-                begin
-                    xcall errorlog("Invalid value after the -interval option")
-                    ok = false
-                end
-                endtry
-            end
-            (0),
-            begin
-                xcall errorlog("Missing value after the -interval option")
-                ok = false
-            end
-            (),
-            begin
-                xcall errorlog("Only one value may follow the -interval option")
-                ok = false
-            end
-            endusing
-        end
-        else
-        begin
-            ;;Or via an environment variable?
-            data tmpval, a10
-            xcall getlog("REPLICATOR_INTERVAL",tmpval,length)
-            if (length>0)
-                Settings.SleepTime = %integer(tmpval(1:length))
-        end
-        xcall log("Processing interval is " + %string(Settings.SleepTime) + " seconds.")
-    end
-
-    if (ok)
-    begin
-        ;;Is load progress reporting enabled via the command line?
-        if (CommandLineParser.Parse("progress")) then
-        begin
-            Settings.BulkLoadProgressReporting = true
-        end
-        else
-        begin
-            ;;Or via an environment variable?
-            data tmpval, a10
-            xcall getlog("REPLICATOR_LOAD_PROGRESS",tmpval,length)
-            Settings.BulkLoadProgressReporting = ((length>0)&&(tmpval.eq."YES"))
-        end
-    end
-
-    if (ok)
-    begin
-        ;;Is verbose logging enabled via the command line?
-        if (CommandLineParser.Parse("verbose")) then
-        begin
-            Settings.FullLogging = true
-        end
-        else
-        begin
-            ;;Or via an environment variable?
-            data tmpval, a3
-            xcall getlog("REPLICATOR_FULL_LOG",tmpval,length)
-            Settings.FullLogging = ((length>0)&&(tmpval.eq."YES"))
-        end
-    end
-
-    if (ok)
-    begin
-        ;;Is key value logging enabled via the command line?
-        if (CommandLineParser.Parse("keyvalues")) then
-        begin
-            Settings.LogKeys = true
-        end
-        else
-        begin
-            ;;Or via an environment variable?
-            data tmpval, a3
-            xcall getlog("REPLICATOR_LOG_KEYS",tmpval,length)
-            Settings.LogKeys = ((length>0)&&(tmpval.eq."YES"))
-        end
-    end
-
-    if (ok)
-    begin
-        ;;Is bulk load exception logging enabled via the command line?
-        if (CommandLineParser.Parse("loaderrors")) then
-        begin
-            Settings.LogLoadExceptions = true
-        end
-        else
-        begin
-            ;;Or via an environment variable?
-            data tmpval, a3
-            xcall getlog("REPLICATOR_LOG_BULK_LOAD_EXCEPTIONS",tmpval,length)
-            Settings.LogLoadExceptions = ((length>0)&&(tmpval.eq."YES"))
-        end
-    end
-
-    if (ok)
-    begin
-        ;;Are email notifications enabled via the command line?
-        if (CommandLineParser.Parse("erroremail",clValues)) then
-        begin
-            using clValues.Count select
-            (1),
-            begin
-                Settings.ErrorEmail = (string)clValues[0]
-            end
-            (0),
-            begin
-                xcall errorlog("Missing value after the -erroremail option")
-                ok = false
-            end
-            (),
-            begin
-                xcall errorlog("Only one value may follow the -erroremail option")
-                ok = false
-            end
-            endusing
-        end
-        else
-        begin
-            ;;Or via an environment variable?
-            data tmpval, a1024
-            xcall getlog("REPLICATOR_ERROR_EMAIL",tmpval,length)
-            if (length>0)
-                Settings.ErrorEmail = tmpval(1:length)
-        end
-    end
-
-    if (ok)
-    begin
-        ;;Is an email server DNS name or IP address specified via the command line?
-        if (CommandLineParser.Parse("mailserver",clValues)) then
-        begin
-            using clValues.Count select
-            (1),
-            begin
-                Settings.EmailServer = (string)clValues[0]
-            end
-            (0),
-            begin
-                xcall errorlog("Missing value after the -mailserver option")
-                ok = false
-            end
-            (),
-            begin
-                xcall errorlog("Only one value may follow the -mailserver option")
-                ok = false
-            end
-            endusing
-        end
-        else
-        begin
-            ;;Or via an environment variable?
-            data tmpval, a128
-            xcall getlog("REPLICATOR_SMTP_SERVER",tmpval,length)
-            if (length>0)
-                Settings.EmailServer = tmpval(1:length)
-        end
-    end
-
-    if (ok)
-    begin
-        ;;Is an email sender address specified via the command line?
-        if (CommandLineParser.Parse("mailfrom",clValues)) then
-        begin
-            using clValues.Count select
-            (1),
-            begin
-                Settings.EmailSender = (string)clValues[0]
-            end
-            (0),
-            begin
-                xcall errorlog("Missing value after the -mailfrom option")
-                ok = false
-            end
-            (),
-            begin
-                xcall errorlog("Only one value may follow the -mailfrom option")
-                ok = false
-            end
-            endusing
-        end
-        else
-        begin
-            ;;Or via an environment variable?
-            data tmpval, a128
-            xcall getlog("REPLICATOR_EMAIL_SENDER",tmpval,length)
-            if (length>0)
-                Settings.EmailSender = tmpval(1:length)
-        end
-    end
-
-    if (ok)
-    begin
-        ;;Should the replicator STOP if it encounters an error?
-        if (CommandLineParser.Parse("stoponerror")) then
-        begin
-            Settings.StopOnError = true
-        end
-        else
-        begin
-            data tmpval, a3
-            xcall getlog("REPLICATOR_ERROR_STOP",tmpval,length)
-            Settings.StopOnError = ((length>0)&&(tmpval.eq."YES"))
-        end
-    end
-
-    if (ok)
-    begin
-        ;;Do we have a max columns value  via the command line?
-        if (CommandLineParser.Parse("maxcols",clValues)) then
-        begin
-            using clValues.Count select
-            (1),
-            begin
-                try
-                begin
-                    Settings.MaxColumns = %integer((string)clValues[0])
-                end
-                catch (e, @Exception)
-                begin
-                    xcall errorlog("Invalid value after the -maxcols option")
-                    ok = false
-                end
-                endtry
-            end
-            (0),
-            begin
-                xcall errorlog("Missing value after the -maxcols option")
-                ok = false
-            end
-            (),
-            begin
-                xcall errorlog("Only one value may follow the -maxcols option")
-                ok = false
-            end
-            endusing
-        end
-        else
-        begin
-            ;;Or via an environment variable?
-            data tmpval, a10
-            xcall getlog("REPLICATOR_MAX_COLS",tmpval,length)
-            if (length>0)
-                Settings.MaxColumns = %integer(tmpval(1:length))
-        end
-    end
-
-    if (ok)
-    begin
-        ;;Do we have a max cursors value  via the command line?
-        if (CommandLineParser.Parse("maxcursors",clValues)) then
-        begin
-            using clValues.Count select
-            (1),
-            begin
-                try
-                begin
-                    Settings.MaxCursors = %integer((string)clValues[0])
-                end
-                catch (e, @Exception)
-                begin
-                    xcall errorlog("Invalid value after the -maxcursors option")
-                    ok = false
-                end
-                endtry
-            end
-            (0),
-            begin
-                xcall errorlog("Missing value after the -maxcursors option")
-                ok = false
-            end
-            (),
-            begin
-                xcall errorlog("Only one value may follow the -maxcursors option")
-                ok = false
-            end
-            endusing
-        end
-        else
-        begin
-            ;;Or via an environment variable?
-            data tmpval, a10
-            xcall getlog("REPLICATOR_MAX_CURSORS",tmpval,length)
-            if (length>0)
-                Settings.MaxCursors = %integer(tmpval(1:length))
-        end
-    end
-
-    if (ok)
-    begin
-        ;;Check if the instruction file exists, if not create it
-        try
-        begin
-            data tmpchn, i4, 0
-            open(tmpchn,I:I,Settings.TransactionFile)
-            close tmpchn
-        end
-        catch (e, @Synergex.SynergyDE.NoFileFoundException)
-        begin
-            try
-            begin
-                .ifdef D_VMS
-                xcall isamc(Settings.TransactionFile + ", FIXED", 32054, 1, "START=1, LENGTH=20, NAME=TRANSACTION_ID")
-                .else
-                xcall isamc(Settings.TransactionFile + ", FIXED, COMPRESS, PAGE=1024, TBYTE", 65054, 1, "START=1, LENGTH=20, NAME=TRANSACTION_ID")
-                .endc
-            end
-            catch (ex, @Exception)
-            begin
-                xcall errorlog("Failed to create transaction log file " + Settings.TransactionFile + " - Error was: " + e.Message)
-                ok = false
-            end
-            endtry
-        end
-        catch (e, @Exception)
-        begin
-            xcall errorlog("Failed to open transaction log file " + Settings.TransactionFile + " - Error was: " + e.Message)
-            ok = false
-        end
-        endtry
-    end
-
-    if (ok)
-    begin
-        ;;Open the instruction file
-        try
-        begin
-            data tmpchn, i4, 0
-            open(tmpchn,U:I,Settings.TransactionFile)
-            Settings.InstructionChannel = tmpchn
-        end
-        catch (ex)
-        begin
-            xcall errorlog("Failed to open transaction log file " + Settings.TransactionFile)
-            ok = false
-        end
-        endtry
-    end
-
-    if (ok)
-    begin
-        ;;Is the queue file location specified via the command line?
-        if (CommandLineParser.Parse("datadir",clValues))
-        begin
-            using clValues.Count select
-            (1),
-            begin
-                data sts, i4
-                xcall setlog("REPLICATOR_DATA",(string)clValues[0],sts)
-            end
-            (0),
-            begin
-                xcall errorlog("Missing value after the -datadir option")
-                ok = false
-            end
-            (),
-            begin
-                xcall errorlog("Only one value may follow the -datadir option")
-                ok = false
-            end
-            endusing
-        end
-    end
-
-    if (ok)
-    begin
-        ;;Is a database connect string specified via the command line?
-        if (CommandLineParser.Parse("database",clValues)) then
-        begin
-            using clValues.Count select
-            (1),
-            begin
-                Settings.DatabaseConnectString = (string)clValues[0]
-            end
-            (0),
-            begin
-                xcall errorlog("Missing value after the -database option")
-                ok = false
-            end
-            (),
-            begin
-                xcall errorlog("Only one value may follow the -database option")
-                ok = false
-            end
-            endusing
-        end
-        else
-        begin
-            ;;Or via an environment variable?
-            data tmpval, a256
-            xcall getlog("REPLICATOR_DATABASE",tmpval,length)
-            if (length) then
-                Settings.DatabaseConnectString = tmpval(1:length)
-            else
-            begin
-                ;;We don't have a database connect string so we can't continue!
-                xcall errorlog("No database connect string was found. Use command line option -database or define environment variable REPLICATOR_DATABASE.")
-                ok = false
-            end
-        end
-    end
-
-    .ifdef D_VMS
-    if (ok)
-    begin
-        xcall openelb("REPLICATOR_SH")
-    end
-    .endc
-
-    if (ok)
-    begin
-        ;;Enable and Initialize SQL Connection
-        .ifdef OS_VMS
-        xcall init_ssql
-        .else
-        status = %option(48,1)
-        .endc
-        Settings.DatabaseChannel = 1
-        if (%ssc_init(Settings.DatabaseChannel,Settings.MaxCursors,Settings.MaxColumns)==SSQL_FAILURE)
-        begin
-            xcall errorlog("Failed to initialize SQL Connection")
-            ok = false
-        end
-    end
-
-    if (ok)
-    begin
-        ;;Connect to the database
-        xcall log("Connecting to database...")
-        if (%ssc_connect(Settings.DatabaseChannel,Settings.DatabaseConnectString)==SSQL_NORMAL) then
-            xcall log("Connected")
-        else
-        begin
-            ;;Failed to connect
-            xcall ssc_getemsg(Settings.DatabaseChannel,dberrtxt,length)
-            xcall errorlog("Failed to connect to database!")
-            xcall log("Connect string was: " + Settings.DatabaseConnectString)
-            xcall log("Error message was : " + dberrtxt(1,length))
-            ok = false
-
-            ;;If we're sending emails then let's record the connect failure
-            if (Settings.CanSendEmail())
-            begin
-                data body = new string[3]
-                body[1] = "ERROR: Failed to connect to database!"
-                body[2] = "Connect string was: " + Settings.DatabaseConnectString
-                body[3] = "Error message was :  " + dberrtxt(1,length)
-                xcall SendEmail("ERROR",body)
-            end
-        end
-    end
-
-    ;;Register a shutdown handler
-    if (ok && !Settings.RunningOnTerminal)
-        xcall syn_atexit(%xaddr("ReplicatorShutdown"))
-
-    .ifdef d_GUI
-    ;;If there has been a failure and we're running on the terminal, pause so error messages may be read
-    if (!ok && Settings.RunningOnTerminal)
-    begin
-        data tmpchr, a1
-        display(Settings.TerminalChannel,13,10,"Replicator will stop - press a key: ")
-        accept(Settings.TerminalChannel,tmpchr)
-    end
-    .endc
-
-    ;;Main processing
-    if (ok)
-    begin
-        ;;Create the process ID file
-        call RecordProcessID
-
-        ;;Create a namespace to record information about Synergy data files that we have opened.
-        Settings.ChannelInfo = %nspc_open(,%size(structure_data))
-
-        xcall log("Maximum cursors: "+%string(Settings.MaxCursors))
-        xcall log("Maximum columns: "+%string(Settings.MaxColumns))
-
-        xcall log("--- Processing instructions ----------------------")
-
-        ;;If we're sending emails then let's record the server startup
-        if (Settings.CanSendEmail())
-        begin
-            data body = new string[#] {"The SQL replicator process was started."}
-            xcall SendEmail("STARTED",body)
-        end
-
-        ;;If were writing to the system log, record the startup
-        if (Settings.SystemLog)
-        begin
-            data tmpmsg, string, "Startup of replicator instance " + Settings.InstanceName + %char(13) + %char(10)
-            tmpmsg += "Database connect string is " + Settings.DatabaseConnectString + %char(13) + %char(10)
-            tmpmsg += "Transaction file is " + Settings.TransactionFile + %char(13) + %char(10)
-            tmpmsg += "Log file is " + Settings.LogFileName + %char(13) + %char(10)
-            tmpmsg += "Sleep interval is " + %string(Settings.SleepTime) + " seconds. " + %char(13) + %char(10)
-            if (Settings.StopOnError) then
-                tmpmsg += "Replicator will stop if any error is encountered" + %char(13) + %char(10)
-            else
-                tmpmsg += "Replicator will attempt to continue if errors are encountered" + %char(13) + %char(10)
-            if (Settings.CanSendEmail()) then
-            begin
-                tmpmsg += "Replicator is configured to send email messages to " + Settings.ErrorEmail + %char(13) + %char(10)
-                tmpmsg += "Emails will be sent from " + Settings.EmailSender + %char(13) + %char(10)
-                tmpmsg += "Email server is " + Settings.EmailServer + %char(13) + %char(10)
-            end
-            else
-                tmpmsg += "Replicator is NOT configured to send email messages" + %char(13) + %char(10)
-
-            xcall syn_reportevent(D_EVENTLOG_INFORMATION_TYPE,tmpmsg)
-        end
-
-        ;;Main loop
+	if (ok)
+	begin
+        ;;Main processing loop
         repeat
         begin
             ;;Check for outstanding instructions
             call GetInstruction
 
+			;;If there are no more we'll just wait a while
             if (noMoreInstructions) then
             begin
                 sleep Settings.SleepTime
@@ -725,7 +107,7 @@ proc
                 ;;If this is a routine request (create/update/delete) then do
                 ;;file and table checks to ensure we have the file open and the
                 ;;database table exists
-                if ( (instruction.action==(i)REPLICATION_INSTRUCTION.CREATE_ROW)
+                if    ((instruction.action==(i)REPLICATION_INSTRUCTION.CREATE_ROW)
                 &   || (instruction.action==(i)REPLICATION_INSTRUCTION.UPDATE_ROW)
                 &   || (instruction.action==(i)REPLICATION_INSTRUCTION.DELETE_ROW)
                 &   || (instruction.action==(i)REPLICATION_INSTRUCTION.INSERT_RELATIVE)
@@ -1615,41 +997,6 @@ DoDeleteTable,
     return
 
 ;;-----------------------------------------------------------------------------
-;; Record the process ID of the running instance
-
-RecordProcessId,
-
-    if (!Settings.RunningOnTerminal)
-    begin
-        data pidFileSpec, string, "REPLICATOR_LOGDIR:REPLICATOR_" + Settings.InstanceName + ".PID"
-        data pidFileChannel, int
-
-        ;;Open the PID file
-        try
-        begin
-            xcall delet(pidFileSpec)
-            open(pidFileChannel=0,o:s,pidFileSpec)
-            .ifdef D_VMS
-            writes(pidFileChannel,%hex(%jbno,4))
-            .else
-            writes(pidFileChannel,%string(%jbno))
-            .endc
-        end
-        catch (ex)
-        begin
-            xcall errorlog("Failed to create or write PID file! Error was " + ex.Message)
-        end
-        finally
-        begin
-            if (pidFileChannel && %chopen(pidFileChannel))
-                close pidFileChannel
-        end
-        endtry
-    end
-
-    return
-
-;;-----------------------------------------------------------------------------
 ;; Change the sleep seconds interval
 
 ChangeInterval,
@@ -1678,6 +1025,671 @@ ChangeInterval,
     end
 
     return
+
+;;-----------------------------------------------------------------------------
+;; Called first to set everything up
+
+ConfigureEnvironment,
+
+	ok = true
+	xcall flags(7004020,1)
+
+	;;Configure defaults
+	Settings.Initialize()
+
+	;;If we're running on the terminal, open the terminal channel
+	if (Settings.RunningOnTerminal)
+	begin
+		data tmpchn, i4, 0
+		open(tmpchn,o,"tt:")
+		Settings.TerminalChannel = tmpchn
+		display(Settings.TerminalChannel,$scr_pos(1,1),$scr_clr(SCREEN))
+		writes(Settings.TerminalChannel,"SQL Replicator Log")
+	end
+
+	;;Should we log major events to the system log in addition to the log file?
+	if (CommandLineParser.Parse("syslog")) then
+	begin
+		Settings.SystemLog = true
+	end
+	else
+	begin
+		;;Or via an environment variable?
+		data tmpval, a3
+		xcall getlog("REPLICATOR_SYSTEM_LOG",tmpval,length)
+		Settings.SystemLog = ((length>0)&&(tmpval.eq."YES"))
+	end
+
+	;;Do we have a log file location on the command line?
+	if (CommandLineParser.Parse("logdir",clValues))
+	begin
+		using clValues.Count select
+		(1),
+		begin
+			data sts, i4
+			xcall setlog("REPLICATOR_LOGDIR",(string)clValues[0],sts)
+		end
+		endusing
+	end
+
+	;;Create a new log file
+	try
+	begin
+		data tmpchn, i4, 0
+		open(tmpchn,o:s,Settings.LogFileName)
+		close tmpchn
+		;;Record the startup
+		xcall log("Replicator startup")
+	end
+	catch (ex)
+	begin
+		data tmpmsg = "Replicator failed to open log file " + Settings.LogFileName + ". Error number " + %string(%ernum)
+		if (Settings.RunningOnTerminal) then
+			writes(Settings.TerminalChannel,tmpmsg)
+		else
+			xcall syn_reportevent(D_EVENTLOG_ERROR_TYPE,tmpmsg)
+		ok = false
+	end
+	endtry
+
+	if (ok)
+	begin
+		;;Is an export directory specified via the command line?
+		if (CommandLineParser.Parse("exportdir",clValues) && (clValues.Count == 1))
+		begin
+			data sts, i4
+			xcall setlog("REPLICATOR_EXPORT",(string)clValues[0],sts)
+		end
+	end
+
+	if (ok)
+	begin
+		;;Is an instance name specified via the command line?
+		if (CommandLineParser.Parse("instance",clValues)) then
+		begin
+			using clValues.Count select
+			(1),
+				Settings.InstanceName = (string)clValues[0]
+			(0),
+			begin
+				xcall errorlog("Missing value after the -instance option")
+				ok = false
+			end
+			(),
+			begin
+				xcall errorlog("Only one value may follow the -instance option")
+				ok = false
+			end
+			endusing
+		end
+		else
+		begin
+			;;Or via an environment variable?
+			data tmpval, a80
+			xcall getlog("REPLICATOR_INSTANCE",tmpval,length)
+			if (length)
+				Settings.InstanceName = tmpval(1:length)
+		end
+	end
+
+	if (ok)
+	begin
+		;;Is a sleep interval specified via the command line?
+		if (CommandLineParser.Parse("interval",clValues)) then
+		begin
+			using clValues.Count select
+			(1),
+			begin
+				try
+				begin
+					Settings.SleepTime = %integer((string)clValues[0])
+				end
+				catch (e, @Exception)
+				begin
+					xcall errorlog("Invalid value after the -interval option")
+					ok = false
+				end
+				endtry
+			end
+			(0),
+			begin
+				xcall errorlog("Missing value after the -interval option")
+				ok = false
+			end
+			(),
+			begin
+				xcall errorlog("Only one value may follow the -interval option")
+				ok = false
+			end
+			endusing
+		end
+		else
+		begin
+			;;Or via an environment variable?
+			data tmpval, a10
+			xcall getlog("REPLICATOR_INTERVAL",tmpval,length)
+			if (length>0)
+				Settings.SleepTime = %integer(tmpval(1:length))
+		end
+		xcall log("Processing interval is " + %string(Settings.SleepTime) + " seconds.")
+	end
+
+	if (ok)
+	begin
+		;;Is load progress reporting enabled via the command line?
+		if (CommandLineParser.Parse("progress")) then
+		begin
+			Settings.BulkLoadProgressReporting = true
+		end
+		else
+		begin
+			;;Or via an environment variable?
+			data tmpval, a10
+			xcall getlog("REPLICATOR_LOAD_PROGRESS",tmpval,length)
+			Settings.BulkLoadProgressReporting = ((length>0)&&(tmpval.eq."YES"))
+		end
+	end
+
+	if (ok)
+	begin
+		;;Is verbose logging enabled via the command line?
+		if (CommandLineParser.Parse("verbose")) then
+		begin
+			Settings.FullLogging = true
+		end
+		else
+		begin
+			;;Or via an environment variable?
+			data tmpval, a3
+			xcall getlog("REPLICATOR_FULL_LOG",tmpval,length)
+			Settings.FullLogging = ((length>0)&&(tmpval.eq."YES"))
+		end
+	end
+
+	if (ok)
+	begin
+		;;Is key value logging enabled via the command line?
+		if (CommandLineParser.Parse("keyvalues")) then
+		begin
+			Settings.LogKeys = true
+		end
+		else
+		begin
+			;;Or via an environment variable?
+			data tmpval, a3
+			xcall getlog("REPLICATOR_LOG_KEYS",tmpval,length)
+			Settings.LogKeys = ((length>0)&&(tmpval.eq."YES"))
+		end
+	end
+
+	if (ok)
+	begin
+		;;Is bulk load exception logging enabled via the command line?
+		if (CommandLineParser.Parse("loaderrors")) then
+		begin
+			Settings.LogLoadExceptions = true
+		end
+		else
+		begin
+			;;Or via an environment variable?
+			data tmpval, a3
+			xcall getlog("REPLICATOR_LOG_BULK_LOAD_EXCEPTIONS",tmpval,length)
+			Settings.LogLoadExceptions = ((length>0)&&(tmpval.eq."YES"))
+		end
+	end
+
+	if (ok)
+	begin
+		;;Are email notifications enabled via the command line?
+		if (CommandLineParser.Parse("erroremail",clValues)) then
+		begin
+			using clValues.Count select
+			(1),
+			begin
+				Settings.ErrorEmail = (string)clValues[0]
+			end
+			(0),
+			begin
+				xcall errorlog("Missing value after the -erroremail option")
+				ok = false
+			end
+			(),
+			begin
+				xcall errorlog("Only one value may follow the -erroremail option")
+				ok = false
+			end
+			endusing
+		end
+		else
+		begin
+			;;Or via an environment variable?
+			data tmpval, a1024
+			xcall getlog("REPLICATOR_ERROR_EMAIL",tmpval,length)
+			if (length>0)
+				Settings.ErrorEmail = tmpval(1:length)
+		end
+	end
+
+	if (ok)
+	begin
+		;;Is an email server DNS name or IP address specified via the command line?
+		if (CommandLineParser.Parse("mailserver",clValues)) then
+		begin
+			using clValues.Count select
+			(1),
+			begin
+				Settings.EmailServer = (string)clValues[0]
+			end
+			(0),
+			begin
+				xcall errorlog("Missing value after the -mailserver option")
+				ok = false
+			end
+			(),
+			begin
+				xcall errorlog("Only one value may follow the -mailserver option")
+				ok = false
+			end
+			endusing
+		end
+		else
+		begin
+			;;Or via an environment variable?
+			data tmpval, a128
+			xcall getlog("REPLICATOR_SMTP_SERVER",tmpval,length)
+			if (length>0)
+				Settings.EmailServer = tmpval(1:length)
+		end
+	end
+
+	if (ok)
+	begin
+		;;Is an email sender address specified via the command line?
+		if (CommandLineParser.Parse("mailfrom",clValues)) then
+		begin
+			using clValues.Count select
+			(1),
+			begin
+				Settings.EmailSender = (string)clValues[0]
+			end
+			(0),
+			begin
+				xcall errorlog("Missing value after the -mailfrom option")
+				ok = false
+			end
+			(),
+			begin
+				xcall errorlog("Only one value may follow the -mailfrom option")
+				ok = false
+			end
+			endusing
+		end
+		else
+		begin
+			;;Or via an environment variable?
+			data tmpval, a128
+			xcall getlog("REPLICATOR_EMAIL_SENDER",tmpval,length)
+			if (length>0)
+				Settings.EmailSender = tmpval(1:length)
+		end
+	end
+
+	if (ok)
+	begin
+		;;Should the replicator STOP if it encounters an error?
+		if (CommandLineParser.Parse("stoponerror")) then
+		begin
+			Settings.StopOnError = true
+		end
+		else
+		begin
+			data tmpval, a3
+			xcall getlog("REPLICATOR_ERROR_STOP",tmpval,length)
+			Settings.StopOnError = ((length>0)&&(tmpval.eq."YES"))
+		end
+	end
+
+	if (ok)
+	begin
+		;;Do we have a max columns value  via the command line?
+		if (CommandLineParser.Parse("maxcols",clValues)) then
+		begin
+			using clValues.Count select
+			(1),
+			begin
+				try
+				begin
+					Settings.MaxColumns = %integer((string)clValues[0])
+				end
+				catch (e, @Exception)
+				begin
+					xcall errorlog("Invalid value after the -maxcols option")
+					ok = false
+				end
+				endtry
+			end
+			(0),
+			begin
+				xcall errorlog("Missing value after the -maxcols option")
+				ok = false
+			end
+			(),
+			begin
+				xcall errorlog("Only one value may follow the -maxcols option")
+				ok = false
+			end
+			endusing
+		end
+		else
+		begin
+			;;Or via an environment variable?
+			data tmpval, a10
+			xcall getlog("REPLICATOR_MAX_COLS",tmpval,length)
+			if (length>0)
+				Settings.MaxColumns = %integer(tmpval(1:length))
+		end
+	end
+
+	if (ok)
+	begin
+		;;Do we have a max cursors value  via the command line?
+		if (CommandLineParser.Parse("maxcursors",clValues)) then
+		begin
+			using clValues.Count select
+			(1),
+			begin
+				try
+				begin
+					Settings.MaxCursors = %integer((string)clValues[0])
+				end
+				catch (e, @Exception)
+				begin
+					xcall errorlog("Invalid value after the -maxcursors option")
+					ok = false
+				end
+				endtry
+			end
+			(0),
+			begin
+				xcall errorlog("Missing value after the -maxcursors option")
+				ok = false
+			end
+			(),
+			begin
+				xcall errorlog("Only one value may follow the -maxcursors option")
+				ok = false
+			end
+			endusing
+		end
+		else
+		begin
+			;;Or via an environment variable?
+			data tmpval, a10
+			xcall getlog("REPLICATOR_MAX_CURSORS",tmpval,length)
+			if (length>0)
+				Settings.MaxCursors = %integer(tmpval(1:length))
+		end
+	end
+
+	if (ok)
+	begin
+		;;Check if the instruction file exists, if not create it
+		try
+		begin
+			data tmpchn, i4, 0
+			open(tmpchn,I:I,Settings.TransactionFile)
+			close tmpchn
+		end
+		catch (e, @Synergex.SynergyDE.NoFileFoundException)
+		begin
+			try
+			begin
+				.ifdef D_VMS
+				xcall isamc(Settings.TransactionFile + ", FIXED", 32054, 1, "START=1, LENGTH=20, NAME=TRANSACTION_ID")
+				.else
+				xcall isamc(Settings.TransactionFile + ", FIXED, COMPRESS, PAGE=1024, TBYTE", 65054, 1, "START=1, LENGTH=20, NAME=TRANSACTION_ID")
+				.endc
+			end
+			catch (ex, @Exception)
+			begin
+				xcall errorlog("Failed to create transaction log file " + Settings.TransactionFile + " - Error was: " + e.Message)
+				ok = false
+			end
+			endtry
+		end
+		catch (e, @Exception)
+		begin
+			xcall errorlog("Failed to open transaction log file " + Settings.TransactionFile + " - Error was: " + e.Message)
+			ok = false
+		end
+		endtry
+	end
+
+	if (ok)
+	begin
+		;;Open the instruction file
+		try
+		begin
+			data tmpchn, i4, 0
+			open(tmpchn,U:I,Settings.TransactionFile)
+			Settings.InstructionChannel = tmpchn
+		end
+		catch (ex)
+		begin
+			xcall errorlog("Failed to open transaction log file " + Settings.TransactionFile)
+			ok = false
+		end
+		endtry
+	end
+
+	if (ok)
+	begin
+		;;Is the queue file location specified via the command line?
+		if (CommandLineParser.Parse("datadir",clValues))
+		begin
+			using clValues.Count select
+			(1),
+			begin
+				data sts, i4
+				xcall setlog("REPLICATOR_DATA",(string)clValues[0],sts)
+			end
+			(0),
+			begin
+				xcall errorlog("Missing value after the -datadir option")
+				ok = false
+			end
+			(),
+			begin
+				xcall errorlog("Only one value may follow the -datadir option")
+				ok = false
+			end
+			endusing
+		end
+	end
+
+	if (ok)
+	begin
+		;;Is a database connect string specified via the command line?
+		if (CommandLineParser.Parse("database",clValues)) then
+		begin
+			using clValues.Count select
+			(1),
+			begin
+				Settings.DatabaseConnectString = (string)clValues[0]
+			end
+			(0),
+			begin
+				xcall errorlog("Missing value after the -database option")
+				ok = false
+			end
+			(),
+			begin
+				xcall errorlog("Only one value may follow the -database option")
+				ok = false
+			end
+			endusing
+		end
+		else
+		begin
+			;;Or via an environment variable?
+			data tmpval, a256
+			xcall getlog("REPLICATOR_DATABASE",tmpval,length)
+			if (length) then
+				Settings.DatabaseConnectString = tmpval(1:length)
+			else
+			begin
+				;;We don't have a database connect string so we can't continue!
+				xcall errorlog("No database connect string was found. Use command line option -database or define environment variable REPLICATOR_DATABASE.")
+				ok = false
+			end
+		end
+	end
+
+	.ifdef D_VMS
+	if (ok)
+	begin
+		xcall openelb("REPLICATOR_SH")
+	end
+	.endc
+
+	if (ok)
+	begin
+		;;Enable and Initialize SQL Connection
+		.ifdef OS_VMS
+		xcall init_ssql
+		.else
+		status = %option(48,1)
+		.endc
+		Settings.DatabaseChannel = 1
+		if (%ssc_init(Settings.DatabaseChannel,Settings.MaxCursors,Settings.MaxColumns)==SSQL_FAILURE)
+		begin
+			xcall errorlog("Failed to initialize SQL Connection")
+			ok = false
+		end
+	end
+
+	if (ok)
+	begin
+		;;Connect to the database
+		xcall log("Connecting to database...")
+		if (%ssc_connect(Settings.DatabaseChannel,Settings.DatabaseConnectString)==SSQL_NORMAL) then
+			xcall log("Connected")
+		else
+		begin
+			;;Failed to connect
+			xcall ssc_getemsg(Settings.DatabaseChannel,dberrtxt,length)
+			xcall errorlog("Failed to connect to database!")
+			xcall log("Connect string was: " + Settings.DatabaseConnectString)
+			xcall log("Error message was : " + dberrtxt(1,length))
+			ok = false
+
+			;;If we're sending emails then let's record the connect failure
+			if (Settings.CanSendEmail())
+			begin
+				data body = new string[3]
+				body[1] = "ERROR: Failed to connect to database!"
+				body[2] = "Connect string was: " + Settings.DatabaseConnectString
+				body[3] = "Error message was :  " + dberrtxt(1,length)
+				xcall SendEmail("ERROR",body)
+			end
+		end
+	end
+
+	;;Register a shutdown handler
+	if (ok && !Settings.RunningOnTerminal)
+		xcall syn_atexit(%xaddr("ReplicatorShutdown"))
+
+	.ifdef d_GUI
+	;;If there has been a failure and we're running on the terminal, pause so error messages may be read
+	if (!ok && Settings.RunningOnTerminal)
+	begin
+		data tmpchr, a1
+		display(Settings.TerminalChannel,13,10,"Replicator will stop - press a key: ")
+		accept(Settings.TerminalChannel,tmpchr)
+	end
+	.endc
+
+	if (ok)
+	begin
+		;;Create the process ID file
+		call RecordProcessID
+
+		;;Create a namespace to record information about Synergy data files that we have opened.
+		Settings.ChannelInfo = %nspc_open(,%size(structure_data))
+
+		xcall log("Maximum cursors: "+%string(Settings.MaxCursors))
+		xcall log("Maximum columns: "+%string(Settings.MaxColumns))
+
+		xcall log("--- Processing instructions ----------------------")
+
+		;;If we're sending emails then let's record the server startup
+		if (Settings.CanSendEmail())
+		begin
+			data body = new string[#] {"The SQL replicator process was started."}
+			xcall SendEmail("STARTED",body)
+		end
+
+		;;If were writing to the system log, record the startup
+		if (Settings.SystemLog)
+		begin
+			data tmpmsg, string, "Startup of replicator instance " + Settings.InstanceName + %char(13) + %char(10)
+			tmpmsg += "Database connect string is " + Settings.DatabaseConnectString + %char(13) + %char(10)
+			tmpmsg += "Transaction file is " + Settings.TransactionFile + %char(13) + %char(10)
+			tmpmsg += "Log file is " + Settings.LogFileName + %char(13) + %char(10)
+			tmpmsg += "Sleep interval is " + %string(Settings.SleepTime) + " seconds. " + %char(13) + %char(10)
+			if (Settings.StopOnError) then
+				tmpmsg += "Replicator will stop if any error is encountered" + %char(13) + %char(10)
+			else
+				tmpmsg += "Replicator will attempt to continue if errors are encountered" + %char(13) + %char(10)
+			if (Settings.CanSendEmail()) then
+			begin
+				tmpmsg += "Replicator is configured to send email messages to " + Settings.ErrorEmail + %char(13) + %char(10)
+				tmpmsg += "Emails will be sent from " + Settings.EmailSender + %char(13) + %char(10)
+				tmpmsg += "Email server is " + Settings.EmailServer + %char(13) + %char(10)
+			end
+			else
+				tmpmsg += "Replicator is NOT configured to send email messages" + %char(13) + %char(10)
+
+			xcall syn_reportevent(D_EVENTLOG_INFORMATION_TYPE,tmpmsg)
+		end
+	end
+
+	return
+
+;;-----------------------------------------------------------------------------
+;; Record the process ID of the running instance
+
+RecordProcessId,
+
+	if (!Settings.RunningOnTerminal)
+	begin
+		data pidFileSpec, string, "REPLICATOR_LOGDIR:REPLICATOR_" + Settings.InstanceName + ".PID"
+		data pidFileChannel, int
+
+		;;Open the PID file
+		try
+		begin
+			xcall delet(pidFileSpec)
+			open(pidFileChannel=0,o:s,pidFileSpec)
+			.ifdef D_VMS
+			writes(pidFileChannel,%hex(%jbno,4))
+			.else
+			writes(pidFileChannel,%string(%jbno))
+			.endc
+		end
+		catch (ex)
+		begin
+			xcall errorlog("Failed to create or write PID file! Error was " + ex.Message)
+		end
+		finally
+		begin
+			if (pidFileChannel && %chopen(pidFileChannel))
+				close pidFileChannel
+		end
+		endtry
+	end
+
+	return
 
 endmain
 
