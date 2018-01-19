@@ -383,24 +383,24 @@ function EmployeeInsert, ^val
 
     literal
         sql         ,a*, "INSERT INTO Employee ("
-        & +              '"EmpId",'
-        & +              '"EmpFirstName",'
-        & +              '"EmpLastName",'
-        & +              '"EmpDept",'
-        & +              '"EmpHireDate",'
-        & +              '"EmpPhoneWork",'
-        & +              '"EmpPhoneHome",'
-        & +              '"EmpPhoneCell",'
-        & +              '"EmpPaid",'
-        & +              '"EmpHomeOk",'
-        & +              '"EmpDateOfBirth",'
-        & +              '"EmpHireTime",'
-        & +              '"EmpEmail",'
-        & +              '"EmpAddressStreet",'
-        & +              '"EmpAddressCity",'
-        & +              '"EmpAddressState",'
-        & +              '"EmpAddressZip"'
-        & +              ") VALUES(:1,:2,:3,:4,:5,:6,:7,:8,:9,:10,:11,:12,:13,:14,:15,:16,:17,:18)"
+		& +              '"EmpId",'
+		& +              '"EmpFirstName",'
+		& +              '"EmpLastName",'
+		& +              '"EmpDept",'
+		& +              '"EmpHireDate",'
+		& +              '"EmpPhoneWork",'
+		& +              '"EmpPhoneHome",'
+		& +              '"EmpPhoneCell",'
+		& +              '"EmpPaid",'
+		& +              '"EmpHomeOk",'
+		& +              '"EmpDateOfBirth",'
+		& +              '"EmpHireTime",'
+		& +              '"EmpEmail",'
+		& +              '"EmpAddressStreet",'
+		& +              '"EmpAddressCity",'
+		& +              '"EmpAddressState",'
+		& +              '"EmpAddressZip"'
+		& +              ") VALUES(:1,:2,:3,:4,:5,:6,:7,:8,:9,:10,:11,:12,:13,:14,:15,:16,:17)"
     endliteral
 
     static record
@@ -1712,7 +1712,7 @@ endsubroutine
 ;;; <param name="a_errtxt">Returned error text.</param>
 ;;; <returns>Returns true on success, otherwise false.</returns>
 
-function EmployeeCreateCsv, ^val
+function EmployeeCsv, ^val
 
     optional out a_errtxt, a
     endparams

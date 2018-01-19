@@ -396,7 +396,7 @@ function <StructureName>Insert, ^val
         <FIELD_LOOP>
 		& +              '"<FieldSqlName>"<,>'
         </FIELD_LOOP>
-		& +              ") VALUES(<IF STRUCTURE_RELATIVE>:1</IF STRUCTURE_RELATIVE>,<FIELD_LOOP><COUNTER_1_INCREMENT><IF USERTIMESTAMP>CONVERT(DATETIME2,:<COUNTER_1_VALUE>,21)<,><ELSE>:<COUNTER_1_VALUE><,></IF USERTIMESTAMP></FIELD_LOOP>)"
+		& +              ") VALUES(<IF STRUCTURE_RELATIVE>:1,</IF STRUCTURE_RELATIVE><FIELD_LOOP><COUNTER_1_INCREMENT><IF USERTIMESTAMP>CONVERT(DATETIME2,:<COUNTER_1_VALUE>,21)<,><ELSE>:<COUNTER_1_VALUE><,></IF USERTIMESTAMP></FIELD_LOOP>)"
     endliteral
 
     static record
@@ -1974,7 +1974,7 @@ endsubroutine
 ;;; <param name="a_errtxt">Returned error text.</param>
 ;;; <returns>Returns true on success, otherwise false.</returns>
 
-function <StructureName>CreateCsv, ^val
+function <StructureName>Csv, ^val
 
     optional out a_errtxt, a
     endparams
