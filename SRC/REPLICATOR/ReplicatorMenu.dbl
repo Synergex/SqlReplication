@@ -35,23 +35,29 @@
 ;;
 ;;*****************************************************************************
 
+import System.Collections
+
 main ReplicatorMenu
-    record
-        tt,         i4
-        system,     d4
-        runtime,    d4
-        windows,    boolean
-        unix,       boolean
-        pid,        int
-        option,     a2
-        tableName,  a30
+	
+	record
+        tt,				i4
+        system,			d4
+        runtime,		d4
+        windows,		boolean
+        unix,			boolean
+        pid,			int
+		option,			a2
+		validTables,	@ArrayList
+        tableName,		a30
     endrecord
-    .ifdef D_VMS
+	
+	.ifdef D_VMS
     .include "REPLICATION_VMS" repository, record="instruction", end
     .else
     .include "REPLICATION" repository, record="instruction", end
     .endc
-    record outbuf
+	
+	record outbuf
         operation,  a20
         ,           a2
         table,      a30
@@ -87,10 +93,14 @@ proc
     end
     endtry
 
-    display(tt,$SCR_POS(1,1),$SCR_CLR(SCREEN))
+	;;Get a collection of the valid table names
 
+	xcall GetReplicatedTables(validTables)
+
+	;;Display and process the menu
+	
+	display(tt,$SCR_POS(1,1),$SCR_CLR(SCREEN))
     display(tt,$SCR_POS(2,2),"Replicator Control Menu")
-
     display(tt,$SCR_POS(2,40),"Current table: None")
 
     repeat
@@ -205,7 +215,9 @@ proc
                         outbuf.operation = "Shutdown"
                     (REPLICATION_INSTRUCTION.DELETE_ALL_INSTRUCTIONS),
                         outbuf.operation = "Purge instructions"
-                    (REPLICATION_INSTRUCTION.CLOSE_FILE),
+					(REPLICATION_INSTRUCTION.CREATE_CSV),
+						outbuf.operation = "Export to CSV"
+					(REPLICATION_INSTRUCTION.CLOSE_FILE),
                         outbuf.operation = "Close file"
                     endusing
 
@@ -294,17 +306,14 @@ eof,        close chn
         ("A "),
         begin
             data row, i4
-            data tables, @System.Collections.ArrayList
             data name, string
 
-            xcall GetReplicatedTables(tables)
-            
             display(tt,
             &   $SCR_POS(4,2),$SCR_CLR(EOS),"Table",
             &   $SCR_POS(5,2),              "------------------------------",
             &   $SCR_POS(6,1))
 
-            foreach name in tables
+            foreach name in validTables
                 writes(tt," " + name)
 
             display(tt,13,10," Press a key: ")
@@ -322,22 +331,31 @@ eof,        close chn
             reads(tt,tableName)
 
             if (tableName) then
-            begin
-                ;;Call the _LENGTH rotuine to make sure we have code for the table
-                try
-                begin
-                    data length, int, %xsubr(%atrim(tableName) + "Length")
-                    display(tt,$SCR_POS(2,55),$SCR_CLR(EOL),%atrim(tableName))
-                    nextloop
-                end
-                catch (ex, @SynException)
+			begin
+				;;Make sure it's a valid table
+				data found = false
+				data name, string
+
+				;;Look for it in the collection of valid tables
+				foreach name in validTables
+				begin
+					if ((a)(name.ToUpper()).eqs.tableName)
+					begin
+						tableName = (a)name
+						display(tt,$SCR_POS(2,55),$SCR_CLR(EOL),%atrim(tableName))
+						found = true
+						exitloop
+					end
+				end
+
+				;;Report if not found
+				if (!found)
                 begin
                     display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Table not found!")
                     display(tt,$SCR_POS(2,55),$SCR_CLR(EOL),"None")
                     clear tableName
-                end
-                endtry
-            end
+                end			
+			end
             else
             begin
                 display(tt,$SCR_POS(2,55),$SCR_CLR(EOL),"None")
