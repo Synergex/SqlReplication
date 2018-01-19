@@ -315,11 +315,11 @@ function RelstrInsert, ^val
     literal
         sql         ,a*, "INSERT INTO Relstr ("
         & +              '"RecordNumber",'
-        & +              '"Field1",'
-        & +              '"Field2",'
-        & +              '"Field3",'
-        & +              '"Field4"'
-        & +              ") VALUES(:1,:2,:3,:4,:5)"
+		& +              '"Field1",'
+		& +              '"Field2",'
+		& +              '"Field3",'
+		& +              '"Field4"'
+		& +              ") VALUES(:1,:2,:3,:4,:5)"
     endliteral
 
     static record
@@ -1408,7 +1408,7 @@ endsubroutine
 ;;; <param name="a_errtxt">Returned error text.</param>
 ;;; <returns>Returns true on success, otherwise false.</returns>
 
-function RelstrCreateCsv, ^val
+function RelstrCsv, ^val
 
     optional out a_errtxt, a
     endparams
