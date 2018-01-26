@@ -315,11 +315,11 @@ function RelstrInsert, ^val
     literal
         sql         ,a*, "INSERT INTO Relstr ("
         & +              '"RecordNumber",'
-		& +              '"Field1",'
-		& +              '"Field2",'
-		& +              '"Field3",'
-		& +              '"Field4"'
-		& +              ") VALUES(:1,:2,:3,:4,:5)"
+        & +              '"Field1",'
+        & +              '"Field2",'
+        & +              '"Field3",'
+        & +              '"Field4"'
+        & +              ") VALUES(:1,:2,:3,:4,:5)"
     endliteral
 
     static record
@@ -397,7 +397,7 @@ proc
     if (ok)
     begin
         ;;Load the data into the bound record
-        
+
         relstr = a_data
 
         ;;Clean up any alpha fields
@@ -595,7 +595,7 @@ proc
                 errtxt="Failed to bind variables"
         end
     end
-    
+
     if (ok && openAndBind)
     begin
         if (%ssc_bind(a_dbchn,csr_relstr_insert2,4,
@@ -848,7 +848,7 @@ proc
         ;;Clean up any alpha fields
 
         relstr.field1 = %atrim(relstr.field1) + %char(0)
-        
+
         ;;Clean up any decimal fields
 
         if ((!relstr.field2)||(!%IsNumeric(^a(relstr.field2))))
@@ -1409,8 +1409,9 @@ endsubroutine
 ;;; <returns>Returns true on success, otherwise false.</returns>
 
 function RelstrCsv, ^val
-
-    optional out a_errtxt, a
+	required in  a_path, string
+	required in  a_server, string
+	optional out a_errtxt, a
     endparams
 
     .include "CONNECTDIR:ssql.def"
@@ -1419,14 +1420,17 @@ function RelstrCsv, ^val
 
     .define EXCEPTION_BUFSZ 100
 
-    stack record local_data
-        ok          ,boolean    ;;Return status
-        filechn     ,int        ;;Data file channel
-        csvchn      ,int        ;;CSV file channel
-        errnum      ,int        ;;Error number
-        attempted   ,int        ;;Number of records exported
-        errtxt      ,a256       ;;Error message text
-    endrecord
+	stack record local_data
+		ok,						boolean    ;;Return status
+		filechn,				int        ;;Data file channel
+		csvchn,					int        ;;CSV file channel
+		errnum,					int        ;;Error number
+		attempted,				int        ;;Number of records exported
+		errtxt,					a256       ;;Error message text
+		csvFileCreatePath,		string
+		csvFileReferencePath,	string
+		sqlScriptCreatePath,	string
+	endrecord
 
 proc
 
@@ -1442,11 +1446,23 @@ proc
         clear filechn
     end
 
-    ;;Open the CSV file
+	if (a_server == ^null || a_server.Length > 0) then
+		csvFileCreatePath = a_path + "\Relstr.csv"
+	else
+		csvFileCreatePath = a_path + "\Relstr.csv@" + a_server
+
+	csvFileReferencePath = a_path + "\Relstr.csv"
+	
+	if (a_server == ^null || a_server.Length > 0) then
+		sqlScriptCreatePath = a_path + "\Relstr.sql"
+	else
+		sqlScriptCreatePath = a_path + "\Relstr.sql@" + a_server
+
+	;;Open the CSV file
 
     if (ok)
     begin
-        open(csvchn=0,o:s,"REPLICATOR_EXPORT:relstr.csv")
+		open(csvchn=0,o:s,csvFileCreatePath)
         writes(csvchn,"Field1|Field2|Field3|Field4")
     end
 
@@ -1468,7 +1484,7 @@ proc
                 buff = ""
                 &    + %atrim(relstr.field1) + "|"
                 &    + %string(relstr.field2) + "|"
-                &    + %atrim(^a(relstr.field3)) + "|"
+                &    + %string(relstr.field3,"XXXX-XX-XX") + "|"
                 &    + %string(relstr.field4,"XX:XX:XX") + ""
                 writes(csvchn,buff)
                 attempted += 1
@@ -1494,21 +1510,7 @@ proc
 
     if (ok)
     begin
-        data csvdir, a128
-        data csvlen, i4
-        data csvfile, string, ""
-
-        xcall getlog("CSV",csvdir,csvlen)
-
-        if (csvlen)
-            csvfile = %atrim(csvdir)
-
-        if (csvfile.EndsWith("\")) then
-            csvfile = csvfile + "relstr.csv"
-        else
-            csvfile = csvfile + "\relstr.csv"
-
-        open(csvchn=0,o:s,"REPLICATOR_EXPORT:relstr.sql")
+		open(csvchn=0,o:s,sqlScriptCreatePath)
 
         writes(csvchn,"")
         writes(csvchn,"/*")
@@ -1520,7 +1522,7 @@ proc
         writes(csvchn,"GO")
         writes(csvchn,"")
         writes(csvchn,"BULK INSERT Relstr")
-        writes(csvchn,"    FROM '" + csvfile + "'")
+		writes(csvchn,"    FROM '" + csvFileReferencePath + "'")
         writes(csvchn,"    WITH")
         writes(csvchn,"    (")
         writes(csvchn,"        FIRSTROW=2,")
@@ -1546,5 +1548,69 @@ proc
     freturn ok
 
 endfunction
+
+;;*****************************************************************************
+;;
+;;; <summary>
+;;; Launches table validation.
+;;; </summary>
+;;; <param name="a_dbchan">Connected database channel.</param>
+;;; <param name="a_emailto">Email address to send completion message to. Could be blank.</param>
+;;; <param name="a_errtxt">Returned error text, if the return value is false.</param>
+;;; <returns>Returns true if table validation was successfully started.</returns>
+
+function RelstrValidate ,^val
+    optional in  a_emailto,  a
+    optional out a_errtxt,   a
+    endparams
+    stack record
+        ok,             boolean
+        errorText,      string
+        system,         d4
+        runtime,        d4
+        windows,        boolean
+        unix,           boolean
+        vms,            boolean
+    endrecord
+proc
+
+    xcall envrn(system,runtime)
+    windows = ((runtime==101)||(runtime==104))
+    unix = (system==8)
+    vms = ((runtime==200)||(runtime==202))
+
+    ;TODO: Pass table name to program
+
+    ;TODO: Pass email address to program
+
+    ;TODO: Pass connect string to validation program
+
+    try
+    begin
+        if (windows) then
+            xcall spawn("dbr EXE:ValidateRelstr.dbr",D_NOWINDOW|D_NOWAIT)
+        else if (unix) then
+            xcall spawn("nohup dbr EXE:ValidateRelstr.dbr </dev/null >/dev/null 2>&1 &")
+        else if (vms)
+        begin
+            ;TODO: Implement launch validation for OpenVMS
+            nop
+        end
+        ok = true
+        errorText = ""
+    end
+    catch (ex, @System.Exception)
+    begin
+        ok = false
+        errorText = ex.Message
+    end
+    endtry
+
+    if (^passed(a_errtxt))
+        a_errtxt = errorText
+
+    freturn ok
+
+end
 
 

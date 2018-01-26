@@ -221,43 +221,6 @@ proc
         end
     end
 
-    <IF STRUCTURE_ISAM>
-    <IF STRUCTURE_HAS_UNIQUE_PK>
-    <ELSE>
-    ;;The structure has no unique primary key, so no primary key constraint was added to the table. Create an index instead.
-
-    if (ok)
-    begin
-        sql = '<PRIMARY_KEY>CREATE INDEX IX_<StructureName>_<KeyName> ON "<StructureName>"(<SEGMENT_LOOP>"<SegmentName>" <SEGMENT_ORDER><,></SEGMENT_LOOP>)</PRIMARY_KEY>'
-
-        call open_cursor
-
-        if (ok)
-        begin
-            call execute_cursor
-            call close_cursor
-        end
-    end
-
-    </IF STRUCTURE_HAS_UNIQUE_PK>
-    <ALTERNATE_KEY_LOOP>
-    ;;Create index <KEY_NUMBER> (<KEY_DESCRIPTION>)
-
-    if (ok)
-    begin
-        sql = 'CREATE <KEY_UNIQUE> INDEX IX_<StructureName>_<KeyName> ON "<StructureName>"(<SEGMENT_LOOP>"<SegmentName>" <SEGMENT_ORDER><,></SEGMENT_LOOP>)'
-
-        call open_cursor
-
-        if (ok)
-        begin
-            call execute_cursor
-            call close_cursor
-        end
-    end
-
-    </ALTERNATE_KEY_LOOP>
-    </IF STRUCTURE_ISAM>
     ;;Grant access permissions
 
     if (ok)
@@ -348,6 +311,314 @@ close_cursor,
 
 endfunction
 
+<IF STRUCTURE_ISAM>
+;;*****************************************************************************
+;;; <summary>
+;;; Adds alternate key indexes to the <StructureName> table in the database.
+;;; </summary>
+;;; <param name="a_dbchn">Connected database channel.</param>
+;;; <param name="a_errtxt">Returned error text.</param>
+;;; <returns>Returns true on success, otherwise false.</returns>
+
+function <StructureName>Index, ^val
+
+    required in  a_dbchn,  i
+    optional out a_errtxt, a
+    endparams
+
+    .include "CONNECTDIR:ssql.def"
+
+    .align
+    stack record local_data
+        ok          ,boolean    ;;Return status
+        dberror     ,int        ;;Database error number
+        cursor      ,int        ;;Database cursor
+        length      ,int        ;;Length of a string
+        transaction ,int        ;;Transaction in process
+        keycount    ,int        ;;Total number of keys
+        errtxt      ,a512       ;;Returned error message text
+        sql         ,string     ;;SQL statement
+    endrecord
+
+proc
+    init local_data
+    ok = true
+
+    ;;Start a database transaction
+
+    if (%ssc_commit(a_dbchn,SSQL_TXON)==SSQL_NORMAL) then
+        transaction=1
+    else
+    begin
+        ok = false
+        if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+            errtxt="Failed to start transaction"
+    end
+
+    <IF STRUCTURE_HAS_UNIQUE_PK>
+    <ELSE>
+    ;;The structure has no unique primary key, so no primary key constraint was added to the table. Create an index instead.
+
+    if (ok)
+    begin
+        sql = '<PRIMARY_KEY>CREATE INDEX IX_<StructureName>_<KeyName> ON "<StructureName>"(<SEGMENT_LOOP>"<SegmentName>" <SEGMENT_ORDER><,></SEGMENT_LOOP>)</PRIMARY_KEY>'
+
+        call open_cursor
+
+        if (ok)
+        begin
+            call execute_cursor
+            call close_cursor
+        end
+    end
+
+    </IF STRUCTURE_HAS_UNIQUE_PK>
+    <ALTERNATE_KEY_LOOP>
+    ;;Create index <KEY_NUMBER> (<KEY_DESCRIPTION>)
+
+    if (ok)
+    begin
+        sql = 'CREATE <KEY_UNIQUE> INDEX IX_<StructureName>_<KeyName> ON "<StructureName>"(<SEGMENT_LOOP>"<SegmentName>" <SEGMENT_ORDER><,></SEGMENT_LOOP>)'
+
+        call open_cursor
+
+        if (ok)
+        begin
+            call execute_cursor
+            call close_cursor
+        end
+    end
+
+    </ALTERNATE_KEY_LOOP>
+    ;;Commit or rollback the transaction
+
+    if (transaction)
+    begin
+        if (ok) then
+        begin
+            ;;Success, commit the transaction
+            if (%ssc_commit(a_dbchn,SSQL_TXOFF)==SSQL_FAILURE)
+            begin
+                ok = false
+                if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+                    errtxt="Failed to commit transaction"
+            end
+        end
+        else
+        begin
+            ;;There was an error, rollback the transaction
+            xcall ssc_rollback(a_dbchn,SSQL_TXOFF)
+        end
+    end
+
+    ;;If there was an error message, return it to the calling routine
+
+    if (^passed(a_errtxt))
+    begin
+        if (ok) then
+            a_errtxt = ""
+        else
+            a_errtxt = errtxt
+    end
+
+    freturn ok
+
+open_cursor,
+
+    if (%ssc_open(a_dbchn,cursor,(a)sql,SSQL_NONSEL)==SSQL_FAILURE)
+    begin
+        ok = false
+        if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+            errtxt="Failed to open cursor"
+    end
+
+    return
+
+execute_cursor,
+
+    if (%ssc_execute(a_dbchn,cursor,SSQL_STANDARD)==SSQL_FAILURE)
+    begin
+        ok = false
+        if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+            errtxt="Failed to execute SQL statement"
+    end
+
+    return
+
+close_cursor,
+
+    if (cursor)
+    begin
+        if (%ssc_close(a_dbchn,cursor)==SSQL_FAILURE)
+        begin
+            if (ok)
+            begin
+                ok = false
+                if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+                    errtxt="Failed to close cursor"
+            end
+        end
+        clear cursor
+    end
+
+    return
+
+endfunction
+
+;;*****************************************************************************
+;;; <summary>
+;;; Removes alternate key indexes from the <StructureName> table in the database.
+;;; </summary>
+;;; <param name="a_dbchn">Connected database channel.</param>
+;;; <param name="a_errtxt">Returned error text.</param>
+;;; <returns>Returns true on success, otherwise false.</returns>
+
+function <StructureName>UnIndex, ^val
+
+    required in  a_dbchn,  i
+    optional out a_errtxt, a
+    endparams
+
+    .include "CONNECTDIR:ssql.def"
+
+    .align
+    stack record local_data
+        ok          ,boolean    ;;Return status
+        dberror     ,int        ;;Database error number
+        cursor      ,int        ;;Database cursor
+        length      ,int        ;;Length of a string
+        transaction ,int        ;;Transaction in process
+        keycount    ,int        ;;Total number of keys
+        errtxt      ,a512       ;;Returned error message text
+        sql         ,string     ;;SQL statement
+    endrecord
+
+proc
+    init local_data
+    ok = true
+
+    ;;Start a database transaction
+
+    if (%ssc_commit(a_dbchn,SSQL_TXON)==SSQL_NORMAL) then
+        transaction=1
+    else
+    begin
+        ok = false
+        if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+            errtxt="Failed to start transaction"
+    end
+
+    <IF STRUCTURE_HAS_UNIQUE_PK>
+    <ELSE>
+    if (ok)
+    begin
+;// Note: IF EXISTS only works for SQL Server 2016 and later. Remove it for earlier databases.
+        sql = '<PRIMARY_KEY>DROP INDEX IF EXISTS IX_<StructureName>_<KeyName></PRIMARY_KEY> ON "<StructureName>"'
+
+        call open_cursor
+
+        if (ok)
+        begin
+            call execute_cursor
+            call close_cursor
+        end
+    end
+
+    </IF STRUCTURE_HAS_UNIQUE_PK>
+    <ALTERNATE_KEY_LOOP>
+    ;;Drop index <KEY_NUMBER> (<KEY_DESCRIPTION>)
+
+    if (ok)
+    begin
+;// Note: IF EXISTS only works for SQL Server 2016 and later. Remove it for earlier databases.
+        sql = 'DROP INDEX IF EXISTS IX_<StructureName>_<KeyName> ON "<StructureName>"'
+
+        call open_cursor
+
+        if (ok)
+        begin
+            call execute_cursor
+            call close_cursor
+        end
+    end
+
+    </ALTERNATE_KEY_LOOP>
+    ;;Commit or rollback the transaction
+
+    if (transaction)
+    begin
+        if (ok) then
+        begin
+            ;;Success, commit the transaction
+            if (%ssc_commit(a_dbchn,SSQL_TXOFF)==SSQL_FAILURE)
+            begin
+                ok = false
+                if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+                    errtxt="Failed to commit transaction"
+            end
+        end
+        else
+        begin
+            ;;There was an error, rollback the transaction
+            xcall ssc_rollback(a_dbchn,SSQL_TXOFF)
+        end
+    end
+
+    ;;If there was an error message, return it to the calling routine
+
+    if (^passed(a_errtxt))
+    begin
+        if (ok) then
+            a_errtxt = ""
+        else
+            a_errtxt = errtxt
+    end
+
+    freturn ok
+
+open_cursor,
+
+    if (%ssc_open(a_dbchn,cursor,(a)sql,SSQL_NONSEL)==SSQL_FAILURE)
+    begin
+        ok = false
+        if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+            errtxt="Failed to open cursor"
+    end
+
+    return
+
+execute_cursor,
+
+    if (%ssc_execute(a_dbchn,cursor,SSQL_STANDARD)==SSQL_FAILURE)
+    begin
+        ok = false
+        if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+            errtxt="Failed to execute SQL statement"
+    end
+
+    return
+
+close_cursor,
+
+    if (cursor)
+    begin
+        if (%ssc_close(a_dbchn,cursor)==SSQL_FAILURE)
+        begin
+            if (ok)
+            begin
+                ok = false
+                if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+                    errtxt="Failed to close cursor"
+            end
+        end
+        clear cursor
+    end
+
+    return
+
+endfunction
+
+</IF STRUCTURE_ISAM>
 ;;*****************************************************************************
 ;;; <summary>
 ;;; Insert a row into the <StructureName> table.
@@ -391,12 +662,12 @@ function <StructureName>Insert, ^val
         <COUNTER_1_RESET>
         <IF STRUCTURE_RELATIVE>
         & +              '"RecordNumber",'
-		<COUNTER_1_INCREMENT>
-		</IF STRUCTURE_RELATIVE>
+        <COUNTER_1_INCREMENT>
+        </IF STRUCTURE_RELATIVE>
         <FIELD_LOOP>
-		& +              '"<FieldSqlName>"<,>'
+        & +              '"<FieldSqlName>"<,>'
         </FIELD_LOOP>
-		& +              ") VALUES(<IF STRUCTURE_RELATIVE>:1,</IF STRUCTURE_RELATIVE><FIELD_LOOP><COUNTER_1_INCREMENT><IF USERTIMESTAMP>CONVERT(DATETIME2,:<COUNTER_1_VALUE>,21)<,><ELSE>:<COUNTER_1_VALUE><,></IF USERTIMESTAMP></FIELD_LOOP>)"
+        & +              ") VALUES(<IF STRUCTURE_RELATIVE>:1,</IF STRUCTURE_RELATIVE><FIELD_LOOP><COUNTER_1_INCREMENT><IF USERTIMESTAMP>CONVERT(DATETIME2,:<COUNTER_1_VALUE>,21)<,><ELSE>:<COUNTER_1_VALUE><,></IF USERTIMESTAMP></FIELD_LOOP>)"
     endliteral
 
     static record
@@ -531,7 +802,7 @@ proc
         <structure_name> = %<structure_name>_map(a_data)
         <ELSE>
         ;;Load the data into the bound record
-        
+
         <structure_name> = a_data
         </IF STRUCTURE_MAPPED>
 
@@ -780,7 +1051,7 @@ proc
                 errtxt="Failed to bind variables"
         end
     end
-    
+
 </IF STRUCTURE_RELATIVE>
     <COUNTER_1_RESET>
     <FIELD_LOOP>
@@ -1190,7 +1461,7 @@ proc
         </IF NOTPKSEGMENT>
         </IF ALPHA>
         </FIELD_LOOP>
-        
+
         ;;Clean up any decimal fields
 
         <FIELD_LOOP>
@@ -1975,8 +2246,9 @@ endsubroutine
 ;;; <returns>Returns true on success, otherwise false.</returns>
 
 function <StructureName>Csv, ^val
-
-    optional out a_errtxt, a
+	required in  a_path, string
+	required in  a_server, string
+	optional out a_errtxt, a
     endparams
 
     .include "CONNECTDIR:ssql.def"
@@ -1985,14 +2257,17 @@ function <StructureName>Csv, ^val
 
     .define EXCEPTION_BUFSZ 100
 
-    stack record local_data
-        ok          ,boolean    ;;Return status
-        filechn     ,int        ;;Data file channel
-        csvchn      ,int        ;;CSV file channel
-        errnum      ,int        ;;Error number
-        attempted   ,int        ;;Number of records exported
-        errtxt      ,a256       ;;Error message text
-    endrecord
+	stack record local_data
+		ok,						boolean    ;;Return status
+		filechn,				int        ;;Data file channel
+		csvchn,					int        ;;CSV file channel
+		errnum,					int        ;;Error number
+		attempted,				int        ;;Number of records exported
+		errtxt,					a256       ;;Error message text
+		csvFileCreatePath,		string
+		csvFileReferencePath,	string
+		sqlScriptCreatePath,	string
+	endrecord
 
 proc
 
@@ -2008,11 +2283,23 @@ proc
         clear filechn
     end
 
-    ;;Open the CSV file
+	if (a_server == ^null || a_server.Length > 0) then
+		csvFileCreatePath = a_path + "\<StructureName>.csv"
+	else
+		csvFileCreatePath = a_path + "\<StructureName>.csv@" + a_server
+
+	csvFileReferencePath = a_path + "\<StructureName>.csv"
+	
+	if (a_server == ^null || a_server.Length > 0) then
+		sqlScriptCreatePath = a_path + "\<StructureName>.sql"
+	else
+		sqlScriptCreatePath = a_path + "\<StructureName>.sql@" + a_server
+
+	;;Open the CSV file
 
     if (ok)
     begin
-        open(csvchn=0,o:s,"REPLICATOR_EXPORT:<structure_name>.csv")
+		open(csvchn=0,o:s,csvFileCreatePath)
         writes(csvchn,"<FIELD_LOOP><FieldSqlName><IF MORE>|</IF MORE></FIELD_LOOP>")
     end
 
@@ -2045,14 +2332,17 @@ proc
                 &    + %string(<field_path>) + "<IF MORE>|</IF MORE>"
                 </IF DECIMAL>
                 <IF DATE>
-                &    + %atrim(^a(<field_path>)) + "<IF MORE>|</IF MORE>"
+                &    + %string(<field_path>,"XXXX-XX-XX") + "<IF MORE>|</IF MORE>"
                 </IF DATE>
+                <IF DATE_YYMMDD>
+                &    + %atrim(^a(<field_path>)) + "<IF MORE>|</IF MORE>"
+                </IF DATE_YYMMDD>
                 <IF TIME_HHMM>
                 &    + %string(<field_path>,"XX:XX") + "<IF MORE>|</IF MORE>"
-                </IF TIME>
+                </IF TIME_HHMM>
                 <IF TIME_HHMMSS>
                 &    + %string(<field_path>,"XX:XX:XX") + "<IF MORE>|</IF MORE>"
-                </IF TIME>
+                </IF TIME_HHMMSS>
                 <IF USER>
                 <IF USERTIMESTAMP>
                 &    + %string(^d(<field_path>),"XXXX-XX-XX XX:XX:XX.XXXXXX") + "<IF MORE>|</IF MORE>"
@@ -2085,21 +2375,7 @@ proc
 
     if (ok)
     begin
-        data csvdir, a128
-        data csvlen, i4
-        data csvfile, string, ""
-
-        xcall getlog("CSV",csvdir,csvlen)
-
-        if (csvlen)
-            csvfile = %atrim(csvdir)
-
-        if (csvfile.EndsWith("\")) then
-            csvfile = csvfile + "<structure_name>.csv"
-        else
-            csvfile = csvfile + "\<structure_name>.csv"
-
-        open(csvchn=0,o:s,"REPLICATOR_EXPORT:<structure_name>.sql")
+		open(csvchn=0,o:s,sqlScriptCreatePath)
 
         writes(csvchn,"")
         writes(csvchn,"/*")
@@ -2111,7 +2387,7 @@ proc
         writes(csvchn,"GO")
         writes(csvchn,"")
         writes(csvchn,"BULK INSERT <StructureName>")
-        writes(csvchn,"    FROM '" + csvfile + "'")
+		writes(csvchn,"    FROM '" + csvFileReferencePath + "'")
         writes(csvchn,"    WITH")
         writes(csvchn,"    (")
         writes(csvchn,"        FIRSTROW=2,")
@@ -2137,6 +2413,70 @@ proc
     freturn ok
 
 endfunction
+
+;;*****************************************************************************
+;;
+;;; <summary>
+;;; Launches table validation.
+;;; </summary>
+;;; <param name="a_dbchan">Connected database channel.</param>
+;;; <param name="a_emailto">Email address to send completion message to. Could be blank.</param>
+;;; <param name="a_errtxt">Returned error text, if the return value is false.</param>
+;;; <returns>Returns true if table validation was successfully started.</returns>
+
+function <StructureName>Validate ,^val
+    optional in  a_emailto,  a
+    optional out a_errtxt,   a
+    endparams
+    stack record
+        ok,             boolean
+        errorText,      string
+        system,         d4
+        runtime,        d4
+        windows,        boolean
+        unix,           boolean
+        vms,            boolean
+    endrecord
+proc
+
+    xcall envrn(system,runtime)
+    windows = ((runtime==101)||(runtime==104))
+    unix = (system==8)
+    vms = ((runtime==200)||(runtime==202))
+
+    ;TODO: Pass table name to program
+
+    ;TODO: Pass email address to program
+
+    ;TODO: Pass connect string to validation program
+
+    try
+    begin
+        if (windows) then
+            xcall spawn("dbr EXE:Validate<StructureName>.dbr",D_NOWINDOW|D_NOWAIT)
+        else if (unix) then
+            xcall spawn("nohup dbr EXE:Validate<StructureName>.dbr </dev/null >/dev/null 2>&1 &")
+        else if (vms)
+        begin
+            ;TODO: Implement launch validation for OpenVMS
+            nop
+        end
+        ok = true
+        errorText = ""
+    end
+    catch (ex, @System.Exception)
+    begin
+        ok = false
+        errorText = ex.Message
+    end
+    endtry
+
+    if (^passed(a_errtxt))
+        a_errtxt = errorText
+
+    freturn ok
+
+end
 
 <IF STRUCTURE_ISAM>
 ;;*****************************************************************************

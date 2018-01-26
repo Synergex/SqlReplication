@@ -36,6 +36,7 @@
 ;;
 ;;*****************************************************************************
 
+import ReplicationLibrary
 import System.Collections
 import Tools
 
@@ -166,7 +167,7 @@ proc
                 (REPLICATION_INSTRUCTION.DELETE_TABLE),
                     call DoDeleteTable
 
-                (REPLICATION_INSTRUCTION.CHANGE_INTERVAL),
+				(REPLICATION_INSTRUCTION.CHANGE_INTERVAL),
                     call ChangeInterval
 
                 (REPLICATION_INSTRUCTION.SHUTDOWN),
@@ -898,9 +899,9 @@ DoCreateCsv,
     xcall log("Exporting CSV for " + %atrim(instruction.structure_name) + " starting at " + %TimeNow)
 
     try
-    begin
-        functionName = %atrim(instruction.structure_name) + "Csv"
-        status = %xsubr(functionName,dberrtxt)
+	begin		
+		functionName = %atrim(instruction.structure_name) + "Csv"		
+        status = %xsubr(functionName,Settings.ExportPath,Settings.ExportServer,dberrtxt)
         if (status) then
             xcall verboselog(" - Done at " + %TimeNow)
         else
@@ -1095,10 +1096,60 @@ ConfigureEnvironment,
 	if (ok)
 	begin
 		;;Is an export directory specified via the command line?
-		if (CommandLineParser.Parse("exportdir",clValues) && (clValues.Count == 1))
+		if (CommandLineParser.Parse("exportdir",clValues)) then
 		begin
-			data sts, i4
-			xcall setlog("REPLICATOR_EXPORT",(string)clValues[0],sts)
+			using clValues.Count select
+			(1),
+				Settings.ExportPath = (string)clValues[0]
+			(0),
+			begin
+				xcall errorlog("Missing value after the -exportdir option")
+				ok = false
+			end
+			(),
+			begin
+				xcall errorlog("Only one value may follow the -exportdir option")
+				ok = false
+			end
+			endusing
+		end
+		else
+		begin
+			;;Or via an environment variable?
+			data tmpval, a80
+			xcall getlog("REPLICATOR_EXPORT",tmpval,length)
+			if (length)
+				Settings.ExportPath = tmpval(1:length)
+		end
+	end
+
+	if (ok)
+	begin
+		;;Is an export directory specified via the command line?
+		if (CommandLineParser.Parse("exportserver",clValues)) then
+		begin
+			using clValues.Count select
+			(1),
+				Settings.ExportServer = (string)clValues[0]
+			(0),
+			begin
+				xcall errorlog("Missing value after the -exportserver option")
+				ok = false
+			end
+			(),
+			begin
+				xcall errorlog("Only one value may follow the -exportserver option")
+				ok = false
+			end
+			endusing
+		end
+		else
+		begin
+			;;Or via an environment variable?
+			data tmpval, a80
+			xcall getlog("REPLICATOR_EXPORT_SERVER",tmpval,length)
+			if (length)
+				Settings.ExportServer = tmpval(1:length)
 		end
 	end
 
@@ -1961,18 +2012,24 @@ endsubroutine
 subroutine SendEmail
     required in subject, string
     required in body, [#]string
-    optional in bodyhtml, boolean
+	optional in bodyhtml, boolean
+	optional in recipientEmail, string
     .include "INC:SmtpMail.def"
     stack record
         emailStatus, i4
-        subjectLine, string
+		subjectLine, string
+		recipientAddress, string
         html, boolean
     endrecord
 proc
     emailStatus = 0
     subjectLine = "Replicator " + Settings.InstanceName + " " + subject
-    html = ^passed(bodyhtml) && bodyhtml
-    if ((emailStatus=%SmtpMail(Settings.EmailServer,Settings.EmailSender,"SQL Replicator",,Settings.ErrorEmail,,subjectLine,body,,html)) != SMERR_SUCCESS)
+	html = ^passed(bodyhtml) && bodyhtml
+	if (^passed(recipientEmail) && recipientEmail.Length>0) then
+		recipientAddress = recipientEmail
+	else
+		recipientAddress = Settings.ErrorEmail
+    if ((emailStatus=%SmtpMail(Settings.EmailServer,Settings.EmailSender,"SQL Replicator",,recipientAddress,,subjectLine,body,,html)) != SMERR_SUCCESS)
         xcall errorlog("Failed to send error email. Error was " + %atrim(SmtpErrorText[emailStatus]))
     xreturn
 endsubroutine
@@ -2034,120 +2091,6 @@ endfunction
 
 namespace Tools
 
-    ;;; <summary>
-    ;;; Parses and returns information about the command line that started the program.
-    ;;; </summary>
-    public class CommandLineParser
-
-        public static method Parse, boolean
-            required in a_opt, String           ;;Option string to search for
-            endparams
-
-            stack record
-                optvals, @ArrayList             ;Returned option values
-            endrecord
-
-        proc
-            mreturn Parse(a_opt,optvals=new ArrayList())
-        endmethod
-
-        public static method Parse, boolean
-            required in  a_opt          ,String         ;;Option string to search for
-            required out a_optvals      ,@ArrayList     ;;Returned option values
-            endparams
-
-            .define MAXARGS 256
-
-            stack record localData
-                fstatus         ,boolean                ;;Function return status
-                command         ,a8192                  ;;Whole command line
-                num_args        ,i4                     ;;Number of arguments in whole command line
-                arg_pos         ,[MAXARGS] i4           ;;Positions of arguments in whole command line
-                arg_len         ,[MAXARGS] i4           ;;Lengths of arguments in whole command line
-                current_arg     ,i4                     ;;Index of current argument being processed
-                opt_char        ,a1                     ;;Character that precedes options (- or /)
-                option_value    ,String
-            endrecord
-
-            .undefine MAXARGS
-
-        proc
-            init localData
-
-            fstatus = false
-            a_optvals = new ArrayList()
-
-            if (%option(34)) then
-                opt_char = '/'
-            else
-                opt_char = '-'
-
-            xcall cmdln(command, num_args, arg_pos, arg_len)
-
-            for current_arg from 1 thru num_args
-            begin
-                if (arg_pos[current_arg]&&arg_len[current_arg]) then
-                    option_value = command(arg_pos[current_arg]:arg_len[current_arg])
-                else
-                    option_value = ""
-
-                ;;Is this the requested option?
-                if (option_value.eqs.(opt_char+a_opt))
-                    call process_argument
-            end
-
-            mreturn fstatus
-
-        process_argument,
-
-            ;;Found requested option
-            fstatus = true
-
-            ;;Process next argument
-            current_arg += 1
-
-            if (arg_pos[current_arg]&&arg_len[current_arg]) then
-                option_value = command(arg_pos[current_arg]:arg_len[current_arg])
-            else
-                option_value = opt_char
-
-            ;;DO NOT CHANGE THE .ne. OPERATOR to != ... THEY ARE NOT THE SAME THING WITH STRING!
-            while(option_value.ne.opt_char)
-            begin
-                ;;Strip leading and trailing quote characters
-                using option_value select
-                ("'", '"'),
-                begin
-                    if ((option_value.Length>1)&&(option_value(option_value.Length:1)==option_value(1:1)))
-                    begin
-                        if (option_value.Length>2) then
-                            option_value = option_value(2,option_value.Length-1)
-                        else
-                            option_value = ""
-                    end
-                end
-                endusing
-
-                ;;Add the value to the returned collection
-                a_optvals.Add(option_value)
-
-                ;;Process next argument
-                current_arg+=1
-
-                if (arg_pos[current_arg]&&arg_len[current_arg]) then
-                    option_value = command(arg_pos[current_arg]:arg_len[current_arg])
-                else
-                    option_value = opt_char
-            end
-
-            ;;Adjust counter to stay in correct position in loop
-            current_arg -= 1
-            return
-
-        endmethod
-
-    endclass
-
     public class Counters
 
         public static Inserts, int
@@ -2179,7 +2122,9 @@ namespace Tools
             endrecord
         proc
             now = %datetime
-            ErrorSleepTime    = 0.5
+			ErrorSleepTime    = 0.5
+			ExportPath        = ""
+			ExportServer      = ""
             InstanceName      = "DEFAULT"
             LogFileName       = "REPLICATOR_LOGDIR:replicator_" + now(1:8) + "_" + now(9:6) + ".log"
             MaxCursors        = 128
@@ -2291,7 +2236,27 @@ namespace Tools
             endmethod
         endproperty
 
-        ;;; <summary>
+		;;; <summary>
+		;;; Where should export files be created?
+		;;; </summary>
+		public static property ExportPath, string
+			method get
+			endmethod
+			method set
+			endmethod
+		endproperty
+
+		;;; <summary>
+		;;; What server should export files be created on?
+		;;; </summary>
+		public static property ExportServer, string
+			method get
+			endmethod
+			method set
+			endmethod
+		endproperty
+
+		;;; <summary>
         ;;; Are we doing full logging?
         ;;; </summary>
         public static property FullLogging, boolean

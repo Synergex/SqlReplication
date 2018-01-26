@@ -202,6 +202,139 @@ proc
         end
     end
 
+    ;;Grant access permissions
+
+    if (ok)
+    begin
+        sql = 'GRANT ALL ON "Employee" TO PUBLIC'
+
+        call open_cursor
+
+        if (ok)
+        begin
+            call execute_cursor
+            call close_cursor
+        end
+    end
+
+    ;;Commit or rollback the transaction
+
+    if (transaction)
+    begin
+        if (ok) then
+        begin
+            ;;Success, commit the transaction
+            if (%ssc_commit(a_dbchn,SSQL_TXOFF)==SSQL_FAILURE)
+            begin
+                ok = false
+                if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+                    errtxt="Failed to commit transaction"
+            end
+        end
+        else
+        begin
+            ;;There was an error, rollback the transaction
+            xcall ssc_rollback(a_dbchn,SSQL_TXOFF)
+        end
+    end
+
+    ;;If there was an error message, return it to the calling routine
+
+    if (^passed(a_errtxt))
+    begin
+        if (ok) then
+            a_errtxt = ""
+        else
+            a_errtxt = errtxt
+    end
+
+    freturn ok
+
+open_cursor,
+
+    if (%ssc_open(a_dbchn,cursor,(a)sql,SSQL_NONSEL)==SSQL_FAILURE)
+    begin
+        ok = false
+        if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+            errtxt="Failed to open cursor"
+    end
+
+    return
+
+execute_cursor,
+
+    if (%ssc_execute(a_dbchn,cursor,SSQL_STANDARD)==SSQL_FAILURE)
+    begin
+        ok = false
+        if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+            errtxt="Failed to execute SQL statement"
+    end
+
+    return
+
+close_cursor,
+
+    if (cursor)
+    begin
+        if (%ssc_close(a_dbchn,cursor)==SSQL_FAILURE)
+        begin
+            if (ok)
+            begin
+                ok = false
+                if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+                    errtxt="Failed to close cursor"
+            end
+        end
+        clear cursor
+    end
+
+    return
+
+endfunction
+
+;;*****************************************************************************
+;;; <summary>
+;;; Adds alternate key indexes to the Employee table in the database.
+;;; </summary>
+;;; <param name="a_dbchn">Connected database channel.</param>
+;;; <param name="a_errtxt">Returned error text.</param>
+;;; <returns>Returns true on success, otherwise false.</returns>
+
+function EmployeeIndex, ^val
+
+    required in  a_dbchn,  i
+    optional out a_errtxt, a
+    endparams
+
+    .include "CONNECTDIR:ssql.def"
+
+    .align
+    stack record local_data
+        ok          ,boolean    ;;Return status
+        dberror     ,int        ;;Database error number
+        cursor      ,int        ;;Database cursor
+        length      ,int        ;;Length of a string
+        transaction ,int        ;;Transaction in process
+        keycount    ,int        ;;Total number of keys
+        errtxt      ,a512       ;;Returned error message text
+        sql         ,string     ;;SQL statement
+    endrecord
+
+proc
+    init local_data
+    ok = true
+
+    ;;Start a database transaction
+
+    if (%ssc_commit(a_dbchn,SSQL_TXON)==SSQL_NORMAL) then
+        transaction=1
+    else
+    begin
+        ok = false
+        if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+            errtxt="Failed to start transaction"
+    end
+
     ;;Create index 1 (Department ID)
 
     if (ok)
@@ -262,11 +395,174 @@ proc
         end
     end
 
-    ;;Grant access permissions
+    ;;Commit or rollback the transaction
+
+    if (transaction)
+    begin
+        if (ok) then
+        begin
+            ;;Success, commit the transaction
+            if (%ssc_commit(a_dbchn,SSQL_TXOFF)==SSQL_FAILURE)
+            begin
+                ok = false
+                if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+                    errtxt="Failed to commit transaction"
+            end
+        end
+        else
+        begin
+            ;;There was an error, rollback the transaction
+            xcall ssc_rollback(a_dbchn,SSQL_TXOFF)
+        end
+    end
+
+    ;;If there was an error message, return it to the calling routine
+
+    if (^passed(a_errtxt))
+    begin
+        if (ok) then
+            a_errtxt = ""
+        else
+            a_errtxt = errtxt
+    end
+
+    freturn ok
+
+open_cursor,
+
+    if (%ssc_open(a_dbchn,cursor,(a)sql,SSQL_NONSEL)==SSQL_FAILURE)
+    begin
+        ok = false
+        if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+            errtxt="Failed to open cursor"
+    end
+
+    return
+
+execute_cursor,
+
+    if (%ssc_execute(a_dbchn,cursor,SSQL_STANDARD)==SSQL_FAILURE)
+    begin
+        ok = false
+        if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+            errtxt="Failed to execute SQL statement"
+    end
+
+    return
+
+close_cursor,
+
+    if (cursor)
+    begin
+        if (%ssc_close(a_dbchn,cursor)==SSQL_FAILURE)
+        begin
+            if (ok)
+            begin
+                ok = false
+                if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+                    errtxt="Failed to close cursor"
+            end
+        end
+        clear cursor
+    end
+
+    return
+
+endfunction
+
+;;*****************************************************************************
+;;; <summary>
+;;; Removes alternate key indexes from the Employee table in the database.
+;;; </summary>
+;;; <param name="a_dbchn">Connected database channel.</param>
+;;; <param name="a_errtxt">Returned error text.</param>
+;;; <returns>Returns true on success, otherwise false.</returns>
+
+function EmployeeUnIndex, ^val
+
+    required in  a_dbchn,  i
+    optional out a_errtxt, a
+    endparams
+
+    .include "CONNECTDIR:ssql.def"
+
+    .align
+    stack record local_data
+        ok          ,boolean    ;;Return status
+        dberror     ,int        ;;Database error number
+        cursor      ,int        ;;Database cursor
+        length      ,int        ;;Length of a string
+        transaction ,int        ;;Transaction in process
+        keycount    ,int        ;;Total number of keys
+        errtxt      ,a512       ;;Returned error message text
+        sql         ,string     ;;SQL statement
+    endrecord
+
+proc
+    init local_data
+    ok = true
+
+    ;;Start a database transaction
+
+    if (%ssc_commit(a_dbchn,SSQL_TXON)==SSQL_NORMAL) then
+        transaction=1
+    else
+    begin
+        ok = false
+        if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+            errtxt="Failed to start transaction"
+    end
+
+    ;;Drop index 1 (Department ID)
 
     if (ok)
     begin
-        sql = 'GRANT ALL ON "Employee" TO PUBLIC'
+        sql = 'DROP INDEX IF EXISTS IX_Employee_EmpDept ON "Employee"'
+
+        call open_cursor
+
+        if (ok)
+        begin
+            call execute_cursor
+            call close_cursor
+        end
+    end
+
+    ;;Drop index 2 (Last name)
+
+    if (ok)
+    begin
+        sql = 'DROP INDEX IF EXISTS IX_Employee_EmpLastName ON "Employee"'
+
+        call open_cursor
+
+        if (ok)
+        begin
+            call execute_cursor
+            call close_cursor
+        end
+    end
+
+    ;;Drop index 3 (State)
+
+    if (ok)
+    begin
+        sql = 'DROP INDEX IF EXISTS IX_Employee_StateCode ON "Employee"'
+
+        call open_cursor
+
+        if (ok)
+        begin
+            call execute_cursor
+            call close_cursor
+        end
+    end
+
+    ;;Drop index 4 (Zip code)
+
+    if (ok)
+    begin
+        sql = 'DROP INDEX IF EXISTS IX_Employee_ZipCode ON "Employee"'
 
         call open_cursor
 
@@ -383,24 +679,24 @@ function EmployeeInsert, ^val
 
     literal
         sql         ,a*, "INSERT INTO Employee ("
-		& +              '"EmpId",'
-		& +              '"EmpFirstName",'
-		& +              '"EmpLastName",'
-		& +              '"EmpDept",'
-		& +              '"EmpHireDate",'
-		& +              '"EmpPhoneWork",'
-		& +              '"EmpPhoneHome",'
-		& +              '"EmpPhoneCell",'
-		& +              '"EmpPaid",'
-		& +              '"EmpHomeOk",'
-		& +              '"EmpDateOfBirth",'
-		& +              '"EmpHireTime",'
-		& +              '"EmpEmail",'
-		& +              '"EmpAddressStreet",'
-		& +              '"EmpAddressCity",'
-		& +              '"EmpAddressState",'
-		& +              '"EmpAddressZip"'
-		& +              ") VALUES(:1,:2,:3,:4,:5,:6,:7,:8,:9,:10,:11,:12,:13,:14,:15,:16,:17)"
+        & +              '"EmpId",'
+        & +              '"EmpFirstName",'
+        & +              '"EmpLastName",'
+        & +              '"EmpDept",'
+        & +              '"EmpHireDate",'
+        & +              '"EmpPhoneWork",'
+        & +              '"EmpPhoneHome",'
+        & +              '"EmpPhoneCell",'
+        & +              '"EmpPaid",'
+        & +              '"EmpHomeOk",'
+        & +              '"EmpDateOfBirth",'
+        & +              '"EmpHireTime",'
+        & +              '"EmpEmail",'
+        & +              '"EmpAddressStreet",'
+        & +              '"EmpAddressCity",'
+        & +              '"EmpAddressState",'
+        & +              '"EmpAddressZip"'
+        & +              ") VALUES(:1,:2,:3,:4,:5,:6,:7,:8,:9,:10,:11,:12,:13,:14,:15,:16,:17)"
     endliteral
 
     static record
@@ -479,7 +775,7 @@ proc
     if (ok)
     begin
         ;;Load the data into the bound record
-        
+
         employee = a_data
 
         ;;Clean up any alpha fields
@@ -1007,7 +1303,7 @@ proc
         employee.emp_address_street = %atrim(employee.emp_address_street) + %char(0)
         employee.emp_address_city = %atrim(employee.emp_address_city) + %char(0)
         employee.emp_address_state = %atrim(employee.emp_address_state) + %char(0)
-        
+
         ;;Clean up any decimal fields
 
         if ((!employee.emp_id)||(!%IsNumeric(^a(employee.emp_id))))
@@ -1713,8 +2009,9 @@ endsubroutine
 ;;; <returns>Returns true on success, otherwise false.</returns>
 
 function EmployeeCsv, ^val
-
-    optional out a_errtxt, a
+	required in  a_path, string
+	required in  a_server, string
+	optional out a_errtxt, a
     endparams
 
     .include "CONNECTDIR:ssql.def"
@@ -1723,14 +2020,17 @@ function EmployeeCsv, ^val
 
     .define EXCEPTION_BUFSZ 100
 
-    stack record local_data
-        ok          ,boolean    ;;Return status
-        filechn     ,int        ;;Data file channel
-        csvchn      ,int        ;;CSV file channel
-        errnum      ,int        ;;Error number
-        attempted   ,int        ;;Number of records exported
-        errtxt      ,a256       ;;Error message text
-    endrecord
+	stack record local_data
+		ok,						boolean    ;;Return status
+		filechn,				int        ;;Data file channel
+		csvchn,					int        ;;CSV file channel
+		errnum,					int        ;;Error number
+		attempted,				int        ;;Number of records exported
+		errtxt,					a256       ;;Error message text
+		csvFileCreatePath,		string
+		csvFileReferencePath,	string
+		sqlScriptCreatePath,	string
+	endrecord
 
 proc
 
@@ -1746,11 +2046,23 @@ proc
         clear filechn
     end
 
-    ;;Open the CSV file
+	if (a_server == ^null || a_server.Length > 0) then
+		csvFileCreatePath = a_path + "\Employee.csv"
+	else
+		csvFileCreatePath = a_path + "\Employee.csv@" + a_server
+
+	csvFileReferencePath = a_path + "\Employee.csv"
+	
+	if (a_server == ^null || a_server.Length > 0) then
+		sqlScriptCreatePath = a_path + "\Employee.sql"
+	else
+		sqlScriptCreatePath = a_path + "\Employee.sql@" + a_server
+
+	;;Open the CSV file
 
     if (ok)
     begin
-        open(csvchn=0,o:s,"REPLICATOR_EXPORT:employee.csv")
+		open(csvchn=0,o:s,csvFileCreatePath)
         writes(csvchn,"EmpId|EmpFirstName|EmpLastName|EmpDept|EmpHireDate|EmpPhoneWork|EmpPhoneHome|EmpPhoneCell|EmpPaid|EmpHomeOk|EmpDateOfBirth|EmpHireTime|EmpEmail|EmpAddressStreet|EmpAddressCity|EmpAddressState|EmpAddressZip")
     end
 
@@ -1774,13 +2086,13 @@ proc
                 &    + %atrim(employee.emp_first_name) + "|"
                 &    + %atrim(employee.emp_last_name) + "|"
                 &    + %atrim(employee.emp_dept) + "|"
-                &    + %atrim(^a(employee.emp_hire_date)) + "|"
+                &    + %string(employee.emp_hire_date,"XXXX-XX-XX") + "|"
                 &    + %atrim(employee.emp_phone_work) + "|"
                 &    + %atrim(employee.emp_phone_home) + "|"
                 &    + %atrim(employee.emp_phone_cell) + "|"
                 &    + %string(employee.emp_paid) + "|"
                 &    + %string(employee.emp_home_ok) + "|"
-                &    + %atrim(^a(employee.emp_date_of_birth)) + "|"
+                &    + %string(employee.emp_date_of_birth,"XXXX-XX-XX") + "|"
                 &    + %string(employee.emp_hire_time,"XX:XX") + "|"
                 &    + %atrim(employee.emp_email) + "|"
                 &    + %atrim(employee.emp_address_street) + "|"
@@ -1811,21 +2123,7 @@ proc
 
     if (ok)
     begin
-        data csvdir, a128
-        data csvlen, i4
-        data csvfile, string, ""
-
-        xcall getlog("CSV",csvdir,csvlen)
-
-        if (csvlen)
-            csvfile = %atrim(csvdir)
-
-        if (csvfile.EndsWith("\")) then
-            csvfile = csvfile + "employee.csv"
-        else
-            csvfile = csvfile + "\employee.csv"
-
-        open(csvchn=0,o:s,"REPLICATOR_EXPORT:employee.sql")
+		open(csvchn=0,o:s,sqlScriptCreatePath)
 
         writes(csvchn,"")
         writes(csvchn,"/*")
@@ -1837,7 +2135,7 @@ proc
         writes(csvchn,"GO")
         writes(csvchn,"")
         writes(csvchn,"BULK INSERT Employee")
-        writes(csvchn,"    FROM '" + csvfile + "'")
+		writes(csvchn,"    FROM '" + csvFileReferencePath + "'")
         writes(csvchn,"    WITH")
         writes(csvchn,"    (")
         writes(csvchn,"        FIRSTROW=2,")
@@ -1863,6 +2161,70 @@ proc
     freturn ok
 
 endfunction
+
+;;*****************************************************************************
+;;
+;;; <summary>
+;;; Launches table validation.
+;;; </summary>
+;;; <param name="a_dbchan">Connected database channel.</param>
+;;; <param name="a_emailto">Email address to send completion message to. Could be blank.</param>
+;;; <param name="a_errtxt">Returned error text, if the return value is false.</param>
+;;; <returns>Returns true if table validation was successfully started.</returns>
+
+function EmployeeValidate ,^val
+    optional in  a_emailto,  a
+    optional out a_errtxt,   a
+    endparams
+    stack record
+        ok,             boolean
+        errorText,      string
+        system,         d4
+        runtime,        d4
+        windows,        boolean
+        unix,           boolean
+        vms,            boolean
+    endrecord
+proc
+
+    xcall envrn(system,runtime)
+    windows = ((runtime==101)||(runtime==104))
+    unix = (system==8)
+    vms = ((runtime==200)||(runtime==202))
+
+    ;TODO: Pass table name to program
+
+    ;TODO: Pass email address to program
+
+    ;TODO: Pass connect string to validation program
+
+    try
+    begin
+        if (windows) then
+            xcall spawn("dbr EXE:ValidateEmployee.dbr",D_NOWINDOW|D_NOWAIT)
+        else if (unix) then
+            xcall spawn("nohup dbr EXE:ValidateEmployee.dbr </dev/null >/dev/null 2>&1 &")
+        else if (vms)
+        begin
+            ;TODO: Implement launch validation for OpenVMS
+            nop
+        end
+        ok = true
+        errorText = ""
+    end
+    catch (ex, @System.Exception)
+    begin
+        ok = false
+        errorText = ex.Message
+    end
+    endtry
+
+    if (^passed(a_errtxt))
+        a_errtxt = errorText
+
+    freturn ok
+
+end
 
 ;;*****************************************************************************
 ;;; <summary>
