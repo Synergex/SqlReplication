@@ -1,0 +1,25 @@
+
+function IsEmailAddress, boolean
+	required in address, string
+	endparams
+	record
+		candidateAddress, string
+	endrecord
+proc
+	;TODO: Implement email address validation
+
+	candidateAddress = address.Trim()
+
+	;;Must not contain any whitespace
+
+	;;Must contain an @
+
+	;;@ must be in position 2 or higher
+
+	;;Must be a . at least two characters after the @
+
+	;;Must be at least two characters after the . that is after the @
+
+	freturn true
+
+endfunction

@@ -74,6 +74,9 @@
     </PostBuildEvent>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="..\..\SRC\LIBRARY\CommandLineParser.dbl">
+      <Link>CommandLineParser.dbl</Link>
+    </Compile>
     <Compile Include="..\..\SRC\LIBRARY\ConfigureReplication.dbl">
       <Link>ConfigureReplication.dbl</Link>
     </Compile>
@@ -103,6 +106,9 @@
     </Compile>
     <Compile Include="..\..\SRC\LIBRARY\IsDate.dbl">
       <Link>IsDate.dbl</Link>
+    </Compile>
+    <Compile Include="..\..\SRC\LIBRARY\IsEmailAddress.dbl">
+      <Link>IsEmailAddress.dbl</Link>
     </Compile>
     <Compile Include="..\..\SRC\LIBRARY\IsNumeric.dbl">
       <Link>IsNumeric.dbl</Link>
