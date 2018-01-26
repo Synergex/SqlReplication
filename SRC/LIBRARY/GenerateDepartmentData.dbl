@@ -1,5 +1,5 @@
 
-import SynPSG.ReplicationDemo
+import ReplicationLibrary
 
 subroutine generateDepartmentData
 

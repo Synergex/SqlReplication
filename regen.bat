@@ -6,7 +6,7 @@ rem Configure the CodeGen environment
 set ROOT=%~dp0
 set CODEGEN_TPLDIR=%ROOT%\SRC\TEMPLATES
 set CODEGEN_OUTDIR=%ROOT%\SRC\LIBRARY
-set SYNDEFNS=SynPSG.ReplicationDemo
+set SYNDEFNS=ReplicationLibrary
 
 set STRUCTURES=EMPLOYEE RELSTR
 

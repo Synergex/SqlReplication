@@ -41,7 +41,7 @@
 import Synergex.SynergyDE.IOExtensions
 import Synergex.SynergyDE.Select
 
-namespace SynPSG.ReplicationDemo
+namespace ReplicationLibrary
 
     ;;-------------------------------------------------------------------------
     ;;I/O hooks class that implements SQL Replication

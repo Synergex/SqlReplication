@@ -32,7 +32,7 @@
 ;; POSSIBILITY OF SUCH DAMAGE.
 ;;
 
-import SynPSG.ReplicationDemo
+import ReplicationLibrary
 
 subroutine ConfigureReplication
     required in channel, n
