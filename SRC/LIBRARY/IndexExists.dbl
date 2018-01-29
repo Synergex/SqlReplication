@@ -1,0 +1,88 @@
+;;*****************************************************************************
+;;; <summary>
+;;; Determines if an index exists in the database.
+;;; </summary>
+;;; <param name="a_dbchn">Connected database channel.</param>
+;;; <param name="a_indexname">Name of index to check.</param>
+;;; <param name="a_errtxt">Returned error text.</param>
+;;; <returns>Returns 1 if the index exists, otherwise a number indicating the type of error.</returns>
+
+function IndexExists, ^val
+
+    required in  a_dbchn,  i
+    required in  a_indexname, string
+    optional out a_errtxt, a
+    endparams
+
+    .include "CONNECTDIR:ssql.def"
+
+    stack record local_data
+        error       ,int    ;;Returned error number
+        dberror     ,int    ;;Database error number
+        cursor      ,int    ;;Database cursor
+        length      ,int    ;;Length of a string
+        index_name  ,a128   ;;Retrieved index name
+        errtxt      ,a256   ;;Error message text
+    endrecord
+
+proc
+
+    init local_data
+
+    ;;Open a cursor for the SELECT statement
+
+	if (%ssc_open(a_dbchn,cursor,"SELECT name FROM SysIndexes WHERE name='" + a_indexname + "'",SSQL_SELECT)==SSQL_FAILURE)
+    begin
+        error=-1
+        if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+            errtxt="Failed to open cursor"
+    end
+
+    ;;Bind host variables to receive the data
+
+    if (!error)
+    begin
+        if (%ssc_define(a_dbchn,cursor,1,index_name)==SSQL_FAILURE)
+        begin
+            error=-1
+            if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+                errtxt="Failed to bind variable"
+        end
+    end
+
+    ;;Move data to host variables
+
+    if (!error)
+    begin
+        if (%ssc_move(a_dbchn,cursor,1)==SSQL_NORMAL)
+                error = 1 ;; Index exists
+    end
+
+    ;;Close the database cursor
+
+    if (cursor)
+    begin
+        if (%ssc_close(a_dbchn,cursor)==SSQL_FAILURE)
+        begin
+            if (!error)
+            begin
+                error=-1
+                if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+                    errtxt="Failed to close cursor"
+            end
+        end
+    end
+
+    ;;If there was an error message, return it to the calling routine
+
+    if (^passed(a_errtxt))
+    begin
+        if (error) then
+            a_errtxt = errtxt
+        else
+            a_errtxt = ""
+    end
+
+    freturn error
+
+endfunction

@@ -6,7 +6,7 @@ Author: Steve Ives, Synergex Professional Services Group (steve.ives@synergex.co
 ***
 
 This repository contains an example of how to implement the replication of a
-Synergy applications ISAM data to a relational database in near-to-real-time.
+Synergy applications SDMS or RMS data to a relational database in near-to-real-time.
 
 The techniques demonstrated in this example are based in large part on code
 that is automatically generated using CodeGen. It is therefore a requirement
@@ -276,7 +276,8 @@ will override the equivalent environment variables.
 | -datadir <data_location>            | The location of the replication instruction file (REPLICATOR.ISM) |
 | -database <connect_string>          | SQL connection connect string identifying the database to connect to. |
 | -erroremail <email_address>         | The email address that start, error and stop messages should be sent TO. |
-| -exportdir <export_location>        | The location where bulk export files will be created. |
+| -exportserver <sql_server>          | The name or IP address of the remote SQL server system, which must be running xfServer. |
+| -localexport <export_path>          | The location where bulk export files will be created locally. |
 | -instance <instance_name>           | The name of this replicator instance. |
 | -interval <sleep_seconds>           | The number of seconds the replicator should sleep if it finds no instructions to process. |
 | -keyvalues                          | Record the key values being used to relate ISAM records to SQL rows. |
@@ -286,6 +287,7 @@ will override the equivalent environment variables.
 | -mailserver <smtp_server>           | The DNS name or IP address of the SMTP mail server that will be used to send messages. |
 | -maxcolumns <max_columns>           | The maximum number of columns in a database table. Default is 254. |
 | -maxcursors <max_cursors>           | The maximum number of database cursors. Allow 4 per table. Default is 128. |
+| -remoteexport <export_path>         | The location where bulk export files copied to on the database server. |
 | -stoponerror                        | Cause the replicator to stop if an error is encountered. |
 | -syslog                             | Log to the system log in addition to the log file. |
 | -verbose                            | Enable verbose logging. |
@@ -293,24 +295,26 @@ will override the equivalent environment variables.
 
 ### Environment Variables
 
-| Environment Variable                | Description                                                                                                                 |
-| ----------------------------------- | -------------                                                                                                               |
-| REPLICATOR_DATA                     | The location of the replication instruction file (REPLICATOR.ISM)                                                           |
-| REPLICATOR_DATABASE                 | SQL connection database connection string identifying the SQL Server database to connect to.                                |
-| REPLICATOR_ERROR_EMAIL              | The email address that start, error and stop messages should be sent TO.                                                    |
-| REPLICATOR_EXPORT                   | The location where buld export files will be created.                                                                       |
-| REPLICATOR_INSTANCE                 | The name of this replicator instance.                                                                                       |
-| REPLICATOR_INTERVAL                 | The number of seconds the replicator should sleep if it finds no instructions to process.                                   |
-| REPLICATOR_LOG_KEYS                 | Set to YES to cause the key values being used to relate ISAM records to SQL rows.                                           |
-| REPLICATOR_LOG_BULK_LOAD_EXCEPTIONS | Set to YES to cause failing records during a bulk load operation to be logged to a file.                                    |
+| Environment Variable                | Description |
+| ----------------------------------- | ------------- |
+| REPLICATOR_DATA                     | The location of the replication instruction file (REPLICATOR.ISM) |
+| REPLICATOR_DATABASE                 | SQL connection database connection string identifying the SQL Server database to connect to. |
+| REPLICATOR_ERROR_EMAIL              | The email address that start, error and stop messages should be sent TO. |
+| REPLICATOR_EXPORT_LOCAL             | The location where bulk export files will be created locally. |
+| REPLICATOR_EXPORT_REMOTE            | The location where bulk export files copied to on the database server. |
+| REPLICATOR_EXPORT_SERVER            | The name or IP address of the remote SQL server system, which must be running xfServer. |
+| REPLICATOR_INSTANCE                 | The name of this replicator instance. |
+| REPLICATOR_INTERVAL                 | The number of seconds the replicator should sleep if it finds no instructions to process. |
+| REPLICATOR_LOG_KEYS                 | Set to YES to cause the key values being used to relate ISAM records to SQL rows. |
+| REPLICATOR_LOG_BULK_LOAD_EXCEPTIONS | Set to YES to cause failing records during a bulk load operation to be logged to a file. |
 | REPLICATOR_LOGDIR                   | The location where the log file should be created. A full or relative path, or an environment variable followed by a colon. |
-| REPLICATOR_EMAIL_SENDER             | The email address that replicator messages should be sent FROM.                                                             |
-| REPLICATOR_SMTP_SERVER              | The DNS name or IP address of the SMTP mail server that will be used to send messages.                                      |
+| REPLICATOR_EMAIL_SENDER             | The email address that replicator messages should be sent FROM. |
+| REPLICATOR_SMTP_SERVER              | The DNS name or IP address of the SMTP mail server that will be used to send messages. |
 | REPLICATOR_MAX_COLS                 | The maximum number of columns in a database table. Default is 254. |
 | REPLICATOR_MAX_CURSORS              | The maximum number of database cursors. Allow 4 per table. Default is 128. |
-| REPLICATOR_ERROR_STOP               | Set to YES to cause the replicator to stop if an error is encountered.                                                      |
+| REPLICATOR_ERROR_STOP               | Set to YES to cause the replicator to stop if an error is encountered. |
 | REPLICATOR_SYSTEM_LOG               | Set to YES to log to the system log in addition to the log file. |
-| REPLICATOR_FULL_LOG                 | Set to YES to cause more verbose logging to be used.                                                                        |
+| REPLICATOR_FULL_LOG                 | Set to YES to cause more verbose logging to be used. |
 
 ***
 
@@ -348,21 +352,23 @@ exist in the database, so it should create the table, and then initiate a full
 load of the table from the ISAM file. You should see replicator messages
 similar to this:
 
-    Opening file EMPLOYEE
+    First instruction checks for table EMPLOYEE
+     - Opening associated data file
      - File opened
-    Checking if table EMPLOYEE exists
+     - Checking if table exists
      - Table not found!
-    Creating table EMPLOYEE
+     - Creating table
      - Table created
-    Load table employee starting at YYYY-MM-DD HH:MM:SS
-     - Load complete at YYYY-MM-DD HH:MM:SS
-     - 25000 rows inserted, 0 rows failed
+     - Bulk load starting at YYYY-MM-DD HH:MM:SS
+     - Bulk load complete at YYYY-MM-DD HH:MM:SS
+     - Adding indexes
+     - Indexes added
      - Key 0 will be used to synchronize changes
     Update row in table EMPLOYEE
      - Key: 000001
      - Row updated
 
-Check SQL Server 0anagement studio, is the table and data there? If not
+Check SQL Server Management studio, is the table and data there? If not
 then you probably got error messages from the replicator and need to debug the
 environment.
 

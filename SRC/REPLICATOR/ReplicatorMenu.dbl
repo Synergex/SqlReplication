@@ -1,3 +1,4 @@
+import ReplicationLibrary
 ;;*****************************************************************************
 ;;
 ;; File:        ReplicatorMenu.dbl
@@ -136,13 +137,16 @@ proc
 
         if (tableName)
         begin
-            display(tt,$SCR_POS( 6,40),"C.  Create table")
-            display(tt,$SCR_POS( 7,40),"L.  Load table")
-            display(tt,$SCR_POS( 8,40),"CL. Create and load table")
-            display(tt,$SCR_POS( 9,40),"TR. Truncate table")
-            display(tt,$SCR_POS(10,40),"D.  Delete table")
-            display(tt,$SCR_POS(11,40),"X.  Export to CSV")
-        end
+            display(tt,$SCR_POS( 4,40),"C.  Create table")
+            display(tt,$SCR_POS( 5,40),"L.  Load table")
+			display(tt,$SCR_POS( 6,40),"CL. Create and load table")
+			display(tt,$SCR_POS( 7,40),"BL. Bulk load table")
+			display(tt,$SCR_POS( 8,40),"AI. Add indexes")
+			display(tt,$SCR_POS( 9,40),"DI. Delete indexes")
+			display(tt,$SCR_POS(10,40),"TR. Truncate table")
+            display(tt,$SCR_POS(11,40),"D.  Delete table")
+			display(tt,$SCR_POS(12,40),"X.  Export to CSV")
+		end
 
         display(tt,$SCR_POS(23,2),$SCR_CLR(EOS),"Select an option: ")
         reads(tt,option)
@@ -205,7 +209,9 @@ proc
                         outbuf.operation = "Create table"
                     (REPLICATION_INSTRUCTION.LOAD_TABLE),
                         outbuf.operation = "Load table"
-                    (REPLICATION_INSTRUCTION.CREATE_AND_LOAD_TABLE),
+					(REPLICATION_INSTRUCTION.BULK_LOAD_TABLE),
+						outbuf.operation = "Bulk load table"
+					(REPLICATION_INSTRUCTION.CREATE_AND_LOAD_TABLE),
                         outbuf.operation = "Create & load table"
                     (REPLICATION_INSTRUCTION.DELETE_ALL_ROWS),
                         outbuf.operation = "Truncate table"
@@ -396,7 +402,40 @@ eof,        close chn
                 display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Invalid option!")
         end
 
-        ("TR"),
+		("BL"),
+		begin
+			if (tableName) then
+			begin
+				xcall Replicate(REPLICATION_INSTRUCTION.BULK_LOAD_TABLE,tableName)
+				display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Command queued")
+			end
+			else
+				display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Invalid option!")
+		end
+
+		("AI"),
+		begin
+			if (tableName) then
+			begin
+				xcall Replicate(REPLICATION_INSTRUCTION.ADD_INDEXES,tableName)
+				display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Command queued")
+			end
+			else
+				display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Invalid option!")
+		end
+
+		("DI"),
+		begin
+			if (tableName) then
+			begin
+				xcall Replicate(REPLICATION_INSTRUCTION.DELETE_INDEXES,tableName)
+				display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Command queued")
+			end
+			else
+				display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Invalid option!")
+		end
+
+		("TR"),
         begin
             if (tableName) then
             begin
@@ -429,7 +468,7 @@ eof,        close chn
                 display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Invalid option!")
         end
 
-        ("E "),
+		("E "),
             exitloop
 
         (),

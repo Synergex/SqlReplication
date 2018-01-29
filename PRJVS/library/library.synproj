@@ -98,6 +98,9 @@
     <Compile Include="..\..\SRC\LIBRARY\GetReplicatedTables.dbl">
       <Link>GetReplicatedTables.dbl</Link>
     </Compile>
+    <Compile Include="..\..\SRC\LIBRARY\IndexExists.dbl">
+      <Link>IndexExists.dbl</Link>
+    </Compile>
     <Compile Include="..\..\SRC\LIBRARY\IOHooksISAM.dbl">
       <Link>IOHooksISAM.dbl</Link>
     </Compile>
@@ -133,6 +136,9 @@
     </Compile>
     <Compile Include="..\..\SRC\LIBRARY\SmtpMail.dbl">
       <Link>SmtpMail.dbl</Link>
+    </Compile>
+    <Compile Include="..\..\SRC\LIBRARY\StringTools.dbl">
+      <Link>StringTools.dbl</Link>
     </Compile>
   </ItemGroup>
   <ItemGroup>

@@ -61,23 +61,24 @@ main replicator
 
     .align
     record
-        ok                  ,boolean            ;;Main status
-        noMoreInstructions  ,boolean            ;;End of instruction file
-        switchMode          ,boolean            ;;Switched from INSERT to UPDATE or vice versa
-        switchDone          ,boolean            ;;Have we tried to switch modes before?
-        errnum              ,i4                 ;;Error number
-        nsptr               ,i4                 ;;Namespace pointer
-        dberr               ,i4                 ;;Database error
-        length              ,i4                 ;;Length of buffer
-        status              ,i4                 ;;General working status return
-        rows                ,i4                 ;;Number of rows affected
-        functionName        ,string             ;;External function to call
-        primaryKey          ,string             ;;Primary key of current record
-        keyValue            ,string             ;;Key value of the current ISAM record
-        recordNumber        ,d28                ;;Record number of the current relative record
-        dberrtxt            ,a1024
-        structure_data      ,strStructureData
-        clValues            ,@ArrayList         ;;Values of a command-line parameter
+        ok,					boolean            ;;Main status
+        noMoreInstructions,	boolean            ;;End of instruction file
+        switchMode,			boolean            ;;Switched from INSERT to UPDATE or vice versa
+		switchDone,			boolean            ;;Have we tried to switch modes before?
+		bulkLoad,			boolean			   ;;Use bulk load?
+        errnum,				i4                 ;;Error number
+        nsptr,				i4                 ;;Namespace pointer
+        dberr,				i4                 ;;Database error
+        length,				i4                 ;;Length of buffer
+        status,				i4                 ;;General working status return
+        rows,				i4                 ;;Number of rows affected
+        functionName,		string             ;;External function to call
+        primaryKey,			string             ;;Primary key of current record
+        keyValue,			string             ;;Key value of the current ISAM record
+        recordNumber,		d28                ;;Record number of the current relative record
+        dberrtxt,			a1024
+        structure_data,		strStructureData
+        clValues,			@ArrayList         ;;Values of a command-line parameter
     endrecord
 
     external function
@@ -132,47 +133,109 @@ proc
 
                 ;;"Routine" processing requests
 
-                (REPLICATION_INSTRUCTION.CREATE_ROW),
-                    call DoInsert
+				(REPLICATION_INSTRUCTION.CREATE_ROW),
+				begin
+					xcall verboselog("Insert row in table " + %atrim(instruction.structure_name))
+					call DoInsert
+				end
 
-                (REPLICATION_INSTRUCTION.UPDATE_ROW),
-                    call DoUpdate
+				(REPLICATION_INSTRUCTION.UPDATE_ROW),
+				begin
+					xcall verboselog("Update row in table " + %atrim(instruction.structure_name))
+					call DoUpdate
+				end
 
-                (REPLICATION_INSTRUCTION.DELETE_ROW),
-                    call DoDelete
+				(REPLICATION_INSTRUCTION.DELETE_ROW),
+				begin
+					xcall verboselog("Delete row from table " + %atrim(instruction.structure_name))
+					call DoDelete
+				end
 
-                (REPLICATION_INSTRUCTION.INSERT_RELATIVE),
-                    call DoInsertRelative
+				(REPLICATION_INSTRUCTION.INSERT_RELATIVE),
+				begin
+					xcall verboselog("Insert row in table " + %atrim(instruction.structure_name))
+					call DoInsertRelative
+				end
 
-                (REPLICATION_INSTRUCTION.UPDATE_RELATIVE),
-                    call DoUpdateRelative
+				(REPLICATION_INSTRUCTION.UPDATE_RELATIVE),
+				begin
+					xcall verboselog("Update row in table " + %atrim(instruction.structure_name))
+					call DoUpdateRelative
+				end
 
                 ;;"Special" processing requests
 
-                (REPLICATION_INSTRUCTION.CREATE_TABLE),
-                    call DoCreateTable
+				(REPLICATION_INSTRUCTION.ADD_INDEXES),
+				begin
+					xcall log("Add indexes to table " + %atrim(instruction.structure_name))
+					call DoAddIndexes
+				end
 
-                (REPLICATION_INSTRUCTION.LOAD_TABLE),
-                    call DoLoadTable
+				(REPLICATION_INSTRUCTION.CREATE_TABLE),
+				begin
+					xcall log("Create table " + %atrim(instruction.structure_name))
+					call DoCreateTable
+				end
 
-                (REPLICATION_INSTRUCTION.CREATE_AND_LOAD_TABLE),
-                    call DoCreateAndLoadTable
+				(REPLICATION_INSTRUCTION.LOAD_TABLE),
+				begin
+					xcall log("Load table " + %atrim(instruction.structure_name))
+					bulkLoad = false
+					call DoLoadTable
+				end
+
+				(REPLICATION_INSTRUCTION.BULK_LOAD_TABLE),
+				begin
+					if (bulkLoad = Settings.CanBulkLoad()) then
+						xcall log("Bulk load table " + %atrim(instruction.structure_name))
+					else
+					begin
+						xcall log("Bulk load requested but unavailable!")
+						xcall log("Load table " + %atrim(instruction.structure_name))
+					end
+					call DoLoadTable
+				end
+
+				(REPLICATION_INSTRUCTION.CREATE_AND_LOAD_TABLE),
+				begin
+					xcall log("Create and load table " + %atrim(instruction.structure_name))
+					call DoCreateAndLoadTable
+				end
 
                 (REPLICATION_INSTRUCTION.CREATE_CSV),
-                    call DoCreateCsv
+				begin
+					xcall log("Export table " + %atrim(instruction.structure_name) + " to delimited file")
+					call DoCreateCsv
+				end
 
                 (REPLICATION_INSTRUCTION.DELETE_ALL_ROWS),
-                    call DoDeleteAllRows
+				begin
+					xcall log("Truncate table " + %atrim(instruction.structure_name))
+					call DoDeleteAllRows
+				end
 
-                (REPLICATION_INSTRUCTION.DELETE_TABLE),
-                    call DoDeleteTable
+				(REPLICATION_INSTRUCTION.DELETE_INDEXES),
+				begin
+					xcall log("Remove indexes from table " + %atrim(instruction.structure_name))
+					call DoDeleteIndexes
+				end
+
+				(REPLICATION_INSTRUCTION.DELETE_TABLE),
+				begin
+					xcall log("Delete table " + %atrim(instruction.structure_name))
+					call DoDeleteTable
+				end
 
 				(REPLICATION_INSTRUCTION.CHANGE_INTERVAL),
-                    call ChangeInterval
+				begin
+					xcall log("Change processing interval")
+					call ChangeInterval
+				end
 
                 (REPLICATION_INSTRUCTION.SHUTDOWN),
                 begin
-                    delete(Settings.InstructionChannel)
+					xcall log("Shutdown requested")
+					delete(Settings.InstructionChannel)
                     xcall ReplicatorShutdown
                     stop
                 end
@@ -253,7 +316,9 @@ CheckFileTable,
     end
     else
     begin
-        ;;No, open the file and make sure it worked
+		xcall verboselog("First instruction checks for table " + %atrim(instruction.structure_name))
+		
+		;;No, open the file and make sure it worked
         call OpenFile
 
         ;;If we failed to open the file then we have a serious problem!
@@ -355,7 +420,7 @@ CheckFileTable,
 ;;
 OpenFile,
 
-    xcall log("Opening file " + %atrim(instruction.structure_name))
+    xcall log(" - Opening associated data file")
 
     try
     begin
@@ -388,7 +453,7 @@ OpenFile,
 ;;
 CheckTable,
 
-    xcall verboselog("Checking if table " + %atrim(instruction.structure_name) + " exists")
+    xcall verboselog(" - Checking if table exists")
 
     try
     begin
@@ -418,10 +483,13 @@ CheckTable,
 
 ;;-----------------------------------------------------------------------------
 ;; Create and load a new table in the SQL database
+;; This code is only used when doing an initial check for a table because of
+;; a first replication instruction. Explicit CREATE_TABLE instructions are
+;; handled by DoCreateTable.
 ;;
 CreateTable,
 
-    xcall log("Creating table " + %atrim(instruction.structure_name))
+    xcall log(" - Creating table")
 
     try
     begin
@@ -438,8 +506,12 @@ CreateTable,
     if (status) then
     begin
         xcall verboselog(" - Table created")
-        call LoadTable
-    end
+		;;Now do an initial load of the data
+		if (Settings.CanBulkLoad()) then
+			call BulkLoadTable
+		else
+			call LoadTable
+	end
     else
     begin
         xcall LogFunctionError(functionName,status,dberrtxt)
@@ -452,7 +524,7 @@ CreateTable,
 ;;
 LoadTable,
 
-    xcall log("Load table " + %atrim(instruction.structure_name) + " starting at " + %TimeNow)
+    xcall log(" - Load starting at " + %TimeNow)
 
     try
     begin
@@ -473,12 +545,26 @@ LoadTable,
             Counters.Inserts += successCount
             Counters.Errors  += failCount
 
-            if (Settings.CanSendEmail())
-            begin
-                data subject, string, "loaded table " + %atrim(instruction.structure_name)
-                data body = new string[#] { "A full table load completed. " + %string(successCount) + " rows inserted, " + %string(failCount) + " rows failed." }
-                xcall SendEmail(subject,body)
-            end
+			;;Now add alternate key indexes
+			xcall log(" - Adding indexes...")
+			functionName = %atrim(instruction.structure_name) + "Index"
+			status = %xsubr(functionName,Settings.DatabaseChannel,dberrtxt)
+			
+			if (status) then
+			begin
+				xcall log(" - Indexes added")
+				if (Settings.CanSendEmail())
+				begin
+					data subject, string, "loaded table " + %atrim(instruction.structure_name)
+					data body = new string[#] { "A full table load completed. " + %string(successCount) + " rows inserted, " + %string(failCount) + " rows failed." }
+					xcall SendEmail(subject,body)
+				end
+			end
+			else
+			begin
+				xcall LogFunctionError(functionName,status,dberrtxt)
+			end
+
         end
         else
         begin
@@ -494,6 +580,56 @@ LoadTable,
     return
 
 ;;-----------------------------------------------------------------------------
+;; Perform a bulk load of a table from a delimited text file.
+;;
+BulkLoadTable,
+
+	xcall log(" - Bulk load starting at " + %TimeNow)
+
+	try
+	begin
+		functionName = %atrim(instruction.structure_name) + "BulkLoad"
+		status = %xsubr(functionName,Settings.DatabaseChannel,Settings.LocalExportPath,Settings.RemoteExportPath,Settings.RemoteExportServer,dberrtxt)
+
+		if (status) then
+		begin
+			xcall log(" - Bulk load complete at " + %TimeNow)
+
+			;;Now add alternate key indexes
+			xcall log(" - Adding indexes...")
+			functionName = %atrim(instruction.structure_name) + "Index"
+			status = %xsubr(functionName,Settings.DatabaseChannel,dberrtxt)
+			
+			if (status) then
+			begin
+				xcall log(" - Indexes added")
+				if (Settings.CanSendEmail())
+				begin
+					data subject, string, "bulk loaded table " + %atrim(instruction.structure_name)
+					data body = new string[#] { "A table bulk load completed." }
+					xcall SendEmail(subject,body)
+				end
+			end
+			else
+			begin
+				xcall LogFunctionError(functionName,status,dberrtxt)
+			end
+
+		end
+		else
+		begin
+			xcall LogFunctionError(functionName,status,dberrtxt)
+		end
+	end
+	catch (ex, @SynException)
+	begin
+		ok = %LogFunctionFail(functionName,ex.Errno,ex.Message)
+	end
+	endtry
+
+	return
+
+;;-----------------------------------------------------------------------------
 ;; Add a new row (ISAM)
 ;;
 DoInsert,
@@ -505,7 +641,6 @@ DoInsert,
     end
     else
     begin
-        xcall verboselog("Insert row in table " + %atrim(instruction.structure_name))
         if (Settings.LogKeys)
         begin
             keyValue = %keyVal(structure_data.structure_chan,instruction.record,structure_data.structure_keynum)
@@ -537,11 +672,11 @@ DoInsert,
     end
     (2),
     begin
-        xcall verboselog(" - Row already exists, switching to UPDATE")
+        xcall verboselog(" - Row exists, switching to UPDATE")
         status = IO_OK
         if (switchDone) then
         begin
-            xcall errorlog("Too many INSERT/UPDATE mode switches!")
+            xcall errorlog(" - Too many INSERT/UPDATE mode switches!")
         end
         else
         begin
@@ -565,7 +700,6 @@ DoInsertRelative,
     end
     else
     begin
-        xcall verboselog("Insert row in table " + %atrim(instruction.structure_name))
         if (Settings.LogKeys)
         begin
             data pos, i4, %instr(1,instruction.record,":")
@@ -599,11 +733,11 @@ DoInsertRelative,
     end
     (2),
     begin
-        xcall verboselog(" - Row already exists, switching to UPDATE")
+        xcall verboselog(" - Row exists, switching to UPDATE")
         status = IO_OK
         if (switchDone) then
         begin
-            xcall errorlog("Too many INSERT/UPDATE mode switches!")
+            xcall errorlog(" - Too many INSERT/UPDATE mode switches!")
         end
         else
         begin
@@ -627,8 +761,6 @@ DoUpdate,
     end
     else
     begin
-        xcall verboselog("Update row in table " + %atrim(instruction.structure_name))
-
         if (Settings.LogKeys)
         begin
             keyValue = %keyVal(structure_data.structure_chan,instruction.record,structure_data.structure_keynum)
@@ -661,7 +793,7 @@ DoUpdate,
             status = IO_OK
             if (switchDone) then
             begin
-                xcall errorlog("Too many INSERT/UPDATE mode switches!")
+                xcall errorlog(" - Too many INSERT/UPDATE mode switches!")
             end
             else
             begin
@@ -689,8 +821,6 @@ DoUpdateRelative,
     end
     else
     begin
-        xcall verboselog("Update row in table " + %atrim(instruction.structure_name))
-
         if (Settings.LogKeys)
         begin
             data pos, i4, %instr(1,instruction.record,":")
@@ -725,7 +855,7 @@ DoUpdateRelative,
             status = IO_OK
             if (switchDone) then
             begin
-                xcall errorlog("Too many INSERT/UPDATE mode switches!")
+                xcall errorlog(" - Too many INSERT/UPDATE mode switches!")
             end
             else
             begin
@@ -745,8 +875,6 @@ DoUpdateRelative,
 ;; Delete a row
 ;;
 DoDelete,
-
-    xcall verboselog("Delete row from table " + %atrim(instruction.structure_name))
 
     keyValue = %keyval(structure_data.structure_chan,instruction.record,structure_data.structure_keynum)
 
@@ -784,8 +912,7 @@ DoCreateTable,
     ;;Create a new table (only)
     ;;If the table already exists, do nothing
 
-    xcall log("Creating table " + %atrim(instruction.structure_name))
-    xcall verboselog(" - Checking if table already exists")
+    xcall verboselog(" - Checking if table exists")
 
     try
     begin
@@ -794,7 +921,7 @@ DoCreateTable,
         using status select
         (1),
         begin
-            xcall verboselog(" - Table already exists!")
+            xcall verboselog(" - Table exists!")
         end
         (0),
         begin
@@ -844,10 +971,8 @@ DoCreateTable,
 DoLoadTable,
 
     ;;Do a full load of an existing table with new data
-    ;;Delete all existing data before loading new data
 
-    xcall log("Loading table " + %atrim(instruction.structure_name))
-    xcall verboselog(" - Checking if table exists")
+	xcall verboselog(" - Checking if table exists")
 
     try
     begin
@@ -864,8 +989,15 @@ DoLoadTable,
     using status select
     (1),
     begin
-        call DoDeleteAllRows
-        call LoadTable
+		xcall verboselog(" - Table exists")
+
+		;;Delete any and all existing data before loading new data
+		call DoDeleteAllRows
+
+		if (bulkLoad) then
+			call BulkLoadTable
+		else
+	        call LoadTable
     end
     (0),
     begin
@@ -896,14 +1028,14 @@ DoCreateAndLoadTable,
 ;;
 DoCreateCsv,
 
-    xcall log("Exporting CSV for " + %atrim(instruction.structure_name) + " starting at " + %TimeNow)
+    xcall log(" - Export starting at " + %TimeNow)
 
     try
 	begin		
 		functionName = %atrim(instruction.structure_name) + "Csv"		
-        status = %xsubr(functionName,Settings.ExportPath,Settings.ExportServer,dberrtxt)
+        status = %xsubr(functionName,Settings.LocalExportPath,Settings.RemoteExportPath,Settings.RemoteExportServer,dberrtxt)
         if (status) then
-            xcall verboselog(" - Done at " + %TimeNow)
+            xcall verboselog(" - Export complete at " + %TimeNow)
         else
             xcall LogFunctionError(functionName,status,dberrtxt)
     end
@@ -920,15 +1052,13 @@ DoCreateCsv,
 ;;
 DoDeleteAllRows,
 
-    xcall log("Truncating table " + %atrim(instruction.structure_name))
-
     try
     begin
         functionName = %atrim(instruction.structure_name) + "Clear"
         status = %xsubr(functionName,Settings.DatabaseChannel,dberrtxt)
         if (status) then
         begin
-            xcall verboselog(" - Done")
+            xcall verboselog(" - Table truncated")
 
             if (Settings.CanSendEmail())
             begin
@@ -968,15 +1098,13 @@ DoDeleteTable,
         xcall nspc_delete(Settings.ChannelInfo,nsptr)
     end
 
-    xcall log("Deleting table " + %atrim(instruction.structure_name))
-
     try
     begin
         functionName = %atrim(instruction.structure_name) + "Drop"
         status = %xsubr(functionName,Settings.DatabaseChannel,dberrtxt)
         if (status) then
         begin
-            xcall verboselog(" - Done")
+            xcall verboselog(" - Table deleted")
 
             if (Settings.CanSendEmail())
             begin
@@ -998,6 +1126,68 @@ DoDeleteTable,
     return
 
 ;;-----------------------------------------------------------------------------
+;; Add alternate key indexes to a table (if they don't already exist)
+;;
+DoAddIndexes,
+
+	try
+	begin
+		functionName = %atrim(instruction.structure_name) + "Index"
+		status = %xsubr(functionName,Settings.DatabaseChannel,dberrtxt)
+		if (status) then
+		begin
+			xcall verboselog(" - Indexes added")
+
+			if (Settings.CanSendEmail())
+			begin
+				data subject, string, "added indexes to table " + %atrim(instruction.structure_name)
+				data body = new string[#] { "Alternate key indexes were added to the table." }
+				xcall SendEmail(subject, body)
+			end
+		end
+		else
+			xcall LogFunctionError(functionName,status,dberrtxt)
+	end
+	catch (ex, @SynException)
+	begin
+		ok = %LogFunctionFail(functionName,ex.Errno,ex.Message)
+	end
+	endtry
+
+	return
+
+;;-----------------------------------------------------------------------------
+;; Delete alternate key indexes from a table
+;;
+DoDeleteIndexes,
+
+	try
+	begin
+		functionName = %atrim(instruction.structure_name) + "UnIndex"
+		status = %xsubr(functionName,Settings.DatabaseChannel,dberrtxt)
+		if (status) then
+		begin
+			xcall verboselog(" - Indexes removed")
+
+			if (Settings.CanSendEmail())
+			begin
+				data subject, string, "removed indexes from table " + %atrim(instruction.structure_name)
+				data body = new string[#] { "Alternate key indexes were removed from the table." }
+				xcall SendEmail(subject, body)
+			end
+		end
+		else
+			xcall LogFunctionError(functionName,status,dberrtxt)
+	end
+	catch (ex, @SynException)
+	begin
+		ok = %LogFunctionFail(functionName,ex.Errno,ex.Message)
+	end
+	endtry
+
+	return
+
+;;-----------------------------------------------------------------------------
 ;; Change the sleep seconds interval
 
 ChangeInterval,
@@ -1009,17 +1199,17 @@ ChangeInterval,
             Settings.SleepTime = %integer(%atrim(instruction.record))
             if (Settings.SleepTime >= 1) then
             begin
-                xcall log("Processing interval changed from " + %string(save_time) + " to " + %string(Settings.SleepTime) + " seconds")
+                xcall log(" - Interval changed from " + %string(save_time) + " to " + %string(Settings.SleepTime) + " seconds")
             end
             else
             begin
-                xcall errorlog("Invalid processing interval of " + %string(Settings.SleepTime) + " seconds requested")
+                xcall errorlog(" - Invalid interval of " + %string(Settings.SleepTime) + " seconds requested")
                 Settings.SleepTime = save_time
             end
         end
         catch (ex)
         begin
-            xcall errorlog("Invalid processing interval " + %atrim(instruction.record) + " requested")
+            xcall errorlog(" - Invalid interval " + %atrim(instruction.record) + " requested")
             Settings.SleepTime = save_time
         end
         endtry
@@ -1095,20 +1285,20 @@ ConfigureEnvironment,
 
 	if (ok)
 	begin
-		;;Is an export directory specified via the command line?
-		if (CommandLineParser.Parse("exportdir",clValues)) then
+		;;Is a local export directory specified via the command line?
+		if (CommandLineParser.Parse("localexport",clValues)) then
 		begin
 			using clValues.Count select
 			(1),
-				Settings.ExportPath = (string)clValues[0]
+				Settings.LocalExportPath = (string)clValues[0]
 			(0),
 			begin
-				xcall errorlog("Missing value after the -exportdir option")
+				xcall errorlog("Missing value after the -localexport option")
 				ok = false
 			end
 			(),
 			begin
-				xcall errorlog("Only one value may follow the -exportdir option")
+				xcall errorlog("Only one value may follow the -localexport option")
 				ok = false
 			end
 			endusing
@@ -1117,9 +1307,39 @@ ConfigureEnvironment,
 		begin
 			;;Or via an environment variable?
 			data tmpval, a80
-			xcall getlog("REPLICATOR_EXPORT",tmpval,length)
+			xcall getlog("REPLICATOR_EXPORT_LOCAL",tmpval,length)
 			if (length)
-				Settings.ExportPath = tmpval(1:length)
+				Settings.LocalExportPath = tmpval(1:length)
+		end
+	end
+
+	if (ok)
+	begin
+		;;Is a remote export directory specified via the command line?
+		if (CommandLineParser.Parse("remoteexport",clValues)) then
+		begin
+			using clValues.Count select
+			(1),
+				Settings.RemoteExportPath = (string)clValues[0]
+			(0),
+			begin
+				xcall errorlog("Missing value after the -remoteexport option")
+				ok = false
+			end
+			(),
+			begin
+				xcall errorlog("Only one value may follow the -remoteexport option")
+				ok = false
+			end
+			endusing
+		end
+		else
+		begin
+			;;Or via an environment variable?
+			data tmpval, a80
+			xcall getlog("REPLICATOR_EXPORT_REMOTE",tmpval,length)
+			if (length)
+				Settings.RemoteExportPath = tmpval(1:length)
 		end
 	end
 
@@ -1130,7 +1350,7 @@ ConfigureEnvironment,
 		begin
 			using clValues.Count select
 			(1),
-				Settings.ExportServer = (string)clValues[0]
+				Settings.RemoteExportServer = (string)clValues[0]
 			(0),
 			begin
 				xcall errorlog("Missing value after the -exportserver option")
@@ -1149,7 +1369,7 @@ ConfigureEnvironment,
 			data tmpval, a80
 			xcall getlog("REPLICATOR_EXPORT_SERVER",tmpval,length)
 			if (length)
-				Settings.ExportServer = tmpval(1:length)
+				Settings.RemoteExportServer = tmpval(1:length)
 		end
 	end
 
@@ -1978,7 +2198,7 @@ subroutine LogFunctionError
     endrecord
 proc
 
-    errorText = "Function" + functionName + " returned error " + %string(errorNumber) + ": " + %atrim(errorMessage)
+    errorText = "Function " + functionName + " returned error " + %string(errorNumber) + ": " + %atrim(errorMessage)
 
     ;;Log the error
     xcall errorlog(errorText)
@@ -2122,17 +2342,18 @@ namespace Tools
             endrecord
         proc
             now = %datetime
-			ErrorSleepTime    = 0.5
-			ExportPath        = ""
-			ExportServer      = ""
-            InstanceName      = "DEFAULT"
-            LogFileName       = "REPLICATOR_LOGDIR:replicator_" + now(1:8) + "_" + now(9:6) + ".log"
-            MaxCursors        = 128
-            MaxColumns        = 254
-            RunningOnTerminal = (%tnmbr >= 0)
-            SleepTime         = 60
-            SystemLog         = false
-            TransactionFile   = "REPLICATOR_DATA:REPLICATION.ISM"
+			ErrorSleepTime     = 0.5
+			LocalExportPath    = ^null
+			RemoteExportPath   = ^null
+			RemoteExportServer = ^null
+            InstanceName       = "DEFAULT"
+            LogFileName        = "REPLICATOR_LOGDIR:replicator_" + now(1:8) + "_" + now(9:6) + ".log"
+            MaxCursors         = 128
+            MaxColumns         = 254
+            RunningOnTerminal  = (%tnmbr >= 0)
+            SleepTime          = 60
+            SystemLog          = false
+            TransactionFile    = "REPLICATOR_DATA:REPLICATION.ISM"
         endmethod
 
 
@@ -2237,9 +2458,9 @@ namespace Tools
         endproperty
 
 		;;; <summary>
-		;;; Where should export files be created?
+		;;; Where should export files be created locally?
 		;;; </summary>
-		public static property ExportPath, string
+		public static property LocalExportPath, string
 			method get
 			endmethod
 			method set
@@ -2247,14 +2468,19 @@ namespace Tools
 		endproperty
 
 		;;; <summary>
-		;;; What server should export files be created on?
+		;;; Where should export files be copied to remotely?
 		;;; </summary>
-		public static property ExportServer, string
+		public static property RemoteExportPath, string
 			method get
 			endmethod
 			method set
 			endmethod
 		endproperty
+
+		;;; <summary>
+		;;; Which server should export files be copied to?
+		;;; </summary>
+		public static readwrite property RemoteExportServer, string
 
 		;;; <summary>
         ;;; Are we doing full logging?
@@ -2387,7 +2613,21 @@ namespace Tools
             endmethod
         endproperty
 
-        ;;; <summary>
+		;;; <summary>
+		;;; Are we able to use bulk load? In order for this to return true we must not be on
+		;;; OpenVMS, and we must have values for RemoteExportPath and RemoteExportServer.
+		;;; </summary>
+		;;; <returns>Returns true if we have all the data, but does not guarantee that bulk upload will work!</returns>
+		public static method CanBulkLoad, boolean
+		proc
+			.ifdef D_VMS
+			mreturn false
+			.else
+			mreturn (RemoteExportPath!=^null && RemoteExportPath.Length>0 && RemoteExportServer!=^null && RemoteExportServer.Length>0)
+			.endc
+		endmethod
+
+		;;; <summary>
         ;;; Are we able to send email messages. In order for this to return true we must have values
         ;;; for EmailError, EmailServer, EmailSender and EmailDomain.
         ;;; </summary>

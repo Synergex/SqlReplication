@@ -314,7 +314,7 @@ endfunction
 <IF STRUCTURE_ISAM>
 ;;*****************************************************************************
 ;;; <summary>
-;;; Adds alternate key indexes to the <StructureName> table in the database.
+;;; Add alternate key indexes to the <StructureName> table if they do not exist.
 ;;; </summary>
 ;;; <param name="a_dbchn">Connected database channel.</param>
 ;;; <param name="a_errtxt">Returned error text.</param>
@@ -359,7 +359,7 @@ proc
     <ELSE>
     ;;The structure has no unique primary key, so no primary key constraint was added to the table. Create an index instead.
 
-    if (ok)
+    if (ok && !IndexExists(a_dbchn,"IX_<StructureName>_<PRIMARY_KEY><KeyName></PRIMARY_KEY>",errtxt))
     begin
         sql = '<PRIMARY_KEY>CREATE INDEX IX_<StructureName>_<KeyName> ON "<StructureName>"(<SEGMENT_LOOP>"<SegmentName>" <SEGMENT_ORDER><,></SEGMENT_LOOP>)</PRIMARY_KEY>'
 
@@ -376,7 +376,7 @@ proc
     <ALTERNATE_KEY_LOOP>
     ;;Create index <KEY_NUMBER> (<KEY_DESCRIPTION>)
 
-    if (ok)
+    if (ok && !%IndexExists(a_dbchn,"IX_<StructureName>_<KeyName>",errtxt))
     begin
         sql = 'CREATE <KEY_UNIQUE> INDEX IX_<StructureName>_<KeyName> ON "<StructureName>"(<SEGMENT_LOOP>"<SegmentName>" <SEGMENT_ORDER><,></SEGMENT_LOOP>)'
 
@@ -2190,6 +2190,137 @@ endfunction
 
 ;;*****************************************************************************
 ;;; <summary>
+;;; Bulk load data from <IF STRUCTURE_MAPPED><MAPPED_FILE><ELSE><FILE_NAME></IF STRUCTURE_MAPPED> into the <StructureName> table via a CSV file.
+;;; </summary>
+;;; <param name="a_dbchn">Connected database channel.</param>
+;;; <param name="a_errtxt">Returned error text.</param>
+;;; <param name="a_logex">Log exception records?</param>
+;;; <param name="a_terminal">Terminal channel to log errors on.</param>
+;;; <param name="a_added">Total number of successful inserts.</param>
+;;; <param name="a_failed">Total number of failed inserts.</param>
+;;; <param name="a_progress">Report progress.</param>
+;;; <returns>Returns true on success, otherwise false.</returns>
+
+function <StructureName>BulkLoad, ^val
+
+    required in  a_dbchn,      i
+	required in  a_localpath,  string
+	required in  a_remotepath, string
+	required in  a_server,     string
+    optional out a_errtxt,   a
+    endparams
+
+    .include "CONNECTDIR:ssql.def"
+
+     stack record local_data
+        ok,				boolean    ;;Return status
+		transaction,	boolean
+		cursorOpen,		boolean
+		sql,			string
+		csvFile,		string
+		cursor,			int
+		length,			int
+		dberror,		int
+        errtxt,			a256       ;;Error message text
+    endrecord
+
+proc
+
+    init local_data
+
+	;;Export the data to a delimited text file (and copy it to the server if necessary)
+	ok = <StructureName>Csv(a_localpath,a_remotepath,a_server,errtxt)
+
+	;;Bulk load the delimited file into the database
+
+	if (ok)
+	begin
+		;;Start a database transaction
+		if (%ssc_commit(a_dbchn,SSQL_TXON)==SSQL_NORMAL) then
+			transaction = true
+		else
+		begin
+			ok = false
+			if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+				errtxt="Failed to start transaction"
+		end
+
+		;;Open a cursor for the statement
+		if (ok)
+		begin
+			if (a_remotepath==^null || a_remotepath.eqs." " || a_server==^null || a_server.eqs." ") then
+				csvFile = a_localpath + "\<StructureName>.csv"
+			else
+				csvFile = a_remotepath + "\<StructureName>.csv"
+
+			sql = "BULK INSERT <StructureName> FROM " + csvFile + " WITH (FIRSTROW=2,FIELDTERMINATOR='|',ROWTERMINATOR='\n')"
+
+			if (%ssc_open(a_dbchn,cursor,sql,SSQL_NONSEL,SSQL_STANDARD)==SSQL_NORMAL) then
+				cursorOpen = true
+			else
+			begin
+				ok = false
+				if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+					errtxt="Failed to open cursor"
+			end
+		end
+
+		;;Execute the statement
+		if (ok)
+		begin
+			if (%ssc_execute(a_dbchn,cursor,SSQL_STANDARD)==SSQL_FAILURE)
+			begin
+				if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_NORMAL) then
+					nop
+				else
+					errtxt="Failed to execute SQL statement"
+				ok = false
+			end
+		end
+
+		;;Commit or rollback the transaction
+
+		if (transaction)
+		begin
+			if (ok) then
+			begin
+				;;Success, commit the transaction
+				if (%ssc_commit(a_dbchn,SSQL_TXOFF)==SSQL_FAILURE)
+				begin
+					if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+						errtxt="Failed to commit transaction"
+					ok = false
+				end
+			end
+			else
+			begin
+				;;There was an error, rollback the transaction
+				xcall ssc_rollback(a_dbchn,SSQL_TXOFF)
+			end
+		end
+
+		;;Close the cursor
+		if (cursorOpen)
+		begin
+			if (%ssc_close(a_dbchn,cursor)==SSQL_FAILURE)
+			begin
+				if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+					errtxt="Failed to close cursor"
+			end		
+		end
+	end
+
+    ;;Return the error text
+
+    if (^passed(a_errtxt))
+        a_errtxt = errtxt
+
+    freturn ok
+
+endfunction
+
+;;*****************************************************************************
+;;; <summary>
 ;;; Close cursors associated with the <StructureName> table.
 ;;; </summary>
 ;;; <param name="a_dbchn">Connected database channel</param>
@@ -2246,7 +2377,8 @@ endsubroutine
 ;;; <returns>Returns true on success, otherwise false.</returns>
 
 function <StructureName>Csv, ^val
-	required in  a_path, string
+	required in  a_localpath, string
+	required in  a_remotepath, string
 	required in  a_server, string
 	optional out a_errtxt, a
     endparams
@@ -2258,15 +2390,14 @@ function <StructureName>Csv, ^val
     .define EXCEPTION_BUFSZ 100
 
 	stack record local_data
-		ok,						boolean    ;;Return status
-		filechn,				int        ;;Data file channel
-		csvchn,					int        ;;CSV file channel
-		errnum,					int        ;;Error number
-		attempted,				int        ;;Number of records exported
-		errtxt,					a256       ;;Error message text
-		csvFileCreatePath,		string
-		csvFileReferencePath,	string
-		sqlScriptCreatePath,	string
+		ok,					boolean    ;;Return status
+		filechn,			int        ;;Data file channel
+		csvchn,				int        ;;CSV file channel
+		errnum,				int        ;;Error number
+		attempted,			int        ;;Number of records exported
+		errtxt,				a256       ;;Error message text
+		localCsvFile,		string
+		remoteCsvFile,		string
 	endrecord
 
 proc
@@ -2283,35 +2414,26 @@ proc
         clear filechn
     end
 
-	if (a_server == ^null || a_server.Length > 0) then
-		csvFileCreatePath = a_path + "\<StructureName>.csv"
-	else
-		csvFileCreatePath = a_path + "\<StructureName>.csv@" + a_server
-
-	csvFileReferencePath = a_path + "\<StructureName>.csv"
-	
-	if (a_server == ^null || a_server.Length > 0) then
-		sqlScriptCreatePath = a_path + "\<StructureName>.sql"
-	else
-		sqlScriptCreatePath = a_path + "\<StructureName>.sql@" + a_server
-
-	;;Open the CSV file
-
     if (ok)
     begin
-		open(csvchn=0,o:s,csvFileCreatePath)
+		;;Define the various local and remote file names
+		localCsvFile  = a_localpath + "\<StructureName>.csv" 
+
+		if ((a_remotepath==^null) || (a_remotepath.eqs." ") || (a_server==^null) || (a_server.eqs." ")) then
+			remoteCsvFile   = ^null 
+		else
+			remoteCsvFile   = a_remotepath + "\<StructureName>.csv"
+
+		;;Create the local CSV file
+		open(csvchn=0,o:s,localCsvFile)
+
+		;;Add a row of column headers
         writes(csvchn,"<FIELD_LOOP><FieldSqlName><IF MORE>|</IF MORE></FIELD_LOOP>")
-    end
 
-    if (ok)
-    begin
-        ;;Read records from the input file
-
+        ;;Read and add data file records
         repeat
         begin
-
             ;;Get the next record from the input file
-
             <IF STRUCTURE_ISAM>
             errnum = %<IF STRUCTURE_MAPPED><MappedStructure><ELSE><StructureName></IF STRUCTURE_MAPPED>IO(IO_READ_NEXT,filechn,,,<structure_name>)
             </IF STRUCTURE_ISAM>
@@ -2367,116 +2489,35 @@ proc
     end
 
     ;;Close the CSV file
-
     if (csvchn)
         close csvchn
 
-    ;;Create the SQL command file
-
-    if (ok)
-    begin
-		open(csvchn=0,o:s,sqlScriptCreatePath)
-
-        writes(csvchn,"")
-        writes(csvchn,"/*")
-        writes(csvchn,"Use <put database name here>")
-        writes(csvchn,"GO")
-        writes(csvchn,"*/")
-        writes(csvchn,"")
-        writes(csvchn,"TRUNCATE TABLE <StructureName>")
-        writes(csvchn,"GO")
-        writes(csvchn,"")
-        writes(csvchn,"BULK INSERT <StructureName>")
-		writes(csvchn,"    FROM '" + csvFileReferencePath + "'")
-        writes(csvchn,"    WITH")
-        writes(csvchn,"    (")
-        writes(csvchn,"        FIRSTROW=2,")
-        writes(csvchn,"        FIELDTERMINATOR='|',")
-        writes(csvchn,"        ROWTERMINATOR ='\n'")
-        writes(csvchn,"    )")
-        writes(csvchn,"GO")
-        writes(csvchn,"")
-
-        close csvchn
-    end
-
-    ;;Close the file
-
+    ;;Close the data file
     if (filechn)
         xcall <IF STRUCTURE_MAPPED><MappedStructure><ELSE><StructureName></IF STRUCTURE_MAPPED>IO(IO_CLOSE,filechn)
 
-    ;;Return the error text
+	;;If necessary, copy the CSV file to the remote system
+	if (ok && (remoteCsvFile!=^null))
+	begin
+		try
+		begin
+			xcall copy(localCsvFile,remoteCsvFile+"@"+a_server)
+		end
+		catch (ex, @exception)
+		begin
+			ok = false
+			errtxt = "Failed to copy file to server. Error was " + ex.Message
+		end
+		endtry
+	end
 
+    ;;Return the error text
     if (^passed(a_errtxt))
         a_errtxt = errtxt
 
     freturn ok
 
 endfunction
-
-;;*****************************************************************************
-;;
-;;; <summary>
-;;; Launches table validation.
-;;; </summary>
-;;; <param name="a_dbchan">Connected database channel.</param>
-;;; <param name="a_emailto">Email address to send completion message to. Could be blank.</param>
-;;; <param name="a_errtxt">Returned error text, if the return value is false.</param>
-;;; <returns>Returns true if table validation was successfully started.</returns>
-
-function <StructureName>Validate ,^val
-    optional in  a_emailto,  a
-    optional out a_errtxt,   a
-    endparams
-    stack record
-        ok,             boolean
-        errorText,      string
-        system,         d4
-        runtime,        d4
-        windows,        boolean
-        unix,           boolean
-        vms,            boolean
-    endrecord
-proc
-
-    xcall envrn(system,runtime)
-    windows = ((runtime==101)||(runtime==104))
-    unix = (system==8)
-    vms = ((runtime==200)||(runtime==202))
-
-    ;TODO: Pass table name to program
-
-    ;TODO: Pass email address to program
-
-    ;TODO: Pass connect string to validation program
-
-    try
-    begin
-        if (windows) then
-            xcall spawn("dbr EXE:Validate<StructureName>.dbr",D_NOWINDOW|D_NOWAIT)
-        else if (unix) then
-            xcall spawn("nohup dbr EXE:Validate<StructureName>.dbr </dev/null >/dev/null 2>&1 &")
-        else if (vms)
-        begin
-            ;TODO: Implement launch validation for OpenVMS
-            nop
-        end
-        ok = true
-        errorText = ""
-    end
-    catch (ex, @System.Exception)
-    begin
-        ok = false
-        errorText = ex.Message
-    end
-    endtry
-
-    if (^passed(a_errtxt))
-        a_errtxt = errorText
-
-    freturn ok
-
-end
 
 <IF STRUCTURE_ISAM>
 ;;*****************************************************************************

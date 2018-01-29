@@ -18,20 +18,24 @@ $ DBLPROTO -OUT LIBRARY LIBSRC:*.DBL
 $ !
 $ WRITE SYS$OUTPUT "Compiling library routines..."
 $ DIB/OPT/VECTORS=VECTORS/OBJ=OBJ:LIBRARY.OBJ -
-   LIBSRC:ConfigureReplication.dbl -
+   LIBSRC:CommandLineParser.dbl -
+ + LIBSRC:ConfigureReplication.dbl -
  + LIBSRC:DepartmentIO.dbl -
  + LIBSRC:EmployeeIO.dbl -
  + LIBSRC:EmployeeSqlIO.dbl -
  + LIBSRC:GetReplicatedTables.dbl -
+ + LIBSRC:IndexExists.dbl -
  + LIBSRC:IOHooksISAM.dbl -
  + LIBSRC:IOHooksRELATIVE.dbl -
  + LIBSRC:IsDate.dbl -
+ + LIBSRC:IsEmailAddress.dbl -
  + LIBSRC:IsNumeric.dbl -
  + LIBSRC:IsTime.dbl -
  + LIBSRC:LastRecordCache.dbl -
  + LIBSRC:PopulateReplicationKey.dbl - 
  + LIBSRC:Replicate.dbl -
- + LIBSRC:SmtpMail.dbl
+ + LIBSRC:SmtpMail.dbl -
+ + LIBSRC:StringTools.dbl
 $ !
 $ WRITE SYS$OUTPUT "Creating object library LIBRARY.OLB..."
 $ LIB/CREATE OBJ:LIBRARY.OLB OBJ:LIBRARY.OBJ
