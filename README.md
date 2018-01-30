@@ -6,23 +6,22 @@ Author: Steve Ives, Synergex Professional Services Group (steve.ives@synergex.co
 ***
 ## Recent Changes
 
-- The MINIMUM version of CodeGen required to successfully work with the
-  sample code in this environment is 5.2.6.
-
-- (1/19/2018) We introduced a machanism for relative files to be replicated
+- (1/19/2018) We introduced a mechanism for relative files to be replicated
   in addition to ISAM files. The code generated for relative files will
-  include an additional "RowNumber" column and this value is used to
+  include a "RowNumber" column that is populated with the associated record
+  number from the underlying relative file. This row number is then used to
   synchronize the data in the file and table.
 
-- (1/19/2018) We introduced a new "bulk load" mechanism which is some
+- (1/19/2018) We introduced a new "bulk load" mechanism which in some
   circumstances can substantially reduce the time taken to load initial
   data into a table. The mechanism exports the data to a delimited file
   in the Synergy environment, then uses xfServer to copy the file to the
-  database server where the data is inserted via a BULK INSERT statement.
-  The sample EMPLOYEE table (which contains 25,000 rows) loads 20x faster
-  using this mechanism in my test environment (2 seconds vs 20 seconds).
-  This mechanism requires an instance of xfServer to be running on the SQL
-  Server system, and can't be used when replicator is running on OpenVMS.
+  database server where it is subsequently processed with a BULK INSERT
+  statement. The sample EMPLOYEE file (which has 25,000 records) loads
+  20x faster using the new mechanism in my test environment (2 seconds
+  vs 20 seconds). This mechanism requires an instance of xfServer to be
+  running on the SQL Server system, and can't be used when replicator
+  is running on OpenVMS.
 
 ## Introduction
 
@@ -111,7 +110,7 @@ majority of the code that would be needed to implement replication in your
 own environment) is produced by CodeGen.
 
 If you wish to regenerate the included code, or use the supplied templates
-to generate code for your own environment then you must have CodeGen 5.2.1
+to generate code for your own environment then you must have CodeGen 5.2.6
 or higher installed. You can always download the latest version of CodeGen
 can always be downloaded from:
 
