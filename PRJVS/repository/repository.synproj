@@ -45,9 +45,8 @@
     </PostBuildEvent>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="..\..\RPS\rps.sch">
-      <SubType>Content</SubType>
-      <Link>rps.sch</Link>
+    <Compile Include="..\..\RPS\REPLICATION.SCH">
+      <Link>REPLICATION.SCH</Link>
     </Compile>
   </ItemGroup>
 </Project>

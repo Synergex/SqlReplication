@@ -80,7 +80,7 @@ proc
         .ifdef D_VMS
         xcall openelb("REPLICATOR_SH")
         .else
-        xcall openelb("EXE:library.elb")
+        xcall openelb("REPLICATOR_EXE:library.elb")
         .endc
     end
     catch (ex, @Exception)
@@ -88,7 +88,7 @@ proc
         .ifdef D_VMS
         display(tt,"ERROR: Failed to activate shared image REPLICATOR_SH")
         .else
-        display(tt,"ERROR: Failed to activate ELB EXE:library.elb")
+		display(tt,"ERROR: Failed to activate ELB REPLICATOR_EXE:library.elb")
         .endc
         stop
     end
@@ -156,20 +156,20 @@ proc
         ("M "),
         begin
             if (windows)
-                xcall spawn("dbr EXE:employeemaintenance.dbr",D_NOWINDOW|D_NOWAIT)
+				xcall spawn("dbr REPLICATOR_EXE:employeemaintenance.dbr",D_NOWINDOW|D_NOWAIT)
         end
 
         ("SR"),
         begin
             if (windows) then
-                xcall spawn("dbr EXE:replicator.dbr",D_NOWINDOW|D_NOWAIT)
+				xcall spawn("dbr REPLICATOR_EXE:replicator.dbr",D_NOWINDOW|D_NOWAIT)
             else if (unix)
-                xcall spawn("nohup dbr EXE:replicator </dev/null >/dev/null 2>&1 &")
+				xcall spawn("nohup dbr REPLICATOR_EXE:replicator </dev/null >/dev/null 2>&1 &")
         end
 
         ("SD"),
             if (windows)
-                xcall spawn("dbr -d EXE:replicator.dbr",D_NOWINDOW|D_NOWAIT)
+				xcall spawn("dbr -d REPLICATOR_EXE:replicator.dbr",D_NOWINDOW|D_NOWAIT)
 
         ("S "),
         begin

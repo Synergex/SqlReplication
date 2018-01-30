@@ -1,14 +1,15 @@
+
 . ./setup
 
 dblproto -out library $LIBSRC/*.dbl
-dbl -o OBJ:library.dbo LIBSRC:CommandLineParser.dbl LIBSRC:ConfigureReplication.dbl LIBSRC:DepartmentIO.dbl LIBSRC:EmployeeIO.dbl LIBSRC:EmployeeSqlIO.dbl LIBSRC:GetReplicatedTables.dbl LIBSRC:IndexExists.dbl LIBSRC:IOHooksISAM.dbl LIBSRC:IOHooksRELATIVE.dbl LIBSRC:IsDate.dbl LIBSRC:IsEmailAddress.dbl LIBSRC:IsNumeric.dbl LIBSRC:IsTime.dbl LIBSRC:LastRecordCache.dbl LIBSRC:PopulateReplicationKey.dbl LIBSRC:Replicate.dbl LIBSRC:SmtpMail.dbl LIBSRC:StringTools.dbl
-dblink -l EXE:library.elb OBJ:library.dbo
+dbl -o REPLICATOR_OBJ:library.dbo LIBSRC:CommandLineParser.dbl LIBSRC:ConfigureReplication.dbl LIBSRC:DepartmentIO.dbl LIBSRC:EmployeeIO.dbl LIBSRC:EmployeeSqlIO.dbl LIBSRC:GetReplicatedTables.dbl LIBSRC:IndexExists.dbl LIBSRC:IOHooksISAM.dbl LIBSRC:IOHooksRELATIVE.dbl LIBSRC:IsDate.dbl LIBSRC:IsEmailAddress.dbl LIBSRC:IsNumeric.dbl LIBSRC:IsTime.dbl LIBSRC:LastRecordCache.dbl LIBSRC:PopulateReplicationKey.dbl LIBSRC:Replicate.dbl LIBSRC:SmtpMail.dbl LIBSRC:StringTools.dbl
+dblink -l REPLICATOR_EXE:library.elb REPLICATOR_OBJ:library.dbo
 
-dbl -o OBJ:replicator.dbo REPSRC:replicator.dbl
-dblink -o EXE:replicator.dbr OBJ:replicator.dbo EXE:library.elb
+dbl -o REPLICATOR_OBJ:replicator.dbo REPSRC:replicator.dbl
+dblink -o REPLICATOR_EXE:replicator.dbr REPLICATOR_OBJ:replicator.dbo REPLICATOR_EXE:library.elb
 
-dbl -o OBJ:replicatormenu.dbo REPSRC:ReplicatorMenu.dbl
-dblink -o EXE:replicatormenu.dbr OBJ:replicatormenu.dbo EXE:library.elb
+dbl -o REPLICATOR_OBJ:replicatormenu.dbo REPSRC:ReplicatorMenu.dbl
+dblink -o REPLICATOR_EXE:replicatormenu.dbr REPLICATOR_OBJ:replicatormenu.dbo REPLICATOR_EXE:library.elb
 
-dbl -o OBJ:employeemaintenance.dbo REPSRC:EmployeeMaintenance.dbl
-dblink -o EXE:employeemaintenance.dbr OBJ:employeemaintenance.dbo EXE:library.elb
+dbl -o REPLICATOR_OBJ:employeemaintenance.dbo REPSRC:EmployeeMaintenance.dbl
+dblink -o REPLICATOR_EXE:employeemaintenance.dbr REPLICATOR_OBJ:employeemaintenance.dbo REPLICATOR_EXE:library.elb

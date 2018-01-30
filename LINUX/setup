@@ -1,36 +1,41 @@
 
-export TERM=vt100
-export LIBSRC=../SRC/LIBRARY
-export REPSRC=../SRC/REPLICATOR
-export INC=../SRC/LIBRARY
-export SYNEXPDIR=../PROTO
-export SYNIMPDIR=../PROTO
-export OBJ=../OBJ
-export EXE=../EXE
-export XDL=../XDL
-export REPLICATOR_DATA=../DAT
-export RPSMFIL=../RPS/rpsmain.ism
-export RPSTFIL=../RPS/rpstext.ism
+# Configure RUNTIME environment
 
-if [ ! -d "../LOG" ]; then
-  mkdir ../LOG
-fi
+. ./replicator_setup
+
+# Configure DEVELOPMENT environment
+
+export TERM=vt100
+export LIBSRC=../src/library
+export REPSRC=../src/replicator
+export INC=../src/library
+export SYNEXPDIR=../proto
+export SYNIMPDIR=../proto
+export REPLICATOR_OBJ=../obj
+export XDL=../xdl
+export RPSMFIL=../repository/rpsmain.ism
+export RPSTFIL=../repository/rpstext.ism
 
 if [ ! -f $RPSMFIL ]; then
-    dbr RPS:rpsutl -i ../RPS/rps.sch -ia -ir  
+    dos2unix ../repository/replication.sch
+    dbr RPS:rpsutl -i ../repository/replication.sch -ia -ir
 fi
 
-if [ ! -f $REPLICATOR_DATA/DEPARTMENT.ISM ]; then
-    fconvert -it $REPLICATOR_DATA/DEPARTMENT.SEQ -oi $REPLICATOR_DATA/DEPARTMENT.ISM -d $XDL/DEPARTMENT.XDL  
+if [ ! -f $REPLICATOR_DATA/department.ism ]; then
+    dos2unix $REPLICATOR_DATA/DEPARTMENT.SEQ
+    dos2unix $XDL/DEPARTMENT.XDL
+    fconvert -it $REPLICATOR_DATA/DEPARTMENT.SEQ -oi $REPLICATOR_DATA/department.ism -d $XDL/DEPARTMENT.XDL
 fi
 
-if [ ! -f $REPLICATOR_DATA/EMPLOYEE.ISM ]; then
-    fconvert -it $REPLICATOR_DATA/EMPLOYEE.SEQ -oi $REPLICATOR_DATA/EMPLOYEE.ISM -d $XDL/EMPLOYEE.XDL 
+if [ ! -f $REPLICATOR_DATA/employee.ism ]; then
+    dos2unix $REPLICATOR_DATA/EMPLOYEE.SEQ
+    dos2unix $XDL/EMPLOYEE.XDL
+    fconvert -it $REPLICATOR_DATA/EMPLOYEE.SEQ -oi $REPLICATOR_DATA/employee.ism -d $XDL/EMPLOYEE.XDL
 fi
 
 if [ ! -f $REPLICATOR_DATA/REPLICATION.ISM ]; then
-    cd ../DAT
-    dbr DBLDIR:bldism -k $XDL/REPLICATION.XDL  
-    cd ../LINUX
+    dos2unix $XDL/REPLICATION.XDL
+    cd ../data
+    dbr DBLDIR:bldism -k $XDL/REPLICATION.XDL
+    cd ../linux
 fi
-

@@ -45,4 +45,4 @@ cd $BASEDIR
 
 # Run the replicator menu
 
-dbr EXE:ReplicatorMenu.dbr
+dbr REPLICATOR_EXE:ReplicatorMenu.dbr

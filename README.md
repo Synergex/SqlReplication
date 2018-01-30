@@ -480,7 +480,7 @@ Basic steps to build on VMS:
 7.  Or start the replicator as an interactive process by executing REPLICATOR_RUN.COM
 8.  Check the log file in the [.LOG] folder and ensure that replicator was able to 
     connect to the database.
-9.  Run EXE:EMPLOYEEMAINANCE.EXE and use it to add instructions to the replicator queue.
-9.  Run EXE:REPLICATORMENU and test using the EMPLOYEE file.
-10. Use the S command in REPLICATORMENU or run EXE:REPLICATORSSTOP.EXE to stop the
+9.  Run REPLICATOR_EXE:EMPLOYEEMAINANCE.EXE and use it to add instructions to the replicator queue.
+9.  Run REPLICATOR_EXE:REPLICATORMENU and test using the EMPLOYEE file.
+10. Use the S command in REPLICATORMENU or run REPLICATOR_EXE:REPLICATORSSTOP.EXE to stop the
     replicator process.

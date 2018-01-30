@@ -44,17 +44,17 @@
 
 # Is the replicator process already running?
 
-ps ax | grep "EXE:replicator $REPLICATOR_INSTANCE" | grep -v grep > /dev/null
+ps ax | grep "REPLICATOR_EXE:replicator $REPLICATOR_INSTANCE" | grep -v grep > /dev/null
 if [ $? -eq 0 ]; then
 
   # Yes, get its PID and display a message
   echo "Replicator ${REPLICATOR_INSTANCE} is already running. PID is:"
-  ps ax | grep "EXE:replicator $REPLICATOR_INSTANCE" | grep -v grep | grep -o '^[ ]*[0-9]*'
+  ps ax | grep "REPLICATOR_EXE:replicator $REPLICATOR_INSTANCE" | grep -v grep | grep -o '^[ ]*[0-9]*'
 
 else
 
   #Start the process
-  dbr EXE:replicator
+  dbr REPLICATOR_EXE:replicator
 
 fi
 

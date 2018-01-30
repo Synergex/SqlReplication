@@ -46,22 +46,22 @@ cd $BASEDIR
 
 # Is the replicator process already running?
 
-ps ax | grep "EXE:replicator $REPLICATOR_INSTANCE" | grep -v grep > /dev/null
+ps ax | grep "REPLICATOR_EXE:replicator $REPLICATOR_INSTANCE" | grep -v grep > /dev/null
 if [ $? -eq 0 ]; then
 
   # Yes, get its PID and display a message
-  PID="$(ps ax | grep "EXE:replicator $REPLICATOR_INSTANCE" | grep -v grep | grep -o '^[ ]*[0-9]*')"
+  PID="$(ps ax | grep "REPLICATOR_EXE:replicator $REPLICATOR_INSTANCE" | grep -v grep | grep -o '^[ ]*[0-9]*')"
   echo "Replicator ${REPLICATOR_INSTANCE} is already running, PID ${PID}"
 
 else
 
   #Start the process, completely detached from the current process and terminal
-  nohup dbr EXE:replicator $REPLICATOR_INSTANCE </dev/null >/dev/null 2>&1 &
+  nohup dbr REPLICATOR_EXE:replicator $REPLICATOR_INSTANCE </dev/null >/dev/null 2>&1 &
 
   #And make sure it started
-  ps ax | grep "EXE:replicator $REPLICATOR_INSTANCE" | grep -v grep > /dev/null
+  ps ax | grep "REPLICATOR_EXE:replicator $REPLICATOR_INSTANCE" | grep -v grep > /dev/null
   if [ $? -eq 0 ]; then
-    PID="$(ps ax | grep "EXE:replicator $REPLICATOR_INSTANCE" | grep -v grep | grep -o '^[ ]*[0-9]*')"
+    PID="$(ps ax | grep "REPLICATOR_EXE:replicator $REPLICATOR_INSTANCE" | grep -v grep | grep -o '^[ ]*[0-9]*')"
     echo "Replicator ${REPLICATOR_INSTANCE} was started, PID ${PID}"
   else
     echo "ERROR: Replicator ${REPLICATOR_INSTANCE} failed to start!"

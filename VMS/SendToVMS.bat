@@ -10,7 +10,7 @@ rem 1. Log in to the VMS account
 rem 2. Go to the [.VMS] directory
 rem 3. Execute BUILD.COM
 rem 
-rem This command procedure should build the entire encironment.
+rem This command procedure should build the entire environment.
 rem 
 
 setlocal
@@ -29,21 +29,21 @@ echo replication >> ftp.tmp
 echo replication >> ftp.tmp
 echo ascii >> ftp.tmp
 echo prompt >> ftp.tmp
+echo mkdir [.DATA] >> ftp.tmp
 echo mkdir [.EXE] >> ftp.tmp
 echo mkdir [.FDL] >> ftp.tmp
 echo mkdir [.OBJ] >> ftp.tmp
 echo mkdir [.PROTO] >> ftp.tmp
-echo mkdir [.REPLICATOR_DATA] >> ftp.tmp
-echo mkdir [.REPLICATOR_LOG] >> ftp.tmp
-echo mkdir [.RPS] >> ftp.tmp
+echo mkdir [.LOGS] >> ftp.tmp
+echo mkdir [.REPOSITORY] >> ftp.tmp
 echo mkdir [.SRC.LIBRARY] >> ftp.tmp
 echo mkdir [.SRC.REPLICATOR] >> ftp.tmp
 echo mkdir [.VMS] >> ftp.tmp
-echo cd [.FDL] >> ftp.tmp
-echo mput *.FDL >> ftp.tmp
-echo cd [-.REPLICATOR_DATA] >> ftp.tmp
+echo cd [.DATA] >> ftp.tmp
 echo mput ..\DAT\*.SEQ >> ftp.tmp
-echo cd [-.RPS] >> ftp.tmp
+echo cd [-.FDL] >> ftp.tmp
+echo mput *.FDL >> ftp.tmp
+echo cd [-.REPOSITORY] >> ftp.tmp
 echo put REPLICATION.SCH >> ftp.tmp
 echo cd [-.SRC.LIBRARY] >> ftp.tmp
 echo mput ..\SRC\LIBRARY\*.dbl >> ftp.tmp
@@ -65,5 +65,6 @@ echo Cleaning up...
 del /q ftp.tmp
 del /q REPLICATION.SCH
 
+echo Done!
 popd
 endlocal
