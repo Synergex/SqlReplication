@@ -93,14 +93,19 @@ proc
 		begin
 			data sts, d1
 			close chn
-			clear chn
+			;;This seems really strange, but it is a work-around for a bug in ISCLR in All
+			;;versions prior to 10.3.3e that would cause any subsequent OPEN(CHN=0 to fail
+			;;following a failed XCALL ISCLR until a successful XCALL ISCLR had taken place.
+			;;The workaround is to open the file for exclusive access, and if that fails,
+			;;don't try to do the XCALL ISCLR
+			open(chn=0,"U:I","REPLICATOR_DATA:REPLICATION.ISM",SHARE:Q_EXCL_RW)
+			close chn
 			xcall isclr("REPLICATOR_DATA:REPLICATION.ISM",sts)
 			open(chn=0,"U:I","REPLICATOR_DATA:REPLICATION.ISM")
 		end
 		catch (ex, @FileInUseException)
 		begin
-			;TODO: should be chn=0 but fails here on VMS!
-			open(chn=%syn_freechn,"U:I","REPLICATOR_DATA:REPLICATION.ISM")
+			open(chn=0,"U:I","REPLICATOR_DATA:REPLICATION.ISM")
 			repeat
 			begin
 				try

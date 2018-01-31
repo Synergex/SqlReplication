@@ -1561,7 +1561,6 @@ function RelstrCsv, ^val
 		errtxt,				a256       ;;Error message text
 		localCsvFile,		string
 		remoteCsvFile,		string
-		sqlScriptFile,		string
 	endrecord
 
 proc
@@ -1582,7 +1581,6 @@ proc
     begin
 		;;Define the various local and remote file names
 		localCsvFile  = a_localpath + "\Relstr.csv" 
-		sqlScriptFile = a_localpath + "\Relstr.sql"
 
 		if ((a_remotepath==^null) || (a_remotepath.eqs." ") || (a_server==^null) || (a_server.eqs." ")) then
 			remoteCsvFile   = ^null 
@@ -1632,39 +1630,6 @@ proc
     ;;Close the data file
     if (filechn)
         xcall RelstrIO(IO_CLOSE,filechn)
-
-    ;;Create the SQL command file
-    if (ok)
-    begin
-		open(csvchn=0,o:s,sqlScriptFile)
-
-        writes(csvchn,"")
-        writes(csvchn,"/*")
-        writes(csvchn,"Use <put database name here>")
-        writes(csvchn,"GO")
-        writes(csvchn,"*/")
-        writes(csvchn,"")
-        writes(csvchn,"TRUNCATE TABLE Relstr")
-        writes(csvchn,"GO")
-        writes(csvchn,"")
-        writes(csvchn,"BULK INSERT Relstr")
-
-		if (remoteCsvFile==^null) then
-			writes(csvchn,"    FROM '" + localCsvFile + "'")
-		else
-			writes(csvchn,"    FROM '" + remoteCsvFile + "'")
-
-        writes(csvchn,"    WITH")
-        writes(csvchn,"    (")
-        writes(csvchn,"        FIRSTROW=2,")
-        writes(csvchn,"        FIELDTERMINATOR='|',")
-        writes(csvchn,"        ROWTERMINATOR ='\n'")
-        writes(csvchn,"    )")
-        writes(csvchn,"GO")
-        writes(csvchn,"")
-
-        close csvchn
-    end
 
 	;;If necessary, copy the CSV file to the remote system
 	if (ok && (remoteCsvFile!=^null))

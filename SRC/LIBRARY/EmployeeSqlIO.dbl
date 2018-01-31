@@ -1970,11 +1970,11 @@ endfunction
 
 function EmployeeBulkLoad, ^val
 
-    required in  a_dbchn,       i
-	required in  a_localpath,   string
-	required in  a_remotepath,  string
-	required in  a_server,      string
-    optional out a_errtxt,	    a
+    required in  a_dbchn,      i
+	required in  a_localpath,  string
+	required in  a_remotepath, string
+	required in  a_server,     string
+    optional out a_errtxt,   a
     endparams
 
     .include "CONNECTDIR:ssql.def"
@@ -2020,7 +2020,7 @@ proc
 			else
 				csvFile = a_remotepath + "\Employee.csv"
 
-			sql = "BULK INSERT Employee FROM '" + csvFile + "' WITH (FIRSTROW=2,FIELDTERMINATOR='|',ROWTERMINATOR='\n')"
+			sql = "BULK INSERT Employee FROM " + csvFile + " WITH (FIRSTROW=2,FIELDTERMINATOR='|',ROWTERMINATOR='\n')"
 
 			if (%ssc_open(a_dbchn,cursor,sql,SSQL_NONSEL,SSQL_STANDARD)==SSQL_NORMAL) then
 				cursorOpen = true
@@ -2038,10 +2038,7 @@ proc
 			if (%ssc_execute(a_dbchn,cursor,SSQL_STANDARD)==SSQL_FAILURE)
 			begin
 				if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_NORMAL) then
-				begin
-					if (dberror==-4834)
-						errtxt="Your database login does not have permission to use BULK INSERT (SQL Server error 4834)"
-				end
+					nop
 				else
 					errtxt="Failed to execute SQL statement"
 				ok = false
