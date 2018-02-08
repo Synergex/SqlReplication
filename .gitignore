@@ -316,6 +316,7 @@ __pycache__/
 # Ignore specific folders anywhere in the tree
 
 **/.vs
+**/.intellisense
 **/bin
 **/TestResults
 

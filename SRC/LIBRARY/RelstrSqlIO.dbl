@@ -1436,7 +1436,7 @@ proc
 			else
 				csvFile = a_remotepath + "\Relstr.csv"
 
-			sql = "BULK INSERT Relstr FROM " + csvFile + " WITH (FIRSTROW=2,FIELDTERMINATOR='|',ROWTERMINATOR='\n')"
+			sql = "BULK INSERT Relstr FROM '" + csvFile + "' WITH (FIRSTROW=2,FIELDTERMINATOR='|',ROWTERMINATOR='\n')"
 
 			if (%ssc_open(a_dbchn,cursor,sql,SSQL_NONSEL,SSQL_STANDARD)==SSQL_NORMAL) then
 				cursorOpen = true

@@ -2253,7 +2253,7 @@ proc
 			else
 				csvFile = a_remotepath + "\<StructureName>.csv"
 
-			sql = "BULK INSERT <StructureName> FROM " + csvFile + " WITH (FIRSTROW=2,FIELDTERMINATOR='|',ROWTERMINATOR='\n')"
+			sql = "BULK INSERT <StructureName> FROM '" + csvFile + "' WITH (FIRSTROW=2,FIELDTERMINATOR='|',ROWTERMINATOR='\n')"
 
 			if (%ssc_open(a_dbchn,cursor,sql,SSQL_NONSEL,SSQL_STANDARD)==SSQL_NORMAL) then
 				cursorOpen = true

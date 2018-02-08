@@ -100,8 +100,9 @@ installed. Contact Synergex Support to obtain this hotfix.
 ## Relational Database
 
 This environment was originally created using Microsoft SQL Server 2012,
-and has been tested with SQL Server 2014 and 2016. The code should also
-work with later versions of SQL Server, and possibly some earlier versions.
+and has been tested with SQL Server 2014, 2016 and 2017. The code should
+also work with later versions of SQL Server, and possibly some earlier
+versions.
 
 ## Code Generation
 
