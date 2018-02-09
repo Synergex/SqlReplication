@@ -2203,11 +2203,11 @@ endfunction
 
 function <StructureName>BulkLoad, ^val
 
-    required in  a_dbchn,      i
-	required in  a_localpath,  string
-	required in  a_remotepath, string
-	required in  a_server,     string
-    optional out a_errtxt,   a
+    required in    a_dbchn,      i
+	required inout a_localpath,  string
+	required in    a_remotepath, string
+	required in    a_server,     string
+    optional out   a_errtxt,     a
     endparams
 
     .include "CONNECTDIR:ssql.def"
@@ -2218,6 +2218,7 @@ function <StructureName>BulkLoad, ^val
 		cursorOpen,		boolean
 		sql,			string
 		csvFile,		string
+		fileToLoad,		string
 		cursor,			int
 		length,			int
 		dberror,		int
@@ -2228,8 +2229,35 @@ proc
 
     init local_data
 
-	;;Export the data to a delimited text file (and copy it to the server if necessary)
-	ok = <StructureName>Csv(a_localpath,a_remotepath,a_server,errtxt)
+	;;Export the data to a delimited text file. The a_localpath parameter is updated with the full path to the local file.
+
+	ok = <StructureName>Csv(a_localpath,errtxt)
+
+	;;If necessary, copy the delimited text file to the server
+
+	if ((a_remotepath==^null) || (a_remotepath.eqs." ") || (a_server==^null) || (a_server.eqs." ")) then
+	begin
+		;;We're bulk loading a local file
+		csvFile = a_localpath
+		fileToLoad = csvFile
+	end
+	else
+	begin
+		;;We're bulk loading a remote file
+		fileToLoad = a_remotepath + "\<StructureName>.csv"
+		csvFile = fileToLoad + "@" + a_server
+
+		try
+		begin
+			xcall copy(a_localpath,csvFile)
+		end
+		catch (ex, @exception)
+		begin
+			ok = false
+			errtxt = "Failed to copy file to server. Error was " + ex.Message
+		end
+		endtry
+	end
 
 	;;Bulk load the delimited file into the database
 
@@ -2248,12 +2276,7 @@ proc
 		;;Open a cursor for the statement
 		if (ok)
 		begin
-			if (a_remotepath==^null || a_remotepath.eqs." " || a_server==^null || a_server.eqs." ") then
-				csvFile = a_localpath + "\<StructureName>.csv"
-			else
-				csvFile = a_remotepath + "\<StructureName>.csv"
-
-			sql = "BULK INSERT <StructureName> FROM '" + csvFile + "' WITH (FIRSTROW=2,FIELDTERMINATOR='|',ROWTERMINATOR='\n')"
+			sql = "BULK INSERT <StructureName> FROM '" + fileToLoad + "' WITH (FIRSTROW=2,FIELDTERMINATOR='|',ROWTERMINATOR='\n')"
 
 			if (%ssc_open(a_dbchn,cursor,sql,SSQL_NONSEL,SSQL_STANDARD)==SSQL_NORMAL) then
 				cursorOpen = true
@@ -2373,14 +2396,13 @@ endsubroutine
 ;;; <summary>
 ;;; Exports <IF STRUCTURE_MAPPED><MAPPED_FILE><ELSE><FILE_NAME></IF STRUCTURE_MAPPED> to a CSV file.
 ;;; </summary>
+;;; <param name="a_localpath"></param>
 ;;; <param name="a_errtxt">Returned error text.</param>
 ;;; <returns>Returns true on success, otherwise false.</returns>
 
 function <StructureName>Csv, ^val
-	required in  a_localpath, string
-	required in  a_remotepath, string
-	required in  a_server, string
-	optional out a_errtxt, a
+	required inout a_localpath, string
+	optional out   a_errtxt, a
     endparams
 
     .include "CONNECTDIR:ssql.def"
@@ -2390,14 +2412,13 @@ function <StructureName>Csv, ^val
     .define EXCEPTION_BUFSZ 100
 
 	stack record local_data
-		ok,					boolean    ;;Return status
-		filechn,			int        ;;Data file channel
-		csvchn,				int        ;;CSV file channel
-		errnum,				int        ;;Error number
-		attempted,			int        ;;Number of records exported
-		errtxt,				a256       ;;Error message text
-		localCsvFile,		string
-		remoteCsvFile,		string
+		ok,				boolean    ;;Return status
+		filechn,		int        ;;Data file channel
+		csvchn,			int        ;;CSV file channel
+		errnum,			int        ;;Error number
+		attempted,		int        ;;Number of records exported
+		errtxt,			a256       ;;Error message text
+		csvFile,		string
 	endrecord
 
 proc
@@ -2416,16 +2437,11 @@ proc
 
     if (ok)
     begin
-		;;Define the various local and remote file names
-		localCsvFile  = a_localpath + "\<StructureName>.csv" 
-
-		if ((a_remotepath==^null) || (a_remotepath.eqs." ") || (a_server==^null) || (a_server.eqs." ")) then
-			remoteCsvFile   = ^null 
-		else
-			remoteCsvFile   = a_remotepath + "\<StructureName>.csv"
+		;;Define the CSV file name
+		csvFile  = a_localpath + "\<StructureName>.csv" 
 
 		;;Create the local CSV file
-		open(csvchn=0,o:s,localCsvFile)
+		open(csvchn=0,o:s,csvFile)
 
 		;;Add a row of column headers
         writes(csvchn,"<FIELD_LOOP><FieldSqlName><IF MORE>|</IF MORE></FIELD_LOOP>")
@@ -2496,20 +2512,8 @@ proc
     if (filechn)
         xcall <IF STRUCTURE_MAPPED><MappedStructure><ELSE><StructureName></IF STRUCTURE_MAPPED>IO(IO_CLOSE,filechn)
 
-	;;If necessary, copy the CSV file to the remote system
-	if (ok && (remoteCsvFile!=^null))
-	begin
-		try
-		begin
-			xcall copy(localCsvFile,remoteCsvFile+"@"+a_server)
-		end
-		catch (ex, @exception)
-		begin
-			ok = false
-			errtxt = "Failed to copy file to server. Error was " + ex.Message
-		end
-		endtry
-	end
+	;;Return the full path of the local CSV file
+	a_localpath = csvFile
 
     ;;Return the error text
     if (^passed(a_errtxt))
