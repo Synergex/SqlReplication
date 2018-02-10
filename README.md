@@ -297,7 +297,6 @@ will override the equivalent environment variables.
 | -datadir <data_location>            | The location of the replication instruction file (REPLICATOR.ISM) |
 | -database <connect_string>          | SQL connection connect string identifying the database to connect to. |
 | -erroremail <email_address>         | The email address that start, error and stop messages should be sent TO. |
-| -exportserver <sql_server>          | The name or IP address of the remote SQL server system, which must be running xfServer. |
 | -localexport <export_path>          | The location where bulk export files will be created locally. |
 | -instance <instance_name>           | The name of this replicator instance. |
 | -interval <sleep_seconds>           | The number of seconds the replicator should sleep if it finds no instructions to process. |
@@ -323,7 +322,6 @@ will override the equivalent environment variables.
 | REPLICATOR_ERROR_EMAIL              | The email address that start, error and stop messages should be sent TO. |
 | REPLICATOR_EXPORT_LOCAL             | The location where bulk export files will be created locally. |
 | REPLICATOR_EXPORT_REMOTE            | The location where bulk export files copied to on the database server. |
-| REPLICATOR_EXPORT_SERVER            | The name or IP address of the remote SQL server system, which must be running xfServer. |
 | REPLICATOR_INSTANCE                 | The name of this replicator instance. |
 | REPLICATOR_INTERVAL                 | The number of seconds the replicator should sleep if it finds no instructions to process. |
 | REPLICATOR_LOG_KEYS                 | Set to YES to cause the key values being used to relate ISAM records to SQL rows. |

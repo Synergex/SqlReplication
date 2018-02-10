@@ -589,7 +589,7 @@ BulkLoadTable,
 	try
 	begin
 		functionName = %atrim(instruction.structure_name) + "BulkLoad"
-		status = %xsubr(functionName,Settings.DatabaseChannel,Settings.LocalExportPath,Settings.RemoteExportPath,Settings.RemoteExportServer,dberrtxt)
+		status = %xsubr(functionName,Settings.DatabaseChannel,Settings.LocalExportPath,Settings.RemoteExportPath,dberrtxt)
 
 		if (status) then
 		begin
@@ -1031,9 +1031,10 @@ DoCreateCsv,
     xcall log(" - Export starting at " + %TimeNow)
 
     try
-	begin		
+	begin
+		data csvFileSpec, a128, Settings.LocalExportPath
 		functionName = %atrim(instruction.structure_name) + "Csv"		
-        status = %xsubr(functionName,Settings.LocalExportPath,Settings.RemoteExportPath,Settings.RemoteExportServer,dberrtxt)
+		status = %xsubr(functionName,csvFileSpec,dberrtxt)
         if (status) then
             xcall verboselog(" - Export complete at " + %TimeNow)
         else
@@ -1340,36 +1341,6 @@ ConfigureEnvironment,
 			xcall getlog("REPLICATOR_EXPORT_REMOTE",tmpval,length)
 			if (length)
 				Settings.RemoteExportPath = tmpval(1:length)
-		end
-	end
-
-	if (ok)
-	begin
-		;;Is an export directory specified via the command line?
-		if (CommandLineParser.Parse("exportserver",clValues)) then
-		begin
-			using clValues.Count select
-			(1),
-				Settings.RemoteExportServer = (string)clValues[0]
-			(0),
-			begin
-				xcall errorlog("Missing value after the -exportserver option")
-				ok = false
-			end
-			(),
-			begin
-				xcall errorlog("Only one value may follow the -exportserver option")
-				ok = false
-			end
-			endusing
-		end
-		else
-		begin
-			;;Or via an environment variable?
-			data tmpval, a80
-			xcall getlog("REPLICATOR_EXPORT_SERVER",tmpval,length)
-			if (length)
-				Settings.RemoteExportServer = tmpval(1:length)
 		end
 	end
 
@@ -2345,7 +2316,6 @@ namespace Tools
 			ErrorSleepTime     = 0.5
 			LocalExportPath    = ^null
 			RemoteExportPath   = ^null
-			RemoteExportServer = ^null
             InstanceName       = "DEFAULT"
             LogFileName        = "REPLICATOR_LOGDIR:replicator_" + now(1:8) + "_" + now(9:6) + ".log"
             MaxCursors         = 128
@@ -2360,34 +2330,19 @@ namespace Tools
         ;;; <summary>
         ;;; A synergy namespace used to store information about SDMS channels that the replicator currently has open
         ;;; </summary>
-        public static property ChannelInfo, i4
-            method get
-            endmethod
-            method set
-            endmethod
-        endproperty
+		public static readwrite property ChannelInfo, i4
 
         ;;; <summary>
         ;;; The SQL Connection database channel that represents our connection to the database.
         ;;; </summary>
-        public static property DatabaseChannel, int
-            method get
-            endmethod
-            method set
-            endmethod
-        endproperty
+		public static readwrite property DatabaseChannel, int
 
         ;;; <summary>
         ;;; Database connection string.
         ;;; </summary>
-        public static property DatabaseConnectString, string
-            method get
-            endmethod
-            method set
-            endmethod
-        endproperty
+		public static readwrite property DatabaseConnectString, string
 
-        private static mInstanceName, string
+		private static mInstanceName, string
 
         ;;; <summary>
         ;;; The name of the replicator instance. The default instance name is DEFAULT. The instance name is used to
@@ -2408,222 +2363,121 @@ namespace Tools
         ;;; <summary>
         ;;; The channel number of the replication instruction file.
         ;;; </summary>
-        public static property InstructionChannel, int
-            method get
-            endmethod
-            method set
-            endmethod
-        endproperty
+        public static readwrite property InstructionChannel, int
 
         ;;; <summary>
         ;;; The email address or addresses to send status messages to.
         ;;; One or more email addresses seperated by commas.
         ;;; </summary>
-        public static property ErrorEmail, string
-            method get
-            endmethod
-            method set
-            endmethod
-        endproperty
+		public static readwrite property ErrorEmail, string
 
         ;;; <summary>
         ;;; The DNS name or IP address of the SMTP server to use to send email messages.
         ;;; The SMTP server must be configured to accept messages from unauthenticated sources.
         ;;; </summary>
-        public static property EmailServer, string
-            method get
-            endmethod
-            method set
-            endmethod
-        endproperty
+		public static readwrite property EmailServer, string
 
         ;;; <summary>
         ;;; The email address to be used as the sender of status messages.
         ;;; </summary>
-        public static property EmailSender, string
-            method get
-            endmethod
-            method set
-            endmethod
-        endproperty
+		public static readwrite property EmailSender, string
 
         ;;; <summary>
         ;;; How many seconds should we sleep after processing an error?
         ;;; </summary>
-        public static property ErrorSleepTime, decimal
-            method get
-            endmethod
-            method set
-            endmethod
-        endproperty
+		public static readwrite property ErrorSleepTime, decimal
 
 		;;; <summary>
 		;;; Where should export files be created locally?
 		;;; </summary>
-		public static property LocalExportPath, string
-			method get
-			endmethod
-			method set
-			endmethod
-		endproperty
+		public static readwrite property LocalExportPath, string
 
 		;;; <summary>
 		;;; Where should export files be copied to remotely?
 		;;; </summary>
-		public static property RemoteExportPath, string
-			method get
-			endmethod
-			method set
-			endmethod
-		endproperty
+		public static readwrite property RemoteExportPath, string
 
-		;;; <summary>
+		;;; <summary>0
 		;;; Which server should export files be copied to?
 		;;; </summary>
-		public static readwrite property RemoteExportServer, string
+;		public static readwrite property RemoteExportServer, string
 
 		;;; <summary>
         ;;; Are we doing full logging?
         ;;; </summary>
-        public static property FullLogging, boolean
-            method get
-            endmethod
-            method set
-            endmethod
-        endproperty
+        public static readwrite property FullLogging, boolean
 
         ;;; <summary>
         ;;; <summary>
         ;;; The name of the replicator log file.
         ;;; If running in interactive mode this will be TT:
         ;;; </summary>
-        public static property LogFileName, string
-            method get
-            endmethod
-            method set
-            endmethod
-        endproperty
+        public static readwrite property LogFileName, string
 
         ;;; Include key data in debug logs?
         ;;; </summary>
-        public static property LogKeys, boolean
-            method get
-            endmethod
-            method set
-            endmethod
-        endproperty
+        public static readwrite property LogKeys, boolean
 
         ;;; <summary>
         ;;; Log bulk load exceptions to a log file?
         ;;; </summary>
-        public static property LogLoadExceptions, boolean
-            method get
-            endmethod
-            method set
-            endmethod
-        endproperty
+		public static readwrite property LogLoadExceptions, boolean
 
         ;;; <summary>
         ;;; Maximum number of database cursors
         ;;; </summary>
-        public static property MaxCursors, int
-            method get
-            endmethod
-            method set
-            endmethod
-        endproperty
+		public static readwrite property MaxCursors, int
 
         ;;; <summary>
         ;;; Maximum number of columns in a database table
         ;;; </summary>
-        public static property MaxColumns, int
-            method get
-            endmethod
-            method set
-            endmethod
-        endproperty
+		public static readwrite property MaxColumns, int
 
         ;;; <summary>
         ;;; Should we report progress when bulk loading tables?
         ;;; </summary>
-        public static property BulkLoadProgressReporting, boolean
-            method get
-            endmethod
-            method set
-            endmethod
-        endproperty
+		public static readwrite property BulkLoadProgressReporting, boolean
 
         ;;; <summary>
         ;;; Are we attached to a terminal?
         ;;; </summary>
-        public static property RunningOnTerminal, boolean
-            method get
-            endmethod
-            method set
-            endmethod
-        endproperty
+		public static readwrite property RunningOnTerminal, boolean
 
         ;;; <summary>
         ;;; How many seconds should we sleep when we run out of instructions to process?
         ;;; </summary>
-        public static property SleepTime, int
-            method get
-            endmethod
-            method set
-            endmethod
-        endproperty
+		public static readwrite property SleepTime, int
 
         ;;; <summary>
         ;;; Should we stop processing and close if we encounter an error?
         ;;; </summary>
-        public static property StopOnError, boolean
-            method get
-            endmethod
-            method set
-            endmethod
-        endproperty
+		public static readwrite property StopOnError, boolean
 
         ;;; <summary>
         ;;; Should we also log to the system log?
         ;;; </summary>
-        public static property SystemLog, boolean
-            method get
-            endmethod
-            method set
-            endmethod
-        endproperty
+		public static readwrite property SystemLog, boolean
 
         ;;; <summary>
         ;;; If running interactively, the channel number of the terminal.
         ;;; </summary>
-        public static property TerminalChannel, int
-            method get
-            endmethod
-            method set
-            endmethod
-        endproperty
+		public static readwrite property TerminalChannel, int
 
         ;;; <summary>
         ;;; The name of the replication transation log file.
         ;;; </summary>
-        public static property TransactionFile, string
-            method get
-            endmethod
-            method set
-            endmethod
-        endproperty
+		public static readwrite property TransactionFile, string
 
 		;;; <summary>
-		;;; Are we able to use bulk load? In order for this to return true we must not be on
-		;;; OpenVMS, and we must have values for RemoteExportPath and RemoteExportServer.
+		;;; Are we able to use bulk load?
 		;;; </summary>
 		;;; <returns>Returns true if we have all the data, but does not guarantee that bulk upload will work!</returns>
 		public static method CanBulkLoad, boolean
 		proc
 			.ifdef D_VMS
-			mreturn false
+			mreturn (RemoteExportPath!=^null && RemoteExport.ToLower().Contains("http://"))
 			.else
-			mreturn (RemoteExportPath!=^null && RemoteExportPath.Length>0 && RemoteExportServer!=^null && RemoteExportServer.Length>0)
+			mreturn (RemoteExportPath!=^null && RemoteExportPath.Length>0)
 			.endc
 		endmethod
 

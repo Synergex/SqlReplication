@@ -1,0 +1,87 @@
+;;*****************************************************************************
+;;
+;; File:        UploadToWebService.dbl
+;;
+;; Type:        Function
+;;
+;; Description: Uploads a local file to a remote server via the "File Upload
+;; Service" web service. For more information refer to:
+;;
+;;    https://github.com/SteveIves/FileUploadService
+;;
+;;*****************************************************************************
+;;
+;; Copyright (c) 2018, Synergex International, Inc.
+;; All rights reserved.
+;;
+;; Redistribution and use in source and binary forms, with or without
+;; modification, are permitted provided that the following conditions are met:
+;;
+;; * Redistributions of source code must retain the above copyright notice,
+;;   this list of conditions and the following disclaimer.
+;;
+;; * Redistributions in binary form must reproduce the above copyright notice,
+;;   this list of conditions and the following disclaimer in the documentation
+;;   and/or other materials provided with the distribution.
+;;
+;; THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+;; AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+;; IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+;; ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+;; LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+;; CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+;; SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+;; INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+;; CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+;; ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+;; POSSIBILITY OF SUCH DAMAGE.
+;;
+;;*****************************************************************************
+;; WARNING: THIS CODE WAS CODE GENERATED AND WILL BE OVERWRITTEN IF CODE
+;;          GENERATION IS RE-EXECUTED FOR THIS PROJECT.
+;;*****************************************************************************
+
+import ReplicationLibrary
+
+function UploadToWebService, ^val
+	required in a_localfile, string
+	required in a_serverUri, string
+	required out a_serverFileSpec, string
+	optional out a_errtxt, a
+
+	stack record
+		ok, boolean
+		errtxt, string
+		bodyData, string
+		serverFileSpec, string
+		httpError, int
+		requestHeaders, [#]string
+		responseHeaders, [#]string
+	endrecord
+
+proc
+	ok = true
+	errtxt = ""
+
+	ok = StringTools.FileToString(a_localfile,bodyData)
+
+	requestHeaders = new String[3]
+	requestHeaders[1] = "Host: "
+	requestHeaders[2] = "Content-Type: text/plain"
+	requestHeaders[3] = "Content-Length: " + %string(bodyData.Length)
+
+	if (httpError = %http_post(a_serverUri,,bodyData,serverFileSpec,errtxt,requestHeaders,responseHeaders,"http.log",,,,,,"1.1")) then
+	begin
+		ok = false
+	end
+	else
+	begin
+		a_serverFileSpec = serverFileSpec.Replace("\\","\").Replace('"','')
+	end
+
+	if (^passed(a_errtxt))
+		a_errtxt = errtxt
+
+	freturn ok
+
+endfunction

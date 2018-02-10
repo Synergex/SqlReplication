@@ -140,7 +140,7 @@
     <Compile Include="..\..\SRC\LIBRARY\StringTools.dbl">
       <Link>StringTools.dbl</Link>
     </Compile>
-    <Compile Include="CopyToXfServer.dbl" />
+    <Compile Include="UploadToWebService.dbl" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="..\..\SRC\LIBRARY\SmtpMail.def">

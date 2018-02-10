@@ -2206,7 +2206,6 @@ function <StructureName>BulkLoad, ^val
     required in    a_dbchn,      i
 	required inout a_localpath,  string
 	required in    a_remotepath, string
-	required in    a_server,     string
     optional out   a_errtxt,     a
     endparams
 
@@ -2217,7 +2216,7 @@ function <StructureName>BulkLoad, ^val
 		transaction,	boolean
 		cursorOpen,		boolean
 		sql,			string
-		csvFile,		string
+		copyTarget,		string
 		fileToLoad,		string
 		cursor,			int
 		length,			int
@@ -2235,28 +2234,42 @@ proc
 
 	;;If necessary, copy the delimited text file to the server
 
-	if ((a_remotepath==^null) || (a_remotepath.eqs." ") || (a_server==^null) || (a_server.eqs." ")) then
+	if ((a_remotepath==^null) || (a_remotepath.eqs." ")) then
 	begin
 		;;We're bulk loading a local file
-		csvFile = a_localpath
-		fileToLoad = csvFile
+		fileToLoad = a_localpath
 	end
 	else
 	begin
 		;;We're bulk loading a remote file
-		fileToLoad = a_remotepath + "\<StructureName>.csv"
-		csvFile = fileToLoad + "@" + a_server
 
-		try
+		;;Are we using xfServer or "File Upload Service"?
+
+		if (%instr(1,a_remotepath,"@")) then
 		begin
-			xcall copy(a_localpath,csvFile)
+			;;We're using xfServer
+			
+			;;Always a Windows file spec because the target is the SQL Server!
+			fileToLoad = a_remotepath(1:%instr(1,a_remotepath,"@")-1) + "\<StructureName>.csv"
+
+			try
+			begin
+				data remoteFileSpec, string, fileToLoad + a_remotepath(%instr(1,a_remotepath,"@"),%trim(a_remotepath))
+
+				xcall copy(a_localpath,remoteFileSpec)
+			end
+			catch (ex, @exception)
+			begin
+				ok = false
+				errtxt = "Failed to copy file to server. Error was " + ex.Message
+			end
+			endtry
 		end
-		catch (ex, @exception)
+		else if (%instr(1,a_remotepath,"http://"))
 		begin
-			ok = false
-			errtxt = "Failed to copy file to server. Error was " + ex.Message
+			;;We're using "File Upload Service"
+			ok = %UploadToWebService(a_localpath,a_remotepath+"/<StructureName>.csv",fileToLoad,errtxt)
 		end
-		endtry
 	end
 
 	;;Bulk load the delimited file into the database
@@ -2438,7 +2451,15 @@ proc
     if (ok)
     begin
 		;;Define the CSV file name
+		.ifdef OS_WINDOWS7
 		csvFile  = a_localpath + "\<StructureName>.csv" 
+		.endc
+		.ifdef OS_UNIX
+		csvFile  = a_localpath + "/<StructureName>.csv" 
+		.endc
+		.ifdef OS_VMS
+		csvFile  = a_localpath + "<StructureName>.csv" 
+		.endc
 
 		;;Create the local CSV file
 		open(csvchn=0,o:s,csvFile)
