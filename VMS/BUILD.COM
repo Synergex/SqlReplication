@@ -35,7 +35,8 @@ $ DIB/OPT/VECTORS=VECTORS/OBJ=OBJ:LIBRARY.OBJ -
  + LIBSRC:PopulateReplicationKey.dbl - 
  + LIBSRC:Replicate.dbl -
  + LIBSRC:SmtpMail.dbl -
- + LIBSRC:StringTools.dbl
+ + LIBSRC:StringTools.dbl -
+ + LIBSRC:UploadToWebService.dbl
 $ !
 $ WRITE SYS$OUTPUT "Creating object library LIBRARY.OLB..."
 $ LIB/CREATE OBJ:LIBRARY.OLB OBJ:LIBRARY.OBJ
