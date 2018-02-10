@@ -162,6 +162,7 @@
             Filters="*.tpl">
             <F N="../SRC/TEMPLATES/ConfigureReplication.tpl"/>
             <F N="../SRC/TEMPLATES/FileDataReport.tpl"/>
+            <F N="../SRC/TEMPLATES/GetReplicatedTables.tpl"/>
             <F N="../SRC/TEMPLATES/IOHooksISAM.tpl"/>
             <F N="../SRC/TEMPLATES/IOHooksRELATIVE.tpl"/>
             <F N="../SRC/TEMPLATES/IsDate.dbl"/>
@@ -178,15 +179,19 @@
         <Folder
             Name="Source Files"
             Filters="*.dbl;*.tpl;*.dbc">
+            <F N="../SRC/LIBRARY/CommandLineParser.dbl"/>
             <F N="../SRC/LIBRARY/ConfigureReplication.dbl"/>
             <F N="../SRC/LIBRARY/DepartmentIO.dbl"/>
             <F N="../SRC/LIBRARY/EmployeeIO.dbl"/>
             <F N="../SRC/LIBRARY/EmployeeSqlIO.dbl"/>
             <F N="../SRC/LIBRARY/GenerateDepartmentData.dbl"/>
             <F N="../SRC/LIBRARY/GenerateEmployeeData.dbl"/>
+            <F N="../SRC/LIBRARY/GetReplicatedTables.dbl"/>
+            <F N="../SRC/LIBRARY/IndexExists.dbl"/>
             <F N="../SRC/LIBRARY/IOHooksISAM.dbl"/>
             <F N="../SRC/LIBRARY/IOHooksRELATIVE.dbl"/>
             <F N="../SRC/LIBRARY/IsDate.dbl"/>
+            <F N="../SRC/LIBRARY/IsEmailAddress.dbl"/>
             <F N="../SRC/LIBRARY/IsNumeric.dbl"/>
             <F N="../SRC/LIBRARY/IsTime.dbl"/>
             <F N="../SRC/LIBRARY/LastRecordCache.dbl"/>
@@ -195,6 +200,8 @@
             <F N="../SRC/LIBRARY/RelstrSqlIO.dbl"/>
             <F N="../SRC/LIBRARY/Replicate.dbl"/>
             <F N="../SRC/LIBRARY/SmtpMail.dbl"/>
+            <F N="../SRC/LIBRARY/StringTools.dbl"/>
+            <F N="../SRC/LIBRARY/UploadToWebService.dbl"/>
         </Folder>
         <Folder
             Name="Header Files"
