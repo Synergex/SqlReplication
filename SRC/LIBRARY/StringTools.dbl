@@ -86,11 +86,11 @@ namespace ReplicationLibrary
         ;;; <param name="dataToDecode">Memory handle containing base64 encoded data.</param>
         ;;; <returns>Decoded data.</returns>
         public static method Base64DecodeHandle, string
-            required in dataToDecode    ,D_ADDR
+            required in dataToDecode    ,D_HANDLE
             endparams
 
             stack record
-                inData              ,D_ADDR
+				inData              ,D_HANDLE
                 inLength            ,int
                 bits24              ,strBits24
             endrecord
@@ -109,17 +109,17 @@ namespace ReplicationLibrary
             ;;First copy the input handle so that we can strip out CR/LF's if needed
             CopyHandle(dataToDecode,inData)
 
-            if (inLength=mem_proc(DM_GETSIZE,inData)) then
+            if (inLength=%mem_proc(DM_GETSIZE,inData)) then
             begin
                 data ix                 ,int
                 data setsOf4            ,int
-                data unencodedData      ,D_ADDR
+				data unencodedData      ,D_HANDLE
                 data unencodedDataIx    ,int
                 data fillerCount        ,int, 0
 
                 ;;The encoded data MAY be broken down into 76 character lines.
                 ;;If so every 77th and 78th character will be a CR/LF pair.
-                if ((inLength>=78)&&(^m(inputLine[1].lineTerminator,inData)==char(13)+char(10)))
+                if ((inLength>=78)&&(^m(inputLine[1].lineTerminator,inData)==%char(13)+%char(10)))
                 begin
                     ;;Yep, we have line breaks.
                     ;;We need to remove these before decoding the data
@@ -135,7 +135,7 @@ namespace ReplicationLibrary
                     ;;Reduce the size of the input data to take into account the CR/LF
                     ;;pairs that were removed
                     inLength = (^size(outputLine)*fullLines)+extraChars
-                    inData = mem_proc(DM_RESIZ,inLength,inData)
+                    inData = %mem_proc(DM_RESIZ,inLength,inData)
                 end
 
                 ;;How many sets of 4 bytes do we have. Each set of 4 decodes to 3
@@ -144,7 +144,7 @@ namespace ReplicationLibrary
 
                 ;;There MAY still be trainling padding (=) characters.
 
-                unencodedData = mem_proc(DM_ALLOC|DM_BLANK,setsOf4*3)
+                unencodedData = %mem_proc(DM_ALLOC|DM_BLANK,setsOf4*3)
                 unencodedDataIx = 0
 
                 for ix from 1 thru setsOf4
@@ -155,7 +155,7 @@ namespace ReplicationLibrary
                     ;;If this is the last set of 4 then fill the buffer with 0's because
                     ;;we might have 1 or 2 filler characters at the end
                     if (ix==setsOf4)
-                        fill('0',bits24)
+                        xcall fill('0',bits24)
 
                     for iy from 1 thru 4
                     begin
@@ -163,17 +163,17 @@ namespace ReplicationLibrary
                         data theIndex, int
                         using iy select
                         (1),
-                            bits24.b64_1 = bin(instr(1,b64Chars,tmpBuf.byte1)-1,1)(3:6)
+                            bits24.b64_1 = %bin(instr(1,b64Chars,tmpBuf.byte1)-1,1)(3:6)
                         (2),
-                            bits24.b64_2 = bin(instr(1,b64Chars,tmpBuf.byte2)-1,1)(3:6)
+                            bits24.b64_2 = %bin(instr(1,b64Chars,tmpBuf.byte2)-1,1)(3:6)
                         (3),
                             if (tmpBuf.byte3!=b64Chars(65:1)) then
-                                bits24.b64_3 = bin(instr(1,b64Chars,tmpBuf.byte3)-1,1)(3:6)
+                                bits24.b64_3 = %bin(%instr(1,b64Chars,tmpBuf.byte3)-1,1)(3:6)
                             else
                                 fillerCount +=1
                         (4),
                             if (tmpBuf.byte4!=b64Chars(65:1)) then
-                                bits24.b64_4 = bin(instr(1,b64Chars,tmpBuf.byte4)-1,1)(3:6)
+                                bits24.b64_4 = %bin(instr(1,b64Chars,tmpBuf.byte4)-1,1)(3:6)
                             else
                                 fillerCount +=1
                         endusing
@@ -183,18 +183,19 @@ namespace ReplicationLibrary
                     ;bits24. Next we need to turn it into three ASCII characters and
                     ;add it to the output stream
 
-                    ^m(str3bytes[unencodedDataIx+=1],unencodedData) = char(^b(bits24.ascii_1,4))+char(^b(bits24.ascii_2,4))+char(^b(bits24.ascii_3,4))
+                    ^m(str3bytes[unencodedDataIx+=1],unencodedData) = %char(^b(bits24.ascii_1,4)) + %char(^b(bits24.ascii_2,4)) + %char(^b(bits24.ascii_3,4))
                 end
 
                 ;Resize unencodedData handle down to the correct size
                 if (fillerCount==2)
-                    unencodedData = mem_proc(DM_RESIZ,(setsOf4*3)-1,unencodedData)
+                    unencodedData = %mem_proc(DM_RESIZ,(setsOf4*3)-1,unencodedData)
 
                 ;Clean up
-                inData = mem_proc(DM_FREE,inData)
+                inData = %mem_proc(DM_FREE,inData)
 
-                mreturn HandleToString(unencodedData)
-            end
+                ;mreturn HandleToString(unencodedData)
+				mreturn %string_from_handle(unencodedData)
+			end
             else
                 mreturn ""
 
@@ -225,7 +226,7 @@ namespace ReplicationLibrary
                 ;;(which will be either 2 bits or 4 bits), then that will
                 ;;equate to either 1 or 2 extra "Filler" characters needed at
                 ;;the end of the data.
-                data encodedData        ,D_ADDR
+				data encodedData        ,D_HANDLE
                 data bits24             ,strBits24
                 data setsOf3            ,int    ,inLength/3
                 data remainingChars     ,int    ,inLength-(setsOf3*3)
@@ -251,7 +252,7 @@ namespace ReplicationLibrary
                 outLength = base64Chars + (lineBreaksNeeded*2)
 
                 ;;Create the output handle
-                encodedData = mem_proc(DM_ALLOC|DM_BLANK,outLength)
+                encodedData = %mem_proc(DM_ALLOC|DM_BLANK,outLength)
 
                 for ix from 1 thru inLength
                 begin
@@ -259,7 +260,7 @@ namespace ReplicationLibrary
                     ;;Load the binary value of the character into the 3
                     ;;"character" buffer
                     ;bits24((byteCtr*8)+1:8) = bin(^i(^m(str1byte[ix], dataToEncode)),1)
-                    bits24((byteCtr*8)+1:8) = bin(^i((a)dataToEncode(ix:1)),1)
+                    bits24((byteCtr*8)+1:8) = %bin(^i((a)dataToEncode(ix:1)),1)
 
                     ;;Have we loaded 3 characters into the buffer?
                     if ((byteCtr+=1)==3)
@@ -272,8 +273,8 @@ namespace ReplicationLibrary
                         ;;Insert line break if necessary
                         if (addLineBreaks&&((b64LineLength+=4)==76))
                         begin
-                            ^m(str1byte[b64ctr+=1],encodedData) = char(13)
-                            ^m(str1byte[b64ctr+=1],encodedData) = char(10)
+                            ^m(str1byte[b64ctr+=1],encodedData) = %char(13)
+                            ^m(str1byte[b64ctr+=1],encodedData) = %char(10)
                             b64LineLength = 0
                         end
                         byteCtr = 0
@@ -282,11 +283,10 @@ namespace ReplicationLibrary
 
                 if (remainingChars)
                 begin
-                    fill('0',bits24)
+                    xcall fill('0',bits24)
 
                     for ix from 1 thru remainingChars
-                        ;bits24(((ix-1)*8)+1:8) = bin(^i(^m(str1byte[ix+(setsOf3*3)],dataToEncode)),1)
-                        bits24(((ix-1)*8)+1:8) = bin(^i((a)dataToEncode(ix+(setsOf3*3):1)),1)
+                        bits24(((ix-1)*8)+1:8) = %bin(^i((a)dataToEncode(ix+(setsOf3*3):1)),1)
 
                     ^m(str1byte[b64ctr+=1],encodedData) = b64Chars(^b(bits24.b64_1)+1:1)
                     ^m(str1byte[b64ctr+=1],encodedData) = b64Chars(^b(bits24.b64_2)+1:1)
@@ -297,17 +297,18 @@ namespace ReplicationLibrary
                         ^m(str1byte[b64ctr+=1],encodedData) = b64Chars(65:1)
 
                     ^m(str1byte[b64ctr+=1],encodedData) = b64Chars(65:1)
-            if (addLineBreaks&&((b64LineLength+=4)==76))
-            begin
-            ^m(str1byte[b64ctr+=1],encodedData) = char(13)
-            ^m(str1byte[b64ctr+=1],encodedData) = char(10)
-            b64LineLength = 0
-            end
+					
+                    if (addLineBreaks&&((b64LineLength+=4)==76))
+					begin
+						^m(str1byte[b64ctr+=1],encodedData) = %char(13)
+						^m(str1byte[b64ctr+=1],encodedData) = %char(10)
+						b64LineLength = 0
+					end
                 end
 
                 ;;Turn the memory handle into a string and return the data
-                mreturn HandleToString(encodedData)
-
+				;mreturn HandleToString(encodedData)
+				mreturn %string_from_handle(encodedData)
             end
             else
                 mreturn ""
@@ -322,7 +323,7 @@ namespace ReplicationLibrary
         ;;; <param name="addLineBreaks">Add line breaks after every 76th character.</param>
         ;;; <returns>Base64 encoded data.</returns>
         public static method Base64EncodeHandle, string
-            required in dataToEncode    ,D_ADDR
+			required in dataToEncode    ,D_HANDLE
             required in addLineBreaks   ,boolean
             endparams
 
@@ -332,14 +333,14 @@ namespace ReplicationLibrary
 
         proc
 
-            if (inLength=mem_proc(DM_GETSIZE,dataToEncode)) then
+            if (inLength = %mem_proc(DM_GETSIZE,dataToEncode)) then
             begin
                 ;;Determine the length of the new memory handle which will hold
                 ;;our completed base 64 string. If there are remaining bits
                 ;;(which will be either 2 bits or 4 bits), then that will
                 ;;equate to either 1 or 2 extra "Filler" characters needed at
                 ;;the end of the data.
-                data encodedData        ,D_ADDR
+				data encodedData        ,D_HANDLE
                 data bits24             ,strBits24
                 data setsOf3            ,int    ,inLength/3
                 data remainingChars     ,int    ,inLength-(setsOf3*3)
@@ -365,14 +366,14 @@ namespace ReplicationLibrary
                 outLength = base64Chars + (lineBreaksNeeded*2)
 
                 ;;Create the output handle
-                encodedData = mem_proc(DM_ALLOC|DM_BLANK,outLength)
+                encodedData = %mem_proc(DM_ALLOC|DM_BLANK,outLength)
 
                 for ix from 1 thru inLength
                 begin
 
                     ;;Load the binary value of the character into the 3
                     ;;"character" buffer
-                    bits24((byteCtr*8)+1:8) = bin(^i(^m(str1byte[ix], dataToEncode)),1)
+                    bits24((byteCtr*8)+1:8) = %bin(^i(^m(str1byte[ix], dataToEncode)),1)
 
                     ;;Have we loaded 3 characters into the buffer?
                     if ((byteCtr+=1)==3)
@@ -385,8 +386,8 @@ namespace ReplicationLibrary
                         ;;Insert line break if necessary
                         if (addLineBreaks&&((b64LineLength+=4)==76))
                         begin
-                            ^m(str1byte[b64ctr+=1],encodedData) = char(13)
-                            ^m(str1byte[b64ctr+=1],encodedData) = char(10)
+                            ^m(str1byte[b64ctr+=1],encodedData) = %char(13)
+                            ^m(str1byte[b64ctr+=1],encodedData) = %char(10)
                             b64LineLength = 0
                         end
                         byteCtr = 0
@@ -395,10 +396,10 @@ namespace ReplicationLibrary
 
                 if (remainingChars)
                 begin
-                    fill('0',bits24)
+                    xcall fill('0',bits24)
 
                     for ix from 1 thru remainingChars
-                        bits24(((ix-1)*8)+1:8) = bin(^i(^m(str1byte[ix+(setsOf3*3)],dataToEncode)),1)
+                        bits24(((ix-1)*8)+1:8) = %bin(^i(^m(str1byte[ix+(setsOf3*3)],dataToEncode)),1)
 
                     ^m(str1byte[b64ctr+=1],encodedData) = b64Chars(^b(bits24.b64_1)+1:1)
                     ^m(str1byte[b64ctr+=1],encodedData) = b64Chars(^b(bits24.b64_2)+1:1)
@@ -408,18 +409,19 @@ namespace ReplicationLibrary
                     else
                         ^m(str1byte[b64ctr+=1],encodedData) = b64Chars(65:1)
 
-                    ^m(str1byte[b64ctr+=1],encodedData) = b64Chars(65:1)
-            if (addLineBreaks&&((b64LineLength+=4)==76))
-            begin
-            ^m(str1byte[b64ctr+=1],encodedData) = char(13)
-            ^m(str1byte[b64ctr+=1],encodedData) = char(10)
-            b64LineLength = 0
-            end
+					^m(str1byte[b64ctr+=1],encodedData) = b64Chars(65:1)
+
+					if (addLineBreaks&&((b64LineLength+=4)==76))
+					begin
+						^m(str1byte[b64ctr+=1],encodedData) = %char(13)
+						^m(str1byte[b64ctr+=1],encodedData) = %char(10)
+						b64LineLength = 0
+					end
                 end
 
                 ;;Turn the memory handle into a string and return the data
-                mreturn HandleToString(encodedData)
-
+                ;mreturn HandleToString(encodedData)
+				mreturn %string_from_handle(encodedData)
             end
             else
                 mreturn ""
@@ -432,8 +434,8 @@ namespace ReplicationLibrary
         ;;; <param name="handleIn">Memory handle to be copied.</param>
         ;;; <param name="handleOut">Memory handle containing copy of data.</param>
         public static method CopyHandle, void
-            required in  handleIn   ,D_ADDR
-            required out handleOut  ,D_ADDR
+			required in  handleIn   ,D_HANDLE
+			required out handleOut  ,D_HANDLE
             endparams
 
             structure chunk
@@ -447,7 +449,7 @@ namespace ReplicationLibrary
         proc
 
             ;;Get the size of the handle to be copied
-            totalSize = mem_proc(DM_GETSIZE,handleIn)
+            totalSize = %mem_proc(DM_GETSIZE,handleIn)
 
             ;;Setup the dynamic memory for the return data
             if (handleOut) then
@@ -455,19 +457,19 @@ namespace ReplicationLibrary
                 try
                 begin
                     ;;Handle for output data has a value, try to resize it
-                    handleOut = mem_proc(DM_RESIZ,totalSize,handleOut)
+                    handleOut = %mem_proc(DM_RESIZ,totalSize,handleOut)
                 end
                 catch (ex, @SynDataException)
                 begin
                     ;;Bad handle, allocate a new one
-                    handleOut = mem_proc(DM_ALLOC|DM_STATIC,totalSize)
+                    handleOut = %mem_proc(DM_ALLOC|DM_STATIC,totalSize)
                 end
                 endtry
             end
             else
             begin
                 ;;No handle for output data, allocate a new one
-                handleOut = mem_proc(DM_ALLOC|DM_STATIC,totalSize)
+                handleOut = %mem_proc(DM_ALLOC|DM_STATIC,totalSize)
             end
 
             ;;If we're on a 64-bit system, or we're on a 32-bit system and the
@@ -498,7 +500,7 @@ namespace ReplicationLibrary
 
         public static method FileToHandle, boolean
             required in  fileSpec   ,string
-            required out fileData   ,D_ADDR
+			required out fileData   ,D_HANDLE
             endparams
 
             stack record
@@ -516,8 +518,13 @@ namespace ReplicationLibrary
             ;;Open the input file
             try
             begin
-                open(ch=0,i:b,fileSpec)
-            end
+				;open(ch=0,i:b,fileSpec)
+				.ifdef OS_VMS
+				open(ch=0,i,fileSpec,OPTIONS:"/stream")
+				.else
+				open(ch=0,i,fileSpec)
+				.endc
+			end
             catch (ex)
             begin
                 ok = false
@@ -531,23 +538,26 @@ namespace ReplicationLibrary
                 data blocks     ,int    ,0
 
                 ;;Get the number of 512 byte blocks on disk
-                getfa(ch,"ALQ",diskBlocks)
+                xcall getfa(ch,"ALQ",diskBlocks)
                 diskBytes = diskBlocks * 512
 
                 ;;Allocate dynamic memory
-                fileData = mem_proc(DM_ALLOC|DM_STATIC|DM_BLANK,diskBytes+^size(block))
+                fileData = %mem_proc(DM_ALLOC|DM_STATIC|DM_BLANK,diskBytes+^size(block))
 
                 ;;Read data from file in "block size" chunks
                 try
                 begin
-                    repeat
-                        reads(ch,^m(block[blocks+=1],fileData))
+					repeat
+					begin
+						;reads(ch,^m(block[blocks+=1],fileData))
+						gets(ch,^m(block[blocks+=1],fileData))
+					end
                 end
                 catch (ex, @EndOfFileException)
                 begin
                     ;;We hit EOF, save away the final buffer of data
                     ;;Resize handle to exact size of file.
-                    fileData = mem_proc(DM_RESIZ,((^size(block)*(blocks-=1))+rsize()),fileData)
+                    fileData = mem_proc(DM_RESIZ,((^size(block)*(blocks-=1))+%rsize),fileData)
                 end
                 endtry
             end
@@ -566,15 +576,16 @@ namespace ReplicationLibrary
 
             stack record
                 ok                  ,boolean
-                dataHandle          ,D_ADDR
+				dataHandle          ,D_HANDLE
             endrecord
 
         proc
 
             if (ok = StringTools.FileToHandle(fileSpec,dataHandle))
             begin
-                dataString = HandleToString(dataHandle)
-                dataHandle = mem_proc(DM_FREE,dataHandle)
+				;dataString = HandleToString(dataHandle)
+				dataString = %string_from_handle(dataHandle)
+                dataHandle = %mem_proc(DM_FREE,dataHandle)
             end
 
             mreturn ok
@@ -582,7 +593,7 @@ namespace ReplicationLibrary
         endmethod
 
         public static method HandleToFile, boolean
-            required in inHandle    ,D_ADDR
+			required in inHandle    ,D_HANDLE
             required in fileSpec    ,string
             endparams
 
@@ -615,7 +626,7 @@ namespace ReplicationLibrary
             begin
                 ;;Find out how much data we're dealing with, and calculate how
                 ;;many puts will be required based on the current block size.
-                data totalSize  ,int    ,mem_proc(DM_GETSIZE,inHandle)
+                data totalSize  ,int    ,%mem_proc(DM_GETSIZE,inHandle)
 
                 ;;If we're on a 64-bit system, or if we're on a 32-bit system
                 ;;and the size of the data is less than 64K, then we can write
@@ -645,48 +656,50 @@ namespace ReplicationLibrary
 
         endmethod
 
-        public static method HandleToString, string
-            required in inHandle    ,D_ADDR
-            endparams
-
-            structure block
-                                    ,a D_32BIT_MAX
-            endstructure
-
-            stack record
-                totalSize           ,int
-                outString           ,string
-            endrecord
-
-        proc
-
-            ;;Get the size of the handle to be copied
-            totalSize = mem_proc(DM_GETSIZE,inHandle)
-
-            ;;If we're on a 64-bit system, or on a 32-bit system with data is
-            ;;less than 64K then we can copy the data all at once
-            if ((D_ADDRSIZE==8)||(totalSize<=D_32BIT_MAX)) then
-                outString = ^m(inHandle)
-            else
-            begin
-                ;;The data is over 64K so we'll have to copy it in 64k blocks
-                data blocks     ,int    ,totalSize / D_32BIT_MAX
-                data characters ,int    ,totalSize - (blocks * D_32BIT_MAX)
-                data ix, int
-                outString = ""
-
-                ;;Copy full blocks
-                for ix from 1 thru blocks
-                    outString = outString + ^m(block[ix],inHandle)
-
-                ;;Copy remaining characters
-                if (characters)
-                    outString = outString + ^m(block[blocks+1](1:characters),inHandle)
-            end
-
-            mreturn outString
-
-        endmethod
+; Use %STRING_FROM_HANDLE instead
+;
+;        public static method HandleToString, string
+;            required in inHandle    ,D_HANDLE
+;            endparams
+;
+;            structure block
+;                                    ,a D_32BIT_MAX
+;            endstructure
+;
+;            stack record
+;                totalSize           ,int
+;                outString           ,string
+;            endrecord
+;
+;        proc
+;
+;            ;;Get the size of the handle to be copied
+;            totalSize = %mem_proc(DM_GETSIZE,inHandle)
+;
+;            ;;If we're on a 64-bit system, or on a 32-bit system with data is
+;            ;;less than 64K then we can copy the data all at once
+;            if ((D_ADDRSIZE==8)||(totalSize<=D_32BIT_MAX)) then
+;                outString = ^m(inHandle)
+;            else
+;            begin
+;                ;;The data is over 64K so we'll have to copy it in 64k blocks
+;                data blocks     ,int    ,totalSize / D_32BIT_MAX
+;                data characters ,int    ,totalSize - (blocks * D_32BIT_MAX)
+;                data ix, int
+;                outString = ""
+;
+;                ;;Copy full blocks
+;                for ix from 1 thru blocks
+;                    outString = outString + ^m(block[ix],inHandle)
+;
+;                ;;Copy remaining characters
+;                if (characters)
+;                    outString = outString + ^m(block[blocks+1](1:characters),inHandle)
+;            end
+;
+;            mreturn outString
+;
+;        endmethod
 
         public static method StringBetween, string
             required in inData      ,string
@@ -771,47 +784,49 @@ namespace ReplicationLibrary
 
         endmethod
 
-        public static method StringToHandle, void
-            required in  inString   ,string
-            required out outHandle  ,D_ADDR
-            endparams
-
-            .define BLOCK_SIZE      65535
-
-            structure block
-                                    ,a BLOCK_SIZE
-            endstructure
-
-        proc
-
-            if ((inString==^null)||inString.Length==0)
-                mreturn
-
-            ;;Allocate memory
-            outHandle = mem_proc(DM_ALLOC|DM_STATIC,inString.Length)
-
-            if (inString.Length <= BLOCK_SIZE)
-            then
-                ^m(outHandle) = inString
-            else
-            begin
-                ;;The data is over 64K so we'll have to copy it in 64K blocks
-                data blocks     ,int    ,inString.Length / BLOCK_SIZE
-                data characters ,int    ,inString.Length - (blocks*BLOCK_SIZE)
-                data ix         ,int
-
-                ;;Copy full blocks
-                for ix from 1 thru blocks
-                    ^m(block[ix],outHandle) =
-                    &   inString((ix*BLOCK_SIZE)-(BLOCK_SIZE-1):BLOCK_SIZE)
-
-                ;;Copy remaining data (less than a full block)
-                if (characters)
-                    ^m(block[blocks+1](1:characters),outHandle) =
-                    &   inString(((blocks+1)*BLOCK_SIZE)-(BLOCK_SIZE-1):characters)
-            end
-
-        endmethod
+; Use %HANDLE_FROM_STRING instead
+;
+;        public static method StringToHandle, void
+;            required in  inString   ,string
+;			required out outHandle  ,D_HANDLE
+;            endparams
+;
+;            .define BLOCK_SIZE      65535
+;
+;            structure block
+;                                    ,a BLOCK_SIZE
+;            endstructure
+;
+;        proc
+;
+;            if ((inString==^null)||inString.Length==0)
+;                mreturn
+;
+;            ;;Allocate memory
+;            outHandle = %mem_proc(DM_ALLOC|DM_STATIC,inString.Length)
+;
+;            if (inString.Length <= BLOCK_SIZE)
+;            then
+;                ^m(outHandle) = inString
+;            else
+;            begin
+;                ;;The data is over 64K so we'll have to copy it in 64K blocks
+;                data blocks     ,int    ,inString.Length / BLOCK_SIZE
+;                data characters ,int    ,inString.Length - (blocks*BLOCK_SIZE)
+;                data ix         ,int
+;
+;                ;;Copy full blocks
+;                for ix from 1 thru blocks
+;                    ^m(block[ix],outHandle) =
+;                    &   inString((ix*BLOCK_SIZE)-(BLOCK_SIZE-1):BLOCK_SIZE)
+;
+;                ;;Copy remaining data (less than a full block)
+;                if (characters)
+;                    ^m(block[blocks+1](1:characters),outHandle) =
+;                    &   inString(((blocks+1)*BLOCK_SIZE)-(BLOCK_SIZE-1):characters)
+;            end
+;
+;        endmethod
 
     endclass
 

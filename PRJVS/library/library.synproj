@@ -89,6 +89,12 @@
     <Compile Include="..\..\SRC\LIBRARY\EmployeeSqlIO.dbl">
       <Link>EmployeeSqlIO.dbl</Link>
     </Compile>
+    <Compile Include="..\..\SRC\LIBRARY\File.dbl">
+      <Link>File.dbl</Link>
+    </Compile>
+    <Compile Include="..\..\SRC\LIBRARY\FileServiceClient.dbl">
+      <Link>FileServiceClient.dbl</Link>
+    </Compile>
     <Compile Include="..\..\SRC\LIBRARY\GenerateDepartmentData.dbl">
       <Link>GenerateDepartmentData.dbl</Link>
     </Compile>
@@ -119,6 +125,9 @@
     <Compile Include="..\..\SRC\LIBRARY\IsTime.dbl">
       <Link>IsTime.dbl</Link>
     </Compile>
+    <Compile Include="..\..\SRC\LIBRARY\Json.dbl">
+      <Link>Json.dbl</Link>
+    </Compile>
     <Compile Include="..\..\SRC\LIBRARY\LastRecordCache.dbl">
       <Link>LastRecordCache.dbl</Link>
     </Compile>
@@ -139,9 +148,6 @@
     </Compile>
     <Compile Include="..\..\SRC\LIBRARY\StringTools.dbl">
       <Link>StringTools.dbl</Link>
-    </Compile>
-    <Compile Include="..\..\SRC\LIBRARY\UploadToWebService.dbl">
-      <Link>UploadToWebService.dbl</Link>
     </Compile>
   </ItemGroup>
   <ItemGroup>

@@ -23,6 +23,8 @@ $ DIB/OPT/VECTORS=VECTORS/OBJ=OBJ:LIBRARY.OBJ -
  + LIBSRC:DepartmentIO.dbl -
  + LIBSRC:EmployeeIO.dbl -
  + LIBSRC:EmployeeSqlIO.dbl -
+ + LIBSRC:File.dbl -
+ + LIBSRC:FileServiceClient.dbl -
  + LIBSRC:GetReplicatedTables.dbl -
  + LIBSRC:IndexExists.dbl -
  + LIBSRC:IOHooksISAM.dbl -
@@ -31,12 +33,12 @@ $ DIB/OPT/VECTORS=VECTORS/OBJ=OBJ:LIBRARY.OBJ -
  + LIBSRC:IsEmailAddress.dbl -
  + LIBSRC:IsNumeric.dbl -
  + LIBSRC:IsTime.dbl -
+ + LIBSRC:Json.dbl -
  + LIBSRC:LastRecordCache.dbl -
  + LIBSRC:PopulateReplicationKey.dbl - 
  + LIBSRC:Replicate.dbl -
  + LIBSRC:SmtpMail.dbl -
- + LIBSRC:StringTools.dbl -
- + LIBSRC:UploadToWebService.dbl
+ + LIBSRC:StringTools.dbl
 $ !
 $ WRITE SYS$OUTPUT "Creating object library LIBRARY.OLB..."
 $ LIB/CREATE OBJ:LIBRARY.OLB OBJ:LIBRARY.OBJ

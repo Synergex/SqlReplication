@@ -114,7 +114,7 @@
                 Value='dbl -T -d -qcheck -qalign -o OBJ:%rn.dbo "%p%n%e"'/>
             <SynSetting
                 Name="linklibr_command_line"
-                Value="dblink -d -l EXE:%rn.elb OBJ:%rn.dbo"/>
+                Value="dblink -d -l REPLICATOR_EXE:%rn.elb OBJ:%rn.dbo"/>
             <SynSetting
                 Name="proto_clear_dbh"
                 Value="1"/>
@@ -184,6 +184,8 @@
             <F N="../SRC/LIBRARY/DepartmentIO.dbl"/>
             <F N="../SRC/LIBRARY/EmployeeIO.dbl"/>
             <F N="../SRC/LIBRARY/EmployeeSqlIO.dbl"/>
+            <F N="../SRC/LIBRARY/File.dbl"/>
+            <F N="../SRC/LIBRARY/FileServiceClient.dbl"/>
             <F N="../SRC/LIBRARY/GenerateDepartmentData.dbl"/>
             <F N="../SRC/LIBRARY/GenerateEmployeeData.dbl"/>
             <F N="../SRC/LIBRARY/GetReplicatedTables.dbl"/>
@@ -194,6 +196,7 @@
             <F N="../SRC/LIBRARY/IsEmailAddress.dbl"/>
             <F N="../SRC/LIBRARY/IsNumeric.dbl"/>
             <F N="../SRC/LIBRARY/IsTime.dbl"/>
+            <F N="../SRC/LIBRARY/Json.dbl"/>
             <F N="../SRC/LIBRARY/LastRecordCache.dbl"/>
             <F N="../SRC/LIBRARY/PopulateReplicationKey.dbl"/>
             <F N="../SRC/LIBRARY/RelstrIO.dbl"/>
@@ -201,7 +204,6 @@
             <F N="../SRC/LIBRARY/Replicate.dbl"/>
             <F N="../SRC/LIBRARY/SmtpMail.dbl"/>
             <F N="../SRC/LIBRARY/StringTools.dbl"/>
-            <F N="../SRC/LIBRARY/UploadToWebService.dbl"/>
         </Folder>
         <Folder
             Name="Header Files"
@@ -329,7 +331,7 @@
                 Value='dbl -T -d -qcheck -qalign -o OBJ:%rn.dbo "%p%n%e"'/>
             <SynSetting
                 Name="linklibr_command_line"
-                Value="dblink -d -l EXE:%rn.elb OBJ:%rn.dbo"/>
+                Value="dblink -d -l REPLICATOR_EXE:%rn.elb OBJ:%rn.dbo"/>
             <SynSetting
                 Name="proto_clear_dbh"
                 Value="1"/>
@@ -482,7 +484,7 @@
                 Value='dbl -T -qstrict -qalign -o OBJ:%rn.dbo "%p%n%e"'/>
             <SynSetting
                 Name="linklibr_command_line"
-                Value="dblink -l EXE:%rn.elb OBJ:%rn.dbo"/>
+                Value="dblink -l REPLICATOR_EXE:%rn.elb OBJ:%rn.dbo"/>
             <SynSetting
                 Name="proto_clear_dbh"
                 Value="1"/>
@@ -635,7 +637,7 @@
                 Value='dbl -T -qstrict -qalign -o OBJ:%rn.dbo "%p%n%e"'/>
             <SynSetting
                 Name="linklibr_command_line"
-                Value="dblink -l EXE:%rn.elb OBJ:%rn.dbo"/>
+                Value="dblink -l REPLICATOR_EXE:%rn.elb OBJ:%rn.dbo"/>
             <SynSetting
                 Name="proto_clear_dbh"
                 Value="1"/>
@@ -681,8 +683,7 @@
         <ExecMacro CmdLine="syn_set ROOT=%wp"/>
         <ExecMacro CmdLine="syn_set INC=%(ROOT)SRC\LIBRARY"/>
         <ExecMacro CmdLine="syn_set OBJ=%(ROOT)OBJ"/>
-        <ExecMacro CmdLine="syn_set EXE=%(ROOT)EXE"/>
-        <ExecMacro CmdLine="syn_set DAT=%(ROOT)DAT"/>
+        <ExecMacro CmdLine="syn_set REPLICATOR_EXE=%(ROOT)EXE"/>
         <ExecMacro CmdLine="syn_set BAT=%(ROOT)BAT"/>
         <ExecMacro CmdLine="syn_set XDL=%(ROOT)XDL"/>
         <ExecMacro CmdLine="syn_set SYNEXPDIR=%(ROOT)PROTO"/>

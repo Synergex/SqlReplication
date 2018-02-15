@@ -1,0 +1,270 @@
+;;*****************************************************************************
+;;
+;; File:        FileServiceClient.dbl
+;;
+;; Type:        Class (FileServiceClient)
+;;
+;; Author:      Steve Ives (Synergex Professional Services Group)
+;;
+;; Description: A client to the FileService RESTful web API
+;;
+;;*****************************************************************************
+;;
+;; Copyright (c) 2018, Synergex International, Inc.
+;; All rights reserved.
+;;
+;; Redistribution and use in source and binary forms, with or without
+;; modification, are permitted provided that the following conditions are met:
+;;
+;; * Redistributions of source code must retain the above copyright notice,
+;;   this list of conditions and the following disclaimer.
+;;
+;; * Redistributions in binary form must reproduce the above copyright notice,
+;;   this list of conditions and the following disclaimer in the documentation
+;;   and/or other materials provided with the distribution.
+;;
+;; THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+;; AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+;; IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+;; ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+;; LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+;; CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+;; SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+;; INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+;; CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+;; ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+;; POSSIBILITY OF SUCH DAMAGE.
+;;
+;;*****************************************************************************
+;; WARNING: THIS CODE WAS CODE GENERATED AND WILL BE OVERWRITTEN IF CODE
+;;          GENERATION IS RE-EXECUTED FOR THIS PROJECT.
+;;*****************************************************************************
+
+import Json
+import ReplicationLibrary
+
+namespace ReplicationLibrary
+
+	public class FileServiceClient
+		
+		private uri, string
+
+		public method FileServiceClient
+			required in fileServiceUri, string
+		proc
+			uri = fileServiceUri
+		endmethod
+
+		public method Ping, boolean
+			optional out errorMessage, a
+			endparams
+			stack record
+				ok, boolean
+				httperror, int
+				errtxt, string
+				requestHeaders, [#]string
+				responseHeaders, [#]string
+				respopnseBody, string
+			endrecord
+		proc
+			requestHeaders = new string[1]
+			requestHeaders[1] = "Host: "
+
+			using httperror = %http_get(uri+"/ping",5,respopnseBody,errtxt,requestHeaders,responseHeaders,,,,,,,"1.1") select
+			(204), ;No content
+			begin
+				errtxt = ""
+				ok = true
+			end
+			(),
+			begin
+				errtxt = "HTTP " + %string(httperror) + ": " + errtxt
+				ok = false
+			end
+			endusing
+
+			if (^passed(errorMessage))
+				errorMessage = errtxt
+
+			mreturn ok
+
+		endmethod
+
+		public method Upload, boolean
+			required in fileName, string
+			required in localFileSpec, string
+			required out serverFileSpec, string
+			optional out errorText, a
+
+			stack record
+				ok, boolean
+				errtxt, string
+				fileData, string
+				httpError, int
+				requestHeaders, [#]string
+				responseHeaders, [#]string
+			endrecord
+		proc
+			ok = true
+			errtxt = ""
+
+			if (!ok=StringTools.FileToString(localFileSpec,fileData))
+			begin
+				errtxt = "Failed to read local file"
+				ok = false
+			end
+
+			if (ok)
+			begin
+				requestHeaders = new String[3]
+				requestHeaders[1] = "Host: "
+				requestHeaders[2] = "Content-Type: text/plain"
+				requestHeaders[3] = "Content-Length: " + %string(fileData.Length)
+
+				using httpError = %http_post(uri+"/"+fileName,,fileData,serverFileSpec,errtxt,requestHeaders,responseHeaders,,,,,,,"1.1") select
+				(0),
+					serverFileSpec = serverFileSpec.Replace("\\","\").Replace('"','')
+				(),
+					ok = false
+				endusing
+			end
+
+			if (^passed(errorText))
+				errorText = errtxt
+
+			mreturn ok
+
+		endmethod
+
+		public method DownloadText, boolean
+			required in  fileName, string
+			required out records, [#]string
+			optional out errorMessage, string
+			endparams
+			stack record
+				ok, boolean
+				httpError, int
+				errtxt, string
+				requestHeaders, [#]string
+				responseHeaders, [#]string
+				responseBody, string
+
+			endrecord
+		proc
+			errtxt = ""
+
+			requestHeaders = new string[1]
+			requestHeaders[1] = "Host: "
+
+			using httpError = %http_get(uri+"/text/"+fileName,,responseBody,errtxt,requestHeaders,responseHeaders,,,,,,,"1.1") select
+			(0), ;OK (actually 200)
+			begin
+				data parser,   @JsonParser, new JsonParser()
+				data arrayObj, @JsonArray
+				data itemObj,  @JsonText
+				data result,   @JsonValue, parser.ParseJson(responseBody)
+				data ix, int
+
+				if(result.JsonType != JSON_TYPE.ARRAY_VAL)
+					throw new Exception("FileService did not return an array!")
+
+				arrayObj = (JsonArray)result
+
+				records = new string[arrayObj.arrayValues.Count]
+
+				for ix from 0 thru arrayObj.arrayValues.Count-1
+					records[ix+1] = ((JsonText)arrayObj.arrayValues[ix]).Value
+
+				ok = true
+			end
+			(404), ;Not found
+			begin
+				records = ^null
+				ok = true
+			end
+			(),
+			begin
+				errtxt = "HTTP " + %string(httpError) + ": " + errtxt
+				records = ^null
+				ok = false
+			end
+			endusing
+
+			if (^passed(errorMessage))
+				errorMessage = errtxt
+
+			mreturn ok
+
+		endmethod
+
+		public method Exists, boolean
+			required in fileName, string
+			required out fileExists, boolean
+			optional out errorMessage, string
+			endparams
+			stack record
+				ok, boolean
+				httperror, int
+				errtxt, string
+				requestHeaders, [#]string
+				responseHeaders, [#]string
+				respopnseBody, string
+			endrecord
+		proc
+			errtxt = ""
+
+			requestHeaders = new string[1]
+			requestHeaders[1] = "Host: "
+
+			using httperror = %http_get(uri+"/exists/"+fileName,,respopnseBody,errtxt,requestHeaders,responseHeaders,,,,,,,"1.1") select
+			(204), ;No content
+			begin
+				fileExists = true
+				ok = true
+			end
+			(404), ;Not found
+			begin
+				fileExists = false
+				ok = true
+			end
+			(),
+			begin
+				errtxt = "HTTP " + %string(httperror) + ": " + errtxt
+				fileExists = false
+				ok = false
+			end
+			endusing
+
+			if (^passed(errorMessage))
+				errorMessage = errtxt
+
+			mreturn ok
+
+		endmethod
+
+		public method Delete, boolean
+			required in fileName, string
+			endparams
+			stack record
+				httpError, int
+				errtxt, string
+				requestHeaders, [#]string
+				responseHeaders, [#]string
+				requestBody, string
+				respopnseBody, string
+			endrecord
+		proc
+
+			requestHeaders = new string[1]
+			requestHeaders[1] = "Host: "
+
+			if (httpError = %http_delete(uri+"/"+fileName,,requestBody,respopnseBody,errtxt,requestHeaders,,,,,,,"1.1"))
+				mreturn false
+
+			mreturn true
+
+		endmethod
+
+	endclass
+
+endnamespace

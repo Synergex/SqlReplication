@@ -1,13 +1,12 @@
 ;;*****************************************************************************
 ;;
-;; File:        UploadToWebService.dbl
+;; File:        File.dbl
 ;;
-;; Type:        Function
+;; Type:        Class (File)
 ;;
-;; Description: Uploads a local file to a remote server via the "File Upload
-;; Service" web service. For more information refer to:
+;; Author:      Steve Ives (Synergex Professional Services Group)
 ;;
-;;    https://github.com/SteveIves/FileUploadService
+;; Description: A File handling utility class
 ;;
 ;;*****************************************************************************
 ;;
@@ -41,47 +40,83 @@
 ;;          GENERATION IS RE-EXECUTED FOR THIS PROJECT.
 ;;*****************************************************************************
 
-import ReplicationLibrary
+import System.Collections
 
-function UploadToWebService, ^val
-	required in a_localfile, string
-	required in a_serverUri, string
-	required out a_serverFileSpec, string
-	optional out a_errtxt, a
+namespace ReplicationLibrary
 
-	stack record
-		ok, boolean
-		errtxt, string
-		bodyData, string
-		serverFileSpec, string
-		httpError, int
-		requestHeaders, [#]string
-		responseHeaders, [#]string
-	endrecord
+	public class File
 
-proc
-	ok = true
-	errtxt = ""
+		;;; <summary>
+		;;; Determines whether a file exists
+		;;; </summary>
+		;;; <param name="fileSpec">File spec of the file to check. Any valid Synergy file spec may be used.</param>
+		;;; <returns>True if the file exists, otherwise false.</returns>
+		public static method Exists, boolean
+			required in fileSpec, string
+			endparams
 
-	ok = StringTools.FileToString(a_localfile,bodyData)
+			stack record
+				ch, int
+				ok, boolean
+			endrecord
+		proc
+			try
+			begin
+				open(ch=0,i,fileSpec)
+				close ch
+				ok = true
+			end
+			catch (e, @FileInUseException)
+			begin
+				ok = true
+			end
+			catch (e, @ProtectionViolationException)
+			begin
+				ok = true
+			end
+			catch (e, @Exception)
+			begin
+				ok = false
+			end
+			endtry
 
-	requestHeaders = new String[3]
-	requestHeaders[1] = "Host: "
-	requestHeaders[2] = "Content-Type: text/plain"
-	requestHeaders[3] = "Content-Length: " + %string(bodyData.Length)
+			mreturn ok
 
-	if (httpError = %http_post(a_serverUri,,bodyData,serverFileSpec,errtxt,requestHeaders,responseHeaders,"http.log",,,,,,"1.1")) then
-	begin
-		ok = false
-	end
-	else
-	begin
-		a_serverFileSpec = serverFileSpec.Replace("\\","\").Replace('"','')
-	end
+		endmethod
 
-	if (^passed(a_errtxt))
-		a_errtxt = errtxt
+		public static method WriteAllLines, void
+			required in path, string
+			required in records, @ArrayList
+			stack record
+				ch, int
+				tmprec, string
+			endrecord
+		proc
 
-	freturn ok
+			;;Create the local CSV file
+			.ifdef OS_WINDOWS7
+			open(ch=0,o:s,path)
+			.endc
+			.ifdef OS_UNIX
+			open(ch=0,o,path)
+			.endc
+			.ifdef OS_VMS
+			open(ch=0,o,path,OPTIONS:"/stream")
+			.endc
 
-endfunction
+			foreach tmprec in records
+			begin
+				.ifdef OS_WINDOWS7
+				writes(ch,tmprec)
+				.else
+				puts(ch,tmprec + %char(13) + %char(10))
+				.endc
+			end
+
+			close ch
+
+		endmethod
+
+	endclass
+
+endnamespace

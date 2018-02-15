@@ -2,7 +2,29 @@
 . ./setup
 
 dblproto -out library $LIBSRC/*.dbl
-dbl -o REPLICATOR_OBJ:library.dbo LIBSRC:CommandLineParser.dbl LIBSRC:ConfigureReplication.dbl LIBSRC:DepartmentIO.dbl LIBSRC:EmployeeIO.dbl LIBSRC:EmployeeSqlIO.dbl LIBSRC:GetReplicatedTables.dbl LIBSRC:IndexExists.dbl LIBSRC:IOHooksISAM.dbl LIBSRC:IOHooksRELATIVE.dbl LIBSRC:IsDate.dbl LIBSRC:IsEmailAddress.dbl LIBSRC:IsNumeric.dbl LIBSRC:IsTime.dbl LIBSRC:LastRecordCache.dbl LIBSRC:PopulateReplicationKey.dbl LIBSRC:Replicate.dbl LIBSRC:SmtpMail.dbl LIBSRC:StringTools.dbl LIBSRC:UploadToWebService.dbl
+dbl -o REPLICATOR_OBJ:library.dbo \
+  LIBSRC:CommandLineParser.dbl \
+  LIBSRC:ConfigureReplication.dbl \
+  LIBSRC:DepartmentIO.dbl \
+  LIBSRC:EmployeeIO.dbl \
+  LIBSRC:EmployeeSqlIO.dbl \
+  LIBSRC:File.dbl \
+  LIBSRC:FileServiceClient.dbl \
+  LIBSRC:GetReplicatedTables.dbl \
+  LIBSRC:IndexExists.dbl \
+  LIBSRC:IOHooksISAM.dbl \
+  LIBSRC:IOHooksRELATIVE.dbl \
+  LIBSRC:IsDate.dbl \
+  LIBSRC:IsEmailAddress.dbl \
+  LIBSRC:IsNumeric.dbl \
+  LIBSRC:IsTime.dbl \
+  LIBSRC:Json.dbl \
+  LIBSRC:LastRecordCache.dbl \
+  LIBSRC:PopulateReplicationKey.dbl \
+  LIBSRC:Replicate.dbl \
+  LIBSRC:SmtpMail.dbl \
+  LIBSRC:StringTools.dbl
+
 dblink -l REPLICATOR_EXE:library.elb REPLICATOR_OBJ:library.dbo
 
 dbl -o REPLICATOR_OBJ:replicator.dbo REPSRC:replicator.dbl

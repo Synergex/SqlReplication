@@ -21,16 +21,16 @@ if [ ! -f $RPSMFIL ]; then
     dbr RPS:rpsutl -i ../repository/replication.sch -ia -ir
 fi
 
-if [ ! -f $REPLICATOR_DATA/department.ism ]; then
+if [ ! -f $REPLICATOR_DATA/DEPARTMENT.ISM ]; then
     dos2unix $REPLICATOR_DATA/DEPARTMENT.SEQ
     dos2unix $XDL/DEPARTMENT.XDL
-    fconvert -it $REPLICATOR_DATA/DEPARTMENT.SEQ -oi $REPLICATOR_DATA/department.ism -d $XDL/DEPARTMENT.XDL
+    fconvert -it $REPLICATOR_DATA/DEPARTMENT.SEQ -oi $REPLICATOR_DATA/DEPARTMENT.ISM -d $XDL/DEPARTMENT.XDL
 fi
 
-if [ ! -f $REPLICATOR_DATA/employee.ism ]; then
+if [ ! -f $REPLICATOR_DATA/EMPLOYEE.ISM ]; then
     dos2unix $REPLICATOR_DATA/EMPLOYEE.SEQ
     dos2unix $XDL/EMPLOYEE.XDL
-    fconvert -it $REPLICATOR_DATA/EMPLOYEE.SEQ -oi $REPLICATOR_DATA/employee.ism -d $XDL/EMPLOYEE.XDL
+    fconvert -it $REPLICATOR_DATA/EMPLOYEE.SEQ -oi $REPLICATOR_DATA/EMPLOYEE.ISM -d $XDL/EMPLOYEE.XDL
 fi
 
 if [ ! -f $REPLICATOR_DATA/REPLICATION.ISM ]; then

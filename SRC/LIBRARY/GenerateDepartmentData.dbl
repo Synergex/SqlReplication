@@ -13,9 +13,9 @@ subroutine generateDepartmentData
 
 proc
 
-    xcall delet("DAT:DEPARTMENT.ISM")
+	xcall delet("REPLICATOR_DATA:DEPARTMENT.ISM")
 
-    open(ch=0,o:i,"DAT:DEPARTMENT.ISM",FDL:"@XDL:DEPARTMENT.XDL")
+	open(ch=0,o:i,"REPLICATOR_DATA:DEPARTMENT.ISM",FDL:"@XDL:DEPARTMENT.XDL")
 
     department.dept_id = "MANAGEMENT"
     department.dept_name = "Executive Management"

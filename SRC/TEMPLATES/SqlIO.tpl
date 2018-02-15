@@ -56,6 +56,8 @@
 ;;          GENERATION IS RE-EXECUTED FOR THIS PROJECT.
 ;;*****************************************************************************
 
+import ReplicationLibrary
+
 ;;*****************************************************************************
 ;;; <summary>
 ;;; Determines if the <StructureName> table exists in the database.
@@ -2193,89 +2195,129 @@ endfunction
 ;;; Bulk load data from <IF STRUCTURE_MAPPED><MAPPED_FILE><ELSE><FILE_NAME></IF STRUCTURE_MAPPED> into the <StructureName> table via a CSV file.
 ;;; </summary>
 ;;; <param name="a_dbchn">Connected database channel.</param>
+;;; <param name="a_localpath">Path to local export directory</param>
+;;; <param name="a_remotepath">Remote export directory or URL</param>
+;;; <param name="a_terminal">Terminal channel to log errors on</param>
+;;; <param name="a_records">Total number of records processed</param>
+;;; <param name="a_exceptions">Total number of exception records detected</param>
 ;;; <param name="a_errtxt">Returned error text.</param>
-;;; <param name="a_logex">Log exception records?</param>
-;;; <param name="a_terminal">Terminal channel to log errors on.</param>
-;;; <param name="a_added">Total number of successful inserts.</param>
-;;; <param name="a_failed">Total number of failed inserts.</param>
-;;; <param name="a_progress">Report progress.</param>
 ;;; <returns>Returns true on success, otherwise false.</returns>
 
 function <StructureName>BulkLoad, ^val
 
-    required in    a_dbchn,      i
-	required inout a_localpath,  string
-	required in    a_remotepath, string
-    optional out   a_errtxt,     a
+    required in  a_dbchn,      i
+	required in  a_localpath,  string
+	required in  a_remotepath, string
+    optional in  a_terminal,   n
+	optional out a_records,    n
+	optional out a_exceptions, n
+    optional out a_errtxt,     a
     endparams
 
     .include "CONNECTDIR:ssql.def"
 
      stack record local_data
-        ok,				boolean    ;;Return status
-		transaction,	boolean
-		cursorOpen,		boolean
-		sql,			string
-		copyTarget,		string
-		fileToLoad,		string
-		cursor,			int
-		length,			int
-		dberror,		int
-        errtxt,			a256       ;;Error message text
+        ok,						boolean    ;;Return status
+		transaction,			boolean
+		cursorOpen,				boolean
+		remoteBulkLoad,			boolean
+		loggingToTerminal,		boolean
+		sql,					string
+		localCsvFile,			string
+		localExceptionsFile,	string
+		localExceptionsLog,	    string
+		remoteCsvFile,			string
+		remoteExceptionsFile,	string
+		remoteExceptionsLog,	string
+		copyTarget,				string
+		fileToLoad,				string
+		errorFile,				string
+		cursor,					int
+		length,					int
+		dberror,				int
+		recordCount,			int
+		exceptionCount,         int
+        errtxt,					a256       ;;Error message text
+		fsc,					@FileServiceClient
     endrecord
+
+	.define ttlog(x) if (loggingToTerminal) writes(a_terminal,"   - " + x)
 
 proc
 
     init local_data
+	ok = true
 
-	;;Export the data to a delimited text file. The a_localpath parameter is updated with the full path to the local file.
+	;;Are we logging to a terminal channel?
+	loggingToTerminal = (^passed(a_terminal) && a_terminal)
 
-	ok = <StructureName>Csv(a_localpath,errtxt)
-
-	;;If necessary, copy the delimited text file to the server
-
-	if ((a_remotepath==^null) || (a_remotepath.eqs." ")) then
+	;;If we're doing a remote bulk load, create an instance of the FileService client and verify that we can access the FileService server
+	
+	if (remoteBulkLoad = ((a_remotepath!=^null) && (a_remotepath.nes." ")))
 	begin
-		;;We're bulk loading a local file
-		fileToLoad = a_localpath
-	end
-	else
-	begin
-		;;We're bulk loading a remote file
-
-		;;Are we using xfServer or "File Upload Service"?
-
-		if (%instr(1,a_remotepath,"@")) then
+		fsc = new FileServiceClient(a_remotepath)
+		ttlog("Verifying FileService connection")
+		if (!fsc.Ping(errtxt))
 		begin
-			;;We're using xfServer
-			
-			;;Always a Windows file spec because the target is the SQL Server!
-			fileToLoad = a_remotepath(1:%instr(1,a_remotepath,"@")-1) + "\<StructureName>.csv"
-
-			try
-			begin
-				data remoteFileSpec, string, fileToLoad + a_remotepath(%instr(1,a_remotepath,"@"),%trim(a_remotepath))
-
-				xcall copy(a_localpath,remoteFileSpec)
-			end
-			catch (ex, @exception)
-			begin
-				ok = false
-				errtxt = "Failed to copy file to server. Error was " + ex.Message
-			end
-			endtry
-		end
-		else if (%instr(1,a_remotepath,"http://"))
-		begin
-			;;We're using "File Upload Service"
-			ok = %UploadToWebService(a_localpath,a_remotepath+"/<StructureName>.csv",fileToLoad,errtxt)
+			ttlog(errtxt = "No response from FileService, bulk upload cancelled")
+			ok = false
 		end
 	end
-
-	;;Bulk load the delimited file into the database
 
 	if (ok)
 	begin
+		;;Determine temporary file names
+
+		.ifdef OS_WINDOWS7
+		localCsvFile = a_localpath + "\<StructureName>.csv"
+		.endc
+		.ifdef OS_UNIX
+		localCsvFile = a_localpath + "/<StructureName>.csv"
+		.endc
+		.ifdef OS_VMS
+		localCsvFile = a_localpath + "<StructureName>.csv"
+		.endc
+		localExceptionsFile  = localCsvFile + "_err"
+		localExceptionsLog   = localExceptionsFile + ".Error.Txt" 
+
+		if (remoteBulkLoad)
+		begin
+			remoteCsvFile = "<StructureName>.csv"
+			remoteExceptionsFile = remoteCsvFile + "_err"
+			remoteExceptionsLog  = remoteExceptionsFile + ".Error.Txt"
+		end
+
+		;;Make sure there are no files left over from previous operations
+	
+		call DeleteFiles
+
+		;;And export the data
+
+		ttlog("Exporting delimited file")
+		ok = %<StructureName>Csv(localCsvFile,recordCount,errtxt)
+	end
+
+	if (ok)
+	begin
+		;;If necessary, upload the exported file to the database server
+
+		if (remoteBulkLoad) then
+		begin
+			ttlog("Uploading data to database host via HTTP")
+			ok = fsc.Upload(remoteCsvFile,localCsvFile,fileToLoad,errtxt)
+		end
+		else
+		begin
+			fileToLoad  = localCsvFile
+		end
+	end
+
+	if (ok)
+	begin
+		;;Bulk load the database table
+
+		ttlog("Executing SQL BULK INSERT")
+
 		;;Start a database transaction
 		if (%ssc_commit(a_dbchn,SSQL_TXON)==SSQL_NORMAL) then
 			transaction = true
@@ -2289,7 +2331,9 @@ proc
 		;;Open a cursor for the statement
 		if (ok)
 		begin
-			sql = "BULK INSERT <StructureName> FROM '" + fileToLoad + "' WITH (FIRSTROW=2,FIELDTERMINATOR='|',ROWTERMINATOR='\n')"
+			errorFile = fileToLoad + "_err"
+
+			sql = "BULK INSERT <StructureName> FROM '" + fileToLoad + "' WITH (FIRSTROW=2,FIELDTERMINATOR='|',ROWTERMINATOR='\n', ERRORFILE='" + errorFile + "')"
 
 			if (%ssc_open(a_dbchn,cursor,sql,SSQL_NONSEL,SSQL_STANDARD)==SSQL_NORMAL) then
 				cursorOpen = true
@@ -2307,11 +2351,31 @@ proc
 			if (%ssc_execute(a_dbchn,cursor,SSQL_STANDARD)==SSQL_FAILURE)
 			begin
 				if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_NORMAL) then
-					nop
+				begin
+					using dberror select
+					(-4864),
+					begin
+						;Bulk load data conversion error
+						ttlog("Data conversion errors were reported")
+						clear dberror, errtxt
+						call GetExceptionDetails
+					end
+					(),
+					begin
+						errtxt = %string(dberror) + " " + errtxt
+						ok = false
+					end
+					endusing
+				end
 				else
+				begin
 					errtxt="Failed to execute SQL statement"
-				ok = false
+					ok = false
+				end
 			end
+
+			;;Delete temporary files
+			call DeleteFiles
 		end
 
 		;;Commit or rollback the transaction
@@ -2346,12 +2410,151 @@ proc
 		end
 	end
 
+	;; Return the record count
+
+	if (^passed(a_records))
+		a_records = recordCount
+
+	if (^passed(a_exceptions))
+		a_exceptions = exceptionCount
+
     ;;Return the error text
 
     if (^passed(a_errtxt))
         a_errtxt = errtxt
 
     freturn ok
+
+GetExceptionDetails,
+
+	;;If we get here then the bulk load reported one or more "data conversion error" issues
+	;;There should be two files on the server 
+
+	if (remoteBulkLoad) then
+	begin
+		data fileExists, boolean
+		data tmpmsg, string
+
+		if (fsc.Exists(remoteExceptionsFile,fileExists,tmpmsg)) then
+		begin
+			if (fileExists) then
+			begin
+				;;Download the error file
+				data exceptionRecords, [#]string
+
+				ttlog("Downloading remote exceptions data file")
+
+				if (fsc.DownloadText(remoteExceptionsFile,exceptionRecords))
+				begin
+					data ex_ch, int
+					data exceptionRecord, string
+
+					open(ex_ch=0,o:s,localExceptionsFile)
+
+					foreach exceptionRecord in exceptionRecords
+						writes(ex_ch,exceptionRecord)
+						
+					close ex_ch
+
+					exceptionCount = exceptionRecords.Length
+
+					ttlog(%string(exceptionCount) + " items saved to " + localExceptionsFile)
+				end
+			end
+			else
+			begin
+				;;Error file does not exist! In theory this should not happen, because we got here due to "data conversion error" being reported
+				ttlog("Remote exceptions data file not found!")
+			end
+		end
+		else
+		begin
+			;;Failed to determine if file exists
+			ttlog("Failed to determine if remote exceptions data file exists. Error was " + tmpmsg)
+		end
+
+		;;Now check for and retrieve the associated exceptions log
+
+		if (fsc.Exists(remoteExceptionsLog,fileExists,tmpmsg)) then
+		begin
+			if (fileExists) then
+			begin
+				;;Download the error file
+				data exceptionRecords, [#]string
+
+				ttlog("Downloading remote exceptions log file")
+
+				if (fsc.DownloadText(remoteExceptionsLog,exceptionRecords))
+				begin
+					data ex_ch, int
+					data exceptionRecord, string
+
+					open(ex_ch=0,o:s,localExceptionsLog)
+
+					foreach exceptionRecord in exceptionRecords
+						writes(ex_ch,exceptionRecord)
+
+					close ex_ch
+
+					ttlog(%string(exceptionRecords.Length) + " items saved to " + localExceptionsLog)
+				end
+			end
+			else
+			begin
+				;;Error file does not exist! In theory this should not happen, because we got here due to "data conversion error" being reported
+				ttlog("Remote exceptions file not found!")
+			end
+		end
+		else
+		begin
+			;;Failed to determine if file exists
+			ttlog("Failed to determine if remote exceptions log file exists. Error was " + tmpmsg)
+		end
+	end
+	else
+	begin
+		;;Local bulk load
+
+		if (File.Exists(localExceptionsFile)) then
+		begin
+			data ex_ch, int
+			data tmprec, a65535
+			open(ex_ch=0,i:s,localExceptionsFile)
+			repeat
+			begin
+				reads(ex_ch,tmprec,eof)
+				exceptionCount += 1
+			end
+eof,		close ex_ch
+			ttlog(%string(exceptionCount) + " exception items found in " + localExceptionsFile)
+		end
+		else
+		begin
+			;;Error file does not exist! In theory this should not happen, because we got here due to "data conversion error" being reported
+			ttlog("Exceptions data file not found!")
+		end
+	end
+
+	return
+
+DeleteFiles,
+
+	;;Delete local files
+	
+	xcall delet(localCsvFile)
+	xcall delet(localExceptionsFile)
+	xcall delet(localExceptionsLog)
+
+	;;Delete remote files
+
+	if (remoteBulkLoad)
+	begin
+		fsc.Delete(remoteCsvFile)
+		fsc.Delete(remoteExceptionsFile)
+		fsc.Delete(remoteExceptionsLog)
+	end
+
+	return
 
 endfunction
 
@@ -2409,13 +2612,15 @@ endsubroutine
 ;;; <summary>
 ;;; Exports <IF STRUCTURE_MAPPED><MAPPED_FILE><ELSE><FILE_NAME></IF STRUCTURE_MAPPED> to a CSV file.
 ;;; </summary>
-;;; <param name="a_localpath"></param>
-;;; <param name="a_errtxt">Returned error text.</param>
+;;; <param name="fileSpec">File to create</param>
+;;; <param name="recordCount">Returned error text.</param>
+;;; <param name="errorMessage">Returned error text.</param>
 ;;; <returns>Returns true on success, otherwise false.</returns>
 
 function <StructureName>Csv, ^val
-	required inout a_localpath, string
-	optional out   a_errtxt, a
+	required in  fileSpec, string
+	optional out recordCount, n
+	optional out errorMessage, a
     endparams
 
     .include "CONNECTDIR:ssql.def"
@@ -2425,13 +2630,13 @@ function <StructureName>Csv, ^val
     .define EXCEPTION_BUFSZ 100
 
 	stack record local_data
-		ok,				boolean    ;;Return status
-		filechn,		int        ;;Data file channel
-		csvchn,			int        ;;CSV file channel
-		errnum,			int        ;;Error number
-		attempted,		int        ;;Number of records exported
-		errtxt,			a256       ;;Error message text
-		csvFile,		string
+		ok,				boolean     ;;Return status
+		filechn,		int         ;;Data file channel
+		csvchn,			int         ;;CSV file channel
+		csvrec,			string		;;A CSV file record
+		errnum,			int         ;;Error number
+		records,		int         ;;Number of records exported
+		errtxt,			a256        ;;Error message text
 	endrecord
 
 proc
@@ -2450,22 +2655,23 @@ proc
 
     if (ok)
     begin
-		;;Define the CSV file name
+		;;Create the local CSV file
 		.ifdef OS_WINDOWS7
-		csvFile  = a_localpath + "\<StructureName>.csv" 
+		open(csvchn=0,o:s,fileSpec)
 		.endc
 		.ifdef OS_UNIX
-		csvFile  = a_localpath + "/<StructureName>.csv" 
+		open(csvchn=0,o,fileSpec)
 		.endc
 		.ifdef OS_VMS
-		csvFile  = a_localpath + "<StructureName>.csv" 
+		open(csvchn=0,o,fileSpec,OPTIONS:"/stream")
 		.endc
 
-		;;Create the local CSV file
-		open(csvchn=0,o:s,csvFile)
-
 		;;Add a row of column headers
-        writes(csvchn,"<FIELD_LOOP><FieldSqlName><IF MORE>|</IF MORE></FIELD_LOOP>")
+		.ifdef OS_WINDOWS7
+		writes(csvchn,"<FIELD_LOOP><IF STRUCTURE_RELATIVE>RecordNumber|</IF STRUCTURE_RELATIVE><FieldSqlName><|></FIELD_LOOP><FIELD_LOOP><FieldSqlName><|></FIELD_LOOP>")
+		.else
+		puts(csvchn,"<FIELD_LOOP><IF STRUCTURE_RELATIVE>RecordNumber|</IF STRUCTURE_RELATIVE><FieldSqlName><|></FIELD_LOOP>" + %char(13) + %char(10))
+		.endc
 
         ;;Read and add data file records
         repeat
@@ -2481,9 +2687,12 @@ proc
             using errnum select
             (IO_OK),
             begin
-                data buff, string, ""
-                buff = ""
+				records += 1
+                csvrec = ""
                 <FIELD_LOOP>
+				<IF STRUCTURE_RELATIVE>
+				&	+ %string(records) + "|"
+				</IF STRUCTURE_RELATIVE>
                 <IF ALPHA>
                 &    + %atrim(<field_path>) + "<IF MORE>|</IF MORE>"
                 </IF ALPHA>
@@ -2510,8 +2719,12 @@ proc
                 </IF USERTIMESTAMP>
                 </IF USER>
                 </FIELD_LOOP>
-                writes(csvchn,buff)
-                attempted += 1
+ 
+				.ifdef OS_WINDOWS7
+				writes(csvchn,csvrec)
+				.else
+				puts(csvchn,csvrec + %char(13) + %char(10))
+				.endc
             end
             (IO_EOF),
                 exitloop
@@ -2533,12 +2746,13 @@ proc
     if (filechn)
         xcall <IF STRUCTURE_MAPPED><MappedStructure><ELSE><StructureName></IF STRUCTURE_MAPPED>IO(IO_CLOSE,filechn)
 
-	;;Return the full path of the local CSV file
-	a_localpath = csvFile
+    ;;Return the record count
+    if (^passed(recordCount))
+        recordCount = records
 
     ;;Return the error text
-    if (^passed(a_errtxt))
-        a_errtxt = errtxt
+    if (^passed(errorMessage))
+        errorMessage = errtxt
 
     freturn ok
 

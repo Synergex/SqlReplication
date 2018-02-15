@@ -588,12 +588,22 @@ BulkLoadTable,
 
 	try
 	begin
+		data totalRows, int
+		data failRows, int
+		data tt, int, 0
+
+		if (Settings.RunningOnTerminal)
+			tt = Settings.TerminalChannel
+
 		functionName = %atrim(instruction.structure_name) + "BulkLoad"
-		status = %xsubr(functionName,Settings.DatabaseChannel,Settings.LocalExportPath,Settings.RemoteExportPath,dberrtxt)
+		status = %xsubr(functionName,Settings.DatabaseChannel,Settings.LocalExportPath,Settings.RemoteExportPath,tt,totalRows,failRows,dberrtxt)
 
 		if (status) then
 		begin
 			xcall log(" - Bulk load complete at " + %TimeNow)
+			xcall log("   - " + %string(totalRows) + " records processed, " + %string(failRows) + " failed.")
+			Counters.Inserts += totalRows - failRows
+			Counters.Errors  += failRows
 
 			;;Now add alternate key indexes
 			xcall log(" - Adding indexes...")
@@ -602,7 +612,7 @@ BulkLoadTable,
 			
 			if (status) then
 			begin
-				xcall log(" - Indexes added")
+				xcall log("   - Indexes added")
 				if (Settings.CanSendEmail())
 				begin
 					data subject, string, "bulk loaded table " + %atrim(instruction.structure_name)
@@ -1223,6 +1233,10 @@ ChangeInterval,
 
 ConfigureEnvironment,
 
+	.ifdef D_VMS
+	xcall openelb("REPLICATOR_SH")
+	.endc
+
 	ok = true
 	xcall flags(7004020,1)
 
@@ -1316,12 +1330,13 @@ ConfigureEnvironment,
 
 	if (ok)
 	begin
+		data tmpPath, string
 		;;Is a remote export directory specified via the command line?
 		if (CommandLineParser.Parse("remoteexport",clValues)) then
 		begin
 			using clValues.Count select
 			(1),
-				Settings.RemoteExportPath = (string)clValues[0]
+				tmpPath = (string)clValues[0]
 			(0),
 			begin
 				xcall errorlog("Missing value after the -remoteexport option")
@@ -1340,8 +1355,21 @@ ConfigureEnvironment,
 			data tmpval, a80
 			xcall getlog("REPLICATOR_EXPORT_REMOTE",tmpval,length)
 			if (length)
-				Settings.RemoteExportPath = tmpval(1:length)
+				tmpPath = tmpval(1:length)
 		end
+
+		.ifdef D_VMS
+		if (tmpPath!=^null)
+		begin
+			;;On VMS, if a URL value is specified it must be enclosed in quotes. Remove them.
+			if (tmpPath(1:1)=='"')
+				tmpPath = tmpPath(2:%trim(tmpPath))
+			if (tmpPath(%trim(tmpPath):1)=='"')
+				tmpPath = tmpPath(1:%trim(tmpPath)-1)
+		end
+		.endc
+
+		Settings.RemoteExportPath = tmpPath
 	end
 
 	if (ok)
@@ -1786,13 +1814,6 @@ ConfigureEnvironment,
 			end
 		end
 	end
-
-	.ifdef D_VMS
-	if (ok)
-	begin
-		xcall openelb("REPLICATOR_SH")
-	end
-	.endc
 
 	if (ok)
 	begin
@@ -2474,10 +2495,15 @@ namespace Tools
 		;;; <returns>Returns true if we have all the data, but does not guarantee that bulk upload will work!</returns>
 		public static method CanBulkLoad, boolean
 		proc
-			.ifdef D_VMS
-			mreturn (RemoteExportPath!=^null && RemoteExport.ToLower().Contains("http://"))
-			.else
-			mreturn (RemoteExportPath!=^null && RemoteExportPath.Length>0)
+			.ifdef OS_VMS
+			mreturn (RemoteExportPath!=^null && RemoteExportPath.ToLower().Contains("http://") && RemoteExportPath.ToLower().Contains("fileservice"))
+			.endc
+			.ifdef OS_UNIX
+			mreturn (RemoteExportPath!=^null && RemoteExportPath.ToLower().Contains("http://") && RemoteExportPath.ToLower().Contains("fileservice"))
+			.endc
+			.ifdef OS_WINDOWS7
+			;TODO: On windows we can also bulk load IF the database is on the same server as the replicator
+			mreturn (!DatabaseConnectString.ToLower().StartsWith("net:") || (RemoteExportPath!=^null && RemoteExportPath.ToLower().Contains("http://") && RemoteExportPath.ToLower().Contains("fileservice")))
 			.endc
 		endmethod
 

@@ -307,7 +307,7 @@ will override the equivalent environment variables.
 | -mailserver <smtp_server>           | The DNS name or IP address of the SMTP mail server that will be used to send messages. |
 | -maxcolumns <max_columns>           | The maximum number of columns in a database table. Default is 254. |
 | -maxcursors <max_cursors>           | The maximum number of database cursors. Allow 4 per table. Default is 128. |
-| -remoteexport <export_path>         | The location where bulk export files copied to on the database server. |
+| -remoteexport <export_path>         | The URI of the instance of "FileService" that can be used to upload bulk load files to the remote database server (e.g. http://<server_name_or_ip>:8080/api/upload). On OpenVMS you must specify the URL within double quotes. |
 | -stoponerror                        | Cause the replicator to stop if an error is encountered. |
 | -syslog                             | Log to the system log in addition to the log file. |
 | -verbose                            | Enable verbose logging. |
@@ -321,7 +321,7 @@ will override the equivalent environment variables.
 | REPLICATOR_DATABASE                 | SQL connection database connection string identifying the SQL Server database to connect to. |
 | REPLICATOR_ERROR_EMAIL              | The email address that start, error and stop messages should be sent TO. |
 | REPLICATOR_EXPORT_LOCAL             | The location where bulk export files will be created locally. |
-| REPLICATOR_EXPORT_REMOTE            | The location where bulk export files copied to on the database server. |
+| REPLICATOR_EXPORT_REMOTE            | The URI of the instance of "FileService" that can be used to upload bulk load files to the remote database server (e.g. http://<server_name_or_ip>:8080/api/upload). On OpenVMS you must specify the URL within double quotes. |
 | REPLICATOR_INSTANCE                 | The name of this replicator instance. |
 | REPLICATOR_INTERVAL                 | The number of seconds the replicator should sleep if it finds no instructions to process. |
 | REPLICATOR_LOG_KEYS                 | Set to YES to cause the key values being used to relate ISAM records to SQL rows. |

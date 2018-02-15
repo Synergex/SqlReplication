@@ -15,15 +15,15 @@ subroutine generateEmployeeData
 
 proc
 
-	xcall delet("DAT:EMPLOYEE.ISM")
+	xcall delet("REPLICATOR_DATA:EMPLOYEE.ISM")
 
-	open(ch=0,o:i,"DAT:EMPLOYEE.ISM",FDL:"@XDL:EMPLOYEE.XDL")
+	open(ch=0,o:i,"REPLICATOR_DATA:EMPLOYEE.ISM",FDL:"@XDL:EMPLOYEE.XDL")
 
-	for employee.emp_id from 1 thru 25000
+	for employee.emp_id from 1 thru 999999
 	begin
 		employee.emp_first_name = %randomFirstName
 		employee.emp_last_name = %randomLastName
-		employee.emp_dept = randomDepartment
+		employee.emp_dept = %randomDepartment
 		employee.emp_date_of_birth = %randomDateOfBirth
 		employee.emp_hire_date = %randomHireDate(employee.emp_date_of_birth)
 		employee.emp_hire_time = 0900
@@ -225,7 +225,7 @@ proc
     if (departments==^null)
     begin
         departments = new ArrayList()
-        foreach department in new Select(new From("DAT:DEPARTMENT.ISM",department))
+		foreach department in new Select(new From("REPLICATOR_DATA:DEPARTMENT.ISM",department))
             departments.Add((string)%atrim(department.dept_id))
     end
     getSeeds(randomNumber,seed1,seed2)

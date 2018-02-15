@@ -60,14 +60,14 @@
                 MenuCaption="&amp;Debug"
                 SaveOption="SaveCurrent"
                 RunFromDir="%rw">
-                <Exec CmdLine="dbr -d EXE:%n.dbr"/>
+                <Exec CmdLine="dbr -d REPLICATOR_EXE:%n.dbr"/>
             </Target>
             <Target
                 Name="Execute"
                 MenuCaption="E&amp;xecute"
                 SaveOption="SaveCurrent"
                 RunFromDir="%rw">
-                <Exec CmdLine="dbr EXE:%n.dbr"/>
+                <Exec CmdLine="dbr REPLICATOR_EXE:%n.dbr"/>
             </Target>
             <Target
                 Name="Synergy/DE Options"
@@ -123,7 +123,7 @@
                 Value='dbl -X -T -d -qcheck -qalign -o OBJ: "%p%n%e"'/>
             <SynSetting
                 Name="linklibr_command_line"
-                Value="dblink -d -o EXE:%n.dbr OBJ:%n EXE:library.elb"/>
+                Value="dblink -d -o REPLICATOR_EXE:%n.dbr OBJ:%n REPLICATOR_EXE:library.elb"/>
             <SynSetting
                 Name="proto_clear_dbh"
                 Value="1"/>
@@ -264,14 +264,14 @@
                 MenuCaption="&amp;Debug"
                 SaveOption="SaveCurrent"
                 RunFromDir="%rw">
-                <Exec CmdLine="dbr -d EXE:%n.dbr"/>
+                <Exec CmdLine="dbr -d REPLICATOR_EXE:%n.dbr"/>
             </Target>
             <Target
                 Name="Execute"
                 MenuCaption="E&amp;xecute"
                 SaveOption="SaveCurrent"
                 RunFromDir="%rw">
-                <Exec CmdLine="dbr EXE:%n.dbr"/>
+                <Exec CmdLine="dbr REPLICATOR_EXE:%n.dbr"/>
             </Target>
             <Target
                 Name="Synergy/DE Options"
@@ -327,7 +327,7 @@
                 Value='dbl -X -T -d -qcheck -qalign -o OBJ: "%p%n%e"'/>
             <SynSetting
                 Name="linklibr_command_line"
-                Value="dblink -d -o EXE:%n.dbr OBJ:%n EXE:library.elb"/>
+                Value="dblink -d -o REPLICATOR_EXE:%n.dbr OBJ:%n REPLICATOR_EXE:library.elb"/>
             <SynSetting
                 Name="proto_clear_dbh"
                 Value="1"/>
@@ -426,14 +426,14 @@
                 MenuCaption="&amp;Debug"
                 SaveOption="SaveCurrent"
                 RunFromDir="%rw">
-                <Exec CmdLine="dbr -d EXE:%n.dbr"/>
+                <Exec CmdLine="dbr -d REPLICATOR_EXE:%n.dbr"/>
             </Target>
             <Target
                 Name="Execute"
                 MenuCaption="E&amp;xecute"
                 SaveOption="SaveCurrent"
                 RunFromDir="%rw">
-                <Exec CmdLine="dbr EXE:%n.dbr"/>
+                <Exec CmdLine="dbr REPLICATOR_EXE:%n.dbr"/>
             </Target>
             <Target
                 Name="Synergy/DE Options"
@@ -489,7 +489,7 @@
                 Value='dbl -X -T -qstrict -qalign -o OBJ: "%p%n%e"'/>
             <SynSetting
                 Name="linklibr_command_line"
-                Value="dblink -o EXE:%n.dbr OBJ:%n EXE:library.elb"/>
+                Value="dblink -o REPLICATOR_EXE:%n.dbr OBJ:%n REPLICATOR_EXE:library.elb"/>
             <SynSetting
                 Name="proto_clear_dbh"
                 Value="1"/>
@@ -588,14 +588,14 @@
                 MenuCaption="&amp;Debug"
                 SaveOption="SaveCurrent"
                 RunFromDir="%rw">
-                <Exec CmdLine="dbr -d EXE:%n.dbr"/>
+                <Exec CmdLine="dbr -d REPLICATOR_EXE:%n.dbr"/>
             </Target>
             <Target
                 Name="Execute"
                 MenuCaption="E&amp;xecute"
                 SaveOption="SaveCurrent"
                 RunFromDir="%rw">
-                <Exec CmdLine="dbr EXE:%n.dbr"/>
+                <Exec CmdLine="dbr REPLICATOR_EXE:%n.dbr"/>
             </Target>
             <Target
                 Name="Synergy/DE Options"
@@ -651,7 +651,7 @@
                 Value='dbl -X -T -qstrict -qalign -o OBJ: "%p%n%e"'/>
             <SynSetting
                 Name="linklibr_command_line"
-                Value="dblink -o EXE:%n.dbr OBJ:%n EXE:library.elb"/>
+                Value="dblink -o REPLICATOR_EXE:%n.dbr OBJ:%n REPLICATOR_EXE:library.elb"/>
             <SynSetting
                 Name="proto_clear_dbh"
                 Value="1"/>
@@ -697,25 +697,23 @@
         <ExecMacro CmdLine="syn_set ROOT=%wp"/>
         <ExecMacro CmdLine="syn_set INC=%(ROOT)SRC\LIBRARY"/>
         <ExecMacro CmdLine="syn_set OBJ=%(ROOT)OBJ"/>
-        <ExecMacro CmdLine="syn_set EXE=%(ROOT)EXE"/>
-        <ExecMacro CmdLine="syn_set DAT=%(ROOT)DAT"/>
         <ExecMacro CmdLine="syn_set BAT=%(ROOT)BAT"/>
         <ExecMacro CmdLine="syn_set XDL=%(ROOT)XDL"/>
+        <ExecMacro CmdLine="syn_set REPOSITORY=%(ROOT)RPS"/>
         <ExecMacro CmdLine="syn_set RPSMFIL=%(ROOT)RPS\rpsmain.ism"/>
         <ExecMacro CmdLine="syn_set RPSTFIL=%(ROOT)RPS\rpstext.ism"/>
         <ExecMacro CmdLine="syn_set SYNEXPDIR=%(ROOT)PROTO"/>
         <ExecMacro CmdLine="syn_set SYNIMPDIR=%(ROOT)PROTO"/>
-        <ExecMacro CmdLine="syn_set REPLICATOR_DATABASE=net:SqlReplication/SqlReplicationPassword/SqlReplicationIoHooks/SISQL2016///@1958:SISQL2016!VTX12_SQLNATIVE"/>
-        <ExecMacro CmdLine="syn_set REPLICATOR_LOGDIR=EXE:"/>
+        <ExecMacro CmdLine="syn_set REPLICATOR_EXE=%(ROOT)EXE"/>
+        <ExecMacro CmdLine="syn_set REPLICATOR_DATA=%(ROOT)DAT"/>
+        <ExecMacro CmdLine="syn_set REPLICATOR_DATABASE=net:SqlReplication/SqlReplicationPassword/SqlReplicationIoHooks/SISQL2017///@1958:SISQL2017!VTX12_SQLNATIVE"/>
+        <ExecMacro CmdLine="syn_set REPLICATOR_LOGDIR=%(ROOT)EXE"/>
         <ExecMacro CmdLine="syn_set REPLICATOR_INTERVAL=2"/>
         <ExecMacro CmdLine="syn_set REPLICATOR_FULL_LOG=YES"/>
         <ExecMacro CmdLine="syn_set REPLICATOR_LOG_KEYS=YES"/>
         <ExecMacro CmdLine="syn_set REPLICATOR_LOG_BULK_LOAD_EXCEPTIONS=YES"/>
-        <ExecMacro CmdLine="syn_set REPLICATOR_EXPORT=%(ROOT)"/>
-        <ExecMacro CmdLine="syn_set REPLICATOR_EMAIL_SENDER=replicator@synergex.com"/>
-        <ExecMacro CmdLine="syn_set REPLICATOR_EMAIL_DOMAIN=synergex.com"/>
-        <ExecMacro CmdLine="syn_set REPLICATOR_ERROR_EMAIL=steve.ives@synergex.com"/>
+        <ExecMacro CmdLine="syn_set REPLICATOR_EXPORT_LOCAL=%(ROOT)DAT"/>
+        <ExecMacro CmdLine="syn_set REPLICATOR_EXPORT_REMOTE=http://sisql2017:8080/FileService"/>
         <ExecMacro CmdLine="syn_set REPLICATOR_ERROR_STOP=YES"/>
-        <ExecMacro CmdLine="syn_set REPLICATOR_SMTP_SERVER="/>
     </Macro>
 </Project>
