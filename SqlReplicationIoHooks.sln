@@ -11,18 +11,9 @@ Project("{BBD0F5D1-1CC4-42FD-BA4C-A96779C64378}") = "repository", "PRJVS\reposit
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Templates", "Templates", "{B28D0BFD-E6F5-4A1E-95B2-B8BBA9036688}"
 	ProjectSection(SolutionItems) = preProject
-		SRC\TEMPLATES\ConfigureReplication.tpl = SRC\TEMPLATES\ConfigureReplication.tpl
 		SRC\TEMPLATES\FileDataReport.tpl = SRC\TEMPLATES\FileDataReport.tpl
 		SRC\TEMPLATES\GetReplicatedTables.tpl = SRC\TEMPLATES\GetReplicatedTables.tpl
-		SRC\TEMPLATES\IsDate.dbl = SRC\TEMPLATES\IsDate.dbl
-		SRC\TEMPLATES\IsNumeric.dbl = SRC\TEMPLATES\IsNumeric.dbl
-		SRC\TEMPLATES\IsTime.dbl = SRC\TEMPLATES\IsTime.dbl
-		SRC\TEMPLATES\LastRecordCache.tpl = SRC\TEMPLATES\LastRecordCache.tpl
-		SRC\TEMPLATES\PopulateReplicationKey.tpl = SRC\TEMPLATES\PopulateReplicationKey.tpl
-		SRC\TEMPLATES\replicate.tpl = SRC\TEMPLATES\replicate.tpl
-		SRC\TEMPLATES\sqlgbl.def = SRC\TEMPLATES\sqlgbl.def
 		SRC\TEMPLATES\SqlIO.tpl = SRC\TEMPLATES\SqlIO.tpl
-		SRC\TEMPLATES\structureio.def = SRC\TEMPLATES\structureio.def
 		SRC\TEMPLATES\SynIO.tpl = SRC\TEMPLATES\SynIO.tpl
 	EndProjectSection
 EndProject

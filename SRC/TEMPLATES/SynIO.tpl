@@ -1,9 +1,4 @@
 <CODEGEN_FILENAME><StructureName>IO.dbl</CODEGEN_FILENAME>
-<PROVIDE_FILE>IsDate.dbl</PROVIDE_FILE>
-<PROVIDE_FILE>IsNumeric.dbl</PROVIDE_FILE>
-<PROVIDE_FILE>IsTime.dbl</PROVIDE_FILE>
-<PROVIDE_FILE>sqlgbl.def</PROVIDE_FILE>
-<PROVIDE_FILE>structureio.def</PROVIDE_FILE>
 ;//*****************************************************************************
 ;//
 ;// Title:       SynIO.tpl
@@ -19,9 +14,9 @@
 ;;
 ;; File:        <StructureName>IO.dbl
 ;;
-;; Type:        Function (<StructureName>IO)
-;;
 ;; Description: Performs file I/O for the file <FILE_NAME>
+;;
+;; Author:      Steve Ives, Synergex Professional Services Group
 ;;
 ;;*****************************************************************************
 ;;

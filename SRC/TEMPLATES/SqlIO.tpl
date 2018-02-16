@@ -1,8 +1,5 @@
 <CODEGEN_FILENAME><StructureName>SqlIO.dbl</CODEGEN_FILENAME>
 <REQUIRES_CODEGEN_VERSION>5.2.1</REQUIRES_CODEGEN_VERSION>
-<PROVIDE_FILE>IsDate.dbl</PROVIDE_FILE>
-<PROVIDE_FILE>IsNumeric.dbl</PROVIDE_FILE>
-<PROVIDE_FILE>IsTime.dbl</PROVIDE_FILE>
 ;//*****************************************************************************
 ;//
 ;// Title:      SqlIo.tpl
@@ -20,9 +17,9 @@
 ;;
 ;; File:        <StructureName>SqlIO.dbl
 ;;
-;; Type:        Functions
-;;
 ;; Description: Various functions that performs SQL I/O for <STRUCTURE_NAME>
+;;
+;; Author:      Steve Ives, Synergex Professional Services Group
 ;;
 ;;*****************************************************************************
 ;;

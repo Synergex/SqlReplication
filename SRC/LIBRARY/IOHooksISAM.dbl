@@ -2,9 +2,9 @@
 ;;
 ;; File:        IoHooksISAM.dbl
 ;;
-;; Type:        Class (IoHooksISAM)
+;; Description: I/O Hooks class to implement ISAM to SQL replication
 ;;
-;; Description: An I/O Hooks class that implements SQL data replication for ISAM files
+;; Author:      Steve Ives, Synergex Professional Services Group
 ;;
 ;;*****************************************************************************
 ;;

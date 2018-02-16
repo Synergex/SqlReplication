@@ -2,13 +2,9 @@
 ;;
 ;; File:        StringTools.dbl
 ;;
-;; Type:        Class (StringTools)
+;; Description: Utility class for manipulating string andynamic memory values
 ;;
-;; Author:      Steve Ives (Synergex Professional Services Group)
-;;
-;; Description: Utility class with various static methods which are useful for
-;;              manipulating "string" data contained in files, System.String
-;;              objects, and dynamic memory.
+;; Author:      Steve Ives, Synergex Professional Services Group
 ;;
 ;;*****************************************************************************
 ;;
@@ -37,9 +33,6 @@
 ;; ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 ;; POSSIBILITY OF SUCH DAMAGE.
 ;;
-;;*****************************************************************************
-;; WARNING: THIS CODE WAS CODE GENERATED AND WILL BE OVERWRITTEN IF CODE
-;;          GENERATION IS RE-EXECUTED FOR THIS PROJECT.
 ;;*****************************************************************************
 
 namespace ReplicationLibrary

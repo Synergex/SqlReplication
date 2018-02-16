@@ -38,6 +38,7 @@
 main EmployeeMaintenance
 
 	.include "INC:structureio.def"
+	.include "DEPARTMENT" repository, structure="strDepartment"
 
 	record
 		ok,				i4
@@ -81,10 +82,18 @@ proc
 		ok = false
 	end
 
-	if (ok && %DepartmentIO(IO_OPEN_UPD,dch) != IO_OK)
+	if (ok)
 	begin
-		display(tt,"Failed to open department file!")
-		ok = false
+		try
+		begin
+			open(dch=0,i:i,"REPLICATOR_DATA:DEPARTMENT.ISM")
+		end
+		catch (e, @Exception)
+		begin
+			display(tt,"Failed to open department file!")
+			ok = false
+		end
+		endtry
 	end
 
 	;;Main processing
@@ -375,12 +384,15 @@ Department,
 GetDepartmentName,
 
 	;;Lookup department record
-	using %DepartmentIO(IO_READ,dch,employee.emp_dept,0,department,,,tmpvar) select
-	(IO_OK),
-		nop
-	(),
+	try
+	begin
+		read(dch,department,employee.emp_dept)
+	end
+	catch (e, @Exception)
+	begin
 		department.dept_name = "Not found!"
-	endusing
+	end
+	endtry
 
 	return
 

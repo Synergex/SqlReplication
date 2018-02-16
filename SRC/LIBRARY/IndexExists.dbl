@@ -2,11 +2,9 @@
 ;;
 ;; File:        IndexExists.dbl
 ;;
-;; Type:        Function (%IndexExists)
+;; Description: Determines if a named index exists in a database
 ;;
-;; Author:      Steve Ives (Synergex Professional Services Group)
-;;
-;; Description: Determines if an index exists in the database
+;; Author:      Steve Ives, Synergex Professional Services Group
 ;;
 ;;*****************************************************************************
 ;;
@@ -36,12 +34,8 @@
 ;; POSSIBILITY OF SUCH DAMAGE.
 ;;
 ;;*****************************************************************************
-;; WARNING: THIS CODE WAS CODE GENERATED AND WILL BE OVERWRITTEN IF CODE
-;;          GENERATION IS RE-EXECUTED FOR THIS PROJECT.
-;;*****************************************************************************
-
 ;;; <summary>
-;;; Determines if an index exists in the database.
+;;; Determines if a named index exists in a database.
 ;;; </summary>
 ;;; <param name="a_dbchn">Connected database channel.</param>
 ;;; <param name="a_indexname">Name of index to check.</param>

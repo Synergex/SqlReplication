@@ -2,9 +2,9 @@
 ;;
 ;; File:        EmployeeSqlIO.dbl
 ;;
-;; Type:        Functions
-;;
 ;; Description: Various functions that performs SQL I/O for EMPLOYEE
+;;
+;; Author:      Steve Ives, Synergex Professional Services Group
 ;;
 ;;*****************************************************************************
 ;;

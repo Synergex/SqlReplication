@@ -2,9 +2,9 @@
 ;;
 ;; File:        IOHooksRELATIVE.dbl
 ;;
-;; Type:        Class (IOHooksRELATIVE)
+;; Description: I/O Hooks class to implement RELATIVE to SQL replication
 ;;
-;; Description: An I/O Hooks class that implements SQL data replication for relative files
+;; Author:      Steve Ives, Synergex Professional Services Group
 ;;
 ;;*****************************************************************************
 ;;

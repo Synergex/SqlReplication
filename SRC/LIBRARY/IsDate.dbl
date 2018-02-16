@@ -2,8 +2,6 @@
 ;;
 ;; File:        IsDate.dbl
 ;;
-;; Type:        Function
-;;
 ;; Description: Determines if data in an alpha variable represents a date value.
 ;;
 ;; Author:      Steve Ives, Synergex Professional Services Group
@@ -35,9 +33,6 @@
 ;; ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 ;; POSSIBILITY OF SUCH DAMAGE.
 ;;
-;;*****************************************************************************
-;; WARNING: THIS CODE WAS CODE GENERATED AND WILL BE OVERWRITTEN IF CODE
-;;          GENERATION IS RE-EXECUTED FOR THIS PROJECT.
 ;;*****************************************************************************
 
 function IsDate, boolean

@@ -2,9 +2,9 @@
 ;;
 ;; File:        GetReplicatedTables.dbl
 ;;
-;; Type:        Subroutine (GetReplicatedTables)
+;; Description: Returns a collection of replicated table names
 ;;
-;; Description: Returns a collection of table names that are included in the replication environment.
+;; Author:      Steve Ives, Synergex Professional Services Group
 ;;
 ;;*****************************************************************************
 ;;

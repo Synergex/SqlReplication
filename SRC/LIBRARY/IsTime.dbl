@@ -2,10 +2,7 @@
 ;;
 ;; File:        IsTime.dbl
 ;;
-;; Type:        Function
-;;
-;; Description: Determines whether the data in an alpha variable represents a
-;;              time value in HHMMSS or HHMM format.
+;; Description: Checks if an alphanumeric value contains a time value.
 ;;
 ;; Author:      Steve Ives, Synergex Professional Services Group
 ;;

@@ -5,7 +5,6 @@ dblproto -out library $LIBSRC/*.dbl
 dbl -o REPLICATOR_OBJ:library.dbo \
   LIBSRC:CommandLineParser.dbl \
   LIBSRC:ConfigureReplication.dbl \
-  LIBSRC:DepartmentIO.dbl \
   LIBSRC:EmployeeIO.dbl \
   LIBSRC:EmployeeSqlIO.dbl \
   LIBSRC:File.dbl \

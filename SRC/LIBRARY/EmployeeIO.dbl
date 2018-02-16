@@ -2,9 +2,9 @@
 ;;
 ;; File:        EmployeeIO.dbl
 ;;
-;; Type:        Function (EmployeeIO)
-;;
 ;; Description: Performs file I/O for the file REPLICATOR_DATA:EMPLOYEE.ISM
+;;
+;; Author:      Steve Ives, Synergex Professional Services Group
 ;;
 ;;*****************************************************************************
 ;;

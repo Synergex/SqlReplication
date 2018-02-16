@@ -1,4 +1,0 @@
-
-common
-    repkey_required, [1024]d1
-endcommon

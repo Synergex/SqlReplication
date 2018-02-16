@@ -80,9 +80,6 @@
     <Compile Include="..\..\SRC\LIBRARY\ConfigureReplication.dbl">
       <Link>ConfigureReplication.dbl</Link>
     </Compile>
-    <Compile Include="..\..\SRC\LIBRARY\DepartmentIO.dbl">
-      <Link>DepartmentIO.dbl</Link>
-    </Compile>
     <Compile Include="..\..\SRC\LIBRARY\EmployeeIO.dbl">
       <Link>EmployeeIO.dbl</Link>
     </Compile>
@@ -156,10 +153,6 @@
     <Content Include="..\..\SRC\LIBRARY\structureio.def">
       <SubType>Content</SubType>
       <Link>structureio.def</Link>
-    </Content>
-    <Content Include="..\..\SRC\LIBRARY\system.def">
-      <SubType>Content</SubType>
-      <Link>system.def</Link>
     </Content>
   </ItemGroup>
   <ItemGroup>

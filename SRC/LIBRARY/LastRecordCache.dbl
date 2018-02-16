@@ -2,10 +2,9 @@
 ;;
 ;; File:        LastRecordCache.dbl
 ;;
-;; Type:        Class (LastRecordCache)
+;; Description: Records the last record read from or written to each channel
 ;;
-;; Description: Track the data of the last record that was read from or written
-;;              to each channel.
+;; Author:      Steve Ives, Synergex Professional Services Group
 ;;
 ;;*****************************************************************************
 ;;
@@ -35,9 +34,6 @@
 ;; POSSIBILITY OF SUCH DAMAGE.
 ;;
 ;;*****************************************************************************
-;; WARNING: THIS CODE WAS CODE GENERATED AND WILL BE OVERWRITTEN IF CODE
-;;          GENERATION IS RE-EXECUTED FOR THIS PROJECT.
-;;*****************************************************************************
 
 import Synergex.SynergyDE.IOExtensions
 import Synergex.SynergyDE.Select
@@ -61,7 +57,6 @@ namespace ReplicationLibrary
         .endc   
         public static method Init, void
             required in aChannel, int
-            endparams
         proc
             .ifdef D_VMS
             if (!cacheInitialized)
@@ -76,7 +71,6 @@ namespace ReplicationLibrary
         public static method Update, void
             required in aChannel, int
             required in aData, string
-            endparams
         proc
             cache[aChannel] = aData
         endmethod
@@ -84,7 +78,6 @@ namespace ReplicationLibrary
         public static method HasChanged, boolean
             required in aChannel, int
             required in aData, string
-            endparams
         proc
             mreturn (aData != cache[aChannel])
         endmethod
@@ -99,7 +92,8 @@ namespace ReplicationLibrary
             required in aChannel, int
         proc
             cache[aChannel] = ^null
-        endmethod
+		endmethod
+
     endclass
 
 endnamespace

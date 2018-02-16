@@ -2,11 +2,9 @@
 ;;
 ;; File:        Json.dbl
 ;;
-;; Type:        JSON Parser
+;; Description: A JSON parser for traditional Synergy
 ;;
-;; Author:      Jeff Greene (Synergex Development)
-;;
-;; Description: A simple traditional Synergy API for parsing JSON data.
+;; Author:      Jeff Greene, Synergex Development
 ;;
 ;;*****************************************************************************
 ;;
@@ -35,9 +33,6 @@
 ;; ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 ;; POSSIBILITY OF SUCH DAMAGE.
 ;;
-;;*****************************************************************************
-;; WARNING: THIS CODE WAS CODE GENERATED AND WILL BE OVERWRITTEN IF CODE
-;;          GENERATION IS RE-EXECUTED FOR THIS PROJECT.
 ;;*****************************************************************************
 
 import System.Collections
