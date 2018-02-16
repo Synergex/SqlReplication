@@ -1,0 +1,86 @@
+
+import System
+import System.Collections.Generic
+import System.ComponentModel
+import System.Data
+import System.Diagnostics
+import System.Linq
+import System.ServiceProcess
+import System.Text
+import System.Threading.Tasks
+import Microsoft.Owin.Hosting
+
+.array 0
+
+namespace FileService
+
+	public partial class FileService extends ServiceBase
+    
+		private appInstance, @IDisposable
+
+		public method FileService
+		proc
+			this.InitializeComponent()
+		endmethod
+
+		protected override method OnStart, void
+			args, [#]string 
+		proc
+			data serverUri = String.Format("http://+:{0}", Properties.Settings.Default.HttpListenerPort)
+
+			data options = new StartOptions()
+			options.Urls.Add(serverUri)
+
+			data eventLogLog = "Application"
+			data eventLogSource = "FileService"
+
+			;TODO: There may be a compiler bug in here somewhere. The namespace prefix should not be
+			;required (it's imported) but without it I get %DBL-E-ISSTAT, Class type required to access static member SourceExists
+			if (!System.Diagnostics.EventLog.SourceExists(eventLogSource))
+				System.Diagnostics.EventLog.CreateEventSource(eventLogSource, eventLogLog)
+
+			disposable data log = new EventLog("Application")
+			log.Source = "FileService"
+
+			try
+			begin
+				appInstance = WebApp.Start<Startup>(options)
+				log.WriteEntry(String.Format("Service Startup. Server is listening at {0}", serverUri), EventLogEntryType.Information)
+			end
+			catch (ex, @Exception)
+			begin
+				data message = ex.Message
+				if (ex.InnerException != ^null)
+					message += " Inner exception: " + ex.InnerException.Message
+				log.WriteEntry(message, EventLogEntryType.Error)
+				throw
+			end
+			endtry
+
+		endmethod
+
+		protected override method OnStop, void
+			endparams
+		proc
+			disposable data log = new EventLog("Application")
+			log.Source = "FileService"
+
+			try
+			begin
+				if (appInstance != ^null)
+					appInstance.Dispose()
+				log.WriteEntry("Service Shutdown", EventLogEntryType.Information)
+			end
+			catch (ex, @Exception)
+			begin
+				log.WriteEntry("Service Shutdown Failed: " + ex.Message, EventLogEntryType.Error)
+			end
+			endtry
+
+			parent.OnStop()
+
+		endmethod
+
+	endclass
+
+endnamespace

@@ -1,0 +1,39 @@
+
+import System
+import System.Collections.Generic
+import System.Linq
+import System.Text
+import System.Threading.Tasks
+import System.Web.Http
+import Owin
+
+.array 0
+
+namespace FileService
+    
+	public class Startup
+        
+		public method Configuration, void
+			appBuilder, @IAppBuilder 
+		proc
+			data config = new HttpConfiguration()
+
+			data opts = new RouteOptions() { Id = RouteParameter.Optional}
+			config.Routes.MapHttpRoute("DefaultApi", "api/{controller}/{id}", opts)
+			
+			config.MapHttpAttributeRoutes()
+
+			appBuilder.UseWebApi(config)
+
+		endmethod
+
+	endclass
+
+	public class RouteOptions
+
+		public readwrite property Id, @RouteParameter
+
+	endclass
+
+endnamespace
+

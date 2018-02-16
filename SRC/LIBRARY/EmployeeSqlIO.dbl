@@ -62,7 +62,7 @@ function EmployeeExists, ^val
         cursor      ,int    ;;Database cursor
         length      ,int    ;;Length of a string
         table_name  ,a128   ;;Retrieved table name
-        errtxt      ,a256   ;;Error message text
+        errtxt      ,a512   ;;Error message text
     endrecord
 
 proc
@@ -676,7 +676,7 @@ function EmployeeInsert, ^val
         dberror     ,int        ;;Database error number
         transaction ,int        ;;Transaction in progress
         length      ,int        ;;Length of a string
-        errtxt      ,a256       ;;Error message text
+        errtxt      ,a512       ;;Error message text
     endrecord
 
     literal
@@ -1178,7 +1178,7 @@ function EmployeeUpdate, ^val
         cursor      ,int        ;;Database cursor
         length      ,int        ;;Length of a string
         rows        ,int        ;;Number of rows updated
-        errtxt      ,a256       ;;Error message text
+        errtxt      ,a512       ;;Error message text
     endrecord
 
     literal
@@ -1410,7 +1410,7 @@ function EmployeeDelete, ^val
         cursor      ,int        ;;Database cursor
         length      ,int        ;;Length of a string
         transaction ,int        ;;Transaction in progress
-        errtxt      ,a256       ;;Error message text
+        errtxt      ,a512       ;;Error message text
         sql         ,string     ;;SQL statement
     endrecord
 
@@ -1650,7 +1650,7 @@ function EmployeeDrop, ^val
         cursor      ,int        ;;Database cursor
         length      ,int        ;;Length of a string
         transaction ,int        ;;Transaction in progress
-        errtxt      ,a256       ;;Returned error message text
+        errtxt      ,a512       ;;Returned error message text
     endrecord
 
 proc
@@ -1803,7 +1803,7 @@ function EmployeeLoad, ^val
         ttl_added   ,int        ;;Total rows added
         ttl_failed  ,int        ;;Total failed inserts
         errnum      ,int        ;;Error number
-        errtxt      ,a256       ;;Error message text
+        errtxt      ,a512       ;;Error message text
     endrecord
 
 proc
@@ -2004,7 +2004,7 @@ function EmployeeBulkLoad, ^val
 		dberror,				int
 		recordCount,			int
 		exceptionCount,         int
-        errtxt,					a256       ;;Error message text
+        errtxt,					a512       ;;Error message text
 		fsc,					@FileServiceClient
     endrecord
 
@@ -2018,10 +2018,10 @@ proc
 	;;Are we logging to a terminal channel?
 	loggingToTerminal = (^passed(a_terminal) && a_terminal)
 
-	;;If we're doing a remote bulk load, create an instance of the FileService client
+	;;If we're doing a remote bulk load, create an instance of the FileService client and verify that we can access the FileService server
+	
 	if (remoteBulkLoad = ((a_remotepath!=^null) && (a_remotepath.nes." ")))
 	begin
-		;;Make sure we can talk to the FileService endpoint
 		fsc = new FileServiceClient(a_remotepath)
 		ttlog("Verifying FileService connection")
 		if (!fsc.Ping(errtxt))
@@ -2034,6 +2034,7 @@ proc
 	if (ok)
 	begin
 		;;Determine temporary file names
+
 		.ifdef OS_WINDOWS7
 		localCsvFile = a_localpath + "\Employee.csv"
 		.endc
@@ -2054,32 +2055,34 @@ proc
 		end
 
 		;;Make sure there are no files left over from previous operations
+	
 		call DeleteFiles
 
-		ttlog("Exporting delimited file")
+		;;And export the data
 
-		;;Are we doing a remote bulk load?
+		ttlog("Exporting delimited file")
+		ok = %EmployeeCsv(localCsvFile,recordCount,errtxt)
+	end
+
+	if (ok)
+	begin
+		;;If necessary, upload the exported file to the database server
+
 		if (remoteBulkLoad) then
 		begin
-			;;Remote bulk load. Create the export file locally then copy it to the server.
-			if (ok = %EmployeeCsv(localCsvFile,recordCount,errtxt))
-			begin
-				ttlog("Uploading data to database host via HTTP")
-				ok = fsc.Upload(remoteCsvFile,localCsvFile,fileToLoad,errtxt)
-			end
+			ttlog("Uploading data to database host via HTTP")
+			ok = fsc.Upload(remoteCsvFile,localCsvFile,fileToLoad,errtxt)
 		end
 		else
 		begin
-			;;Local bulk load; so we must be on Windows
-			ok = %EmployeeCsv(localCsvFile,recordCount,errtxt)
 			fileToLoad  = localCsvFile
 		end
 	end
 
-	;;Bulk load the delimited file into the database
-
 	if (ok)
 	begin
+		;;Bulk load the database table
+
 		ttlog("Executing SQL BULK INSERT")
 
 		;;Start a database transaction
@@ -2396,7 +2399,7 @@ function EmployeeCsv, ^val
 		csvrec,			string		;;A CSV file record
 		errnum,			int         ;;Error number
 		records,		int         ;;Number of records exported
-		errtxt,			a256        ;;Error message text
+		errtxt,			a512        ;;Error message text
 	endrecord
 
 proc

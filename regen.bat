@@ -8,7 +8,7 @@ set CODEGEN_TPLDIR=%ROOT%\SRC\TEMPLATES
 set CODEGEN_OUTDIR=%ROOT%\SRC\LIBRARY
 set SYNDEFNS=ReplicationLibrary
 
-set STRUCTURES=EMPLOYEE RELSTR
+set STRUCTURES=EMPLOYEE
 
 rem Templates that contain code that will usually be edited. Remove the -r option to prevent overwrite?
 codegen -e -r -lf -t ConfigureReplication PopulateReplicationKey IOHooksISAM 

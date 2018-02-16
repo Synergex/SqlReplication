@@ -80,7 +80,7 @@ function <StructureName>Exists, ^val
         cursor      ,int    ;;Database cursor
         length      ,int    ;;Length of a string
         table_name  ,a128   ;;Retrieved table name
-        errtxt      ,a256   ;;Error message text
+        errtxt      ,a512   ;;Error message text
     endrecord
 
 proc
@@ -653,7 +653,7 @@ function <StructureName>Insert, ^val
         dberror     ,int        ;;Database error number
         transaction ,int        ;;Transaction in progress
         length      ,int        ;;Length of a string
-        errtxt      ,a256       ;;Error message text
+        errtxt      ,a512       ;;Error message text
         <IF STRUCTURE_RELATIVE>
         recordNumber,d28        ;;Relative record number
         </IF STRUCTURE_RELATIVE>
@@ -1297,7 +1297,7 @@ function <StructureName>Update, ^val
         cursor      ,int        ;;Database cursor
         length      ,int        ;;Length of a string
         rows        ,int        ;;Number of rows updated
-        errtxt      ,a256       ;;Error message text
+        errtxt      ,a512       ;;Error message text
     endrecord
 
     literal
@@ -1584,7 +1584,7 @@ function <StructureName>Delete, ^val
         cursor      ,int        ;;Database cursor
         length      ,int        ;;Length of a string
         transaction ,int        ;;Transaction in progress
-        errtxt      ,a256       ;;Error message text
+        errtxt      ,a512       ;;Error message text
         sql         ,string     ;;SQL statement
     endrecord
 
@@ -1833,7 +1833,7 @@ function <StructureName>Drop, ^val
         cursor      ,int        ;;Database cursor
         length      ,int        ;;Length of a string
         transaction ,int        ;;Transaction in progress
-        errtxt      ,a256       ;;Returned error message text
+        errtxt      ,a512       ;;Returned error message text
     endrecord
 
 proc
@@ -2007,7 +2007,7 @@ function <StructureName>Load, ^val
         ttl_added   ,int        ;;Total rows added
         ttl_failed  ,int        ;;Total failed inserts
         errnum      ,int        ;;Error number
-        errtxt      ,a256       ;;Error message text
+        errtxt      ,a512       ;;Error message text
         <IF STRUCTURE_RELATIVE>
         recordNumber,d28
         </IF STRUCTURE_RELATIVE>
@@ -2237,7 +2237,7 @@ function <StructureName>BulkLoad, ^val
 		dberror,				int
 		recordCount,			int
 		exceptionCount,         int
-        errtxt,					a256       ;;Error message text
+        errtxt,					a512       ;;Error message text
 		fsc,					@FileServiceClient
     endrecord
 
@@ -2636,7 +2636,7 @@ function <StructureName>Csv, ^val
 		csvrec,			string		;;A CSV file record
 		errnum,			int         ;;Error number
 		records,		int         ;;Number of records exported
-		errtxt,			a256        ;;Error message text
+		errtxt,			a512        ;;Error message text
 	endrecord
 
 proc

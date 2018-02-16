@@ -1,0 +1,255 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi"
+     xmlns:firewall="http://schemas.microsoft.com/wix/FirewallExtension">
+
+  <!--
+    When publishing a new version, change the version number and Product Id GUID.
+    *** NEVER CHANGE THE UpgradeCode GUID ***
+    -->
+
+  <Product
+    Name="File Service"
+    Version="1.0"
+    Id="{91A22050-21E2-4A30-A2EC-7AF4C56A7311}"
+    Language="1033"
+    Manufacturer="Synergex International Corporation"
+    UpgradeCode="{D610D7F5-5DCC-4E46-A4C9-A393B53790D7}">
+
+    <Package
+      Description="File Service"
+      InstallerVersion="200"
+      Compressed="yes"
+      InstallScope="perMachine" />
+
+    <!-- ************************************************************************************************************* -->
+    <!-- Setting these properties causes these URL's to be displayed when the application is selected in "Programs and Features"-->
+
+    <Property Id="ARPHELPLINK"      Value="https://github.com/SteveIves/FileService/issues" />
+    <Property Id="ARPURLINFOABOUT"  Value="https://github.com/SteveIves/FileService/wiki" />
+    <Property Id="ARPURLUPDATEINFO" Value="https://github.com/SteveIves/FileService/releases/latest" />
+
+    <MajorUpgrade DowngradeErrorMessage="A newer version of [ProductName] is already installed." />
+
+    <MediaTemplate EmbedCab="yes" />
+
+    <!-- ************************************************************************************************************* -->
+    <!-- Set the license text to be displayed before installation -->
+
+    <WixVariable Id="WixUILicenseRtf" Value="license.rtf" />
+
+    <!-- ************************************************************************************************************* -->
+    <!--Set the images to be displayed in the UI-->
+
+    <WixVariable Id="WixUIBannerBmp" Value="banner.jpg"/>
+    <WixVariable Id="WixUIDialogBmp" Value="background.jpg"/>
+
+    <!-- ************************************************************************************************************* -->
+    <!-- Set the icon to be used in "Programs & Features" -->
+
+    <Icon Id="ico_FileServiceIcon.ico" SourceFile="..\FileService\FileService.ico"/>
+    <Property Id="ARPPRODUCTICON" Value="ico_FileServiceIcon.ico" />
+
+    <!-- ************************************************************************************************************* -->
+    <!-- Set the installer UI type -->
+
+    <UI>
+      <UIRef Id="WixUI_FeatureTree"/>
+    </UI>
+
+    <!-- ************************************************************************************************************* -->
+    <!-- Terminate the installation if .NET Framework 4.5.2 is not installed -->
+
+    <PropertyRef Id="NETFRAMEWORK45"/>
+    <Condition Message="This application requires .NET Framework 4.5.2 or higher. Please install the .NET Framework then run this installer again.">
+      <![CDATA[Installed OR NETFRAMEWORK45 >= "#379893"]]>
+    </Condition>
+
+    <!-- ************************************************************************************************************* -->
+    <!-- Define the folders that the installation uses -->
+
+    <Directory Id="TARGETDIR" Name="SourceDir">
+      <!-- Program Files Folder -->
+      <Directory Id="ProgramFilesFolder">
+        <Directory Id="SynergexFolder" Name="Synergex">
+          <Directory Id="MAINFOLDER" Name="File Service" />
+        </Directory>
+      </Directory>
+      <!-- Start Menu Folder -->
+      <Directory Id="ProgramMenuFolder">
+        <Directory Id="ApplicationProgramsFolder" Name="File Service"/>
+      </Directory>
+    </Directory>
+
+    <!-- ************************************************************************************************************* -->
+    <!-- Custom action to set and remove HTTP URI reservations -->
+    <!-- 
+         This is necessary if running as "Local Service" (unprivileged)
+         but not necessary when running as "LocalSystem" (privileged)
+    -->
+
+    <!--<CustomAction
+      Id="AddUriReservation"
+      Directory="MAINFOLDER"
+      ExeCommand='[SystemFolder]netsh.exe http add urlacl url=http://+:8080/ user="Local Service"'
+      Execute="deferred"
+      Impersonate="no"
+      Return="asyncWait" />
+
+    <CustomAction
+      Id="RemoveUriReservation"
+      Directory="MAINFOLDER"
+      ExeCommand="[SystemFolder]netsh.exe http delete urlacl url=http://+:8080/"
+      Execute="deferred"
+      Impersonate="no"
+      Return="asyncWait" />
+
+    <InstallExecuteSequence>
+      <Custom Action="RemoveUriReservation" Before="InstallFinalize">Installed</Custom>
+      <Custom Action="AddUriReservation" Before="InstallFinalize">NOT Installed</Custom>
+    </InstallExecuteSequence>-->
+
+    <!-- Core Files -->
+
+    <DirectoryRef Id="MAINFOLDER">
+
+      <Component Id="File_$(var.FileService.TargetFileName)" Guid="{511BBBEB-8C58-4978-8201-006E1BFCD092}">
+
+        <File Id="$(var.FileService.TargetFileName)" KeyPath="yes" Source="$(var.FileService.TargetPath)" Checksum="yes">
+
+          <firewall:FirewallException
+            Id="FirewallTcpRule"
+            Name="FileService"
+            Description="File service access to inbound TCP (domain)"
+            Protocol="tcp"
+            Scope="any"
+            Profile="all"
+            IgnoreFailure="yes"/>
+
+        </File>
+
+        <!-- Register the service during install -->
+        <ServiceInstall
+          Id="FileService_Install"
+          Name="FileService"
+          DisplayName="File Service"
+          Description="A service that can be used to upload files to the server via HTTP."
+          Type="ownProcess"
+          Start="auto"
+          ErrorControl="normal"
+          Vital="yes" />
+
+         <!--Start the Service during install--> 
+        <ServiceControl
+          Id="FileService_Start"
+          Name="FileService"
+          Start="install"
+          Wait="yes" />
+
+        <!-- Stop and remove the Service during uninstall -->
+        <ServiceControl
+          Id="FileService_Stop"
+          Name="FileService"
+          Stop="both"
+          Remove="uninstall"
+          Wait="yes" />
+      </Component>
+
+      <Component Id="File_FileService.exe.config" Guid="{9BF9D859-7E64-4DEE-B113-94CF4F6DFA0E}">
+        <File Id="FileService.exe.config" KeyPath="yes" Source="..\FileService\bin\Release\FileService.exe.config" Checksum="yes" />
+      </Component>
+
+      <Component Id="File_Microsoft.Owin.dll" Guid="{988CC973-92C8-4D7B-A7E9-FEEE10D4C6CA}">
+        <File Id="Microsoft.Owin.dll" KeyPath="yes" Source="..\FileService\bin\Release\Microsoft.Owin.dll" Checksum="yes" />
+      </Component>
+
+      <Component Id="File_Microsoft.Owin.Host.HttpListener.dll" Guid="{485FA686-7F9B-4B15-A961-182265D25732}">
+        <File Id="Microsoft.Owin.Host.HttpListener.dll" KeyPath="yes" Source="..\FileService\bin\Release\Microsoft.Owin.Host.HttpListener.dll" Checksum="yes" />
+      </Component>
+
+      <Component Id="File_Microsoft.Owin.Hosting.dll" Guid="{C57D4F99-AC1A-4CBF-8BEB-3DC6BC0FE989}">
+        <File Id="Microsoft.Owin.Hosting.dll" KeyPath="yes" Source="..\FileService\bin\Release\Microsoft.Owin.Hosting.dll" Checksum="yes" />
+      </Component>
+
+      <Component Id="File_Newtonsoft.Json.dll" Guid="{D6EF4B82-81DA-4E31-879C-A6783920136A}">
+        <File Id="Newtonsoft.Json.dll" KeyPath="yes" Source="..\FileService\bin\Release\Newtonsoft.Json.dll" Checksum="yes" />
+      </Component>
+
+      <Component Id="File_Owin.dll" Guid="{C611008D-32D2-4697-BDE3-883FA0F0B2A9}">
+        <File Id="Owin.dll" KeyPath="yes" Source="..\FileService\bin\Release\Owin.dll" Checksum="yes" />
+      </Component>
+
+      <Component Id="File_System.Net.Http.Formatting.dll" Guid="{90441D73-1838-417C-A521-235EAB05E994}">
+        <File Id="System.Net.Http.Formatting.dll" KeyPath="yes" Source="..\FileService\bin\Release\System.Net.Http.Formatting.dll" Checksum="yes" />
+      </Component>
+
+      <Component Id="File_System.Web.Http.dll" Guid="{135BC0F1-2A3A-4760-B6CC-495BC67282A5}">
+        <File Id="System.Web.Http.dll" KeyPath="yes" Source="..\FileService\bin\Release\System.Web.Http.dll" Checksum="yes" />
+      </Component>
+
+      <Component Id="File_System.Web.Http.Owin.dll" Guid="{8B178077-0436-42A8-8439-F3B85A6D46F2}">
+        <File Id="System.Web.Http.Owin.dll" KeyPath="yes" Source="..\FileService\bin\Release\System.Web.Http.Owin.dll" Checksum="yes" />
+      </Component>
+
+      <Component Id="File_System.Web.Http.WebHost.dll" Guid="{0D2B824E-6D5B-46CB-BC63-A3BC3F204765}">
+        <File Id="System.Web.Http.WebHost.dll" KeyPath="yes" Source="..\FileService\bin\Release\System.Web.Http.WebHost.dll" Checksum="yes" />
+      </Component>
+
+    </DirectoryRef>
+
+    <!-- Core Shortcuts -->
+
+    <DirectoryRef Id="ApplicationProgramsFolder">
+      <Component Id="Shortcuts_Core" Guid="{42B960DE-C794-4547-B35D-9BCD85888DBA}">
+        <Shortcut Id="UninstallShortcut" Name="Uninstall File Service" Description="Uninstalls File Service" Target="[System64Folder]msiexec.exe" Arguments="/x [ProductCode]"/>
+        <RegistryValue Root="HKCU" Key="Software\Synergex\FileService" Name="CoreShortcutsInstalled" Type="integer" Value="1" KeyPath="yes" />
+        <RemoveFolder Id="ApplicationProgramsFolder" On="uninstall"/>
+      </Component>
+    </DirectoryRef>
+
+    <!-- Core Feature -->
+
+    <Feature Id="FeatureCore" Title="File Service" Level="1" Absent="disallow" Description="Installs the core components needed to use the File Service.">
+      <ComponentRef Id="File_$(var.FileService.TargetFileName)" />
+      <ComponentRef Id="File_FileService.exe.config" />
+      <ComponentRef Id="File_Microsoft.Owin.dll" />
+      <ComponentRef Id="File_Microsoft.Owin.Host.HttpListener.dll" />
+      <ComponentRef Id="File_Microsoft.Owin.Hosting.dll" />
+      <ComponentRef Id="File_Newtonsoft.Json.dll" />
+      <ComponentRef Id="File_Owin.dll" />
+      <ComponentRef Id="File_System.Net.Http.Formatting.dll" />
+      <ComponentRef Id="File_System.Web.Http.dll" />
+      <ComponentRef Id="File_System.Web.Http.Owin.dll" />
+      <ComponentRef Id="File_System.Web.Http.WebHost.dll" />
+      <ComponentRef Id="Shortcuts_Core" />
+    </Feature>
+
+    <!-- ************************************************************************************************************* -->
+    <!-- Documentation  -->
+
+    <!-- Documentation Files -->
+
+    <DirectoryRef Id="MAINFOLDER">
+      <Component Id="FileService.chm" Guid="{201F616D-591D-469A-AC3F-67B4C494CB00}">
+        <File Id="FileService.chm" KeyPath="yes" Source="..\Documentation\FileService.chm" Checksum="yes" />
+      </Component>
+    </DirectoryRef>
+
+    <!-- Documentation Shortcuts -->
+
+    <DirectoryRef Id="ApplicationProgramsFolder">
+      <Component Id="DocumentationShortcuts" Guid="{CC57AB6C-2868-4B30-999F-0BCC2EE7B2B3}">
+        <Shortcut Id="HelpFileShortcut" Name="Documentation" Description="Displays the File Service Documentation" Target="[#FileService.chm]" WorkingDirectory="MAINFOLDER"/>
+        <RegistryValue Root="HKCU" Key="Software\Synergex\FileService" Name="DocumentationShortcutsInstalled" Type="integer" Value="1" KeyPath="yes"/>
+      </Component>
+    </DirectoryRef>
+
+    <!-- Documentation Feature-->
+
+    <Feature Id="FeatureDocumentation" Title="Documentation" Level="1" Description="Installs a Windows help file containing the File Service documentation.">
+      <ComponentRef Id="FileService.chm" />
+      <ComponentRef Id="DocumentationShortcuts" />
+    </Feature>
+
+  </Product>
+
+</Wix>

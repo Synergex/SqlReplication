@@ -134,12 +134,6 @@
     <Compile Include="..\..\SRC\LIBRARY\PopulateReplicationKey.dbl">
       <Link>PopulateReplicationKey.dbl</Link>
     </Compile>
-    <Compile Include="..\..\SRC\LIBRARY\RelstrIO.dbl">
-      <Link>RelstrIO.dbl</Link>
-    </Compile>
-    <Compile Include="..\..\SRC\LIBRARY\RelstrSqlIO.dbl">
-      <Link>RelstrSqlIO.dbl</Link>
-    </Compile>
     <Compile Include="..\..\SRC\LIBRARY\Replicate.dbl">
       <Link>Replicate.dbl</Link>
     </Compile>

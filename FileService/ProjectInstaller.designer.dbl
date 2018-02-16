@@ -1,0 +1,45 @@
+﻿
+.array 0
+namespace FileService
+	
+	public partial class ProjectInstaller extends System.Configuration.Install.Installer
+		
+		private serviceProcessInstaller, @System.ServiceProcess.ServiceProcessInstaller
+		private serviceInstaller, @System.ServiceProcess.ServiceInstaller
+		private components, @System.ComponentModel.IContainer
+		
+		private method InitializeComponent, void
+			endparams
+		proc
+			this.serviceInstaller = new System.ServiceProcess.ServiceInstaller()
+			this.serviceProcessInstaller = new System.ServiceProcess.ServiceProcessInstaller()
+			;; 
+			;; serviceInstaller
+			;; 
+			this.serviceInstaller.Description = "This service can be used by remote client applications to upload files to this server via HTTP."
+			this.serviceInstaller.DisplayName = "File Service"
+			this.serviceInstaller.ServiceName = "FileService"
+			this.serviceInstaller.StartType = System.ServiceProcess.ServiceStartMode.Automatic
+			;; 
+			;; serviceProcessInstaller
+			;; 
+			this.serviceProcessInstaller.Account = System.ServiceProcess.ServiceAccount.LocalSystem
+			this.serviceProcessInstaller.Password = ^null
+			this.serviceProcessInstaller.Username = ^null
+			;; 
+			;; ProjectInstaller
+			;; 
+			this.Installers.AddRange(new System.Configuration.Install.Installer[#] {this.serviceInstaller, this.serviceProcessInstaller})
+		endmethod
+		
+		protected override method Dispose, void
+			disposing, System.Boolean 
+			endparams
+		proc
+			if (disposing && (components != ^null))
+				components.Dispose()
+				parent.Dispose(disposing)
+		endmethod
+	endclass
+endnamespace
+

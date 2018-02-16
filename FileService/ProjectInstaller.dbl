@@ -1,0 +1,22 @@
+﻿import System
+import System.Collections
+import System.Collections.Generic
+import System.ComponentModel
+import System.Configuration.Install
+
+namespace FileService
+
+    {RunInstaller(true)}
+    public partial class ProjectInstaller extends System.Configuration.Install.Installer
+
+        public method ProjectInstaller
+            endparams
+        proc
+            begin
+                InitializeComponent()
+            end
+        endmethod
+    endclass
+endnamespace
+
+
