@@ -11,10 +11,10 @@ set SYNDEFNS=ReplicationLibrary
 set STRUCTURES=EMPLOYEE
 
 rem Templates that contain code that will usually be edited. Remove the -r option to prevent overwrite?
-codegen -e -r -lf -t ConfigureReplication PopulateReplicationKey IOHooksISAM 
+codegen -e -r -lf -t ConfigureReplication PopulateReplicationKey
 
 rem OK to regenerate, not structure specific
-codegen -e -r -lf -t LastRecordCache replicate IOHooksRelative -define ATTACH_IO_HOOKS CLEAN_DATA
+codegen -e -r -lf -t LastRecordCache replicate -define ATTACH_IO_HOOKS CLEAN_DATA
 
 rem OK to regenerate, structure specific
 codegen -e -r -lf -s %STRUCTURES% -t SqlIO SynIO -define ATTACH_IO_HOOKS CLEAN_DATA
