@@ -424,8 +424,8 @@ OpenFile,
 
     try
     begin
-        functionName = %atrim(instruction.structure_name) + "IO"
-        status = %xsubr(functionName,IO_OPEN_INP,structure_data.structure_chan,,,,,,dberrtxt)
+        functionName = %atrim(instruction.structure_name) + "OpenInput"
+		structure_data.structure_chan = %xsubr(functionName,dberrtxt)
     end
     catch (ex, @SynException)
     begin
@@ -434,7 +434,7 @@ OpenFile,
     end
     endtry
 
-    if (status == IO_OK) then
+	if (structure_data.structure_chan) then
     begin
         xcall verboselog(" - File opened")
         call CheckTable
@@ -442,7 +442,6 @@ OpenFile,
     else
     begin
         xcall verboselog(" - Failed to open file!")
-        clear structure_data.structure_chan
         xcall LogFunctionError(functionName,status,dberrtxt)
     end
 
@@ -2053,19 +2052,8 @@ proc
             endtry
 
             ;;Close the channel
-            if ((structure_data.structure_chan)&&%chopen(structure_data.structure_chan))
-            begin
-                try
-                begin
-                    functionName = %atrim(structure_data.structure_name) + "IO"
-                    status = %xsubr(functionName,IO_CLOSE,structure_data.structure_chan)
-                end
-                catch (ex)
-                begin
-                    nop
-                end
-                endtry
-            end
+			if ((structure_data.structure_chan)&&%chopen(structure_data.structure_chan))
+				close structure_data.structure_chan
         end
 
         xcall nspc_close(Settings.ChannelInfo)

@@ -19,6 +19,14 @@ namespace FileService
 	{RoutePrefix("FileService")}
 	public class FileServiceController extends ApiController
         
+		public method FileServiceController
+			endparams
+		proc
+			data folder = getStorageFolder()
+			if (!Directory.Exists(folder))
+				Directory.CreateDirectory(folder)
+		endmethod
+
 		;;; <summary>
 		;;; Ping the server to verify operation.
 		;;; </summary>
@@ -36,7 +44,7 @@ namespace FileService
 		{Route("")}
 		public method GetListFiles, @HttpResponseMessage
 		proc
-			data files = new DirectoryInfo(getStorageFolder()).GetFiles().Where(lambda (f) { !f.Attributes.HasFlag(FileAttributes.System) && !f.Attributes.HasFlag(FileAttributes.Hidden) }).Select(lambda (f) { f.FullName }).ToArray()
+			data files = new DirectoryInfo(getStorageFolder()).GetFiles().Where(lambda (f) { !f.Attributes.HasFlag(FileAttributes.System) && !f.Attributes.HasFlag(FileAttributes.Hidden) }).Select(lambda (f) { f.Name }).ToArray()
 			mreturn Request.CreateResponse(HttpStatusCode.OK, files)
 		endmethod
         
@@ -122,7 +130,7 @@ namespace FileService
 			disposable data local_fileStream, @FileStream, File.Create(fileSpec)
 			await requestStream.CopyToAsync(local_fileStream)
 
-			mreturn Request.CreateResponse(HttpStatusCode.OK, fileSpec)
+			mreturn Request.CreateResponse(HttpStatusCode.OK)
 
 		endmethod
         
@@ -141,7 +149,7 @@ namespace FileService
 
 			File.Delete(file)
 
-			mreturn Request.CreateResponse(HttpStatusCode.OK)
+			mreturn Request.CreateResponse(HttpStatusCode.NoContent)
 
 		endmethod
         
@@ -152,7 +160,7 @@ namespace FileService
 
 			;; If there isn't one, or if it does not exist, use the public documents folder
 			if (String.IsNullOrWhiteSpace(folder) || !Directory.Exists(folder))
-				folder = Environment.GetFolderPath(Environment.SpecialFolder.CommonDocuments)
+				folder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonDocuments),"FileService")
 
 			mreturn folder
 

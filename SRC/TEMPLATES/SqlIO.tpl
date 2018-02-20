@@ -55,6 +55,8 @@
 
 import ReplicationLibrary
 
+.include "<STRUCTURE_NOALIAS>" repository, structure="str<StructureName>", end
+
 ;;*****************************************************************************
 ;;; <summary>
 ;;; Determines if the <StructureName> table exists in the database.
@@ -2026,11 +2028,10 @@ proc
 
     ;;Open the data file associated with the structure
 
-    if (%<IF STRUCTURE_MAPPED><MappedStructure><ELSE><StructureName></IF STRUCTURE_MAPPED>IO(IO_OPEN_INP,filechn)!=IO_OK)
+	if (!(filechn = %<StructureName>OpenInput))
     begin
         ok = false
-        errtxt = "Failed to open file <IF STRUCTURE_MAPPED><MAPPED_FILE><ELSE><FILE_NAME></IF STRUCTURE_MAPPED>"
-        clear filechn
+        errtxt = "Failed to open data file!"
     end
 
     if (ok)
@@ -2045,47 +2046,29 @@ proc
         repeat
         begin
             ;;Get the next record from the input file
-            if (firstRecord) then
-            begin
-                <IF STRUCTURE_ISAM>
-                errnum = %<IF STRUCTURE_MAPPED><MappedStructure><ELSE><StructureName></IF STRUCTURE_MAPPED>IO(IO_READ_FIRST,filechn,,,tmprec)
-                </IF STRUCTURE_ISAM>
-                <IF STRUCTURE_RELATIVE>
-                errnum = %<IF STRUCTURE_MAPPED><MappedStructure><ELSE><StructureName></IF STRUCTURE_MAPPED>IO(IO_READ_FIRST,filechn,,tmprec)
-                </IF STRUCTURE_RELATIVE>
-                firstRecord = false
-            end
-            else
-            begin
-                <IF STRUCTURE_ISAM>
-                errnum = %<IF STRUCTURE_MAPPED><MappedStructure><ELSE><StructureName></IF STRUCTURE_MAPPED>IO(IO_READ_NEXT,filechn,,,tmprec)
-                </IF STRUCTURE_ISAM>
-                <IF STRUCTURE_RELATIVE>
-                errnum = %<IF STRUCTURE_MAPPED><MappedStructure><ELSE><StructureName></IF STRUCTURE_MAPPED>IO(IO_READ_NEXT,filechn,,tmprec)
-                </IF STRUCTURE_RELATIVE>
-            end
-
-            using errnum select
-            (IO_OK),
-            begin
-                <IF STRUCTURE_ISAM>
-                nop
-                </IF STRUCTURE_ISAM>
-                <IF STRUCTURE_RELATIVE>
-                recordNumber += 1
-                if (!tmprec)
-                    nextloop
-                </IF STRUCTURE_RELATIVE>
-            end
-            (IO_EOF),
-                exitloop
-            (),
-            begin
-                ok = false
-                errtxt = "Unexpected response " + %string(errnum) + " from %<IF STRUCTURE_MAPPED><MappedStructure><ELSE><StructureName></IF STRUCTURE_MAPPED>IO"
-                exitloop
-            end
-            endusing
+			try
+			begin
+				if (firstRecord) then
+				begin
+					read(filechn,tmprec,^FIRST)
+					firstRecord = false
+				end
+				else
+				begin
+					reads(filechn,tmprec)
+				end
+			end
+			catch (ex, @EndOfFileException)
+			begin
+				exitloop
+			end
+			catch (ex, @Exception)
+			begin
+				ok = false
+				errtxt = "Unexpected error while reading data file: " + ex.Message
+				exitloop
+			end
+			endtry
 
             ;;Got one, load it into or buffer
             <IF STRUCTURE_ISAM>
@@ -2115,12 +2098,12 @@ proc
 
     ;;Close the file
 
-    if (filechn)
-        xcall <IF STRUCTURE_MAPPED><MappedStructure><ELSE><StructureName></IF STRUCTURE_MAPPED>IO(IO_CLOSE,filechn)
+    if (filechn && %chopen(filechn))
+        close filechn
 
     ;;Close the exceptions log file
 
-    if (ex_ch)
+    if (ex_ch && %chopen(ex_ch))
         close ex_ch
 
     ;;Return the error text
@@ -2643,11 +2626,10 @@ proc
 
     ;;Open the data file associated with the structure
 
-    if (%<IF STRUCTURE_MAPPED><MappedStructure><ELSE><StructureName></IF STRUCTURE_MAPPED>IO(IO_OPEN_INP,filechn)!=IO_OK)
+    if (!(filechn=%<StructureName>OpenInput))
     begin
         ok = false
-        errtxt = "Failed to open file <IF STRUCTURE_MAPPED><MAPPED_FILE><ELSE><FILE_NAME></IF STRUCTURE_MAPPED>"
-        clear filechn
+        errtxt = "Failed to open data file!"
     end
 
     if (ok)
@@ -2674,18 +2656,12 @@ proc
         repeat
         begin
             ;;Get the next record from the input file
-            <IF STRUCTURE_ISAM>
-            errnum = %<IF STRUCTURE_MAPPED><MappedStructure><ELSE><StructureName></IF STRUCTURE_MAPPED>IO(IO_READ_NEXT,filechn,,,<structure_name>)
-            </IF STRUCTURE_ISAM>
-            <IF STRUCTURE_RELATIVE>
-            errnum = %<IF STRUCTURE_MAPPED><MappedStructure><ELSE><StructureName></IF STRUCTURE_MAPPED>IO(IO_READ_NEXT,filechn,,<structure_name>)
-            </IF STRUCTURE_RELATIVE>
+			try
+			begin
+				reads(filechn,employee)
 
-            using errnum select
-            (IO_OK),
-            begin
 				records += 1
-                csvrec = ""
+				csvrec = ""
                 <FIELD_LOOP>
 				<IF STRUCTURE_RELATIVE>
 				&	+ %string(records) + "|"
@@ -2722,16 +2698,18 @@ proc
 				.else
 				puts(csvchn,csvrec + %char(13) + %char(10))
 				.endc
-            end
-            (IO_EOF),
-                exitloop
-            (),
-            begin
-                ok = false
-                errtxt = "Unexpected response " + %string(errnum) + " from %<IF STRUCTURE_MAPPED><MappedStructure><ELSE><StructureName></IF STRUCTURE_MAPPED>IO"
-                exitloop
-            end
-            endusing
+			end
+			catch (e, @EndOfFileException)
+			begin
+				exitloop
+			end
+			catch (e, @Exception)
+			begin
+				ok = false
+				errtxt = "Unexpected error when reading data file: " + e.Message
+				exitloop
+			end
+			endtry
         end
     end
 
@@ -2740,8 +2718,8 @@ proc
         close csvchn
 
     ;;Close the data file
-    if (filechn)
-        xcall <IF STRUCTURE_MAPPED><MappedStructure><ELSE><StructureName></IF STRUCTURE_MAPPED>IO(IO_CLOSE,filechn)
+    if (filechn && %chopen(filechn))
+        close filechn
 
     ;;Return the record count
     if (^passed(recordCount))
@@ -2752,6 +2730,41 @@ proc
         errorMessage = errtxt
 
     freturn ok
+
+endfunction
+
+;;*****************************************************************************
+;;; <summary>
+;;; Opens the <FILE_NAME> for input.
+;;; </summary>
+;;; <param name="errorMessage">Returned error message.</param>
+;;; <returns>Returns the channel number, or 0 if an error occured.</returns>
+
+function <StructureName>OpenInput, ^val
+    optional out errorMessage, a  ;;Returned error text
+    endparams
+	stack record
+		ch, int
+		errmsg, a128
+	endrecord
+proc
+
+	try
+	begin
+        open(ch=0,<IF STRUCTURE_ISAM>i:i</IF STRUCTURE_ISAM><IF STRUCTURE_RELATIVE>i:r</IF STRUCTURE_RELATIVE>,"<FILE_NAME>")
+		errmsg = ""
+	end
+	catch (ex, @Exception)
+	begin
+		errmsg = ex.Message
+		clear ch
+	end
+	endtry
+
+	if (^passed(errorMessage))
+		errorMessage = errmsg
+
+    freturn ch
 
 endfunction
 

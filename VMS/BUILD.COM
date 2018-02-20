@@ -20,7 +20,6 @@ $ WRITE SYS$OUTPUT "Compiling library routines..."
 $ DIB/OPT/VECTORS=VECTORS/OBJ=OBJ:LIBRARY.OBJ -
    LIBSRC:CommandLineParser.dbl -
  + LIBSRC:ConfigureReplication.dbl -
- + LIBSRC:EmployeeIO.dbl -
  + LIBSRC:EmployeeSqlIO.dbl -
  + LIBSRC:File.dbl -
  + LIBSRC:FileServiceClient.dbl -

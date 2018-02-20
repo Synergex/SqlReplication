@@ -71,7 +71,7 @@
       <!-- Program Files Folder -->
       <Directory Id="ProgramFilesFolder">
         <Directory Id="SynergexFolder" Name="Synergex">
-          <Directory Id="MAINFOLDER" Name="File Service" />
+          <Directory Id="MAINFOLDER" Name="FileService" />
         </Directory>
       </Directory>
       <!-- Start Menu Folder -->

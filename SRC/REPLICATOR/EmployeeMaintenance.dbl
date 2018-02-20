@@ -35,10 +35,12 @@
 ;;
 ;;*****************************************************************************
 
+import ReplicationLibrary
+
 main EmployeeMaintenance
 
-	.include "INC:structureio.def"
 	.include "DEPARTMENT" repository, structure="strDepartment"
+	.include "EMPLOYEE"   repository, structure="strEmployee"
 
 	record
 		ok,				i4
@@ -76,10 +78,19 @@ proc
 	endtry
 	.endc
 
-	if (%EmployeeIO(IO_OPEN_UPD,ech) != IO_OK)
+	if (ok)
 	begin
-		display(tt,"Failed to open employee file!")
-		ok = false
+		try
+		begin
+			open(ech=0,u:i,"REPLICATOR_DATA:EMPLOYEE.ISM")
+			new IOHooksISAM(ech,"Employee")
+		end
+		catch (e, @Exception)
+		begin
+			display(tt,"Failed to open employee file!")
+			ok = false
+		end
+		endtry
 	end
 
 	if (ok)
@@ -147,16 +158,15 @@ proc
 
 		;;Read the employee record
 		saveEmployee = employee
-		using %EmployeeIO(IO_READ,ech,^a(employee.emp_id),0,employee,IO_LOCK,,tmpvar) select
-		(IO_OK),
 		begin
+			read(ech,employee,^a(employee.emp_id)) [$ERR_KEYNOT=NotFound,$ERR_EOF=NotFound,$ERR_LOCKED=Locked]
+			
 			;;Save and display the employee data
 			saveEmployee = employee
 			call DisplayData
-		end
-		(IO_NOT_FOUND,IO_EOF),
-		begin
-			repeat
+			exit
+
+NotFound,	repeat
 			begin
 				display(tt,$scr_pos(23,2),$scr_clr(eol),"Not found, create (Y/N) ? ")
 				reads(tt,tmpvar(1:1))
@@ -176,15 +186,12 @@ proc
 				endusing
 			end
 			nextloop
-		end
-		(IO_LOCKED),
-		begin
-			display(tt,$scr_pos(23,2),"Record locked!")
+
+Locked,		display(tt,$scr_pos(23,2),"Record locked!")
 			reads(tt,tmpvar(1:1))
 			display(tt,$scr_pos(23,2),$scr_clr(eol))
 			nextloop
 		end
-		endusing
 
 		;;Get the field number to edit
 
@@ -199,20 +206,20 @@ proc
 			("E ","  "),
 			begin
 				;;All done, exit
-				using %EmployeeIO(IO_UPDATE,ech,,,employee,,,tmpvar) select
-				(IO_OK),
+				try
 				begin
+					write(ech,employee)
 					display(tt,$scr_pos(23,2),$scr_clr(eol),"Employee record saved")
 					sleep 0.5
 					display(tt,$scr_pos(23,2),$scr_clr(eol))
 				end
-				(),
+				catch (e, @Exception)
 				begin
-					display(tt,$scr_pos(23,2),$scr_clr(eol),%atrim(tmpvar))
+					display(tt,$scr_pos(23,2),$scr_clr(eol),e.Message)
 					reads(tt,tmpvar(1:1))
 					display(tt,$scr_pos(23,2),$scr_clr(eol))
 				end
-				endusing
+				endtry
 				exitloop
 			end
 			("D "),
@@ -225,7 +232,7 @@ proc
 					using tmpvar select
 					("Y"),
 					begin
-						xcall EmployeeIO(IO_DELETE,ech)
+						delete(ech)
 						;;All done, exit
 						allDone = true
 						exitloop
@@ -412,11 +419,16 @@ CreateNew,
 		("Y"),
 		begin
 			;;Save the new record
-			if (%EmployeeIO(IO_CREATE,ech,,,employee) != IO_OK)
+			try
+			begin
+				store(ech,employee)
+			end
+			catch (e, @Exception)
 			begin
 				display(tt,$scr_pos(23,2),$scr_clr(eol),"Failed to create employee!")
 				reads(tt,tmpvar(1:1))	
 			end
+			endtry
 			exitloop
 		end
 		("N"),

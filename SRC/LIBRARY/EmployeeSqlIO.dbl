@@ -40,6 +40,8 @@
 
 import ReplicationLibrary
 
+.include "EMPLOYEE" repository, structure="strEmployee", end
+
 ;;*****************************************************************************
 ;;; <summary>
 ;;; Determines if the Employee table exists in the database.
@@ -1819,11 +1821,10 @@ proc
 
     ;;Open the data file associated with the structure
 
-    if (%EmployeeIO(IO_OPEN_INP,filechn)!=IO_OK)
+	if (!(filechn = %EmployeeOpenInput))
     begin
         ok = false
-        errtxt = "Failed to open file REPLICATOR_DATA:EMPLOYEE.ISM"
-        clear filechn
+        errtxt = "Failed to open data file!"
     end
 
     if (ok)
@@ -1838,30 +1839,29 @@ proc
         repeat
         begin
             ;;Get the next record from the input file
-            if (firstRecord) then
-            begin
-                errnum = %EmployeeIO(IO_READ_FIRST,filechn,,,tmprec)
-                firstRecord = false
-            end
-            else
-            begin
-                errnum = %EmployeeIO(IO_READ_NEXT,filechn,,,tmprec)
-            end
-
-            using errnum select
-            (IO_OK),
-            begin
-                nop
-            end
-            (IO_EOF),
-                exitloop
-            (),
-            begin
-                ok = false
-                errtxt = "Unexpected response " + %string(errnum) + " from %EmployeeIO"
-                exitloop
-            end
-            endusing
+			try
+			begin
+				if (firstRecord) then
+				begin
+					read(filechn,tmprec,^FIRST)
+					firstRecord = false
+				end
+				else
+				begin
+					reads(filechn,tmprec)
+				end
+			end
+			catch (ex, @EndOfFileException)
+			begin
+				exitloop
+			end
+			catch (ex, @Exception)
+			begin
+				ok = false
+				errtxt = "Unexpected error while reading data file: " + ex.Message
+				exitloop
+			end
+			endtry
 
             ;;Got one, load it into or buffer
             ^m(inpbuf[mc+=1],mh) = tmprec
@@ -1885,12 +1885,12 @@ proc
 
     ;;Close the file
 
-    if (filechn)
-        xcall EmployeeIO(IO_CLOSE,filechn)
+    if (filechn && %chopen(filechn))
+        close filechn
 
     ;;Close the exceptions log file
 
-    if (ex_ch)
+    if (ex_ch && %chopen(ex_ch))
         close ex_ch
 
     ;;Return the error text
@@ -2409,11 +2409,10 @@ proc
 
     ;;Open the data file associated with the structure
 
-    if (%EmployeeIO(IO_OPEN_INP,filechn)!=IO_OK)
+    if (!(filechn=%EmployeeOpenInput))
     begin
         ok = false
-        errtxt = "Failed to open file REPLICATOR_DATA:EMPLOYEE.ISM"
-        clear filechn
+        errtxt = "Failed to open data file!"
     end
 
     if (ok)
@@ -2440,13 +2439,12 @@ proc
         repeat
         begin
             ;;Get the next record from the input file
-            errnum = %EmployeeIO(IO_READ_NEXT,filechn,,,employee)
+			try
+			begin
+				reads(filechn,employee)
 
-            using errnum select
-            (IO_OK),
-            begin
 				records += 1
-                csvrec = ""
+				csvrec = ""
                 &    + %string(employee.emp_id) + "|"
                 &    + %atrim(employee.emp_first_name) + "|"
                 &    + %atrim(employee.emp_last_name) + "|"
@@ -2470,16 +2468,18 @@ proc
 				.else
 				puts(csvchn,csvrec + %char(13) + %char(10))
 				.endc
-            end
-            (IO_EOF),
-                exitloop
-            (),
-            begin
-                ok = false
-                errtxt = "Unexpected response " + %string(errnum) + " from %EmployeeIO"
-                exitloop
-            end
-            endusing
+			end
+			catch (e, @EndOfFileException)
+			begin
+				exitloop
+			end
+			catch (e, @Exception)
+			begin
+				ok = false
+				errtxt = "Unexpected error when reading data file: " + e.Message
+				exitloop
+			end
+			endtry
         end
     end
 
@@ -2488,8 +2488,8 @@ proc
         close csvchn
 
     ;;Close the data file
-    if (filechn)
-        xcall EmployeeIO(IO_CLOSE,filechn)
+    if (filechn && %chopen(filechn))
+        close filechn
 
     ;;Return the record count
     if (^passed(recordCount))
@@ -2500,6 +2500,41 @@ proc
         errorMessage = errtxt
 
     freturn ok
+
+endfunction
+
+;;*****************************************************************************
+;;; <summary>
+;;; Opens the REPLICATOR_DATA:EMPLOYEE.ISM for input.
+;;; </summary>
+;;; <param name="errorMessage">Returned error message.</param>
+;;; <returns>Returns the channel number, or 0 if an error occured.</returns>
+
+function EmployeeOpenInput, ^val
+    optional out errorMessage, a  ;;Returned error text
+    endparams
+	stack record
+		ch, int
+		errmsg, a128
+	endrecord
+proc
+
+	try
+	begin
+        open(ch=0,i:i,"REPLICATOR_DATA:EMPLOYEE.ISM")
+		errmsg = ""
+	end
+	catch (ex, @Exception)
+	begin
+		errmsg = ex.Message
+		clear ch
+	end
+	endtry
+
+	if (^passed(errorMessage))
+		errorMessage = errmsg
+
+    freturn ch
 
 endfunction
 

@@ -42,6 +42,8 @@
     <DebugOptimize>Optimize</DebugOptimize>
     <DocumentationFile>bin\Release\FileService.xml</DocumentationFile>
     <Prefer32Bit Condition=" '$(TargetFrameworkVersion)'  != 'v4.0' AND '$(Prefer32Bit)' != 'false' ">true</Prefer32Bit>
+    <UnevaluatedOutputPath>bin\Release\</UnevaluatedOutputPath>
+    <Prefer32Bit>False</Prefer32Bit>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="Microsoft.Owin, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35">
