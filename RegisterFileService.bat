@@ -7,7 +7,7 @@ set PATH=%PATH%;C:\Windows\Microsoft.NET\Framework\v4.0.30319
 rem netsh http add urlacl url=http://+:8080/ user="Local Service"
 rem if ERRORLEVEL 1 goto error_url_res
 
-installutil FileService\bin\Release\FileService.exe
+installutil FileService\bin\Debug\FileService.exe
 if ERRORLEVEL 1 goto error_install
 
 net start FileService

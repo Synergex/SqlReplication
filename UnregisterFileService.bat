@@ -7,7 +7,7 @@ set PATH=%PATH%;C:\Windows\Microsoft.NET\Framework\v4.0.30319
 net stop FileService
 if ERRORLEVEL 1 goto error_stop
 
-installutil /u FileService\bin\Release\FileService.exe
+installutil /u FileService\bin\Debug\FileService.exe
 if ERRORLEVEL 1 goto error_uninstall
 
 rem netsh http delete urlacl url=http://+:8080/

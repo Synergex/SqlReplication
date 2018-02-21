@@ -324,3 +324,4 @@ __pycache__/
 
 Documentation/Web Help
 /register.bat
+*.InstallLog
