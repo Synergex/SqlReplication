@@ -8,11 +8,11 @@
 export TERM=vt100
 export LIBSRC=../src/library
 export REPSRC=../src/replicator
-export INC=../src/library
+export REPLICATOR_INCLUDE=../src/library
 export SYNEXPDIR=../proto
 export SYNIMPDIR=../proto
 export REPLICATOR_OBJ=../obj
-export XDL=../xdl
+export REPLICATOR_XDL=../xdl
 export RPSMFIL=../repository/rpsmain.ism
 export RPSTFIL=../repository/rpstext.ism
 
@@ -23,19 +23,19 @@ fi
 
 if [ ! -f $REPLICATOR_DATA/DEPARTMENT.ISM ]; then
     dos2unix $REPLICATOR_DATA/DEPARTMENT.SEQ
-    dos2unix $XDL/DEPARTMENT.XDL
-    fconvert -it $REPLICATOR_DATA/DEPARTMENT.SEQ -oi $REPLICATOR_DATA/DEPARTMENT.ISM -d $XDL/DEPARTMENT.XDL
+    dos2unix $REPLICATOR_XDL/DEPARTMENT.XDL
+    fconvert -it $REPLICATOR_DATA/DEPARTMENT.SEQ -oi $REPLICATOR_DATA/DEPARTMENT.ISM -d $REPLICATOR_XDL/DEPARTMENT.XDL
 fi
 
 if [ ! -f $REPLICATOR_DATA/EMPLOYEE.ISM ]; then
     dos2unix $REPLICATOR_DATA/EMPLOYEE.SEQ
-    dos2unix $XDL/EMPLOYEE.XDL
-    fconvert -it $REPLICATOR_DATA/EMPLOYEE.SEQ -oi $REPLICATOR_DATA/EMPLOYEE.ISM -d $XDL/EMPLOYEE.XDL
+    dos2unix $REPLICATOR_XDL/EMPLOYEE.XDL
+    fconvert -it $REPLICATOR_DATA/EMPLOYEE.SEQ -oi $REPLICATOR_DATA/EMPLOYEE.ISM -d $REPLICATOR_XDL/EMPLOYEE.XDL
 fi
 
 if [ ! -f $REPLICATOR_DATA/REPLICATION.ISM ]; then
-    dos2unix $XDL/REPLICATION.XDL
+    dos2unix $REPLICATOR_XDL/REPLICATION.XDL
     cd ../data
-    dbr DBLDIR:bldism -k $XDL/REPLICATION.XDL
+    dbr DBLDIR:bldism -k $REPLICATOR_XDL/REPLICATION.XDL
     cd ../linux
 fi

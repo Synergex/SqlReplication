@@ -5,7 +5,6 @@ import System.IO
 import System.Linq
 import System.Net
 import System.Net.Http
-import System.Text
 import System.Threading.Tasks
 import System.Web.Http
 
@@ -17,7 +16,7 @@ namespace FileService
 	;;; 
 	;;; </summary>
 	{RoutePrefix("FileService")}
-	public class FileServiceController extends ApiController
+	public partial class FileServiceController extends ApiController
         
 		public method FileServiceController
 			endparams
@@ -30,11 +29,11 @@ namespace FileService
 		;;; <summary>
 		;;; Ping the server to verify operation.
 		;;; </summary>
-		;;; <returns>A successful ping is indicated by an HTTP 200 (No content) response.</returns>
+		;;; <returns>A successful ping is indicated by an HTTP 200 (OK) response.</returns>
 		{Route("ping")}
 		public method GetPing, @HttpResponseMessage
 		proc
-			mreturn Request.CreateResponse(HttpStatusCode.NoContent)
+			mreturn Request.CreateResponse(HttpStatusCode.OK,"FileService Ping Response")
 		endmethod
         
 		;;; <summary>
@@ -73,7 +72,9 @@ namespace FileService
 			data file = Path.Combine(getStorageFolder(), fileName)
 			if (!File.Exists(file))
 				mreturn Request.CreateResponse(HttpStatusCode.NotFound)
+
 			mreturn Request.CreateResponse(HttpStatusCode.OK, File.ReadAllLines(file))
+
 		endmethod
         
 		;;;  <summary>
@@ -85,31 +86,22 @@ namespace FileService
 		public async method PostCreateFile, @Task<HttpResponseMessage>
 			fileName, string 
 		proc
-			;; Based on: https://stackoverflow.com/questions/20909118/the-remote-server-returned-an-error-415-unsupported-media-type/20909515#20909515
-			
-			data serverFileSpec, string, Path.Combine(getStorageFolder(), fileName)
-			
-			if (File.Exists(serverFileSpec))
+			data fileSpec, string, Path.Combine(getStorageFolder(), fileName)
+			if (File.Exists(fileSpec))
 				mreturn Request.CreateResponse(HttpStatusCode.Forbidden)
 			
-			
-			;TODO: The BEGIN/END should not be necessary but it appears that there is a compiler bug
-			;that causes disposable data items not to be disposed at methoid end.
+			;TODO: BUG: 2/15/18 The BEGIN/END should not be necessary but it appears that there is a compiler bug that causes disposable data items not to be disposed at methoid end.
 			begin
 				disposable data requestStream, @Stream, await Request.Content.ReadAsStreamAsync()
-			
-			;; TODO: Following are some cases you might need to handle
-			;; 1. if there is already a file with the same name in the folder (DONE)
-			;; 2. by default, request content is buffered and so if large files are uploaded
-			;;    then the request buffer policy needs to be changed to be non-buffered to imporve memory usage
-			;; 3. if exception happens while copying contents to a file (Not worried, we'll get a 500)
-
-				disposable data fs, @FileStream, File.Create(serverFileSpec)
+				disposable data fs, @FileStream, File.Create(fileSpec)
 				await requestStream.CopyToAsync(fs)
 			end
 
-			mreturn Request.CreateResponse(HttpStatusCode.OK, serverFileSpec)
+			data response, @HttpResponseMessage, Request.CreateResponse(HttpStatusCode.Created)
+			response.Headers.Location = new Uri(Request.RequestUri.AbsoluteUri)
+			response.Headers.Add("ServerFileSpec",fileSpec)
 
+			mreturn response
 		endmethod
         
 		;;; <summary>
@@ -121,14 +113,15 @@ namespace FileService
 			fileName, string 
 		proc
 			data fileSpec, string, Path.Combine(getStorageFolder(), fileName)
-
 			if (File.Exists(fileSpec))
 				File.Delete(fileSpec)
 
-			data requestStream, @Stream, await Request.Content.ReadAsStreamAsync()
-
-			disposable data local_fileStream, @FileStream, File.Create(fileSpec)
-			await requestStream.CopyToAsync(local_fileStream)
+			;TODO: BUG: 2/15/18 The BEGIN/END should not be necessary but it appears that there is a compiler bug that causes disposable data items not to be disposed at methoid end.
+			begin
+				disposable data requestStream, @Stream, await Request.Content.ReadAsStreamAsync()
+				disposable data fs, @FileStream, File.Create(fileSpec)
+				await requestStream.CopyToAsync(fs)
+			end
 
 			mreturn Request.CreateResponse(HttpStatusCode.OK)
 
@@ -143,7 +136,6 @@ namespace FileService
 			fileName, string 
 		proc
 			data file = Path.Combine(getStorageFolder(), fileName)
-
 			if (!File.Exists(file))
 				mreturn Request.CreateResponse(HttpStatusCode.NotFound)
 

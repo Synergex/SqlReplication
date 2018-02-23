@@ -1987,7 +1987,6 @@ function <StructureName>Load, ^val
     <ELSE>
     .include "<STRUCTURE_NOALIAS>" repository, stack record="tmprec", end
     </IF STRUCTURE_MAPPED>
-    .include "INC:structureio.def"
 
     .define BUFFER_ROWS     1000
     .define EXCEPTION_BUFSZ 100
@@ -2187,7 +2186,8 @@ function <StructureName>BulkLoad, ^val
 
     required in  a_dbchn,      i
 	required in  a_localpath,  string
-	required in  a_remotepath, string
+	required in  a_server,     string
+	required in  a_port,       string
     optional in  a_terminal,   n
 	optional out a_records,    n
 	optional out a_exceptions, n
@@ -2233,9 +2233,9 @@ proc
 
 	;;If we're doing a remote bulk load, create an instance of the FileService client and verify that we can access the FileService server
 	
-	if (remoteBulkLoad = ((a_remotepath!=^null) && (a_remotepath.nes." ")))
+	if (remoteBulkLoad = ((a_server!=^null) && (a_server.nes." ")))
 	begin
-		fsc = new FileServiceClient(a_remotepath)
+		fsc = new FileServiceClient(a_server,a_port)
 		ttlog("Verifying FileService connection")
 		if (!fsc.Ping(errtxt))
 		begin
@@ -2284,7 +2284,8 @@ proc
 		if (remoteBulkLoad) then
 		begin
 			ttlog("Uploading data to database host via HTTP")
-			ok = fsc.Upload(remoteCsvFile,localCsvFile,fileToLoad,errtxt)
+			;ok = fsc.Upload(localCsvFile,remoteCsvFile,fileToLoad,errtxt)
+			ok = fsc.UploadChunked(localCsvFile,remoteCsvFile,320,fileToLoad,errtxt)
 		end
 		else
 		begin
@@ -2605,7 +2606,6 @@ function <StructureName>Csv, ^val
 
     .include "CONNECTDIR:ssql.def"
     .include "<STRUCTURE_NOALIAS>" repository, record="<structure_name>", end
-    .include "INC:structureio.def"
 
     .define EXCEPTION_BUFSZ 100
 

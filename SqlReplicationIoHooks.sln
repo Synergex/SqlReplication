@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
-VisualStudioVersion = 15.0.27130.2027
+VisualStudioVersion = 15.0.27130.2036
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{BBD0F5D1-1CC4-42FD-BA4C-A96779C64378}") = "library", "PRJVS\library\library.synproj", "{3ABDC463-1713-445B-87C9-7A1786931BE2}"
 EndProject
@@ -19,13 +19,16 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{CD5A07D5-E55A-43A3-BAF3-E89A6E0E29C3}"
 	ProjectSection(SolutionItems) = preProject
 		.gitignore = .gitignore
+		ConfigureDatabase.sql = ConfigureDatabase.sql
 		LICENSE.md = LICENSE.md
 		README.md = README.md
 		regen.bat = regen.bat
 		RegisterFileService.bat = RegisterFileService.bat
 		RegisterReplicatorService.bat = RegisterReplicatorService.bat
+		RpsExport.bat = RpsExport.bat
+		RpsImport.bat = RpsImport.bat
+		setup.bat = setup.bat
 		SignFile.bat = SignFile.bat
-		StartLocalReplicator.bat = StartLocalReplicator.bat
 		UnregisterFileService.bat = UnregisterFileService.bat
 		UnregisterReplicatorService.bat = UnregisterReplicatorService.bat
 	EndProjectSection

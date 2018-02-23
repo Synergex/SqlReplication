@@ -22,6 +22,7 @@ $ DIB/OPT/VECTORS=VECTORS/OBJ=OBJ:LIBRARY.OBJ -
  + LIBSRC:ConfigureReplication.dbl -
  + LIBSRC:EmployeeSqlIO.dbl -
  + LIBSRC:File.dbl -
+ + LIBSRC:FileChunkReader.dbl -
  + LIBSRC:FileServiceClient.dbl -
  + LIBSRC:GetReplicatedTables.dbl -
  + LIBSRC:IndexExists.dbl -

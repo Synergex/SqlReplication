@@ -52,9 +52,9 @@ proc
 
 	xcall delet("REPLICATOR_DATA:EMPLOYEE.ISM")
 
-	open(ch=0,o:i,"REPLICATOR_DATA:EMPLOYEE.ISM",FDL:"@XDL:EMPLOYEE.XDL")
+	open(ch=0,o:i,"REPLICATOR_DATA:EMPLOYEE.ISM",FDL:"@REPLICATOR_XDL:EMPLOYEE.XDL")
 
-	for employee.emp_id from 1 thru 999999
+	for employee.emp_id from 1 thru 500000
 	begin
 		employee.emp_first_name = %randomFirstName
 		employee.emp_last_name = %randomLastName

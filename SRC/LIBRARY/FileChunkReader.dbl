@@ -1,0 +1,129 @@
+;;*****************************************************************************
+;;
+;; File:        FileChunkReader.dbl
+;;
+;; Description: A class to read files in large chunks.
+;;
+;; Author:      Steve Ives (Synergex Professional Services Group)
+;;
+;;*****************************************************************************
+;;
+;; Copyright (c) 2018, Synergex International, Inc.
+;; All rights reserved.
+;;
+;; Redistribution and use in source and binary forms, with or without
+;; modification, are permitted provided that the following conditions are met:
+;;
+;; * Redistributions of source code must retain the above copyright notice,
+;;   this list of conditions and the following disclaimer.
+;;
+;; * Redistributions in binary form must reproduce the above copyright notice,
+;;   this list of conditions and the following disclaimer in the documentation
+;;   and/or other materials provided with the distribution.
+;;
+;; THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+;; AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+;; IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+;; ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+;; LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+;; CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+;; SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+;; INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+;; CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+;; ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+;; POSSIBILITY OF SUCH DAMAGE.
+;;
+;;*****************************************************************************
+
+namespace ReplicationLibrary
+
+	public class FileChunkReader
+
+		structure block
+			, a32768
+		endstructure
+
+		private channel, int
+
+		private blockSize, int, ^size(block)
+		private blockCount, int
+		private chunkSize, int
+		private chunkData, D_HANDLE
+
+		;;; <summary>
+		;;; 
+		;;; </summary>
+		;;; <param name="aFileSpec"></param>
+		;;; <param name="aChunkSize">Chunk size in number of 32K blocks (32=1MB)</param>
+		public method FileChunkReader
+			required in aFileSpec, string
+			required in aBlockCount, int
+		proc
+			.ifdef OS_VMS
+			open(channel=0,i,aFileSpec,OPTIONS:"/stream")
+			.else
+			open(channel=0,i,aFileSpec)
+			.endc
+			blockCount = aBlockCount
+			chunkSize = ^size(block) * blockCount
+			chunkData = %mem_proc(DM_ALLOC|DM_STATIC|DM_BLANK,chunkSize)
+		endmethod
+
+		public method Cleanup, void
+		proc
+			if (channel && %chopen(channel))
+			begin
+				close channel
+				clear channel
+			end
+			try
+			begin
+				chunkData = %mem_proc(DM_FREE,chunkData)
+			end
+			catch (e, @Exception)
+			begin
+				nop
+			end
+			endtry
+		endmethod
+
+		public method ReadChunk, boolean
+			required out aChunkData, D_HANDLE
+			stack record
+				more, boolean
+				blockNumber, int
+				lastChunkSize, int
+			endrecord
+		proc
+			more = true
+
+			;;Read the next chunk of data from the file
+			try
+			begin
+				for blockNumber from 1 thru blockCount
+				begin
+					gets(channel,^m(block[blockNumber],chunkData))
+				end
+			end
+			catch (ex, @EndOfFileException)
+			begin
+				;;We hit EOF. Resize handle to exact size of the last chunk of data
+				if (lastChunkSize = (blockSize*(blockNumber-1))+%rsize) then
+					chunkData = %mem_proc(DM_RESIZ,lastChunkSize,chunkData)
+				else
+					chunkData = %mem_proc(DM_FREE,chunkData)
+				more = false
+			end
+			endtry
+
+			;;Return the handle to the client
+			aChunkData = chunkData
+
+			mreturn more
+
+		endmethod
+
+		
+	endclass
+
+endnamespace

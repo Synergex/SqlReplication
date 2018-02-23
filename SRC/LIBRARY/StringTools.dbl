@@ -511,7 +511,6 @@ namespace ReplicationLibrary
             ;;Open the input file
             try
             begin
-				;open(ch=0,i:b,fileSpec)
 				.ifdef OS_VMS
 				open(ch=0,i,fileSpec,OPTIONS:"/stream")
 				.else

@@ -102,6 +102,7 @@
     <Compile Include="FileService.designer.dbl">
       <DependentUpon>FileService.dbl</DependentUpon>
     </Compile>
+    <Compile Include="FileServiceChunkedUpload.dbl" />
     <Compile Include="FileServiceController.dbl" />
     <Compile Include="Program.dbl" />
     <Compile Include="ProjectInstaller.dbl">

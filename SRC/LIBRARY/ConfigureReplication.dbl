@@ -49,7 +49,7 @@ subroutine ConfigureReplication
     endrecord
 
     .define common global common
-    .include "INC:sqlgbl.def"
+    .include "REPLICATOR_INCLUDE:sqlgbl.def"
     .undefine common
 
 proc

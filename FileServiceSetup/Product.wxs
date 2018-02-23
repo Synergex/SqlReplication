@@ -9,8 +9,8 @@
 
   <Product
     Name="File Service"
-    Version="1.0"
-    Id="{91A22050-21E2-4A30-A2EC-7AF4C56A7311}"
+    Version="1.1"
+    Id="{B1369A80-59B2-407C-94F1-AFEB9AEE2053}"
     Language="1033"
     Manufacturer="Synergex International Corporation"
     UpgradeCode="{D610D7F5-5DCC-4E46-A4C9-A393B53790D7}">
@@ -154,44 +154,48 @@
           Wait="yes" />
       </Component>
 
+      <Component Id="File_FileService.pdb" Guid="{9863CDBF-2DB0-4865-B07D-9A28DBF3CACF}">
+        <File Id="FileService.pdb" KeyPath="yes" Source="$(var.FileService.TargetDir)FileService.pdb" Checksum="yes" />
+      </Component>
+
       <Component Id="File_FileService.exe.config" Guid="{9BF9D859-7E64-4DEE-B113-94CF4F6DFA0E}">
-        <File Id="FileService.exe.config" KeyPath="yes" Source="..\FileService\bin\Release\FileService.exe.config" Checksum="yes" />
+        <File Id="FileService.exe.config" KeyPath="yes" Source="$(var.FileService.TargetDir)FileService.exe.config" Checksum="yes" />
       </Component>
 
       <Component Id="File_Microsoft.Owin.dll" Guid="{988CC973-92C8-4D7B-A7E9-FEEE10D4C6CA}">
-        <File Id="Microsoft.Owin.dll" KeyPath="yes" Source="..\FileService\bin\Release\Microsoft.Owin.dll" Checksum="yes" />
+        <File Id="Microsoft.Owin.dll" KeyPath="yes" Source="$(var.FileService.TargetDir)Microsoft.Owin.dll" Checksum="yes" />
       </Component>
 
       <Component Id="File_Microsoft.Owin.Host.HttpListener.dll" Guid="{485FA686-7F9B-4B15-A961-182265D25732}">
-        <File Id="Microsoft.Owin.Host.HttpListener.dll" KeyPath="yes" Source="..\FileService\bin\Release\Microsoft.Owin.Host.HttpListener.dll" Checksum="yes" />
+        <File Id="Microsoft.Owin.Host.HttpListener.dll" KeyPath="yes" Source="$(var.FileService.TargetDir)Microsoft.Owin.Host.HttpListener.dll" Checksum="yes" />
       </Component>
 
       <Component Id="File_Microsoft.Owin.Hosting.dll" Guid="{C57D4F99-AC1A-4CBF-8BEB-3DC6BC0FE989}">
-        <File Id="Microsoft.Owin.Hosting.dll" KeyPath="yes" Source="..\FileService\bin\Release\Microsoft.Owin.Hosting.dll" Checksum="yes" />
+        <File Id="Microsoft.Owin.Hosting.dll" KeyPath="yes" Source="$(var.FileService.TargetDir)Microsoft.Owin.Hosting.dll" Checksum="yes" />
       </Component>
 
       <Component Id="File_Newtonsoft.Json.dll" Guid="{D6EF4B82-81DA-4E31-879C-A6783920136A}">
-        <File Id="Newtonsoft.Json.dll" KeyPath="yes" Source="..\FileService\bin\Release\Newtonsoft.Json.dll" Checksum="yes" />
+        <File Id="Newtonsoft.Json.dll" KeyPath="yes" Source="$(var.FileService.TargetDir)Newtonsoft.Json.dll" Checksum="yes" />
       </Component>
 
       <Component Id="File_Owin.dll" Guid="{C611008D-32D2-4697-BDE3-883FA0F0B2A9}">
-        <File Id="Owin.dll" KeyPath="yes" Source="..\FileService\bin\Release\Owin.dll" Checksum="yes" />
+        <File Id="Owin.dll" KeyPath="yes" Source="$(var.FileService.TargetDir)Owin.dll" Checksum="yes" />
       </Component>
 
       <Component Id="File_System.Net.Http.Formatting.dll" Guid="{90441D73-1838-417C-A521-235EAB05E994}">
-        <File Id="System.Net.Http.Formatting.dll" KeyPath="yes" Source="..\FileService\bin\Release\System.Net.Http.Formatting.dll" Checksum="yes" />
+        <File Id="System.Net.Http.Formatting.dll" KeyPath="yes" Source="$(var.FileService.TargetDir)System.Net.Http.Formatting.dll" Checksum="yes" />
       </Component>
 
       <Component Id="File_System.Web.Http.dll" Guid="{135BC0F1-2A3A-4760-B6CC-495BC67282A5}">
-        <File Id="System.Web.Http.dll" KeyPath="yes" Source="..\FileService\bin\Release\System.Web.Http.dll" Checksum="yes" />
+        <File Id="System.Web.Http.dll" KeyPath="yes" Source="$(var.FileService.TargetDir)System.Web.Http.dll" Checksum="yes" />
       </Component>
 
       <Component Id="File_System.Web.Http.Owin.dll" Guid="{8B178077-0436-42A8-8439-F3B85A6D46F2}">
-        <File Id="System.Web.Http.Owin.dll" KeyPath="yes" Source="..\FileService\bin\Release\System.Web.Http.Owin.dll" Checksum="yes" />
+        <File Id="System.Web.Http.Owin.dll" KeyPath="yes" Source="$(var.FileService.TargetDir)System.Web.Http.Owin.dll" Checksum="yes" />
       </Component>
 
       <Component Id="File_System.Web.Http.WebHost.dll" Guid="{0D2B824E-6D5B-46CB-BC63-A3BC3F204765}">
-        <File Id="System.Web.Http.WebHost.dll" KeyPath="yes" Source="..\FileService\bin\Release\System.Web.Http.WebHost.dll" Checksum="yes" />
+        <File Id="System.Web.Http.WebHost.dll" KeyPath="yes" Source="$(var.FileService.TargetDir)System.Web.Http.WebHost.dll" Checksum="yes" />
       </Component>
 
     </DirectoryRef>
@@ -210,6 +214,7 @@
 
     <Feature Id="FeatureCore" Title="File Service" Level="1" Absent="disallow" Description="Installs the core components needed to use the File Service.">
       <ComponentRef Id="File_$(var.FileService.TargetFileName)" />
+      <ComponentRef Id="File_FileService.pdb"/>
       <ComponentRef Id="File_FileService.exe.config" />
       <ComponentRef Id="File_Microsoft.Owin.dll" />
       <ComponentRef Id="File_Microsoft.Owin.Host.HttpListener.dll" />

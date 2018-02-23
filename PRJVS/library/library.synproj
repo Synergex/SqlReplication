@@ -86,6 +86,9 @@
     <Compile Include="..\..\SRC\LIBRARY\File.dbl">
       <Link>File.dbl</Link>
     </Compile>
+    <Compile Include="..\..\SRC\LIBRARY\FileChunkReader.dbl">
+      <Link>FileChunkReader.dbl</Link>
+    </Compile>
     <Compile Include="..\..\SRC\LIBRARY\FileServiceClient.dbl">
       <Link>FileServiceClient.dbl</Link>
     </Compile>
@@ -146,10 +149,6 @@
     <Content Include="..\..\SRC\LIBRARY\sqlgbl.def">
       <SubType>Content</SubType>
       <Link>sqlgbl.def</Link>
-    </Content>
-    <Content Include="..\..\SRC\LIBRARY\structureio.def">
-      <SubType>Content</SubType>
-      <Link>structureio.def</Link>
     </Content>
   </ItemGroup>
   <ItemGroup>

@@ -20,33 +20,27 @@ if exist "%SYNERGYDE64%dbl\dblvars64.bat" (
 set ROOT=%~dp0
 set INC=%ROOT%SRC\LIBRARY
 set OBJ=%ROOT%OBJ
-set EXE=%ROOT%EXE
-set DAT=%ROOT%DAT
-set BAT=%ROOT%BAT
-set XDL=%ROOT%XDL
+set REPLICATOR_EXE=%ROOT%EXE
+set REPLICATOR_DATA=%ROOT%DAT
+set REPLICATOR_XDL=%ROOT%XDL
 set RPSMFIL=%ROOT%RPS\rpsmain.ism
 set RPSTFIL=%ROOT%RPS\rpstext.ism
 set SYNEXPDIR=%ROOT%PROTO
 set SYNIMPDIR=%ROOT%PROTO
-rem set REPLICATOR_DATABASE=VTX12_SQLNATIVE://SqlReplicationIoHooks/.///Trusted_connection=yes
-rem set REPLICATOR_LOGDIR=%ROOT%
-rem set REPLICATOR_INTERVAL=2
-rem set REPLICATOR_FULL_LOG=YES
-rem set REPLICATOR_LOG_KEYS=YES
-rem set REPLICATOR_LOG_BULK_LOAD_EXCEPTIONS=YES
-rem set REPLICATOR_EXPORT=%ROOT%
-rem set REPLICATOR_EMAIL_SENDER=replicator@synergex.com
-rem set REPLICATOR_EMAIL_DOMAIN=synergex.com
-rem set REPLICATOR_ERROR_EMAIL=steve.ives@synergex.com
-rem set REPLICATOR_ERROR_STOP=YES
-rem set REPLICATOR_SMTP_SERVER=
 
 rem If no repository load it from the schema
 if not exist "%RPSMFIL%" (
-  call "%BAT%\rps_import.bat"
+  call RpsImport.bat
 )
 
-rem if no data files, create and load them
-if not exist "%DAT%\employee.ism" (
-  call "%BAT%\load_data.bat"
+if not exist "%DAT%\DEPARTMENT.ISM" (
+  fconvert -it REPLICATOR_DATA:DEPARTMENT.SEQ -oi REPLICATOR_DATA:DEPARTMENT.ISM -d REPLICATOR_XDL:DEPARTMENT.XDL
+)
+
+if not exist "%DAT%\EMPLOYEE.ISM" (
+  fconvert -it REPLICATOR_DATA:EMPLOYEE.SEQ   -oi REPLICATOR_DATA:EMPLOYEE.ISM   -d REPLICATOR_XDL:EMPLOYEE.XDL
+)
+
+if not exist "%DAT%\REPLICATION.ISM" (
+  dbs DBLDIR:bldism -k REPLICATOR_XDL:REPLICATION.XDL
 )
