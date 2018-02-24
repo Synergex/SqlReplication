@@ -695,10 +695,10 @@
     </Config>
     <Macro>
         <ExecMacro CmdLine="syn_set ROOT=%wp"/>
-        <ExecMacro CmdLine="syn_set INC=%(ROOT)SRC\LIBRARY"/>
+        <ExecMacro CmdLine="syn_set REPLICATOR_INCLUDE=%(ROOT)SRC\LIBRARY"/>
         <ExecMacro CmdLine="syn_set OBJ=%(ROOT)OBJ"/>
         <ExecMacro CmdLine="syn_set BAT=%(ROOT)BAT"/>
-        <ExecMacro CmdLine="syn_set XDL=%(ROOT)XDL"/>
+        <ExecMacro CmdLine="syn_set REPLICATOR_XDL=%(ROOT)XDL"/>
         <ExecMacro CmdLine="syn_set REPOSITORY=%(ROOT)RPS"/>
         <ExecMacro CmdLine="syn_set RPSMFIL=%(ROOT)RPS\rpsmain.ism"/>
         <ExecMacro CmdLine="syn_set RPSTFIL=%(ROOT)RPS\rpstext.ism"/>
@@ -706,14 +706,15 @@
         <ExecMacro CmdLine="syn_set SYNIMPDIR=%(ROOT)PROTO"/>
         <ExecMacro CmdLine="syn_set REPLICATOR_EXE=%(ROOT)EXE"/>
         <ExecMacro CmdLine="syn_set REPLICATOR_DATA=%(ROOT)DAT"/>
-        <ExecMacro CmdLine="syn_set REPLICATOR_DATABASE=net:SqlReplication/SqlReplicationPassword/SqlReplicationIoHooks/SISQL2017///@1958:SISQL2017!VTX12_SQLNATIVE"/>
+        <ExecMacro CmdLine="syn_set REPLICATOR_DATABASE=net:SqlReplicationUser/SqlReplicationPassword/SqlReplication/SISQL2017///@1958:192.168.93.13!VTX12_SQLNATIVE"/>
         <ExecMacro CmdLine="syn_set REPLICATOR_LOGDIR=%(ROOT)EXE"/>
         <ExecMacro CmdLine="syn_set REPLICATOR_INTERVAL=2"/>
         <ExecMacro CmdLine="syn_set REPLICATOR_FULL_LOG=YES"/>
         <ExecMacro CmdLine="syn_set REPLICATOR_LOG_KEYS=YES"/>
         <ExecMacro CmdLine="syn_set REPLICATOR_LOG_BULK_LOAD_EXCEPTIONS=YES"/>
         <ExecMacro CmdLine="syn_set REPLICATOR_EXPORT_LOCAL=%(ROOT)DAT"/>
-        <ExecMacro CmdLine="syn_set REPLICATOR_EXPORT_REMOTE=http://sisql2017:8080/FileService"/>
+        <ExecMacro CmdLine="syn_set REPLICATOR_FILESERVICE_HOST=192.168.93.13"/>
+        <ExecMacro CmdLine="syn_set REPLICATOR_FILESERVICE_PORT=8080"/>
         <ExecMacro CmdLine="syn_set REPLICATOR_ERROR_STOP=YES"/>
     </Macro>
 </Project>
