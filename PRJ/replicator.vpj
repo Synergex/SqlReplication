@@ -107,6 +107,22 @@
                 SaveOption="SaveAll">
                 <Exec CmdLine="regen.bat"/>
             </Target>
+            <Target
+                Name="Send to Linux"
+                MenuCaption="&amp;Send to Linux"
+                RunFromDir="%wpLINUX"
+                CaptureOutputWith="ProcessBuffer"
+                SaveOption="SaveAll">
+                <Exec CmdLine="SendToLinux.bat"/>
+            </Target>
+            <Target
+                Name="Send to VMS"
+                MenuCaption="&amp;Send to VMS"
+                RunFromDir="%wpVMS"
+                CaptureOutputWith="ProcessBuffer"
+                SaveOption="SaveAll">
+                <Exec CmdLine="SendToVMS.bat"/>
+            </Target>
         </Menu>
         <SynSettings>
             <SynSetting
@@ -311,6 +327,22 @@
                 SaveOption="SaveAll">
                 <Exec CmdLine="regen.bat"/>
             </Target>
+            <Target
+                Name="Send to Linux"
+                MenuCaption="&amp;Send to Linux"
+                RunFromDir="%wpLINUX"
+                CaptureOutputWith="ProcessBuffer"
+                SaveOption="SaveAll">
+                <Exec CmdLine="SendToLinux.bat"/>
+            </Target>
+            <Target
+                Name="Send to VMS"
+                MenuCaption="&amp;Send to VMS"
+                RunFromDir="%wpVMS"
+                CaptureOutputWith="ProcessBuffer"
+                SaveOption="SaveAll">
+                <Exec CmdLine="SendToVMS.bat"/>
+            </Target>
         </Menu>
         <SynSettings>
             <SynSetting
@@ -473,6 +505,22 @@
                 SaveOption="SaveAll">
                 <Exec CmdLine="regen.bat"/>
             </Target>
+            <Target
+                Name="Send to Linux"
+                MenuCaption="&amp;Send to Linux"
+                RunFromDir="%wpLINUX"
+                CaptureOutputWith="ProcessBuffer"
+                SaveOption="SaveAll">
+                <Exec CmdLine="SendToLinux.bat"/>
+            </Target>
+            <Target
+                Name="Send to VMS"
+                MenuCaption="&amp;Send to VMS"
+                RunFromDir="%wpVMS"
+                CaptureOutputWith="ProcessBuffer"
+                SaveOption="SaveAll">
+                <Exec CmdLine="SendToVMS.bat"/>
+            </Target>
         </Menu>
         <SynSettings>
             <SynSetting
@@ -634,6 +682,22 @@
                 CaptureOutputWith="ProcessBuffer"
                 SaveOption="SaveAll">
                 <Exec CmdLine="regen.bat"/>
+            </Target>
+            <Target
+                Name="Send to Linux"
+                MenuCaption="&amp;Send to Linux"
+                RunFromDir="%wpLINUX"
+                CaptureOutputWith="ProcessBuffer"
+                SaveOption="SaveAll">
+                <Exec CmdLine="SendToLinux.bat"/>
+            </Target>
+            <Target
+                Name="Send to VMS"
+                MenuCaption="&amp;Send to VMS"
+                RunFromDir="%wpVMS"
+                CaptureOutputWith="ProcessBuffer"
+                SaveOption="SaveAll">
+                <Exec CmdLine="SendToVMS.bat"/>
             </Target>
         </Menu>
         <SynSettings>
