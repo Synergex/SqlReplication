@@ -17,8 +17,8 @@ export RPSMFIL=../repository/rpsmain.ism
 export RPSTFIL=../repository/rpstext.ism
 
 if [ ! -f $RPSMFIL ]; then
-    dos2unix ../repository/replication.sch
-    dbr RPS:rpsutl -i ../repository/replication.sch -ia -ir
+    dos2unix ../repository/REPLICATION.SCH
+    dbr RPS:rpsutl -i ../repository/REPLICATION.SCH -ia -ir
 fi
 
 if [ ! -f $REPLICATOR_DATA/DEPARTMENT.ISM ]; then

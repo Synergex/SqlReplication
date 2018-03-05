@@ -27,6 +27,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		RegisterReplicatorService.bat = RegisterReplicatorService.bat
 		RpsExport.bat = RpsExport.bat
 		RpsImport.bat = RpsImport.bat
+		SendToLinux.bat = SendToLinux.bat
+		SendToVMS.bat = SendToVMS.bat
 		setup.bat = setup.bat
 		SignFile.bat = SignFile.bat
 		UnregisterFileService.bat = UnregisterFileService.bat
@@ -44,7 +46,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "VMS", "VMS", "{D858AA93-37A
 		VMS\REPLICATOR_DETACH.COM = VMS\REPLICATOR_DETACH.COM
 		VMS\REPLICATOR_RUN.COM = VMS\REPLICATOR_RUN.COM
 		VMS\REPLICATOR_SETUP.COM = VMS\REPLICATOR_SETUP.COM
-		VMS\SendToVMS.bat = VMS\SendToVMS.bat
 		VMS\SETUP.COM = VMS\SETUP.COM
 	EndProjectSection
 EndProject
@@ -59,7 +60,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "LINUX", "LINUX", "{8D5C12A2
 		LINUX\replicator_setup = LINUX\replicator_setup
 		LINUX\replicator_status = LINUX\replicator_status
 		LINUX\replicator_stop = LINUX\replicator_stop
-		LINUX\SendToLinux.bat = LINUX\SendToLinux.bat
 		LINUX\setup = LINUX\setup
 	EndProjectSection
 EndProject

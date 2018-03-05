@@ -18,10 +18,6 @@ pushd %~dp0
 
 call "%SYNERGYDE32%dbl\dblvars32.bat"
 
-rem Export a repository schema
-echo Exporting repository schema...
-dbs RPS:rpsutl -e REPLICATION.SCH
-
 rem Create an FTP command script to transfer the files
 echo Creating FTP script...
 echo open 192.168.93.10 21 > ftp.tmp
@@ -40,20 +36,20 @@ echo mkdir [.SRC.LIBRARY] >> ftp.tmp
 echo mkdir [.SRC.REPLICATOR] >> ftp.tmp
 echo mkdir [.VMS] >> ftp.tmp
 echo cd [.DATA] >> ftp.tmp
-echo mput ..\DAT\*.SEQ >> ftp.tmp
+echo mput DAT\*.SEQ >> ftp.tmp
 echo cd [-.FDL] >> ftp.tmp
-echo mput *.FDL >> ftp.tmp
+echo mput VMS\*.FDL >> ftp.tmp
 echo cd [-.REPOSITORY] >> ftp.tmp
-echo put REPLICATION.SCH >> ftp.tmp
+echo put RPS\REPLICATION.SCH >> ftp.tmp
 echo cd [-.SRC.LIBRARY] >> ftp.tmp
-echo mput ..\SRC\LIBRARY\*.dbl >> ftp.tmp
-echo mput ..\SRC\LIBRARY\*.def >> ftp.tmp
+echo mput SRC\LIBRARY\*.dbl >> ftp.tmp
+echo mput SRC\LIBRARY\*.def >> ftp.tmp
 echo cd [-.REPLICATOR] >> ftp.tmp
-echo mput ..\SRC\REPLICATOR\*.dbl >> ftp.tmp
+echo mput SRC\REPLICATOR\*.dbl >> ftp.tmp
 echo cd [-.-.VMS] >> ftp.tmp
-echo mput *.COM >> ftp.tmp
-echo put MAKESHARE.DBL >> ftp.tmp
-echo put REPLICATOR.OPT >> ftp.tmp
+echo mput VMS\*.COM >> ftp.tmp
+echo put VMS\MAKESHARE.DBL >> ftp.tmp
+echo put VMS\REPLICATOR.OPT >> ftp.tmp
 echo bye >> ftp.tmp
 
 rem Transfer the files
@@ -63,7 +59,6 @@ ftp -s:ftp.tmp 1>nul
 rem Delete the command script
 echo Cleaning up...
 del /q ftp.tmp
-del /q REPLICATION.SCH
 
 echo Done!
 popd

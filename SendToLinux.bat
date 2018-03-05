@@ -18,10 +18,6 @@ pushd %~dp0
 
 call "%SYNERGYDE32%dbl\dblvars32.bat"
 
-rem Export a repository schema
-echo Exporting repository schema...
-dbs RPS:rpsutl -e replication.sch
-
 rem Create an FTP command script to transfer the files
 echo Creating FTP script...
 echo open 192.168.93.11 21> ftp.tmp
@@ -41,27 +37,27 @@ echo mkdir src/library>> ftp.tmp
 echo mkdir src/replicator>> ftp.tmp
 echo mkdir linux>> ftp.tmp
 echo cd data>> ftp.tmp
-echo mput ..\DAT\*.SEQ>> ftp.tmp
+echo mput DAT\*.SEQ>> ftp.tmp
 echo cd ../xdl>> ftp.tmp
-echo mput ..\XDL\*.XDL>> ftp.tmp
+echo mput XDL\*.XDL>> ftp.tmp
 echo cd ../repository>> ftp.tmp
-echo put replication.sch>> ftp.tmp
+echo put RPS\REPLICATION.SCH>> ftp.tmp
 echo cd ../src/library>> ftp.tmp
-echo mput ..\SRC\LIBRARY\*.dbl>> ftp.tmp
-echo mput ..\SRC\LIBRARY\*.def>> ftp.tmp
+echo mput SRC\LIBRARY\*.dbl>> ftp.tmp
+echo mput SRC\LIBRARY\*.def>> ftp.tmp
 echo cd ../replicator>> ftp.tmp
-echo mput ..\SRC\REPLICATOR\*.dbl>> ftp.tmp
+echo mput SRC\REPLICATOR\*.dbl>> ftp.tmp
 echo cd ../../linux>> ftp.tmp
-echo put build>> ftp.tmp
-echo put replicator_count>> ftp.tmp
-echo put replicator_detach>> ftp.tmp
-echo put replicator_instructions>> ftp.tmp
-echo put replicator_menu>> ftp.tmp
-echo put replicator_run>> ftp.tmp
-echo put replicator_setup>> ftp.tmp
-echo put replicator_status>> ftp.tmp
-echo put replicator_stop>> ftp.tmp
-echo put setup>> ftp.tmp
+echo put LINUX\build>> ftp.tmp
+echo put LINUX\replicator_count>> ftp.tmp
+echo put LINUX\replicator_detach>> ftp.tmp
+echo put LINUX\replicator_instructions>> ftp.tmp
+echo put LINUX\replicator_menu>> ftp.tmp
+echo put LINUX\replicator_run>> ftp.tmp
+echo put LINUX\replicator_setup>> ftp.tmp
+echo put LINUX\replicator_status>> ftp.tmp
+echo put LINUX\replicator_stop>> ftp.tmp
+echo put LINUX\setup>> ftp.tmp
 echo bye>> ftp.tmp
 
 rem Transfer the files
@@ -71,7 +67,6 @@ ftp -s:ftp.tmp 1>nul
 rem Delete the command script
 echo Cleaning up...
 del /q ftp.tmp
-del /q replication.sch
 
 echo Done!
 popd
