@@ -964,11 +964,14 @@ function <StructureName>InsertRows, ^val
     literal
         sql         ,a*, "INSERT INTO <StructureName> ("
         <IF STRUCTURE_RELATIVE>
-        & +              '"RecordNumber",'
+		<COUNTER_1_INCREMENT>
+        & +              '"RecordNumber",' ;#<COUNTER_1_VALUE>
         </IF STRUCTURE_RELATIVE>
         <FIELD_LOOP>
-        & +              '"<FieldSqlName>"<,>'
+		<COUNTER_1_INCREMENT>
+        & +              '"<FieldSqlName>"<,>' ;#<COUNTER_1_VALUE>
         </FIELD_LOOP>
+		<COUNTER_1_RESET>
         & +              ") VALUES(<IF STRUCTURE_RELATIVE>:1,<COUNTER_1_INCREMENT></IF STRUCTURE_RELATIVE><FIELD_LOOP><COUNTER_1_INCREMENT><IF USERTIMESTAMP>CONVERT(DATETIME2,:<COUNTER_1_VALUE>,21)<,><ELSE>:<COUNTER_1_VALUE><,></IF USERTIMESTAMP></FIELD_LOOP>)"
     endliteral
 

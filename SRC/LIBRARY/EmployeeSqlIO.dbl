@@ -922,23 +922,23 @@ function EmployeeInsertRows, ^val
 
     literal
         sql         ,a*, "INSERT INTO Employee ("
-        & +              '"EmpId",'
-        & +              '"EmpFirstName",'
-        & +              '"EmpLastName",'
-        & +              '"EmpDept",'
-        & +              '"EmpHireDate",'
-        & +              '"EmpPhoneWork",'
-        & +              '"EmpPhoneHome",'
-        & +              '"EmpPhoneCell",'
-        & +              '"EmpPaid",'
-        & +              '"EmpHomeOk",'
-        & +              '"EmpDateOfBirth",'
-        & +              '"EmpHireTime",'
-        & +              '"EmpEmail",'
-        & +              '"EmpAddressStreet",'
-        & +              '"EmpAddressCity",'
-        & +              '"EmpAddressState",'
-        & +              '"EmpAddressZip"'
+        & +              '"EmpId",' ;#1
+        & +              '"EmpFirstName",' ;#2
+        & +              '"EmpLastName",' ;#3
+        & +              '"EmpDept",' ;#4
+        & +              '"EmpHireDate",' ;#5
+        & +              '"EmpPhoneWork",' ;#6
+        & +              '"EmpPhoneHome",' ;#7
+        & +              '"EmpPhoneCell",' ;#8
+        & +              '"EmpPaid",' ;#9
+        & +              '"EmpHomeOk",' ;#10
+        & +              '"EmpDateOfBirth",' ;#11
+        & +              '"EmpHireTime",' ;#12
+        & +              '"EmpEmail",' ;#13
+        & +              '"EmpAddressStreet",' ;#14
+        & +              '"EmpAddressCity",' ;#15
+        & +              '"EmpAddressState",' ;#16
+        & +              '"EmpAddressZip"' ;#17
         & +              ") VALUES(:1,:2,:3,:4,:5,:6,:7,:8,:9,:10,:11,:12,:13,:14,:15,:16,:17)"
     endliteral
 
