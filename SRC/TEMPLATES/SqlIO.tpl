@@ -2658,7 +2658,7 @@ proc
             ;;Get the next record from the input file
 			try
 			begin
-				reads(filechn,employee)
+				reads(filechn,<structure_name>)
 
 				records += 1
 				csvrec = ""
