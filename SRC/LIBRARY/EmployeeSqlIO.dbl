@@ -2568,3 +2568,15 @@ proc
 
 endfunction
 
+
+function EmployeeLength ,^val
+proc
+    freturn 300
+endfunction
+
+function EmployeeType, ^val
+    required out fileType, a
+proc
+    fileType = "DBL ISAM"
+    freturn true
+endfunction

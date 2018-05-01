@@ -811,9 +811,7 @@ proc
 
         <FIELD_LOOP>
         <IF ALPHA>
-        <IF NOTPKSEGMENT>
         <field_path> = %atrim(<field_path>)+%char(0)
-        </IF NOTPKSEGMENT>
         </IF ALPHA>
         </FIELD_LOOP>
 
@@ -1136,9 +1134,7 @@ proc
 
             <FIELD_LOOP>
             <IF ALPHA>
-            <IF NOTPKSEGMENT>
             <field_path>=%atrim(<field_path>)+%char(0)
-            </IF NOTPKSEGMENT>
             </IF ALPHA>
             </FIELD_LOOP>
 
@@ -1460,9 +1456,7 @@ proc
 
         <FIELD_LOOP>
         <IF ALPHA>
-        <IF NOTPKSEGMENT>
         <field_path> = %atrim(<field_path>) + %char(0)
-        </IF NOTPKSEGMENT>
         </IF ALPHA>
         </FIELD_LOOP>
 
@@ -2849,3 +2843,15 @@ proc
 endfunction
 
 </IF STRUCTURE_MAPPED>
+
+function <StructureName>Length ,^val
+proc
+    freturn <STRUCTURE_SIZE>
+endfunction
+
+function <StructureName>Type, ^val
+    required out fileType, a
+proc
+    fileType = "<FILE_TYPE>"
+    freturn true
+endfunction
