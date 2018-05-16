@@ -672,7 +672,7 @@ function <StructureName>Insert, ^val
     endliteral
 
     static record
-        <structure_name>, str<STRUCTURE_NOALIAS>
+        <structure_name>, str<StructureName>
         <FIELD_LOOP>
         <IF USERTIMESTAMP>
         tmp<FieldSqlName>, a26     ;;Storage for user-defined timestamp field
@@ -1320,7 +1320,7 @@ function <StructureName>Update, ^val
     endliteral
 
     static record
-        <structure_name>, str<STRUCTURE_NOALIAS>
+        <structure_name>, str<StructureName>
         <FIELD_LOOP>
         <IF USERTIMESTAMP>
         tmp<FieldSqlName>, a26     ;;Storage for user-defined timestamp field
@@ -2644,9 +2644,9 @@ proc
 
 		;;Add a row of column headers
 		.ifdef OS_WINDOWS7
-		writes(csvchn,"<FIELD_LOOP><IF STRUCTURE_RELATIVE>RecordNumber|</IF STRUCTURE_RELATIVE><FieldSqlName><|></FIELD_LOOP><FIELD_LOOP><FieldSqlName><|></FIELD_LOOP>")
+		writes(csvchn,"<FIELD_LOOP><IF STRUCTURE_RELATIVE>RecordNumber|</IF STRUCTURE_RELATIVE><FieldSqlName><IF MORE>|</IF MORE></FIELD_LOOP>")
 		.else
-		puts(csvchn,"<FIELD_LOOP><IF STRUCTURE_RELATIVE>RecordNumber|</IF STRUCTURE_RELATIVE><FieldSqlName><|></FIELD_LOOP>" + %char(13) + %char(10))
+		puts(csvchn,"<FIELD_LOOP><IF STRUCTURE_RELATIVE>RecordNumber|</IF STRUCTURE_RELATIVE><FieldSqlName><IF MORE>|</IF MORE></FIELD_LOOP>" + %char(13) + %char(10))
 		.endc
 
         ;;Read and add data file records

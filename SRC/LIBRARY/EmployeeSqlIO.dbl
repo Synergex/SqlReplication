@@ -704,7 +704,7 @@ function EmployeeInsert, ^val
     endliteral
 
     static record
-        employee, strEMPLOYEE
+        employee, strEmployee
         tmpEmpHireTime, a5      ;;Storage for HH:MM time field
     endrecord
 
@@ -1206,7 +1206,7 @@ function EmployeeUpdate, ^val
     endliteral
 
     static record
-        employee, strEMPLOYEE
+        employee, strEmployee
         tmpEmpHireTime, a5      ;;Storage for HH:MM time field
     endrecord
 
@@ -2430,9 +2430,9 @@ proc
 
 		;;Add a row of column headers
 		.ifdef OS_WINDOWS7
-		writes(csvchn,"EmpId<|>EmpFirstName<|>EmpLastName<|>EmpDept<|>EmpHireDate<|>EmpPhoneWork<|>EmpPhoneHome<|>EmpPhoneCell<|>EmpPaid<|>EmpHomeOk<|>EmpDateOfBirth<|>EmpHireTime<|>EmpEmail<|>EmpAddressStreet<|>EmpAddressCity<|>EmpAddressState<|>EmpAddressZip<|>EmpId<|>EmpFirstName<|>EmpLastName<|>EmpDept<|>EmpHireDate<|>EmpPhoneWork<|>EmpPhoneHome<|>EmpPhoneCell<|>EmpPaid<|>EmpHomeOk<|>EmpDateOfBirth<|>EmpHireTime<|>EmpEmail<|>EmpAddressStreet<|>EmpAddressCity<|>EmpAddressState<|>EmpAddressZip<|>")
+		writes(csvchn,"EmpId|EmpFirstName|EmpLastName|EmpDept|EmpHireDate|EmpPhoneWork|EmpPhoneHome|EmpPhoneCell|EmpPaid|EmpHomeOk|EmpDateOfBirth|EmpHireTime|EmpEmail|EmpAddressStreet|EmpAddressCity|EmpAddressState|EmpAddressZip")
 		.else
-		puts(csvchn,"EmpId<|>EmpFirstName<|>EmpLastName<|>EmpDept<|>EmpHireDate<|>EmpPhoneWork<|>EmpPhoneHome<|>EmpPhoneCell<|>EmpPaid<|>EmpHomeOk<|>EmpDateOfBirth<|>EmpHireTime<|>EmpEmail<|>EmpAddressStreet<|>EmpAddressCity<|>EmpAddressState<|>EmpAddressZip<|>" + %char(13) + %char(10))
+		puts(csvchn,"EmpId|EmpFirstName|EmpLastName|EmpDept|EmpHireDate|EmpPhoneWork|EmpPhoneHome|EmpPhoneCell|EmpPaid|EmpHomeOk|EmpDateOfBirth|EmpHireTime|EmpEmail|EmpAddressStreet|EmpAddressCity|EmpAddressState|EmpAddressZip" + %char(13) + %char(10))
 		.endc
 
         ;;Read and add data file records
