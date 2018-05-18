@@ -257,11 +257,11 @@ namespace ReplicationLibrary
 ;                    ;;Make sure you cover all the bases here, if not it'll be a problem!
 ;					 ;;The structures you will need should be available because they are public in the _IO routines
 ;                    if (rec.some_tag_field=="1") then
-;                        mreturn "STRUCTURE1"
+;                        mreturn "Table1"
 ;                    if (rec.some_tag_field=="2") then
-;                        mreturn "STRUCTURE2"
+;                        mreturn "TableName2"
 ;                    if (rec.some_tag_field=="3")
-;                        mreturn "STRUCTURE3"
+;                        mreturn "Table3"
 ;                end
 ;
 ;				 ;An example of a file with a header record defined using one structure, and data with another.
@@ -273,7 +273,7 @@ namespace ReplicationLibrary
 ;                    if (rec.some_tag_field=="HEADER") then
 ;                        mreturn "*IGNORE"
 ;                    if (rec.some_tag_field=="DATA") then
-;                        mreturn "STRUCTURE"
+;                        mreturn "TableName1"
 ;                end
 ;
 ;				 ;Anything else, the programmer forgot to declare it here.
