@@ -2044,15 +2044,34 @@ proc
             ;;Get the next record from the input file
 			try
 			begin
-				if (firstRecord) then
-				begin
-					read(filechn,tmprec,^FIRST)
-					firstRecord = false
-				end
-				else
-				begin
-					reads(filechn,tmprec)
-				end
+                if (firstRecord) then
+                begin
+                    <IF STRUCTURE_TAGS>
+                    find(filechn,,^FIRST)
+                    repeat
+                    begin
+                        reads(filechn,tmprec)
+                        if (<TAG_LOOP><TAGLOOP_CONNECTOR_C>tmprec.<TAGLOOP_FIELD_NAME><TAGLOOP_OPERATOR_C><TAGLOOP_TAG_VALUE></TAG_LOOP>)
+                            exitloop
+                    end
+                    <ELSE>
+                    read(filechn,tmprec,^FIRST)
+                    </IF STRUCTURE_TAGS>
+                    firstRecord = false
+                end
+                else
+                begin
+                    <IF STRUCTURE_TAGS>
+                    repeat
+                    begin
+                        reads(filechn,tmprec)
+                        if (<TAG_LOOP><TAGLOOP_CONNECTOR_C>tmprec.<TAGLOOP_FIELD_NAME><TAGLOOP_OPERATOR_C><TAGLOOP_TAG_VALUE></TAG_LOOP>)
+                            exitloop
+                    end
+                    <ELSE>
+                    reads(filechn,tmprec)
+                    </IF STRUCTURE_TAGS>
+                end
 			end
 			catch (ex, @EndOfFileException)
 			begin
@@ -2655,7 +2674,16 @@ proc
             ;;Get the next record from the input file
 			try
 			begin
-				reads(filechn,<structure_name>)
+                <IF STRUCTURE_TAGS>
+                repeat
+                begin
+                    reads(filechn,<structure_name>)
+                    if (<TAG_LOOP><TAGLOOP_CONNECTOR_C><structure_name>.<TAGLOOP_FIELD_NAME><TAGLOOP_OPERATOR_C><TAGLOOP_TAG_VALUE></TAG_LOOP>)
+                        exitloop
+                end
+                <ELSE>
+                reads(filechn,<structure_name>)
+                </IF STRUCTURE_TAGS>
 
 				records += 1
 				csvrec = ""
