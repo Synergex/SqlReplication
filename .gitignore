@@ -328,6 +328,6 @@ __pycache__/
 
 # Ignore specific folders
 
-Documentation/Web Help
+/Documentation/WebHelp
 /register.bat
 *.InstallLog

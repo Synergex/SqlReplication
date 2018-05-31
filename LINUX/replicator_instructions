@@ -7,6 +7,6 @@ then
     rm replicator_instructions.txt
 fi
 
-fconvert -ii SYF:REPLICATION.ISM -ot replicator_instructions.txt
+fconvert -ii REPLICATOR_DATA:REPLICATION.ISM -ot replicator_instructions.txt
 
 echo Instructions exported to replicator_instructions.txt

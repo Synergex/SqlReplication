@@ -54,7 +54,7 @@ if [ $? -eq 0 ]; then
 else
 
   #Start the process
-  dbr REPLICATOR_EXE:replicator
+  dbr REPLICATOR_EXE:replicator $REPLICATOR_INSTANCE
 
 fi
 

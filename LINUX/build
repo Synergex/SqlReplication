@@ -34,3 +34,6 @@ dblink -o REPLICATOR_EXE:replicatormenu.dbr REPLICATOR_OBJ:replicatormenu.dbo RE
 
 dbl -o REPLICATOR_OBJ:employeemaintenance.dbo REPSRC:EmployeeMaintenance.dbl
 dblink -o REPLICATOR_EXE:employeemaintenance.dbr REPLICATOR_OBJ:employeemaintenance.dbo REPLICATOR_EXE:library.elb
+
+dbl -o REPLICATOR_OBJ:replicatorstop.dbo REPSRC:ReplicatorStop.dbl
+dblink -o REPLICATOR_EXE:replicatorstop.dbr REPLICATOR_OBJ:replicatorstop.dbo REPLICATOR_EXE:library.elb

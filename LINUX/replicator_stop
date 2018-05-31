@@ -49,8 +49,10 @@ ps ax | grep "REPLICATOR_EXE:replicator $REPLICATOR_INSTANCE" | grep -v grep > /
 
 if [ $? -eq 0 ]; then
 
+  PID="$(ps ax | grep "REPLICATOR_EXE:replicator $REPLICATOR_INSTANCE" | grep -v grep | grep -o '^[ ]*[0-9]*')"
+  echo "Replicator ${REPLICATOR_INSTANCE} is running, PID${PID}"
   echo "Stop command was queued"
-  dbr REPLICATOR_EXE:ReplicatorStop.dbr
+  dbr REPLICATOR_EXE:replicatorstop.dbr
 
 else
     echo "Replicator ${REPLICATOR_INSTANCE} is not running!"
