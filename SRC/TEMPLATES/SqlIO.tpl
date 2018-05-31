@@ -2299,8 +2299,7 @@ proc
 
 		if (remoteBulkLoad) then
 		begin
-			ttlog("Uploading data to database host via HTTP")
-			;ok = fsc.Upload(localCsvFile,remoteCsvFile,fileToLoad,errtxt)
+			ttlog("Uploading delimited file to database host")
 			ok = fsc.UploadChunked(localCsvFile,remoteCsvFile,320,fileToLoad,errtxt)
 		end
 		else
@@ -2326,6 +2325,7 @@ proc
 		end
 
 		;;Open a cursor for the statement
+
 		if (ok)
 		begin
 			errorFile = fileToLoad + "_err"
@@ -2342,7 +2342,20 @@ proc
 			end
 		end
 
+		;;Disable the SQL Server timeout.
+
+		if (ok)
+		begin
+			if (%ssc_cmd(a_dbchn,,SSQL_TIMEOUT,"0")==SSQL_FAILURE)
+			begin
+				ok = false
+				if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+					errtxt="Failed to extend SQL Connection timeout period"
+			end
+		end
+
 		;;Execute the statement
+
 		if (ok)
 		begin
 			if (%ssc_execute(a_dbchn,cursor,SSQL_STANDARD)==SSQL_FAILURE)
@@ -2375,6 +2388,18 @@ proc
 			call DeleteFiles
 		end
 
+		;;Restore the SQL Server timeout to 60 seconds
+
+		if (ok)
+		begin
+			if (%ssc_cmd(a_dbchn,,SSQL_TIMEOUT,"60")==SSQL_FAILURE)
+			begin
+				ok = false
+				if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+					errtxt="Failed to restore SQL Connection timeout period"
+			end
+		end
+
 		;;Commit or rollback the transaction
 
 		if (transaction)
@@ -2397,6 +2422,7 @@ proc
 		end
 
 		;;Close the cursor
+
 		if (cursorOpen)
 		begin
 			if (%ssc_close(a_dbchn,cursor)==SSQL_FAILURE)
