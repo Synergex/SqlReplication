@@ -11,7 +11,7 @@
 ;//
 ;// Author:     Steve Ives, Synergex Professional Services Group
 ;//
-;// Copyright   © 2009 Synergex International Corporation.  All rights reserved.
+;// Copyright   ï¿½ 2009 Synergex International Corporation.  All rights reserved.
 ;//
 ;;*****************************************************************************
 ;;
@@ -2711,6 +2711,14 @@ proc
                 reads(filechn,<structure_name>)
                 </IF STRUCTURE_TAGS>
 
+                ;;Make sure there are no | characters in the data
+				if (%instr(1,<structure_name>))
+				begin
+					data tmpData, string, <structure_name>
+					tmpData.Replace("|"," ")
+					<structure_name> = tmpData
+				end
+					
 				records += 1
 				csvrec = ""
                 <FIELD_LOOP>
