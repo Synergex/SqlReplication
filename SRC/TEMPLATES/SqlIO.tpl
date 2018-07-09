@@ -797,16 +797,17 @@ proc
 
     if (ok)
     begin
-        <IF STRUCTURE_MAPPED>
+<IF STRUCTURE_MAPPED>
         ;;Map the file data into the table data record
 
         <structure_name> = %<structure_name>_map(a_data)
-        <ELSE>
+<ELSE>
         ;;Load the data into the bound record
 
         <structure_name> = a_data
-        </IF STRUCTURE_MAPPED>
+</IF STRUCTURE_MAPPED>
 
+<IF DEFINED_CLEAN_DATA>
         ;;Clean up any alpha fields
 
         <FIELD_LOOP>
@@ -842,6 +843,7 @@ proc
         </IF TIME>
         </FIELD_LOOP>
 
+</IF DEFINED_CLEAN_DATA>
         ;;Assign data to any temporary time or user-defined timestamp fields
 
         <FIELD_LOOP>
@@ -1130,6 +1132,7 @@ proc
             </IF STRUCTURE_MAPPED>
             </IF STRUCTURE_RELATIVE>
 
+<IF DEFINED_CLEAN_DATA>
             ;;Clean up any alpha variables
 
             <FIELD_LOOP>
@@ -1165,6 +1168,7 @@ proc
             </IF TIME>
             </FIELD_LOOP>
 
+</IF DEFINED_CLEAN_DATA>
             ;;Assign any time or user-defined timestamp fields
 
             <FIELD_LOOP>
@@ -1452,6 +1456,7 @@ proc
 
     if (ok)
     begin
+<IF DEFINED_CLEAN_DATA>
         ;;Clean up any alpha fields
 
         <FIELD_LOOP>
@@ -1487,6 +1492,7 @@ proc
         </IF TIME>
         </FIELD_LOOP>
 
+</IF DEFINED_CLEAN_DATA>
         ;;Assign any time and user-defined timestamp fields
 
         <FIELD_LOOP>

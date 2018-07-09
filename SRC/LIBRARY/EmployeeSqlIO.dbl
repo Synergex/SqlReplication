@@ -2469,6 +2469,14 @@ proc
 			begin
                 reads(filechn,employee)
 
+                ;;Make sure there are no | characters in the data
+				if (%instr(1,employee))
+				begin
+					data tmpData, string, employee
+					tmpData.Replace("|"," ")
+					employee = tmpData
+				end
+					
 				records += 1
 				csvrec = ""
                 &    + %string(employee.emp_id) + "|"

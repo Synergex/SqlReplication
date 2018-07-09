@@ -8,8 +8,8 @@ set CODEGEN_OUTDIR=%ROOT%\SRC\LIBRARY
 
 set STRUCTURES=EMPLOYEE
 
-rem Generate Synergy and SQL I/O routines for the structures being replicated
-codegen -e -r -lf -s %STRUCTURES% -t SqlIO -define ATTACH_IO_HOOKS CLEAN_DATA
+rem Generate SQL I/O routines for the structures being replicated
+codegen -e -r -lf -s %STRUCTURES% -t SqlIO -define CLEAN_DATA
 
 rem Templates requiring all structures to be processed at once
 codegen -e -r -lf -s %STRUCTURES% -ms -t GetReplicatedTables
