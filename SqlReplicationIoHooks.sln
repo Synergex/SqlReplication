@@ -75,6 +75,13 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Documentation", "Documentat
 		Documentation\SqlReplication.hsm = Documentation\SqlReplication.hsm
 	EndProjectSection
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "File Definitions", "File Definitions", "{085E387B-6DDD-4056-AC7E-78B01B414ED7}"
+	ProjectSection(SolutionItems) = preProject
+		XDL\DEPARTMENT.XDL = XDL\DEPARTMENT.XDL
+		XDL\EMPLOYEE.XDL = XDL\EMPLOYEE.XDL
+		XDL\REPLICATION.XDL = XDL\REPLICATION.XDL
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
