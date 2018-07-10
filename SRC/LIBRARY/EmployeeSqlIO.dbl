@@ -47,12 +47,14 @@ import ReplicationLibrary
 ;;; Determines if the Employee table exists in the database.
 ;;; </summary>
 ;;; <param name="a_dbchn">Connected database channel.</param>
+;;; <param name="a_auto_commit">Is the database in auto-commit mode.</param>
 ;;; <param name="a_errtxt">Returned error text.</param>
 ;;; <returns>Returns 1 if the table exists, otherwise a number indicating the type of error.</returns>
 
 function EmployeeExists, ^val
 
     required in  a_dbchn,  i
+	required in  a_auto_commit, n
     optional out a_errtxt, a
     endparams
 
@@ -134,12 +136,14 @@ endfunction
 ;;; Creates the Employee table in the database.
 ;;; </summary>
 ;;; <param name="a_dbchn">Connected database channel.</param>
+;;; <param name="a_auto_commit">Is the database in auto-commit mode.</param>
 ;;; <param name="a_errtxt">Returned error text.</param>
 ;;; <returns>Returns true on success, otherwise false.</returns>
 
 function EmployeeCreate, ^val
 
     required in  a_dbchn,  i
+	required in  a_auto_commit, n
     optional out a_errtxt, a
     endparams
 
@@ -161,16 +165,19 @@ proc
     init local_data
     ok = true
 
-    ;;Start a database transaction
+	;;Start a database transaction
 
-    if (%ssc_commit(a_dbchn,SSQL_TXON)==SSQL_NORMAL) then
-        transaction=1
-    else
-    begin
-        ok = false
-        if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
-            errtxt="Failed to start transaction"
-    end
+	if (!a_auto_commit)
+	begin
+	    if (%ssc_commit(a_dbchn,SSQL_TXON)==SSQL_NORMAL) then
+	        transaction=1
+	    else
+	    begin
+	        ok = false
+	        if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+	            errtxt="Failed to start transaction"
+	    end
+	end
 
     ;;Create the database table and primary key constraint
 
@@ -223,7 +230,7 @@ proc
 
     ;;Commit or rollback the transaction
 
-    if (transaction)
+    if (!a_auto_commit && transaction)
     begin
         if (ok) then
         begin
@@ -301,12 +308,14 @@ endfunction
 ;;; Add alternate key indexes to the Employee table if they do not exist.
 ;;; </summary>
 ;;; <param name="a_dbchn">Connected database channel.</param>
+;;; <param name="a_auto_commit">Is the database in auto-commit mode.</param>
 ;;; <param name="a_errtxt">Returned error text.</param>
 ;;; <returns>Returns true on success, otherwise false.</returns>
 
 function EmployeeIndex, ^val
 
     required in  a_dbchn,  i
+	required in  a_auto_commit, n
     optional out a_errtxt, a
     endparams
 
@@ -330,14 +339,17 @@ proc
 
     ;;Start a database transaction
 
-    if (%ssc_commit(a_dbchn,SSQL_TXON)==SSQL_NORMAL) then
-        transaction=1
-    else
-    begin
-        ok = false
-        if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
-            errtxt="Failed to start transaction"
-    end
+	if (!a_auto_commit)
+	begin
+		if (%ssc_commit(a_dbchn,SSQL_TXON)==SSQL_NORMAL) then
+			transaction=1
+		else
+		begin
+			ok = false
+			if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+				errtxt="Failed to start transaction"
+		end
+	end
 
     ;;Create index 1 (Department ID)
 
@@ -401,7 +413,7 @@ proc
 
     ;;Commit or rollback the transaction
 
-    if (transaction)
+    if (!a_auto_commit && transaction)
     begin
         if (ok) then
         begin
@@ -479,12 +491,14 @@ endfunction
 ;;; Removes alternate key indexes from the Employee table in the database.
 ;;; </summary>
 ;;; <param name="a_dbchn">Connected database channel.</param>
+;;; <param name="a_auto_commit">Is the database in auto-commit mode.</param>
 ;;; <param name="a_errtxt">Returned error text.</param>
 ;;; <returns>Returns true on success, otherwise false.</returns>
 
 function EmployeeUnIndex, ^val
 
     required in  a_dbchn,  i
+	required in  a_auto_commit, n
     optional out a_errtxt, a
     endparams
 
@@ -508,14 +522,17 @@ proc
 
     ;;Start a database transaction
 
-    if (%ssc_commit(a_dbchn,SSQL_TXON)==SSQL_NORMAL) then
-        transaction=1
-    else
-    begin
-        ok = false
-        if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
-            errtxt="Failed to start transaction"
-    end
+	if (!a_auto_commit)
+	begin
+	    if (%ssc_commit(a_dbchn,SSQL_TXON)==SSQL_NORMAL) then
+	        transaction=1
+	    else
+	    begin
+	        ok = false
+	        if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+	            errtxt="Failed to start transaction"
+	    end
+	end
 
     ;;Drop index 1 (Department ID)
 
@@ -577,9 +594,10 @@ proc
         end
     end
 
+
     ;;Commit or rollback the transaction
 
-    if (transaction)
+    if (!a_auto_commit && transaction)
     begin
         if (ok) then
         begin
@@ -657,6 +675,7 @@ endfunction
 ;;; Insert a row into the Employee table.
 ;;; </summary>
 ;;; <param name="a_dbchn">Connected database channel.</param>
+;;; <param name="a_auto_commit">Is the database in auto-commit mode.</param>
 ;;; <param name="a_data">Record to be inserted.</param>
 ;;; <param name="a_errtxt">Returned error text.</param>
 ;;; <returns>Returns 1 if the row was inserted, 2 to indicate the row already exists, or 0 if an error occurred.</returns>
@@ -664,6 +683,7 @@ endfunction
 function EmployeeInsert, ^val
 
     required in  a_dbchn,  i
+	required in  a_auto_commit, n
     required in  a_data,   a
     optional out a_errtxt, a
     endparams
@@ -721,15 +741,18 @@ proc
 
     ;;Start a database transaction
 
-    if (%ssc_commit(a_dbchn,SSQL_TXON)==SSQL_NORMAL) then
-        transaction=1
-    else
-    begin
-        ok = false
-        sts = 0
-        if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
-            errtxt="Failed to start transaction"
-    end
+	if (!a_auto_commit)
+	begin
+		if (%ssc_commit(a_dbchn,SSQL_TXON)==SSQL_NORMAL) then
+			transaction=1
+		else
+		begin
+			ok = false
+			sts = 0
+			if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+				errtxt="Failed to start transaction"
+		end
+	end
 
     ;;Open a cursor for the INSERT statement
 
@@ -849,7 +872,7 @@ proc
 
     ;;Commit or rollback the transaction
 
-    if (transaction)
+    if (!a_auto_commit && transaction)
     begin
         if (ok) then
         begin
@@ -888,6 +911,7 @@ endfunction
 ;;; Inserts multiple rows into the Employee table.
 ;;; </summary>
 ;;; <param name="a_dbchn">Connected database channel</param>
+;;; <param name="a_auto_commit">Is the database in auto-commit mode.</param>
 ;;; <param name="a_data">Memory handle containing one or more rows to insert.</param>
 ;;; <param name="a_errtxt">Returned error text.</param>
 ;;; <param name="a_exception">Memory handle to load exception data records into.</param>
@@ -897,6 +921,7 @@ endfunction
 function EmployeeInsertRows, ^val
 
     required in  a_dbchn,     i
+	required in  a_auto_commit, n
     required in  a_data,      i
     optional out a_errtxt,    a
     optional out a_exception, i
@@ -968,16 +993,32 @@ proc
 
     rows = (%mem_proc(DM_GETSIZE,a_data)/^size(inpbuf))
 
-    ;;Start a database transaction
+	;;If enabled, disable auto-commit
 
-    if (%ssc_commit(a_dbchn,SSQL_TXON)==SSQL_NORMAL) then
-        transaction=1
-    else
-    begin
-        ok = false
-        if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
-            errtxt="Failed to start transaction"
-    end
+	if (a_auto_commit)
+	begin
+		if (%ssc_cmd(a_dbchn,,SSQL_ODBC_AUTOCOMMIT,"no")!=SSQL_NORMAL)
+		begin
+			data dberrtxt, a1024
+			xcall ssc_getemsg(a_dbchn,dberrtxt,length)
+			errtxt = "Failed to disable auto-commit. Error was: " + dberrtxt(1,length)
+			ok = false
+		end
+	end
+
+	;;Start a database transaction
+
+	if (ok)
+	begin
+	    if (%ssc_commit(a_dbchn,SSQL_TXON)==SSQL_NORMAL) then
+	        transaction=1
+	    else
+	    begin
+	        ok = false
+	        if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+	            errtxt="Failed to start transaction"
+	    end
+	end
 
     ;;Open a cursor for the INSERT statement
 
@@ -1133,6 +1174,19 @@ proc
         end
     end
 
+	;;If necessary, re-enable auto-commit
+
+	if (a_auto_commit)
+	begin
+		if (%ssc_cmd(a_dbchn,,SSQL_ODBC_AUTOCOMMIT,"yes")!=SSQL_NORMAL)
+		begin
+			data dberrtxt, a1024
+			xcall ssc_getemsg(a_dbchn,dberrtxt,length)
+			errtxt = "Failed to enable auto-commit. Error was: " + dberrtxt(1,length)
+			ok = false
+		end
+	end
+
     ;;If we're returning exceptions then resize the buffer to the correct size
 
     if (^passed(a_exception)&&a_exception)
@@ -1157,6 +1211,7 @@ endfunction
 ;;; Updates a row in the Employee table.
 ;;; </summary>
 ;;; <param name="a_dbchn">Connected database channel.</param>
+;;; <param name="a_auto_commit">Is the database in auto-commit mode.</param>
 ;;; <param name="a_data">Record containing data to update.</param>
 ;;; <param name="a_rows">Returned number of rows affected.</param>
 ;;; <param name="a_errtxt">Returned error text.</param>
@@ -1165,6 +1220,7 @@ endfunction
 function EmployeeUpdate, ^val
 
     required in  a_dbchn,  i
+	required in  a_auto_commit, n
     required in  a_data,   a
     optional out a_rows,   i
     optional out a_errtxt, a
@@ -1229,14 +1285,17 @@ proc
 
     ;;Start a database transaction
 
-    if (%ssc_commit(a_dbchn,SSQL_TXON)==SSQL_NORMAL) then
-        transaction = true
-    else
-    begin
-        ok = false
-        if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
-            errtxt="Failed to start transaction"
-    end
+	if (!a_auto_commit)
+	begin
+		if (%ssc_commit(a_dbchn,SSQL_TXON)==SSQL_NORMAL) then
+			transaction = true
+		else
+		begin
+			ok = false
+			if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+				errtxt="Failed to start transaction"
+		end
+	end
 
     ;;Open a cursor for the UPDATE statement
 
@@ -1350,7 +1409,7 @@ proc
 
     ;;Commit or rollback the transaction
 
-    if (transaction)
+    if (!a_auto_commit && transaction)
     begin
         if (ok) then
         begin
@@ -1388,6 +1447,7 @@ endfunction
 ;;; Deletes a row from the Employee table.
 ;;; </summary>
 ;;; <param name="a_dbchn">Connected database channel.</param>
+;;; <param name="a_auto_commit">Is the database in auto-commit mode.</param>
 ;;; <param name="a_key">Unique key of row to be deleted.</param>
 ;;; <param name="a_errtxt">Returned error text.</param>
 ;;; <returns>Returns true on success, otherwise false.</returns>
@@ -1395,6 +1455,7 @@ endfunction
 function EmployeeDelete, ^val
 
     required in  a_dbchn,  i
+	required in  a_auto_commit, n
     required in  a_key,    a
     optional out a_errtxt, a
     endparams
@@ -1428,14 +1489,18 @@ proc
     employee = %EmployeeKeyToRecord(a_key)
 
     ;;Start a database transaction
-    if (%ssc_commit(a_dbchn,SSQL_TXON)==SSQL_NORMAL) then
-        transaction=1
-    else
-    begin
-        ok = false
-        if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
-            errtxt="Failed to start transaction"
-    end
+
+	if (!a_auto_commit)
+	begin
+		if (%ssc_commit(a_dbchn,SSQL_TXON)==SSQL_NORMAL) then
+			transaction=1
+		else
+		begin
+			ok = false
+			if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+				errtxt="Failed to start transaction"
+		end
+	end
 
     ;;Open a cursor for the DELETE statement
 
@@ -1478,9 +1543,10 @@ proc
         end
     end
 
+
     ;;Commit or rollback the transaction
 
-    if (transaction)
+    if (!a_auto_commit && transaction)
     begin
         if (ok) then
         begin
@@ -1499,7 +1565,7 @@ proc
         end
     end
 
-    ;;If there was an error message, return it to the calling routine
+   ;;If there was an error message, return it to the calling routine
 
     if (^passed(a_errtxt))
     begin
@@ -1518,12 +1584,14 @@ endfunction
 ;;; Deletes all rows from the Employee table.
 ;;; </summary>
 ;;; <param name="a_dbchn">Connected database channel.</param>
+;;; <param name="a_auto_commit">Is the database in auto-commit mode.</param>
 ;;; <param name="a_errtxt">Returned error text.</param>
 ;;; <returns>Returns true on success, otherwise false.</returns>
 
 function EmployeeClear, ^val
 
     required in  a_dbchn,  i
+	required in  a_auto_commit, n
     optional out a_errtxt, a
     endparams
 
@@ -1546,14 +1614,17 @@ proc
 
     ;;Start a database transaction
 
-    if (%ssc_commit(a_dbchn,SSQL_TXON)==SSQL_NORMAL) then
-        transaction=1
-    else
-    begin
-        ok = false
-        if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
-            errtxt="Failed to start transaction"
-    end
+	if (!a_auto_commit)
+	begin
+		if (%ssc_commit(a_dbchn,SSQL_TXON)==SSQL_NORMAL) then
+			transaction=1
+		else
+		begin
+			ok = false
+			if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+				errtxt="Failed to start transaction"
+		end
+	end
 
     ;;Open cursor for the SQL statement
 
@@ -1597,7 +1668,7 @@ proc
 
     ;;Commit or rollback the transaction
 
-    if (transaction)
+    if (!a_auto_commit && transaction)
     begin
         if (ok) then
         begin
@@ -1635,12 +1706,14 @@ endfunction
 ;;; Deletes the Employee table from the database.
 ;;; </summary>
 ;;; <param name="a_dbchn">Connected database channel.</param>
+;;; <param name="a_auto_commit">Is the database in auto-commit mode.</param>
 ;;; <param name="a_errtxt">Returned error text.</param>
 ;;; <returns>Returns true on success, otherwise false.</returns>
 
 function EmployeeDrop, ^val
 
     required in  a_dbchn,  i
+	required in  a_auto_commit, n
     optional out a_errtxt, a
     endparams
 
@@ -1662,18 +1735,21 @@ proc
 
     ;;Close any open cursors
 
-    xcall EmployeeClose(a_dbchn)
+    xcall EmployeeClose(a_dbchn,a_auto_commit)
 
     ;;Start a database transaction
 
-    if (%ssc_commit(a_dbchn,SSQL_TXON)==SSQL_NORMAL) then
-        transaction=1
-    else
-    begin
-        ok = false
-        if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
-            errtxt="Failed to start transaction"
-    end
+	if (!a_auto_commit)
+	begin
+		if (%ssc_commit(a_dbchn,SSQL_TXON)==SSQL_NORMAL) then
+			transaction=1
+		else
+		begin
+			ok = false
+			if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+				errtxt="Failed to start transaction"
+		end
+	end
 
     ;;Open cursor for DROP TABLE statement
 
@@ -1726,7 +1802,7 @@ proc
 
     ;;Commit or rollback the transaction
 
-    if (transaction)
+    if (!a_auto_commit && transaction)
     begin
         if (ok) then
         begin
@@ -1764,6 +1840,7 @@ endfunction
 ;;; Load all data from REPLICATOR_DATA:EMPLOYEE.ISM into the Employee table.
 ;;; </summary>
 ;;; <param name="a_dbchn">Connected database channel.</param>
+;;; <param name="a_auto_commit">Is the database in auto-commit mode.</param>
 ;;; <param name="a_errtxt">Returned error text.</param>
 ;;; <param name="a_logex">Log exception records?</param>
 ;;; <param name="a_terminal">Terminal channel to log errors on.</param>
@@ -1775,6 +1852,7 @@ endfunction
 function EmployeeLoad, ^val
 
     required in  a_dbchn,    i
+	required in  a_auto_commit, n
     optional out a_errtxt,   a
     optional in  a_logex,    i
     optional in  a_terminal, i
@@ -1910,7 +1988,7 @@ insert_data,
 
     attempted = (%mem_proc(DM_GETSIZE,mh)/^size(inpbuf))
 
-    if (%EmployeeInsertRows(a_dbchn,mh,errtxt,ex_mh,a_terminal))
+    if (%EmployeeInsertRows(a_dbchn,a_auto_commit,mh,errtxt,ex_mh,a_terminal))
     begin
         ;;Any exceptions?
         if (ex_mh) then
@@ -1961,6 +2039,7 @@ endfunction
 ;;; Bulk load data from REPLICATOR_DATA:EMPLOYEE.ISM into the Employee table via a CSV file.
 ;;; </summary>
 ;;; <param name="a_dbchn">Connected database channel.</param>
+;;; <param name="a_auto_commit">Is the database in auto-commit mode.</param>
 ;;; <param name="a_localpath">Path to local export directory</param>
 ;;; <param name="a_remotepath">Remote export directory or URL</param>
 ;;; <param name="a_terminal">Terminal channel to log errors on</param>
@@ -1972,6 +2051,7 @@ endfunction
 function EmployeeBulkLoad, ^val
 
     required in  a_dbchn,      i
+	required in  a_auto_commit, n
 	required in  a_localpath,  string
 	required in  a_server,     string
 	required in  a_port,       string
@@ -2086,13 +2166,17 @@ proc
 		ttlog("Executing SQL BULK INSERT")
 
 		;;Start a database transaction
-		if (%ssc_commit(a_dbchn,SSQL_TXON)==SSQL_NORMAL) then
-			transaction = true
-		else
+	
+		if (!a_auto_commit)
 		begin
-			ok = false
-			if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
-				errtxt="Failed to start transaction"
+			if (%ssc_commit(a_dbchn,SSQL_TXON)==SSQL_NORMAL) then
+				transaction = true
+			else
+			begin
+				ok = false
+				if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+					errtxt="Failed to start transaction"
+			end
 		end
 
 		;;Open a cursor for the statement
@@ -2173,7 +2257,7 @@ proc
 
 		;;Commit or rollback the transaction
 
-		if (transaction)
+		if (!a_auto_commit && transaction)
 		begin
 			if (ok) then
 			begin
@@ -2357,10 +2441,12 @@ endfunction
 ;;; Close cursors associated with the Employee table.
 ;;; </summary>
 ;;; <param name="a_dbchn">Connected database channel</param>
+;;; <param name="a_auto_commit">Is the database in auto-commit mode.</param>
 
 subroutine EmployeeClose
 
     required in  a_dbchn, i
+ 	required in  a_auto_commit, n
     endparams
 
     .include "CONNECTDIR:ssql.def"
@@ -2470,7 +2556,7 @@ proc
                 reads(filechn,employee)
 
                 ;;Make sure there are no | characters in the data
-				if (%instr(1,employee))
+				if (%instr(1,employee,"|"))
 				begin
 					data tmpData, string, employee
 					tmpData.Replace("|"," ")

@@ -456,7 +456,7 @@ CheckTable,
     try
     begin
         functionName = %atrim(instruction.structure_name) + "Exists"
-        status = %xsubr(functionName,Settings.DatabaseChannel,dberrtxt)
+        status = %xsubr(functionName,Settings.DatabaseChannel,Settings.AutoCommit,dberrtxt)
     end
     catch (ex, @SynException)
     begin
@@ -492,7 +492,7 @@ CreateTable,
     try
     begin
         functionName = %atrim(instruction.structure_name) + "Create"
-        status = %xsubr(functionName,Settings.DatabaseChannel,dberrtxt)
+        status = %xsubr(functionName,Settings.DatabaseChannel,Settings.AutoCommit,dberrtxt)
     end
     catch (ex, @SynException)
     begin
@@ -532,9 +532,9 @@ LoadTable,
         functionName = %atrim(instruction.structure_name) + "Load"
 
         if (Settings.RunningOnTerminal) then
-            status = %xsubr(functionName,Settings.DatabaseChannel,dberrtxt,Settings.LogLoadExceptions,Settings.TerminalChannel,successCount,failCount,Settings.BulkLoadProgressReporting)
+			status = %xsubr(functionName,Settings.DatabaseChannel,Settings.AutoCommit,dberrtxt,Settings.LogLoadExceptions,Settings.TerminalChannel,successCount,failCount,Settings.BulkLoadProgressReporting)
         else
-            status = %xsubr(functionName,Settings.DatabaseChannel,dberrtxt,Settings.LogLoadExceptions,,successCount,failCount)
+			status = %xsubr(functionName,Settings.DatabaseChannel,Settings.AutoCommit,dberrtxt,Settings.LogLoadExceptions,,successCount,failCount)
 
         if (status) then
         begin
@@ -546,7 +546,7 @@ LoadTable,
 			;;Now add alternate key indexes
 			xcall log(" - Adding indexes...")
 			functionName = %atrim(instruction.structure_name) + "Index"
-			status = %xsubr(functionName,Settings.DatabaseChannel,dberrtxt)
+			status = %xsubr(functionName,Settings.DatabaseChannel,Settings.AutoCommit,dberrtxt)
 			
 			if (status) then
 			begin
@@ -594,7 +594,7 @@ BulkLoadTable,
 			tt = Settings.TerminalChannel
 
 		functionName = %atrim(instruction.structure_name) + "BulkLoad"
-		status = %xsubr(functionName,Settings.DatabaseChannel,Settings.LocalExportPath,Settings.FileServiceHost,Settings.FileServicePort,tt,totalRows,failRows,dberrtxt)
+		status = %xsubr(functionName,Settings.DatabaseChannel,Settings.AutoCommit,Settings.LocalExportPath,Settings.FileServiceHost,Settings.FileServicePort,tt,totalRows,failRows,dberrtxt)
 
 		if (status) then
 		begin
@@ -606,7 +606,7 @@ BulkLoadTable,
 			;;Now add alternate key indexes
 			xcall log(" - Adding indexes...")
 			functionName = %atrim(instruction.structure_name) + "Index"
-			status = %xsubr(functionName,Settings.DatabaseChannel,dberrtxt)
+			status = %xsubr(functionName,Settings.DatabaseChannel,Settings.AutoCommit,dberrtxt)
 			
 			if (status) then
 			begin
@@ -659,7 +659,7 @@ DoInsert,
     try
     begin
         functionName = %atrim(instruction.structure_name) + 'Insert'
-        status = %xsubr(functionName,Settings.DatabaseChannel,instruction.record(1,structure_data.structure_size),dberrtxt)
+		status = %xsubr(functionName,Settings.DatabaseChannel,Settings.AutoCommit,instruction.record(1,structure_data.structure_size),dberrtxt)
     end
     catch (ex, @SynException)
     begin
@@ -720,7 +720,7 @@ DoInsertRelative,
     try
     begin
         functionName = %atrim(instruction.structure_name) + 'Insert'
-        status = %xsubr(functionName,Settings.DatabaseChannel,recordNumber,instruction.record(1,structure_data.structure_size),dberrtxt)
+		status = %xsubr(functionName,Settings.DatabaseChannel,Settings.AutoCommit,recordNumber,instruction.record(1,structure_data.structure_size),dberrtxt)
     end
     catch (ex, @SynException)
     begin
@@ -779,7 +779,7 @@ DoUpdate,
     try
     begin
         functionName = %atrim(instruction.structure_name) + 'Update'
-        status = %xsubr(functionName,Settings.DatabaseChannel,instruction.record(1,structure_data.structure_size),rows,dberrtxt)
+		status = %xsubr(functionName,Settings.DatabaseChannel,Settings.AutoCommit,instruction.record(1,structure_data.structure_size),rows,dberrtxt)
     end
     catch (ex, @SynException)
     begin
@@ -841,7 +841,7 @@ DoUpdateRelative,
     try
     begin
         functionName = %atrim(instruction.structure_name) + 'Update'
-        status = %xsubr(functionName,Settings.DatabaseChannel,recordNumber,instruction.record(1,structure_data.structure_size),rows,dberrtxt)
+		status = %xsubr(functionName,Settings.DatabaseChannel,Settings.AutoCommit,recordNumber,instruction.record(1,structure_data.structure_size),rows,dberrtxt)
     end
     catch (ex, @SynException)
     begin
@@ -892,7 +892,7 @@ DoDelete,
     try
     begin
         functionName = %atrim(instruction.structure_name) + 'Delete'
-        status = %xsubr(functionName,Settings.DatabaseChannel,(a)keyValue,dberrtxt)
+		status = %xsubr(functionName,Settings.DatabaseChannel,Settings.AutoCommit,(a)keyValue,dberrtxt)
         if (status) then
         begin
             xcall verboselog(" - Row deleted")
@@ -925,7 +925,7 @@ DoCreateTable,
     try
     begin
         functionName = %atrim(instruction.structure_name) + "Exists"
-        status = %xsubr(functionName,Settings.DatabaseChannel,dberrtxt)
+		status = %xsubr(functionName,Settings.DatabaseChannel,Settings.AutoCommit,dberrtxt)
         using status select
         (1),
         begin
@@ -938,7 +938,7 @@ DoCreateTable,
             try
             begin
                 functionName = %atrim(instruction.structure_name) + "Create"
-                status = %xsubr(functionName,Settings.DatabaseChannel,dberrtxt)
+                status = %xsubr(functionName,Settings.DatabaseChannel,Settings.AutoCommit,dberrtxt)
                 if (status) then
                 begin
                     xcall verboselog(" - Table created")
@@ -985,7 +985,7 @@ DoLoadTable,
     try
     begin
         functionName = %atrim(instruction.structure_name) + "Exists"
-        status = %xsubr(functionName,Settings.DatabaseChannel,dberrtxt)
+		status = %xsubr(functionName,Settings.DatabaseChannel,Settings.AutoCommit,dberrtxt)
     end
     catch (ex, @SynException)
     begin
@@ -1064,7 +1064,7 @@ DoDeleteAllRows,
     try
     begin
         functionName = %atrim(instruction.structure_name) + "Clear"
-        status = %xsubr(functionName,Settings.DatabaseChannel,dberrtxt)
+		status = %xsubr(functionName,Settings.DatabaseChannel,Settings.AutoCommit,dberrtxt)
         if (status) then
         begin
             xcall verboselog(" - Table truncated")
@@ -1110,7 +1110,7 @@ DoDeleteTable,
     try
     begin
         functionName = %atrim(instruction.structure_name) + "Drop"
-        status = %xsubr(functionName,Settings.DatabaseChannel,dberrtxt)
+		status = %xsubr(functionName,Settings.DatabaseChannel,Settings.AutoCommit,dberrtxt)
         if (status) then
         begin
             xcall verboselog(" - Table deleted")
@@ -1142,7 +1142,7 @@ DoAddIndexes,
 	try
 	begin
 		functionName = %atrim(instruction.structure_name) + "Index"
-		status = %xsubr(functionName,Settings.DatabaseChannel,dberrtxt)
+		status = %xsubr(functionName,Settings.DatabaseChannel,Settings.AutoCommit,dberrtxt)
 		if (status) then
 		begin
 			xcall verboselog(" - Indexes added")
@@ -1173,7 +1173,7 @@ DoDeleteIndexes,
 	try
 	begin
 		functionName = %atrim(instruction.structure_name) + "UnIndex"
-		status = %xsubr(functionName,Settings.DatabaseChannel,dberrtxt)
+		status = %xsubr(functionName,Settings.DatabaseChannel,Settings.AutoCommit,dberrtxt)
 		if (status) then
 		begin
 			xcall verboselog(" - Indexes removed")
@@ -1828,6 +1828,60 @@ ConfigureEnvironment,
 			end
 		end
 	end
+	
+	if (ok)
+	begin
+		;;Should Auto-commit be ebabled in the database?
+		if (CommandLineParser.Parse("autocommit",clValues)) then
+		begin
+			using clValues.Count select
+			(1),
+			begin
+				using ((string)clValues[0]).ToUpper() select
+				("YES"),
+					Settings.AutoCommit = true
+				("NO"),
+					Settings.AutoCommit = false
+				(),
+				begin
+					xcall errorlog("Invalid option value following the -autocommit option. Specify YES or NO.")
+					ok = false
+				end
+				endusing
+			end
+			(0),
+			begin
+				xcall errorlog("Missing value after the -autocommit option")
+				ok = false
+			end
+			(),
+			begin
+				xcall errorlog("Only one value may follow the -autocommit option")
+				ok = false
+			end
+			endusing
+		end
+		else
+		begin
+			;;Or via an environment variable?
+			data tmpval, a32
+			xcall getlog("REPLICATOR_AUTO_COMMIT",tmpval,length)
+			if (length)
+			begin
+				using ((String)tmpval(1:length)).ToUpper() select
+				("YES"),
+					Settings.AutoCommit = true
+				("NO"),
+					Settings.AutoCommit = false
+				(),
+				begin
+					xcall errorlog("Invalid value specified for option REPLICATOR_AUTO_COMMIT. Specify YES or NO.")
+					ok = false
+				end
+				endusing
+			end
+		end
+	end
 
 	if (ok)
 	begin
@@ -1869,6 +1923,20 @@ ConfigureEnvironment,
 				body[3] = "Error message was :  " + dberrtxt(1,length)
 				xcall SendEmail("ERROR",body)
 			end
+		end
+	end
+
+	if (ok && Settings.AutoCommit)
+	begin
+		;;Enable SQL Server Auto-Commit mode
+		if (%ssc_cmd(Settings.DatabaseChannel,,SSQL_ODBC_AUTOCOMMIT,"yes")==SSQL_NORMAL) then
+			xcall log("Auto-commit enabled")
+		else
+		begin
+			xcall ssc_getemsg(Settings.DatabaseChannel,dberrtxt,length)
+			xcall errorlog("Failed to enable auto-commit!")
+			xcall log("Error message was : " + dberrtxt(1,length))
+			ok = false
 		end
 	end
 
@@ -2057,7 +2125,7 @@ proc
             try
             begin
                 functionName = %atrim(structure_data.structure_name) + "Close"
-                xcall xsubr(functionName,Settings.DatabaseChannel)
+				xcall xsubr(functionName,Settings.DatabaseChannel,Settings.AutoCommit)
             end
             catch (ex)
             begin
@@ -2336,6 +2404,7 @@ namespace Tools
             endrecord
         proc
             now = %datetime
+			AutoCommit         = true
 			ErrorSleepTime     = 0.5
 			LocalExportPath    = ^null
 			FileServiceHost    = ^null
@@ -2519,6 +2588,11 @@ namespace Tools
         proc
             mreturn (ErrorEmail != ^null && ErrorEmail.Length>0 && EmailServer != ^null && EmailServer.Length>0 && EmailSender != ^null && EmailSender.Length>0)
         endmethod
+
+		;;; <summary>
+		;;; Is the database in auto-commit mode.
+		;;; </summary>
+		public static readwrite property AutoCommit, boolean
 
     endclass
 

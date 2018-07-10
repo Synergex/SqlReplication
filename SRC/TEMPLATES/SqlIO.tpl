@@ -11,7 +11,7 @@
 ;//
 ;// Author:     Steve Ives, Synergex Professional Services Group
 ;//
-;// Copyright   � 2009 Synergex International Corporation.  All rights reserved.
+;// Copyright   (c) 2009 Synergex International Corporation.  All rights reserved.
 ;//
 ;;*****************************************************************************
 ;;
@@ -62,12 +62,14 @@ import ReplicationLibrary
 ;;; Determines if the <StructureName> table exists in the database.
 ;;; </summary>
 ;;; <param name="a_dbchn">Connected database channel.</param>
+;;; <param name="a_auto_commit">Is the database in auto-commit mode.</param>
 ;;; <param name="a_errtxt">Returned error text.</param>
 ;;; <returns>Returns 1 if the table exists, otherwise a number indicating the type of error.</returns>
 
 function <StructureName>Exists, ^val
 
     required in  a_dbchn,  i
+    required in  a_auto_commit, n
     optional out a_errtxt, a
     endparams
 
@@ -149,12 +151,14 @@ endfunction
 ;;; Creates the <StructureName> table in the database.
 ;;; </summary>
 ;;; <param name="a_dbchn">Connected database channel.</param>
+;;; <param name="a_auto_commit">Is the database in auto-commit mode.</param>
 ;;; <param name="a_errtxt">Returned error text.</param>
 ;;; <returns>Returns true on success, otherwise false.</returns>
 
 function <StructureName>Create, ^val
 
     required in  a_dbchn,  i
+    required in  a_auto_commit, n
     optional out a_errtxt, a
     endparams
 
@@ -178,13 +182,16 @@ proc
 
     ;;Start a database transaction
 
-    if (%ssc_commit(a_dbchn,SSQL_TXON)==SSQL_NORMAL) then
-        transaction=1
-    else
+    if (!a_auto_commit)
     begin
-        ok = false
-        if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
-            errtxt="Failed to start transaction"
+        if (%ssc_commit(a_dbchn,SSQL_TXON)==SSQL_NORMAL) then
+            transaction=1
+        else
+        begin
+            ok = false
+            if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+                errtxt="Failed to start transaction"
+        end
     end
 
     ;;Create the database table and primary key constraint
@@ -239,7 +246,7 @@ proc
 
     ;;Commit or rollback the transaction
 
-    if (transaction)
+    if (!a_auto_commit && transaction)
     begin
         if (ok) then
         begin
@@ -318,12 +325,14 @@ endfunction
 ;;; Add alternate key indexes to the <StructureName> table if they do not exist.
 ;;; </summary>
 ;;; <param name="a_dbchn">Connected database channel.</param>
+;;; <param name="a_auto_commit">Is the database in auto-commit mode.</param>
 ;;; <param name="a_errtxt">Returned error text.</param>
 ;;; <returns>Returns true on success, otherwise false.</returns>
 
 function <StructureName>Index, ^val
 
     required in  a_dbchn,  i
+    required in  a_auto_commit, n
     optional out a_errtxt, a
     endparams
 
@@ -347,13 +356,16 @@ proc
 
     ;;Start a database transaction
 
-    if (%ssc_commit(a_dbchn,SSQL_TXON)==SSQL_NORMAL) then
-        transaction=1
-    else
+    if (!a_auto_commit)
     begin
-        ok = false
-        if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
-            errtxt="Failed to start transaction"
+        if (%ssc_commit(a_dbchn,SSQL_TXON)==SSQL_NORMAL) then
+            transaction=1
+        else
+        begin
+            ok = false
+            if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+                errtxt="Failed to start transaction"
+        end
     end
 
     <IF STRUCTURE_HAS_UNIQUE_PK>
@@ -393,7 +405,7 @@ proc
     </ALTERNATE_KEY_LOOP>
     ;;Commit or rollback the transaction
 
-    if (transaction)
+    if (!a_auto_commit && transaction)
     begin
         if (ok) then
         begin
@@ -471,12 +483,14 @@ endfunction
 ;;; Removes alternate key indexes from the <StructureName> table in the database.
 ;;; </summary>
 ;;; <param name="a_dbchn">Connected database channel.</param>
+;;; <param name="a_auto_commit">Is the database in auto-commit mode.</param>
 ;;; <param name="a_errtxt">Returned error text.</param>
 ;;; <returns>Returns true on success, otherwise false.</returns>
 
 function <StructureName>UnIndex, ^val
 
     required in  a_dbchn,  i
+    required in  a_auto_commit, n
     optional out a_errtxt, a
     endparams
 
@@ -500,13 +514,16 @@ proc
 
     ;;Start a database transaction
 
-    if (%ssc_commit(a_dbchn,SSQL_TXON)==SSQL_NORMAL) then
-        transaction=1
-    else
+    if (!a_auto_commit)
     begin
-        ok = false
-        if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
-            errtxt="Failed to start transaction"
+        if (%ssc_commit(a_dbchn,SSQL_TXON)==SSQL_NORMAL) then
+            transaction=1
+        else
+        begin
+            ok = false
+            if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+                errtxt="Failed to start transaction"
+        end
     end
 
     <IF STRUCTURE_HAS_UNIQUE_PK>
@@ -546,7 +563,7 @@ proc
     </ALTERNATE_KEY_LOOP>
     ;;Commit or rollback the transaction
 
-    if (transaction)
+    if (!a_auto_commit && transaction)
     begin
         if (ok) then
         begin
@@ -625,6 +642,7 @@ endfunction
 ;;; Insert a row into the <StructureName> table.
 ;;; </summary>
 ;;; <param name="a_dbchn">Connected database channel.</param>
+;;; <param name="a_auto_commit">Is the database in auto-commit mode.</param>
 <IF STRUCTURE_RELATIVE>
 ;;; <param name="a_recnum">Relative record number to be inserted.</param>
 </IF STRUCTURE_RELATIVE>
@@ -635,6 +653,7 @@ endfunction
 function <StructureName>Insert, ^val
 
     required in  a_dbchn,  i
+    required in  a_auto_commit, n
     <IF STRUCTURE_RELATIVE>
     required in  a_recnum, n
     </IF STRUCTURE_RELATIVE>
@@ -703,14 +722,17 @@ proc
 
     ;;Start a database transaction
 
-    if (%ssc_commit(a_dbchn,SSQL_TXON)==SSQL_NORMAL) then
-        transaction=1
-    else
+    if (!a_auto_commit)
     begin
-        ok = false
-        sts = 0
-        if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
-            errtxt="Failed to start transaction"
+        if (%ssc_commit(a_dbchn,SSQL_TXON)==SSQL_NORMAL) then
+            transaction=1
+        else
+        begin
+            ok = false
+            sts = 0
+            if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+                errtxt="Failed to start transaction"
+        end
     end
 
     ;;Open a cursor for the INSERT statement
@@ -886,7 +908,7 @@ proc
 
     ;;Commit or rollback the transaction
 
-    if (transaction)
+    if (!a_auto_commit && transaction)
     begin
         if (ok) then
         begin
@@ -925,6 +947,7 @@ endfunction
 ;;; Inserts multiple rows into the <StructureName> table.
 ;;; </summary>
 ;;; <param name="a_dbchn">Connected database channel</param>
+;;; <param name="a_auto_commit">Is the database in auto-commit mode.</param>
 ;;; <param name="a_data">Memory handle containing one or more rows to insert.</param>
 ;;; <param name="a_errtxt">Returned error text.</param>
 ;;; <param name="a_exception">Memory handle to load exception data records into.</param>
@@ -934,6 +957,7 @@ endfunction
 function <StructureName>InsertRows, ^val
 
     required in  a_dbchn,     i
+    required in  a_auto_commit, n
     required in  a_data,      i
     optional out a_errtxt,    a
     optional out a_exception, i
@@ -964,14 +988,14 @@ function <StructureName>InsertRows, ^val
     literal
         sql         ,a*, "INSERT INTO <StructureName> ("
         <IF STRUCTURE_RELATIVE>
-		<COUNTER_1_INCREMENT>
+        <COUNTER_1_INCREMENT>
         & +              '"RecordNumber",' ;#<COUNTER_1_VALUE>
         </IF STRUCTURE_RELATIVE>
         <FIELD_LOOP>
-		<COUNTER_1_INCREMENT>
+        <COUNTER_1_INCREMENT>
         & +              '"<FieldSqlName>"<,>' ;#<COUNTER_1_VALUE>
         </FIELD_LOOP>
-		<COUNTER_1_RESET>
+        <COUNTER_1_RESET>
         & +              ") VALUES(<IF STRUCTURE_RELATIVE>:1,<COUNTER_1_INCREMENT></IF STRUCTURE_RELATIVE><FIELD_LOOP><COUNTER_1_INCREMENT><IF USERTIMESTAMP>CONVERT(DATETIME2,:<COUNTER_1_VALUE>,21)<,><ELSE>:<COUNTER_1_VALUE><,></IF USERTIMESTAMP></FIELD_LOOP>)"
     endliteral
 
@@ -1020,15 +1044,31 @@ proc
 
     rows = (%mem_proc(DM_GETSIZE,a_data)/^size(inpbuf))
 
+    ;;If enabled, disable auto-commit
+
+    if (a_auto_commit)
+    begin
+        if (%ssc_cmd(a_dbchn,,SSQL_ODBC_AUTOCOMMIT,"no")!=SSQL_NORMAL)
+        begin
+            data dberrtxt, a1024
+            xcall ssc_getemsg(a_dbchn,dberrtxt,length)
+            errtxt = "Failed to disable auto-commit. Error was: " + dberrtxt(1,length)
+            ok = false
+        end
+    end
+
     ;;Start a database transaction
 
-    if (%ssc_commit(a_dbchn,SSQL_TXON)==SSQL_NORMAL) then
-        transaction=1
-    else
+    if (ok)
     begin
-        ok = false
-        if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
-            errtxt="Failed to start transaction"
+        if (%ssc_commit(a_dbchn,SSQL_TXON)==SSQL_NORMAL) then
+            transaction=1
+        else
+        begin
+            ok = false
+            if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+                errtxt="Failed to start transaction"
+        end
     end
 
     ;;Open a cursor for the INSERT statement
@@ -1246,6 +1286,19 @@ proc
         end
     end
 
+    ;;If necessary, re-enable auto-commit
+
+    if (a_auto_commit)
+    begin
+        if (%ssc_cmd(a_dbchn,,SSQL_ODBC_AUTOCOMMIT,"yes")!=SSQL_NORMAL)
+        begin
+            data dberrtxt, a1024
+            xcall ssc_getemsg(a_dbchn,dberrtxt,length)
+            errtxt = "Failed to enable auto-commit. Error was: " + dberrtxt(1,length)
+            ok = false
+        end
+    end
+
     ;;If we're returning exceptions then resize the buffer to the correct size
 
     if (^passed(a_exception)&&a_exception)
@@ -1270,6 +1323,7 @@ endfunction
 ;;; Updates a row in the <StructureName> table.
 ;;; </summary>
 ;;; <param name="a_dbchn">Connected database channel.</param>
+;;; <param name="a_auto_commit">Is the database in auto-commit mode.</param>
 <IF STRUCTURE_RELATIVE>
 ;;; <param name="a_recnum">record number.</param>
 </IF STRUCTURE_RELATIVE>
@@ -1281,6 +1335,7 @@ endfunction
 function <StructureName>Update, ^val
 
     required in  a_dbchn,  i
+    required in  a_auto_commit, n
     <IF STRUCTURE_RELATIVE>
     required in  a_recnum, n
     </IF STRUCTURE_RELATIVE>
@@ -1362,13 +1417,16 @@ proc
 
     ;;Start a database transaction
 
-    if (%ssc_commit(a_dbchn,SSQL_TXON)==SSQL_NORMAL) then
-        transaction = true
-    else
+    if (!a_auto_commit)
     begin
-        ok = false
-        if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
-            errtxt="Failed to start transaction"
+        if (%ssc_commit(a_dbchn,SSQL_TXON)==SSQL_NORMAL) then
+            transaction = true
+        else
+        begin
+            ok = false
+            if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+                errtxt="Failed to start transaction"
+        end
     end
 
     ;;Open a cursor for the UPDATE statement
@@ -1523,7 +1581,7 @@ proc
 
     ;;Commit or rollback the transaction
 
-    if (transaction)
+    if (!a_auto_commit && transaction)
     begin
         if (ok) then
         begin
@@ -1562,6 +1620,7 @@ endfunction
 ;;; Deletes a row from the <StructureName> table.
 ;;; </summary>
 ;;; <param name="a_dbchn">Connected database channel.</param>
+;;; <param name="a_auto_commit">Is the database in auto-commit mode.</param>
 ;;; <param name="a_key">Unique key of row to be deleted.</param>
 ;;; <param name="a_errtxt">Returned error text.</param>
 ;;; <returns>Returns true on success, otherwise false.</returns>
@@ -1569,6 +1628,7 @@ endfunction
 function <StructureName>Delete, ^val
 
     required in  a_dbchn,  i
+    required in  a_auto_commit, n
     required in  a_key,    a
     optional out a_errtxt, a
     endparams
@@ -1602,13 +1662,17 @@ proc
     <structureName> = %<StructureName>KeyToRecord(a_key)
 
     ;;Start a database transaction
-    if (%ssc_commit(a_dbchn,SSQL_TXON)==SSQL_NORMAL) then
-        transaction=1
-    else
+
+    if (!a_auto_commit)
     begin
-        ok = false
-        if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
-            errtxt="Failed to start transaction"
+        if (%ssc_commit(a_dbchn,SSQL_TXON)==SSQL_NORMAL) then
+            transaction=1
+        else
+        begin
+            ok = false
+            if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+                errtxt="Failed to start transaction"
+        end
     end
 
     ;;Open a cursor for the DELETE statement
@@ -1662,7 +1726,7 @@ proc
 
     ;;Commit or rollback the transaction
 
-    if (transaction)
+    if (!a_auto_commit && transaction)
     begin
         if (ok) then
         begin
@@ -1681,7 +1745,7 @@ proc
         end
     end
 
-    ;;If there was an error message, return it to the calling routine
+   ;;If there was an error message, return it to the calling routine
 
     if (^passed(a_errtxt))
     begin
@@ -1701,12 +1765,14 @@ endfunction
 ;;; Deletes all rows from the <StructureName> table.
 ;;; </summary>
 ;;; <param name="a_dbchn">Connected database channel.</param>
+;;; <param name="a_auto_commit">Is the database in auto-commit mode.</param>
 ;;; <param name="a_errtxt">Returned error text.</param>
 ;;; <returns>Returns true on success, otherwise false.</returns>
 
 function <StructureName>Clear, ^val
 
     required in  a_dbchn,  i
+    required in  a_auto_commit, n
     optional out a_errtxt, a
     endparams
 
@@ -1729,13 +1795,16 @@ proc
 
     ;;Start a database transaction
 
-    if (%ssc_commit(a_dbchn,SSQL_TXON)==SSQL_NORMAL) then
-        transaction=1
-    else
+    if (!a_auto_commit)
     begin
-        ok = false
-        if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
-            errtxt="Failed to start transaction"
+        if (%ssc_commit(a_dbchn,SSQL_TXON)==SSQL_NORMAL) then
+            transaction=1
+        else
+        begin
+            ok = false
+            if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+                errtxt="Failed to start transaction"
+        end
     end
 
     ;;Open cursor for the SQL statement
@@ -1780,7 +1849,7 @@ proc
 
     ;;Commit or rollback the transaction
 
-    if (transaction)
+    if (!a_auto_commit && transaction)
     begin
         if (ok) then
         begin
@@ -1818,12 +1887,14 @@ endfunction
 ;;; Deletes the <StructureName> table from the database.
 ;;; </summary>
 ;;; <param name="a_dbchn">Connected database channel.</param>
+;;; <param name="a_auto_commit">Is the database in auto-commit mode.</param>
 ;;; <param name="a_errtxt">Returned error text.</param>
 ;;; <returns>Returns true on success, otherwise false.</returns>
 
 function <StructureName>Drop, ^val
 
     required in  a_dbchn,  i
+    required in  a_auto_commit, n
     optional out a_errtxt, a
     endparams
 
@@ -1845,17 +1916,20 @@ proc
 
     ;;Close any open cursors
 
-    xcall <StructureName>Close(a_dbchn)
+    xcall <StructureName>Close(a_dbchn,a_auto_commit)
 
     ;;Start a database transaction
 
-    if (%ssc_commit(a_dbchn,SSQL_TXON)==SSQL_NORMAL) then
-        transaction=1
-    else
+    if (!a_auto_commit)
     begin
-        ok = false
-        if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
-            errtxt="Failed to start transaction"
+        if (%ssc_commit(a_dbchn,SSQL_TXON)==SSQL_NORMAL) then
+            transaction=1
+        else
+        begin
+            ok = false
+            if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+                errtxt="Failed to start transaction"
+        end
     end
 
     ;;Open cursor for DROP TABLE statement
@@ -1909,7 +1983,7 @@ proc
 
     ;;Commit or rollback the transaction
 
-    if (transaction)
+    if (!a_auto_commit && transaction)
     begin
         if (ok) then
         begin
@@ -1947,6 +2021,7 @@ endfunction
 ;;; Load all data from <IF STRUCTURE_MAPPED><MAPPED_FILE><ELSE><FILE_NAME></IF STRUCTURE_MAPPED> into the <StructureName> table.
 ;;; </summary>
 ;;; <param name="a_dbchn">Connected database channel.</param>
+;;; <param name="a_auto_commit">Is the database in auto-commit mode.</param>
 ;;; <param name="a_errtxt">Returned error text.</param>
 ;;; <param name="a_logex">Log exception records?</param>
 ;;; <param name="a_terminal">Terminal channel to log errors on.</param>
@@ -1958,6 +2033,7 @@ endfunction
 function <StructureName>Load, ^val
 
     required in  a_dbchn,    i
+    required in  a_auto_commit, n
     optional out a_errtxt,   a
     optional in  a_logex,    i
     optional in  a_terminal, i
@@ -2030,7 +2106,7 @@ proc
 
     ;;Open the data file associated with the structure
 
-	if (!(filechn = %<StructureName>OpenInput))
+    if (!(filechn = %<StructureName>OpenInput))
     begin
         ok = false
         errtxt = "Failed to open data file!"
@@ -2048,8 +2124,8 @@ proc
         repeat
         begin
             ;;Get the next record from the input file
-			try
-			begin
+            try
+            begin
                 if (firstRecord) then
                 begin
                     <IF STRUCTURE_TAGS>
@@ -2078,18 +2154,18 @@ proc
                     reads(filechn,tmprec)
                     </IF STRUCTURE_TAGS>
                 end
-			end
-			catch (ex, @EndOfFileException)
-			begin
-				exitloop
-			end
-			catch (ex, @Exception)
-			begin
-				ok = false
-				errtxt = "Unexpected error while reading data file: " + ex.Message
-				exitloop
-			end
-			endtry
+            end
+            catch (ex, @EndOfFileException)
+            begin
+                exitloop
+            end
+            catch (ex, @Exception)
+            begin
+                ok = false
+                errtxt = "Unexpected error while reading data file: " + ex.Message
+                exitloop
+            end
+            endtry
 
             ;;Got one, load it into or buffer
             <IF STRUCTURE_ISAM>
@@ -2145,7 +2221,7 @@ insert_data,
 
     attempted = (%mem_proc(DM_GETSIZE,mh)/^size(inpbuf))
 
-    if (%<StructureName>InsertRows(a_dbchn,mh,errtxt,ex_mh,a_terminal))
+    if (%<StructureName>InsertRows(a_dbchn,a_auto_commit,mh,errtxt,ex_mh,a_terminal))
     begin
         ;;Any exceptions?
         if (ex_mh) then
@@ -2196,6 +2272,7 @@ endfunction
 ;;; Bulk load data from <IF STRUCTURE_MAPPED><MAPPED_FILE><ELSE><FILE_NAME></IF STRUCTURE_MAPPED> into the <StructureName> table via a CSV file.
 ;;; </summary>
 ;;; <param name="a_dbchn">Connected database channel.</param>
+;;; <param name="a_auto_commit">Is the database in auto-commit mode.</param>
 ;;; <param name="a_localpath">Path to local export directory</param>
 ;;; <param name="a_remotepath">Remote export directory or URL</param>
 ;;; <param name="a_terminal">Terminal channel to log errors on</param>
@@ -2207,245 +2284,250 @@ endfunction
 function <StructureName>BulkLoad, ^val
 
     required in  a_dbchn,      i
-	required in  a_localpath,  string
-	required in  a_server,     string
-	required in  a_port,       string
+    required in  a_auto_commit, n
+    required in  a_localpath,  string
+    required in  a_server,     string
+    required in  a_port,       string
     optional in  a_terminal,   n
-	optional out a_records,    n
-	optional out a_exceptions, n
+    optional out a_records,    n
+    optional out a_exceptions, n
     optional out a_errtxt,     a
     endparams
 
     .include "CONNECTDIR:ssql.def"
 
      stack record local_data
-        ok,						boolean    ;;Return status
-		transaction,			boolean
-		cursorOpen,				boolean
-		remoteBulkLoad,			boolean
-		loggingToTerminal,		boolean
-		sql,					string
-		localCsvFile,			string
-		localExceptionsFile,	string
-		localExceptionsLog,	    string
-		remoteCsvFile,			string
-		remoteExceptionsFile,	string
-		remoteExceptionsLog,	string
-		copyTarget,				string
-		fileToLoad,				string
-		errorFile,				string
-		cursor,					int
-		length,					int
-		dberror,				int
-		recordCount,			int
-		exceptionCount,         int
-        errtxt,					a512       ;;Error message text
-		fsc,					@FileServiceClient
+        ok,                     boolean    ;;Return status
+        transaction,            boolean
+        cursorOpen,             boolean
+        remoteBulkLoad,         boolean
+        loggingToTerminal,      boolean
+        sql,                    string
+        localCsvFile,           string
+        localExceptionsFile,    string
+        localExceptionsLog,     string
+        remoteCsvFile,          string
+        remoteExceptionsFile,   string
+        remoteExceptionsLog,    string
+        copyTarget,             string
+        fileToLoad,             string
+        errorFile,              string
+        cursor,                 int
+        length,                 int
+        dberror,                int
+        recordCount,            int
+        exceptionCount,         int
+        errtxt,                 a512       ;;Error message text
+        fsc,                    @FileServiceClient
     endrecord
 
-	.define ttlog(x) if (loggingToTerminal) writes(a_terminal,"   - " + x)
+    .define ttlog(x) if (loggingToTerminal) writes(a_terminal,"   - " + x)
 
 proc
 
     init local_data
-	ok = true
+    ok = true
 
-	;;Are we logging to a terminal channel?
-	loggingToTerminal = (^passed(a_terminal) && a_terminal)
+    ;;Are we logging to a terminal channel?
+    loggingToTerminal = (^passed(a_terminal) && a_terminal)
 
-	;;If we're doing a remote bulk load, create an instance of the FileService client and verify that we can access the FileService server
-	
-	if (remoteBulkLoad = ((a_server!=^null) && (a_server.nes." ")))
-	begin
-		fsc = new FileServiceClient(a_server,a_port)
-		ttlog("Verifying FileService connection")
-		if (!fsc.Ping(errtxt))
-		begin
-			ttlog(errtxt = "No response from FileService, bulk upload cancelled")
-			ok = false
-		end
-	end
+    ;;If we're doing a remote bulk load, create an instance of the FileService client and verify that we can access the FileService server
 
-	if (ok)
-	begin
-		;;Determine temporary file names
+    if (remoteBulkLoad = ((a_server!=^null) && (a_server.nes." ")))
+    begin
+        fsc = new FileServiceClient(a_server,a_port)
+        ttlog("Verifying FileService connection")
+        if (!fsc.Ping(errtxt))
+        begin
+            ttlog(errtxt = "No response from FileService, bulk upload cancelled")
+            ok = false
+        end
+    end
 
-		.ifdef OS_WINDOWS7
-		localCsvFile = a_localpath + "\<StructureName>.csv"
-		.endc
-		.ifdef OS_UNIX
-		localCsvFile = a_localpath + "/<StructureName>.csv"
-		.endc
-		.ifdef OS_VMS
-		localCsvFile = a_localpath + "<StructureName>.csv"
-		.endc
-		localExceptionsFile  = localCsvFile + "_err"
-		localExceptionsLog   = localExceptionsFile + ".Error.Txt" 
+    if (ok)
+    begin
+        ;;Determine temporary file names
 
-		if (remoteBulkLoad)
-		begin
-			remoteCsvFile = "<StructureName>.csv"
-			remoteExceptionsFile = remoteCsvFile + "_err"
-			remoteExceptionsLog  = remoteExceptionsFile + ".Error.Txt"
-		end
+        .ifdef OS_WINDOWS7
+        localCsvFile = a_localpath + "\<StructureName>.csv"
+        .endc
+        .ifdef OS_UNIX
+        localCsvFile = a_localpath + "/<StructureName>.csv"
+        .endc
+        .ifdef OS_VMS
+        localCsvFile = a_localpath + "<StructureName>.csv"
+        .endc
+        localExceptionsFile  = localCsvFile + "_err"
+        localExceptionsLog   = localExceptionsFile + ".Error.Txt"
 
-		;;Make sure there are no files left over from previous operations
-	
-		call DeleteFiles
+        if (remoteBulkLoad)
+        begin
+            remoteCsvFile = "<StructureName>.csv"
+            remoteExceptionsFile = remoteCsvFile + "_err"
+            remoteExceptionsLog  = remoteExceptionsFile + ".Error.Txt"
+        end
 
-		;;And export the data
+        ;;Make sure there are no files left over from previous operations
 
-		ttlog("Exporting delimited file")
-		ok = %<StructureName>Csv(localCsvFile,recordCount,errtxt)
-	end
+        call DeleteFiles
 
-	if (ok)
-	begin
-		;;If necessary, upload the exported file to the database server
+        ;;And export the data
 
-		if (remoteBulkLoad) then
-		begin
-			ttlog("Uploading delimited file to database host")
-			ok = fsc.UploadChunked(localCsvFile,remoteCsvFile,320,fileToLoad,errtxt)
-		end
-		else
-		begin
-			fileToLoad  = localCsvFile
-		end
-	end
+        ttlog("Exporting delimited file")
+        ok = %<StructureName>Csv(localCsvFile,recordCount,errtxt)
+    end
 
-	if (ok)
-	begin
-		;;Bulk load the database table
+    if (ok)
+    begin
+        ;;If necessary, upload the exported file to the database server
 
-		ttlog("Executing SQL BULK INSERT")
+        if (remoteBulkLoad) then
+        begin
+            ttlog("Uploading delimited file to database host")
+            ok = fsc.UploadChunked(localCsvFile,remoteCsvFile,320,fileToLoad,errtxt)
+        end
+        else
+        begin
+            fileToLoad  = localCsvFile
+        end
+    end
 
-		;;Start a database transaction
-		if (%ssc_commit(a_dbchn,SSQL_TXON)==SSQL_NORMAL) then
-			transaction = true
-		else
-		begin
-			ok = false
-			if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
-				errtxt="Failed to start transaction"
-		end
+    if (ok)
+    begin
+        ;;Bulk load the database table
 
-		;;Open a cursor for the statement
+        ttlog("Executing SQL BULK INSERT")
 
-		if (ok)
-		begin
-			errorFile = fileToLoad + "_err"
+        ;;Start a database transaction
 
-			sql = "BULK INSERT <StructureName> FROM '" + fileToLoad + "' WITH (FIRSTROW=2,FIELDTERMINATOR='|',ROWTERMINATOR='\n', ERRORFILE='" + errorFile + "')"
+        if (!a_auto_commit)
+        begin
+            if (%ssc_commit(a_dbchn,SSQL_TXON)==SSQL_NORMAL) then
+                transaction = true
+            else
+            begin
+                ok = false
+                if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+                    errtxt="Failed to start transaction"
+            end
+        end
 
-			if (%ssc_open(a_dbchn,cursor,sql,SSQL_NONSEL,SSQL_STANDARD)==SSQL_NORMAL) then
-				cursorOpen = true
-			else
-			begin
-				ok = false
-				if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
-					errtxt="Failed to open cursor"
-			end
-		end
+        ;;Open a cursor for the statement
 
-		;;Disable the SQL Server timeout.
+        if (ok)
+        begin
+            errorFile = fileToLoad + "_err"
 
-		if (ok)
-		begin
-			if (%ssc_cmd(a_dbchn,,SSQL_TIMEOUT,"0")==SSQL_FAILURE)
-			begin
-				ok = false
-				if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
-					errtxt="Failed to extend SQL Connection timeout period"
-			end
-		end
+            sql = "BULK INSERT <StructureName> FROM '" + fileToLoad + "' WITH (FIRSTROW=2,FIELDTERMINATOR='|',ROWTERMINATOR='\n', ERRORFILE='" + errorFile + "')"
 
-		;;Execute the statement
+            if (%ssc_open(a_dbchn,cursor,sql,SSQL_NONSEL,SSQL_STANDARD)==SSQL_NORMAL) then
+                cursorOpen = true
+            else
+            begin
+                ok = false
+                if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+                    errtxt="Failed to open cursor"
+            end
+        end
 
-		if (ok)
-		begin
-			if (%ssc_execute(a_dbchn,cursor,SSQL_STANDARD)==SSQL_FAILURE)
-			begin
-				if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_NORMAL) then
-				begin
-					using dberror select
-					(-4864),
-					begin
-						;Bulk load data conversion error
-						ttlog("Data conversion errors were reported")
-						clear dberror, errtxt
-						call GetExceptionDetails
-					end
-					(),
-					begin
-						errtxt = %string(dberror) + " " + errtxt
-						ok = false
-					end
-					endusing
-				end
-				else
-				begin
-					errtxt="Failed to execute SQL statement"
-					ok = false
-				end
-			end
+        ;;Disable the SQL Server timeout.
 
-			;;Delete temporary files
-			call DeleteFiles
-		end
+        if (ok)
+        begin
+            if (%ssc_cmd(a_dbchn,,SSQL_TIMEOUT,"0")==SSQL_FAILURE)
+            begin
+                ok = false
+                if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+                    errtxt="Failed to extend SQL Connection timeout period"
+            end
+        end
 
-		;;Restore the SQL Server timeout to 60 seconds
+        ;;Execute the statement
 
-		if (ok)
-		begin
-			if (%ssc_cmd(a_dbchn,,SSQL_TIMEOUT,"60")==SSQL_FAILURE)
-			begin
-				ok = false
-				if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
-					errtxt="Failed to restore SQL Connection timeout period"
-			end
-		end
+        if (ok)
+        begin
+            if (%ssc_execute(a_dbchn,cursor,SSQL_STANDARD)==SSQL_FAILURE)
+            begin
+                if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_NORMAL) then
+                begin
+                    using dberror select
+                    (-4864),
+                    begin
+                        ;Bulk load data conversion error
+                        ttlog("Data conversion errors were reported")
+                        clear dberror, errtxt
+                        call GetExceptionDetails
+                    end
+                    (),
+                    begin
+                        errtxt = %string(dberror) + " " + errtxt
+                        ok = false
+                    end
+                    endusing
+                end
+                else
+                begin
+                    errtxt="Failed to execute SQL statement"
+                    ok = false
+                end
+            end
 
-		;;Commit or rollback the transaction
+            ;;Delete temporary files
+            call DeleteFiles
+        end
 
-		if (transaction)
-		begin
-			if (ok) then
-			begin
-				;;Success, commit the transaction
-				if (%ssc_commit(a_dbchn,SSQL_TXOFF)==SSQL_FAILURE)
-				begin
-					if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
-						errtxt="Failed to commit transaction"
-					ok = false
-				end
-			end
-			else
-			begin
-				;;There was an error, rollback the transaction
-				xcall ssc_rollback(a_dbchn,SSQL_TXOFF)
-			end
-		end
+        ;;Restore the SQL Server timeout to 60 seconds
 
-		;;Close the cursor
+        if (ok)
+        begin
+            if (%ssc_cmd(a_dbchn,,SSQL_TIMEOUT,"60")==SSQL_FAILURE)
+            begin
+                ok = false
+                if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+                    errtxt="Failed to restore SQL Connection timeout period"
+            end
+        end
 
-		if (cursorOpen)
-		begin
-			if (%ssc_close(a_dbchn,cursor)==SSQL_FAILURE)
-			begin
-				if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
-					errtxt="Failed to close cursor"
-			end		
-		end
-	end
+        ;;Commit or rollback the transaction
 
-	;; Return the record count
+        if (!a_auto_commit && transaction)
+        begin
+            if (ok) then
+            begin
+                ;;Success, commit the transaction
+                if (%ssc_commit(a_dbchn,SSQL_TXOFF)==SSQL_FAILURE)
+                begin
+                    if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+                        errtxt="Failed to commit transaction"
+                    ok = false
+                end
+            end
+            else
+            begin
+                ;;There was an error, rollback the transaction
+                xcall ssc_rollback(a_dbchn,SSQL_TXOFF)
+            end
+        end
 
-	if (^passed(a_records))
-		a_records = recordCount
+        ;;Close the cursor
 
-	if (^passed(a_exceptions))
-		a_exceptions = exceptionCount
+        if (cursorOpen)
+        begin
+            if (%ssc_close(a_dbchn,cursor)==SSQL_FAILURE)
+            begin
+                if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+                    errtxt="Failed to close cursor"
+            end
+        end
+    end
+
+    ;; Return the record count
+
+    if (^passed(a_records))
+        a_records = recordCount
+
+    if (^passed(a_exceptions))
+        a_exceptions = exceptionCount
 
     ;;Return the error text
 
@@ -2456,134 +2538,134 @@ proc
 
 GetExceptionDetails,
 
-	;;If we get here then the bulk load reported one or more "data conversion error" issues
-	;;There should be two files on the server 
+    ;;If we get here then the bulk load reported one or more "data conversion error" issues
+    ;;There should be two files on the server
 
-	if (remoteBulkLoad) then
-	begin
-		data fileExists, boolean
-		data tmpmsg, string
+    if (remoteBulkLoad) then
+    begin
+        data fileExists, boolean
+        data tmpmsg, string
 
-		if (fsc.Exists(remoteExceptionsFile,fileExists,tmpmsg)) then
-		begin
-			if (fileExists) then
-			begin
-				;;Download the error file
-				data exceptionRecords, [#]string
+        if (fsc.Exists(remoteExceptionsFile,fileExists,tmpmsg)) then
+        begin
+            if (fileExists) then
+            begin
+                ;;Download the error file
+                data exceptionRecords, [#]string
 
-				ttlog("Downloading remote exceptions data file")
+                ttlog("Downloading remote exceptions data file")
 
-				if (fsc.DownloadText(remoteExceptionsFile,exceptionRecords))
-				begin
-					data ex_ch, int
-					data exceptionRecord, string
+                if (fsc.DownloadText(remoteExceptionsFile,exceptionRecords))
+                begin
+                    data ex_ch, int
+                    data exceptionRecord, string
 
-					open(ex_ch=0,o:s,localExceptionsFile)
+                    open(ex_ch=0,o:s,localExceptionsFile)
 
-					foreach exceptionRecord in exceptionRecords
-						writes(ex_ch,exceptionRecord)
-						
-					close ex_ch
+                    foreach exceptionRecord in exceptionRecords
+                        writes(ex_ch,exceptionRecord)
 
-					exceptionCount = exceptionRecords.Length
+                    close ex_ch
 
-					ttlog(%string(exceptionCount) + " items saved to " + localExceptionsFile)
-				end
-			end
-			else
-			begin
-				;;Error file does not exist! In theory this should not happen, because we got here due to "data conversion error" being reported
-				ttlog("Remote exceptions data file not found!")
-			end
-		end
-		else
-		begin
-			;;Failed to determine if file exists
-			ttlog("Failed to determine if remote exceptions data file exists. Error was " + tmpmsg)
-		end
+                    exceptionCount = exceptionRecords.Length
 
-		;;Now check for and retrieve the associated exceptions log
+                    ttlog(%string(exceptionCount) + " items saved to " + localExceptionsFile)
+                end
+            end
+            else
+            begin
+                ;;Error file does not exist! In theory this should not happen, because we got here due to "data conversion error" being reported
+                ttlog("Remote exceptions data file not found!")
+            end
+        end
+        else
+        begin
+            ;;Failed to determine if file exists
+            ttlog("Failed to determine if remote exceptions data file exists. Error was " + tmpmsg)
+        end
 
-		if (fsc.Exists(remoteExceptionsLog,fileExists,tmpmsg)) then
-		begin
-			if (fileExists) then
-			begin
-				;;Download the error file
-				data exceptionRecords, [#]string
+        ;;Now check for and retrieve the associated exceptions log
 
-				ttlog("Downloading remote exceptions log file")
+        if (fsc.Exists(remoteExceptionsLog,fileExists,tmpmsg)) then
+        begin
+            if (fileExists) then
+            begin
+                ;;Download the error file
+                data exceptionRecords, [#]string
 
-				if (fsc.DownloadText(remoteExceptionsLog,exceptionRecords))
-				begin
-					data ex_ch, int
-					data exceptionRecord, string
+                ttlog("Downloading remote exceptions log file")
 
-					open(ex_ch=0,o:s,localExceptionsLog)
+                if (fsc.DownloadText(remoteExceptionsLog,exceptionRecords))
+                begin
+                    data ex_ch, int
+                    data exceptionRecord, string
 
-					foreach exceptionRecord in exceptionRecords
-						writes(ex_ch,exceptionRecord)
+                    open(ex_ch=0,o:s,localExceptionsLog)
 
-					close ex_ch
+                    foreach exceptionRecord in exceptionRecords
+                        writes(ex_ch,exceptionRecord)
 
-					ttlog(%string(exceptionRecords.Length) + " items saved to " + localExceptionsLog)
-				end
-			end
-			else
-			begin
-				;;Error file does not exist! In theory this should not happen, because we got here due to "data conversion error" being reported
-				ttlog("Remote exceptions file not found!")
-			end
-		end
-		else
-		begin
-			;;Failed to determine if file exists
-			ttlog("Failed to determine if remote exceptions log file exists. Error was " + tmpmsg)
-		end
-	end
-	else
-	begin
-		;;Local bulk load
+                    close ex_ch
 
-		if (File.Exists(localExceptionsFile)) then
-		begin
-			data ex_ch, int
-			data tmprec, a65535
-			open(ex_ch=0,i:s,localExceptionsFile)
-			repeat
-			begin
-				reads(ex_ch,tmprec,eof)
-				exceptionCount += 1
-			end
-eof,		close ex_ch
-			ttlog(%string(exceptionCount) + " exception items found in " + localExceptionsFile)
-		end
-		else
-		begin
-			;;Error file does not exist! In theory this should not happen, because we got here due to "data conversion error" being reported
-			ttlog("Exceptions data file not found!")
-		end
-	end
+                    ttlog(%string(exceptionRecords.Length) + " items saved to " + localExceptionsLog)
+                end
+            end
+            else
+            begin
+                ;;Error file does not exist! In theory this should not happen, because we got here due to "data conversion error" being reported
+                ttlog("Remote exceptions file not found!")
+            end
+        end
+        else
+        begin
+            ;;Failed to determine if file exists
+            ttlog("Failed to determine if remote exceptions log file exists. Error was " + tmpmsg)
+        end
+    end
+    else
+    begin
+        ;;Local bulk load
 
-	return
+        if (File.Exists(localExceptionsFile)) then
+        begin
+            data ex_ch, int
+            data tmprec, a65535
+            open(ex_ch=0,i:s,localExceptionsFile)
+            repeat
+            begin
+                reads(ex_ch,tmprec,eof)
+                exceptionCount += 1
+            end
+eof,        close ex_ch
+            ttlog(%string(exceptionCount) + " exception items found in " + localExceptionsFile)
+        end
+        else
+        begin
+            ;;Error file does not exist! In theory this should not happen, because we got here due to "data conversion error" being reported
+            ttlog("Exceptions data file not found!")
+        end
+    end
+
+    return
 
 DeleteFiles,
 
-	;;Delete local files
-	
-	xcall delet(localCsvFile)
-	xcall delet(localExceptionsFile)
-	xcall delet(localExceptionsLog)
+    ;;Delete local files
 
-	;;Delete remote files
+    xcall delet(localCsvFile)
+    xcall delet(localExceptionsFile)
+    xcall delet(localExceptionsLog)
 
-	if (remoteBulkLoad)
-	begin
-		fsc.Delete(remoteCsvFile)
-		fsc.Delete(remoteExceptionsFile)
-		fsc.Delete(remoteExceptionsLog)
-	end
+    ;;Delete remote files
 
-	return
+    if (remoteBulkLoad)
+    begin
+        fsc.Delete(remoteCsvFile)
+        fsc.Delete(remoteExceptionsFile)
+        fsc.Delete(remoteExceptionsLog)
+    end
+
+    return
 
 endfunction
 
@@ -2592,10 +2674,12 @@ endfunction
 ;;; Close cursors associated with the <StructureName> table.
 ;;; </summary>
 ;;; <param name="a_dbchn">Connected database channel</param>
+;;; <param name="a_auto_commit">Is the database in auto-commit mode.</param>
 
 subroutine <StructureName>Close
 
     required in  a_dbchn, i
+    required in  a_auto_commit, n
     endparams
 
     .include "CONNECTDIR:ssql.def"
@@ -2647,9 +2731,9 @@ endsubroutine
 ;;; <returns>Returns true on success, otherwise false.</returns>
 
 function <StructureName>Csv, ^val
-	required in  fileSpec, string
-	optional out recordCount, n
-	optional out errorMessage, a
+    required in  fileSpec, string
+    optional out recordCount, n
+    optional out errorMessage, a
     endparams
 
     .include "CONNECTDIR:ssql.def"
@@ -2657,15 +2741,15 @@ function <StructureName>Csv, ^val
 
     .define EXCEPTION_BUFSZ 100
 
-	stack record local_data
-		ok,				boolean     ;;Return status
-		filechn,		int         ;;Data file channel
-		csvchn,			int         ;;CSV file channel
-		csvrec,			string		;;A CSV file record
-		errnum,			int         ;;Error number
-		records,		int         ;;Number of records exported
-		errtxt,			a512        ;;Error message text
-	endrecord
+    stack record local_data
+        ok,             boolean     ;;Return status
+        filechn,        int         ;;Data file channel
+        csvchn,         int         ;;CSV file channel
+        csvrec,         string      ;;A CSV file record
+        errnum,         int         ;;Error number
+        records,        int         ;;Number of records exported
+        errtxt,         a512        ;;Error message text
+    endrecord
 
 proc
 
@@ -2682,30 +2766,30 @@ proc
 
     if (ok)
     begin
-		;;Create the local CSV file
-		.ifdef OS_WINDOWS7
-		open(csvchn=0,o:s,fileSpec)
-		.endc
-		.ifdef OS_UNIX
-		open(csvchn=0,o,fileSpec)
-		.endc
-		.ifdef OS_VMS
-		open(csvchn=0,o,fileSpec,OPTIONS:"/stream")
-		.endc
+        ;;Create the local CSV file
+        .ifdef OS_WINDOWS7
+        open(csvchn=0,o:s,fileSpec)
+        .endc
+        .ifdef OS_UNIX
+        open(csvchn=0,o,fileSpec)
+        .endc
+        .ifdef OS_VMS
+        open(csvchn=0,o,fileSpec,OPTIONS:"/stream")
+        .endc
 
-		;;Add a row of column headers
-		.ifdef OS_WINDOWS7
-		writes(csvchn,"<FIELD_LOOP><IF STRUCTURE_RELATIVE>RecordNumber|</IF STRUCTURE_RELATIVE><FieldSqlName><IF MORE>|</IF MORE></FIELD_LOOP>")
-		.else
-		puts(csvchn,"<FIELD_LOOP><IF STRUCTURE_RELATIVE>RecordNumber|</IF STRUCTURE_RELATIVE><FieldSqlName><IF MORE>|</IF MORE></FIELD_LOOP>" + %char(13) + %char(10))
-		.endc
+        ;;Add a row of column headers
+        .ifdef OS_WINDOWS7
+        writes(csvchn,"<FIELD_LOOP><IF STRUCTURE_RELATIVE>RecordNumber|</IF STRUCTURE_RELATIVE><FieldSqlName><IF MORE>|</IF MORE></FIELD_LOOP>")
+        .else
+        puts(csvchn,"<FIELD_LOOP><IF STRUCTURE_RELATIVE>RecordNumber|</IF STRUCTURE_RELATIVE><FieldSqlName><IF MORE>|</IF MORE></FIELD_LOOP>" + %char(13) + %char(10))
+        .endc
 
         ;;Read and add data file records
         repeat
         begin
             ;;Get the next record from the input file
-			try
-			begin
+            try
+            begin
                 <IF STRUCTURE_TAGS>
                 repeat
                 begin
@@ -2718,19 +2802,19 @@ proc
                 </IF STRUCTURE_TAGS>
 
                 ;;Make sure there are no | characters in the data
-				if (%instr(1,<structure_name>))
-				begin
-					data tmpData, string, <structure_name>
-					tmpData.Replace("|"," ")
-					<structure_name> = tmpData
-				end
-					
-				records += 1
-				csvrec = ""
+                if (%instr(1,<structure_name>,"|"))
+                begin
+                    data tmpData, string, <structure_name>
+                    tmpData.Replace("|"," ")
+                    <structure_name> = tmpData
+                end
+
+                records += 1
+                csvrec = ""
                 <FIELD_LOOP>
-				<IF STRUCTURE_RELATIVE>
-				&	+ %string(records) + "|"
-				</IF STRUCTURE_RELATIVE>
+                <IF STRUCTURE_RELATIVE>
+                &   + %string(records) + "|"
+                </IF STRUCTURE_RELATIVE>
                 <IF ALPHA>
                 &    + %atrim(<field_path>) + "<IF MORE>|</IF MORE>"
                 </IF ALPHA>
@@ -2757,24 +2841,24 @@ proc
                 </IF USERTIMESTAMP>
                 </IF USER>
                 </FIELD_LOOP>
- 
-				.ifdef OS_WINDOWS7
-				writes(csvchn,csvrec)
-				.else
-				puts(csvchn,csvrec + %char(13) + %char(10))
-				.endc
-			end
-			catch (e, @EndOfFileException)
-			begin
-				exitloop
-			end
-			catch (e, @Exception)
-			begin
-				ok = false
-				errtxt = "Unexpected error when reading data file: " + e.Message
-				exitloop
-			end
-			endtry
+
+                .ifdef OS_WINDOWS7
+                writes(csvchn,csvrec)
+                .else
+                puts(csvchn,csvrec + %char(13) + %char(10))
+                .endc
+            end
+            catch (e, @EndOfFileException)
+            begin
+                exitloop
+            end
+            catch (e, @Exception)
+            begin
+                ok = false
+                errtxt = "Unexpected error when reading data file: " + e.Message
+                exitloop
+            end
+            endtry
         end
     end
 
@@ -2808,26 +2892,26 @@ endfunction
 function <StructureName>OpenInput, ^val
     optional out errorMessage, a  ;;Returned error text
     endparams
-	stack record
-		ch, int
-		errmsg, a128
-	endrecord
+    stack record
+        ch, int
+        errmsg, a128
+    endrecord
 proc
 
-	try
-	begin
+    try
+    begin
         open(ch=0,<IF STRUCTURE_ISAM>i:i</IF STRUCTURE_ISAM><IF STRUCTURE_RELATIVE>i:r</IF STRUCTURE_RELATIVE>,"<FILE_NAME>")
-		errmsg = ""
-	end
-	catch (ex, @Exception)
-	begin
-		errmsg = ex.Message
-		clear ch
-	end
-	endtry
+        errmsg = ""
+    end
+    catch (ex, @Exception)
+    begin
+        errmsg = ex.Message
+        clear ch
+    end
+    endtry
 
-	if (^passed(errorMessage))
-		errorMessage = errmsg
+    if (^passed(errorMessage))
+        errorMessage = errmsg
 
     freturn ch
 
