@@ -1735,9 +1735,9 @@ ConfigureEnvironment,
 			try
 			begin
 				.ifdef D_VMS
-				xcall isamc(Settings.TransactionFile + ", FIXED", 32054, 1, "START=1, LENGTH=20, NAME=TRANSACTION_ID")
+				xcall isamc(Settings.TransactionFile + ", FIXED", 32042, 1, "START=1, LENGTH=8, TYPE=CTIMESTAMP, NAME=TRANSACTION_ID, DENSITY=100")
 				.else
-				xcall isamc(Settings.TransactionFile + ", FIXED, COMPRESS, PAGE=1024, TBYTE", 65054, 1, "START=1, LENGTH=20, NAME=TRANSACTION_ID")
+				xcall isamc(Settings.TransactionFile + ", FIXED, COMPRESS, PAGE=1024, TBYTE", 65042, 1, "START=1, LENGTH=8, TYPE=CTIMESTAMP, NAME=TRANSACTION_ID, DENSITY=100")
 				.endc
 			end
 			catch (ex, @Exception)
