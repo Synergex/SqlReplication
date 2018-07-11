@@ -39,28 +39,28 @@ import System.Collections
 import ReplicationLibrary
 
 main ReplicatorMenu
-	
-	record
-        tt,				i4
-        system,			d4
-        runtime,		d4
-        windows,		boolean
-        unix,			boolean
-        pid,			int
-		option,			a2
-		validTables,	@ArrayList
-		tableName,		a30
-		instanceName,	a20
-		status,			i4
+
+    record
+        tt,             i4
+        system,         d4
+        runtime,        d4
+        windows,        boolean
+        unix,           boolean
+        pid,            int
+        option,         a2
+        validTables,    @ArrayList
+        tableName,      a30
+        instanceName,   a20
+        status,         i4
     endrecord
-	
-	.ifdef D_VMS
+
+    .ifdef D_VMS
     .include "REPLICATION_VMS" repository, record="instruction", end
     .else
     .include "REPLICATION" repository, record="instruction", end
     .endc
-	
-	record outbuf
+
+    record outbuf
         operation,  a20
         ,           a2
         table,      a30
@@ -90,29 +90,29 @@ proc
         .ifdef D_VMS
         display(tt,"ERROR: Failed to activate shared image REPLICATOR_SH")
         .else
-		display(tt,"ERROR: Failed to activate ELB REPLICATOR_EXE:library.elb")
+        display(tt,"ERROR: Failed to activate ELB REPLICATOR_EXE:library.elb")
         .endc
         stop
     end
     endtry
 
-	;;Get a collection of the valid table names
+    ;;Get a collection of the valid table names
 
-	xcall GetReplicatedTables(validTables)
+    xcall GetReplicatedTables(validTables)
 
-	;;Display and process the menu
-	
-	display(tt,$SCR_POS(1,1),$SCR_CLR(SCREEN))
+    ;;Display and process the menu
+
+    display(tt,$SCR_POS(1,1),$SCR_CLR(SCREEN))
     display(tt,$SCR_POS(2,2),"Replicator Control Menu")
 
-	;;Get the default instance name
-	xcall getlog("REPLICATOR_INSTANCE",instanceName,status)
-	if (instanceName) then
-		display(tt,$SCR_POS(4,1), "Instance name: " + %atrim(instanceName))
-	else
-		display(tt,$SCR_POS(4,1), "Instance name: <none>")
+    ;;Get the default instance name
+    xcall getlog("REPLICATOR_INSTANCE",instanceName,status)
+    if (instanceName) then
+        display(tt,$SCR_POS(4,1), "Instance name: " + %atrim(instanceName))
+    else
+        display(tt,$SCR_POS(4,1), "Instance name: <none>")
 
-	display(tt,$SCR_POS(4,40),"Current table: <none>")
+    display(tt,$SCR_POS(4,40),"Current table: <none>")
 
     repeat
     begin
@@ -127,8 +127,8 @@ proc
         else if (unix)
         begin
             display(tt,$SCR_POS(6,2),"SR. Start Replicator (Detached)")
-			display(tt,$SCR_POS(7,2),"RS. Replicator Status")
-		end
+            display(tt,$SCR_POS(7,2),"RS. Replicator Status")
+        end
 
         display(tt,$SCR_POS(8,2), "S.  Stop Replicator")
         display(tt,$SCR_POS(9,2), "V.  View instructions")
@@ -137,8 +137,8 @@ proc
         display(tt,$SCR_POS(11,2),"Q.  Instruction count")
         .endc
         display(tt,$SCR_POS(12,2),"I.  Change interval")
-		display(tt,$SCR_POS(13,2),"N.  Change instance name")
-		display(tt,$SCR_POS(14,2),"R.  Restart log file")
+        display(tt,$SCR_POS(13,2),"N.  Change instance name")
+        display(tt,$SCR_POS(14,2),"R.  Restart log file")
 
         display(tt,$SCR_POS(16,2),"A.  Available tables")
         display(tt,$SCR_POS(17,2),"T.  Set current table")
@@ -152,14 +152,14 @@ proc
         begin
             display(tt,$SCR_POS( 6,40),"C.  Create table")
             display(tt,$SCR_POS( 7,40),"L.  Load table")
-			display(tt,$SCR_POS( 8,40),"CL. Create and load table")
-			display(tt,$SCR_POS( 9,40),"BL. Bulk load table")
-			display(tt,$SCR_POS(10,40),"AI. Add indexes")
-			display(tt,$SCR_POS(11,40),"DI. Delete indexes")
-			display(tt,$SCR_POS(12,40),"TR. Truncate table")
+            display(tt,$SCR_POS( 8,40),"CL. Create and load table")
+            display(tt,$SCR_POS( 9,40),"BL. Bulk load table")
+            display(tt,$SCR_POS(10,40),"AI. Add indexes")
+            display(tt,$SCR_POS(11,40),"DI. Delete indexes")
+            display(tt,$SCR_POS(12,40),"TR. Truncate table")
             display(tt,$SCR_POS(13,40),"D.  Delete table")
-			display(tt,$SCR_POS(14,40),"X.  Export to CSV")
-		end
+            display(tt,$SCR_POS(14,40),"X.  Export to CSV")
+        end
 
         display(tt,$SCR_POS(23,2),$SCR_CLR(EOS),"Select an option: ")
         reads(tt,option)
@@ -169,62 +169,62 @@ proc
         ("M "),
         begin
             if (windows)
-				xcall spawn("dbr REPLICATOR_EXE:employeemaintenance.dbr",D_NOWINDOW|D_NOWAIT)
+                xcall spawn("dbr REPLICATOR_EXE:employeemaintenance.dbr",D_NOWINDOW|D_NOWAIT)
         end
 
         ("SR"),
         begin
             if (windows) then
-				xcall spawn("dbr REPLICATOR_EXE:replicator.dbr",D_NOWINDOW|D_NOWAIT)
-			else if (unix)
-			begin
-				if (instanceName) then
-					xcall spawn("nohup dbr REPLICATOR_EXE:replicator $REPLICATOR_INSTANCE </dev/null >/dev/null 2>&1 &")
-				else
-					xcall spawn("nohup dbr REPLICATOR_EXE:replicator </dev/null >/dev/null 2>&1 &")
-			end
+                xcall spawn("dbr REPLICATOR_EXE:replicator.dbr",D_NOWINDOW|D_NOWAIT)
+            else if (unix)
+            begin
+                if (instanceName) then
+                    xcall spawn("nohup dbr REPLICATOR_EXE:replicator $REPLICATOR_INSTANCE </dev/null >/dev/null 2>&1 &")
+                else
+                    xcall spawn("nohup dbr REPLICATOR_EXE:replicator </dev/null >/dev/null 2>&1 &")
+            end
         end
 
-		("RS"),
-		begin
-			if (windows) then
-				nop
-			else if (unix)
-			begin
-				data pipechn, int, 0
-				data instanceCount, int, 0
-				data buffer, a256
-				open(pipechn,i,'|ps ax | grep "REPLICATOR_EXE:replicator " | grep -v grep')
+        ("RS"),
+        begin
+            if (windows) then
+                nop
+            else if (unix)
+            begin
+                data pipechn, int, 0
+                data instanceCount, int, 0
+                data buffer, a256
+                open(pipechn,i,'|ps ax | grep "REPLICATOR_EXE:replicator " | grep -v grep')
 
-				display(tt,$SCR_POS(6,2),$SCR_CLR(EOS))
+                display(tt,$SCR_POS(6,2),$SCR_CLR(EOS))
 
-				repeat
-				begin
-					reads(pipechn,buffer,EndOfPipe)
-					writes(tt,%atrim(buffer))
-					instanceCount+=1
-				end
-EndOfPipe,		close pipechn
+                repeat
+                begin
+                    reads(pipechn,buffer,EndOfPipe)
+                    writes(tt,%atrim(buffer))
+                    instanceCount+=1
+                end
+EndOfPipe,      close pipechn
 
-				if (!instanceCount)
-					display(tt,"No replicator instances found!")
+                if (!instanceCount)
+                    display(tt,"No replicator instances found!")
 
-				display(tt,$SCR_POS(23,2),"Press a key to continue: ")
-				begin
-					data tmpvar, a1
-					accept(tt,tmpvar)
-					while (%ttsts)
-						accept(tt,tmpvar)
-				end
+                display(tt,$SCR_POS(23,2),"Press a key to continue: ")
+                begin
+                    data tmpvar, a1
+                    accept(tt,tmpvar)
+                    while (%ttsts)
+                        accept(tt,tmpvar)
+                end
 
-				display(tt,$scr_pos(6,1),$scr_clr(EOS))
+                display(tt,$scr_pos(6,1),$scr_clr(EOS))
 
-			end
-		end
+            end
+        end
 
-		("SD"),
+        ("SD"),
             if (windows)
-				xcall spawn("dbr -d REPLICATOR_EXE:replicator.dbr",D_NOWINDOW|D_NOWAIT)
+                xcall spawn("dbr -d REPLICATOR_EXE:replicator.dbr",D_NOWINDOW|D_NOWAIT)
 
         ("S "),
         begin
@@ -239,7 +239,7 @@ EndOfPipe,		close pipechn
             data tmpvar, a1, " "
             open(chn=0,"I:I","REPLICATOR_DATA:REPLICATION.ISM")
 
-			display(tt,$SCR_POS(6,1),$SCR_CLR(EOS), "Operation             Table                           Affected Record",
+            display(tt,$SCR_POS(6,1),$SCR_CLR(EOS), "Operation             Table                           Affected Record",
             &          $SCR_POS(7,1),               "--------------------  ------------------------------  ------------------------")
 
             find(chn,,^FIRST) [EOF=eof]
@@ -264,9 +264,9 @@ EndOfPipe,		close pipechn
                         outbuf.operation = "Create table"
                     (REPLICATION_INSTRUCTION.LOAD_TABLE),
                         outbuf.operation = "Load table"
-					(REPLICATION_INSTRUCTION.BULK_LOAD_TABLE),
-						outbuf.operation = "Bulk load table"
-					(REPLICATION_INSTRUCTION.CREATE_AND_LOAD_TABLE),
+                    (REPLICATION_INSTRUCTION.BULK_LOAD_TABLE),
+                        outbuf.operation = "Bulk load table"
+                    (REPLICATION_INSTRUCTION.CREATE_AND_LOAD_TABLE),
                         outbuf.operation = "Create & load table"
                     (REPLICATION_INSTRUCTION.DELETE_ALL_ROWS),
                         outbuf.operation = "Truncate table"
@@ -276,12 +276,12 @@ EndOfPipe,		close pipechn
                         outbuf.operation = "Shutdown"
                     (REPLICATION_INSTRUCTION.DELETE_ALL_INSTRUCTIONS),
                         outbuf.operation = "Purge instructions"
-					(REPLICATION_INSTRUCTION.CREATE_CSV),
-						outbuf.operation = "Export to CSV"
-					(REPLICATION_INSTRUCTION.CLOSE_FILE),
-						outbuf.operation = "Close file"
-					(REPLICATION_INSTRUCTION.CYCLE_LOG),
-						outbuf.operation = "Restart log"
+                    (REPLICATION_INSTRUCTION.CREATE_CSV),
+                        outbuf.operation = "Export to CSV"
+                    (REPLICATION_INSTRUCTION.CLOSE_FILE),
+                        outbuf.operation = "Close file"
+                    (REPLICATION_INSTRUCTION.CYCLE_LOG),
+                        outbuf.operation = "Restart log"
                     endusing
 
                     outbuf.table = instruction.structure_name
@@ -292,16 +292,16 @@ EndOfPipe,		close pipechn
 
                 display(tt,$SCR_POS(23,1),"Press M for more or ENTER for menu: ")
 
-				if (tmpvar=="M") then
-				begin
-					accept(tt,tmpvar)
-					while (%ttsts)
-						accept(tt,tmpvar)
-				end
+                if (tmpvar=="M") then
+                begin
+                    accept(tt,tmpvar)
+                    while (%ttsts)
+                        accept(tt,tmpvar)
+                end
                 else
                 begin
-					exitloop
-				end
+                    exitloop
+                end
 
                 display(tt,$scr_pos(8,1),$scr_clr(EOS))
 
@@ -396,31 +396,31 @@ eof,        close chn
             reads(tt,tableName)
 
             if (tableName) then
-			begin
-				;;Make sure it's a valid table
-				data found = false
-				data name, string
+            begin
+                ;;Make sure it's a valid table
+                data found = false
+                data name, string
 
-				;;Look for it in the collection of valid tables
-				foreach name in validTables
-				begin
-					if ((a)(name.ToUpper()).eqs.tableName)
-					begin
-						tableName = (a)name
-						display(tt,$SCR_POS(4,55),$SCR_CLR(EOL),%atrim(tableName))
-						found = true
-						exitloop
-					end
-				end
+                ;;Look for it in the collection of valid tables
+                foreach name in validTables
+                begin
+                    if ((a)(name.ToUpper()).eqs.tableName)
+                    begin
+                        tableName = (a)name
+                        display(tt,$SCR_POS(4,55),$SCR_CLR(EOL),%atrim(tableName))
+                        found = true
+                        exitloop
+                    end
+                end
 
-				;;Report if not found
-				if (!found)
+                ;;Report if not found
+                if (!found)
                 begin
                     display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Table not found!")
                     display(tt,$SCR_POS(4,55),$SCR_CLR(EOL),"<none>")
                     clear tableName
-                end			
-			end
+                end
+            end
             else
             begin
                 display(tt,$SCR_POS(4,55),$SCR_CLR(EOL),"<none>")
@@ -428,25 +428,25 @@ eof,        close chn
             end
         end
 
-		("N "),
-		begin
-			clear instanceName
-			display(tt,$SCR_POS(23,2),$SCR_CLR(EOS),"Instance name: ")
-			reads(tt,instanceName)
-			xcall setlog("REPLICATOR_INSTANCE",%atrim(instanceName),status)
-			if (instanceName) then
-				display(tt,$SCR_POS(23,2),$SCR_CLR(EOS),$SCR_POS(4,17),instanceName)
-			else
-				display(tt,$SCR_POS(23,2),$SCR_CLR(EOS),$SCR_POS(4,17),"<none>")
-		end
-		
-		("R "),
-		begin
-			xcall Replicate(REPLICATION_INSTRUCTION.CYCLE_LOG)
-			display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Command queued")
-		end
-		
-		("C "),
+        ("N "),
+        begin
+            clear instanceName
+            display(tt,$SCR_POS(23,2),$SCR_CLR(EOS),"Instance name: ")
+            reads(tt,instanceName)
+            xcall setlog("REPLICATOR_INSTANCE",%atrim(instanceName),status)
+            if (instanceName) then
+                display(tt,$SCR_POS(23,2),$SCR_CLR(EOS),$SCR_POS(4,17),instanceName)
+            else
+                display(tt,$SCR_POS(23,2),$SCR_CLR(EOS),$SCR_POS(4,17),"<none>")
+        end
+
+        ("R "),
+        begin
+            xcall Replicate(REPLICATION_INSTRUCTION.CYCLE_LOG)
+            display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Command queued")
+        end
+
+        ("C "),
         begin
             if (tableName) then
             begin
@@ -479,40 +479,40 @@ eof,        close chn
                 display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Invalid option!")
         end
 
-		("BL"),
-		begin
-			if (tableName) then
-			begin
-				xcall Replicate(REPLICATION_INSTRUCTION.BULK_LOAD_TABLE,tableName)
-				display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Command queued")
-			end
-			else
-				display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Invalid option!")
-		end
+        ("BL"),
+        begin
+            if (tableName) then
+            begin
+                xcall Replicate(REPLICATION_INSTRUCTION.BULK_LOAD_TABLE,tableName)
+                display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Command queued")
+            end
+            else
+                display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Invalid option!")
+        end
 
-		("AI"),
-		begin
-			if (tableName) then
-			begin
-				xcall Replicate(REPLICATION_INSTRUCTION.ADD_INDEXES,tableName)
-				display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Command queued")
-			end
-			else
-				display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Invalid option!")
-		end
+        ("AI"),
+        begin
+            if (tableName) then
+            begin
+                xcall Replicate(REPLICATION_INSTRUCTION.ADD_INDEXES,tableName)
+                display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Command queued")
+            end
+            else
+                display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Invalid option!")
+        end
 
-		("DI"),
-		begin
-			if (tableName) then
-			begin
-				xcall Replicate(REPLICATION_INSTRUCTION.DELETE_INDEXES,tableName)
-				display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Command queued")
-			end
-			else
-				display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Invalid option!")
-		end
+        ("DI"),
+        begin
+            if (tableName) then
+            begin
+                xcall Replicate(REPLICATION_INSTRUCTION.DELETE_INDEXES,tableName)
+                display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Command queued")
+            end
+            else
+                display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Invalid option!")
+        end
 
-		("TR"),
+        ("TR"),
         begin
             if (tableName) then
             begin
@@ -545,7 +545,7 @@ eof,        close chn
                 display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Invalid option!")
         end
 
-		("E "),
+        ("E "),
             exitloop
 
         (),
