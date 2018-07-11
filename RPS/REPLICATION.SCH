@@ -5,7 +5,7 @@
 ;                 : D:\PUBLIC\SqlReplicationIoHooks\PRJVS\repository\bin\Release
 ;                 : Version 10.3.3e
 ;
-;  GENERATED      : 11-JUL-2018, 13:10:37
+;  GENERATED      : 11-JUL-2018, 15:43:49
 ;                 : Version 10.3.3e
 ;  EXPORT OPTIONS : [ALL] 
  
@@ -342,7 +342,7 @@ Key RECORD_NUMBER   ACCESS   Order ASCENDING   Dups NO
 Structure REPLICATION   DBL ISAM
    Description "Replication request queue"
  
-Field TRANSACTION_ID   Type AUTOTIME   Size 8
+Field TRANSACTION_ID   Type AUTOSEQ   Size 8
    Description "Unique transaction ID (I8 timestamp)"
    Report Just LEFT   Input Just LEFT   Readonly
    Nonull
@@ -358,7 +358,7 @@ Field RECORD   Type ALPHA   Size 65000
  
 Key TRANSACTION_ID   ACCESS   Order ASCENDING   Dups NO   Density 100
    Description "Transaction ID (I8 timestamp)"
-   Segment FIELD   TRANSACTION_ID  SegType CTIMESTAMP
+   Segment FIELD   TRANSACTION_ID  SegType SEQUENCE
  
 Structure REPLICATION_OLD   DBL ISAM
    Description "Replication request queue (old format)"
@@ -384,7 +384,7 @@ Key TRANSACTION_ID   ACCESS   Order ASCENDING   Dups NO   Density 100
 Structure REPLICATION_VMS   DBL ISAM
    Description "Replication request queue (OpenVMS)"
  
-Field TRANSACTION_ID   Type AUTOTIME   Size 8
+Field TRANSACTION_ID   Type AUTOSEQ   Size 8
    Description "Unique transaction ID (timestamp)"
    Report Just LEFT   Input Just LEFT   Readonly
    Nonull
@@ -400,7 +400,7 @@ Field RECORD   Type ALPHA   Size 32000
  
 Key TRANSACTION_ID   ACCESS   Order ASCENDING   Dups NO   Density 100
    Description "Transaction ID (timestamp)"
-   Segment FIELD   TRANSACTION_ID  SegType CTIMESTAMP
+   Segment FIELD   TRANSACTION_ID  SegType SEQUENCE
  
 Structure REPLICATION_VMS_OLD   DBL ISAM
    Description "Replication request queue (OpenVMS) Old"
