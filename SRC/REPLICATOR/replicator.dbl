@@ -231,7 +231,13 @@ proc
 					call ChangeInterval
 				end
 
-                (REPLICATION_INSTRUCTION.SHUTDOWN),
+				(REPLICATION_INSTRUCTION.CYCLE_LOG),
+				begin
+					xcall log("Cycle log file")
+					xcall cycle_log
+				end
+
+				(REPLICATION_INSTRUCTION.SHUTDOWN),
                 begin
 					xcall log("Shutdown requested")
 					delete(Settings.InstructionChannel)
@@ -1276,25 +1282,25 @@ ConfigureEnvironment,
 		endusing
 	end
 
-	;;Create a new log file
-	try
-	begin
-		data tmpchn, i4, 0
-		open(tmpchn,o:s,Settings.LogFileName)
-		close tmpchn
+;	;;Create a new log file
+;	try
+;	begin
+;		data tmpchn, i4, 0
+;		open(tmpchn,o:s,Settings.LogFileName)
+;		close tmpchn
 		;;Record the startup
 		xcall log("Replicator startup")
-	end
-	catch (ex)
-	begin
-		data tmpmsg = "Replicator failed to open log file " + Settings.LogFileName + ". Error number " + %string(%ernum)
-		if (Settings.RunningOnTerminal) then
-			writes(Settings.TerminalChannel,tmpmsg)
-		else
-			xcall syn_reportevent(D_EVENTLOG_ERROR_TYPE,tmpmsg)
-		ok = false
-	end
-	endtry
+;	end
+;	catch (ex)
+;	begin
+;		data tmpmsg = "Replicator failed to open log file " + Settings.LogFileName + ". Error number " + %string(%ernum)
+;		if (Settings.RunningOnTerminal) then
+;			writes(Settings.TerminalChannel,tmpmsg)
+;		else
+;			xcall syn_reportevent(D_EVENTLOG_ERROR_TYPE,tmpmsg)
+;		ok = false
+;	end
+;	endtry
 
 	if (ok)
 	begin
@@ -2189,38 +2195,69 @@ endsubroutine
 ;;
 subroutine log
     required in message, string
-    stack record
+    static record
         logchn, i4
     endrecord
 proc
 
-    ;;Open the log file
-    try
-    begin
-        open(logchn=0,a:s,Settings.LogFileName)
+	;;Open the log file
+	if (Settings.LogFileChannel==0)
+	begin
+		try
+		begin
+			open(Settings.LogFileChannel,a:s,Settings.LogFileName)
+		end
+		catch (ex)
+		begin
+			data tmpmsg = "Replicator failed to open log file " + Settings.LogFileName + ". Error number " + %string(%ernum)
+			if (Settings.RunningOnTerminal) then
+				writes(Settings.TerminalChannel,tmpmsg)
+			else
+				xcall syn_reportevent(D_EVENTLOG_ERROR_TYPE,tmpmsg)
+			Settings.LogFileChannel = 0
+		end
+		endtry
+	end
 
-        ;;Log the message
-        writes(logchn,%TimeNow + message)
+	;;Log the message
 
-        ;;Close the log file
-        close logchn
-end
-    catch (ex)
-    begin
-        data tmpmsg = "Replicator failed to open log file " + Settings.LogFileName + ". Error number " + %string(%ernum)
-        if (Settings.RunningOnTerminal) then
-            writes(Settings.TerminalChannel,tmpmsg)
-        else
-            xcall syn_reportevent(D_EVENTLOG_ERROR_TYPE,tmpmsg)
-    end
-    endtry
+	if (Settings.LogFileChannel!=0)
+		writes(Settings.LogFileChannel,%TimeNow + message)
 
-    ;;If running on the terminal, also display the message
-    if (Settings.RunningOnTerminal)
-        writes(Settings.TerminalChannel,message)
+	;;If running on the terminal, also display the message
+	if (Settings.RunningOnTerminal)
+		writes(Settings.TerminalChannel,message)
 
     xreturn
-end
+
+endsubroutine
+
+;;*****************************************************************************
+;;
+subroutine cycle_log
+	record
+		now, a20
+	endrecord
+proc
+
+	;;Open the log file
+	if (Settings.LogFileChannel!=0)
+	begin
+		now = %datetime
+		Settings.LogFileName = "REPLICATOR_LOGDIR:replicator_" + now(1:8) + "_" + now(9:6) + ".log"
+
+		xcall log("New log file is " + Settings.LogFileName)
+
+		close Settings.LogFileChannel
+		Settings.LogFileChannel = 0
+
+		open(Settings.LogFileChannel,a:s,Settings.LogFileName)
+
+	end
+
+	xreturn
+
+endsubroutine
 
 ;;*****************************************************************************
 ;;
@@ -2410,7 +2447,8 @@ namespace Tools
 			FileServiceHost    = ^null
 			FileServicePort    = "8080"
 			InstanceName       = "DEFAULT"
-            LogFileName        = "REPLICATOR_LOGDIR:replicator_" + now(1:8) + "_" + now(9:6) + ".log"
+			LogFileChannel     = 0
+			LogFileName        = "REPLICATOR_LOGDIR:replicator_" + now(1:8) + "_" + now(9:6) + ".log"
             MaxCursors         = 128
             MaxColumns         = 254
             RunningOnTerminal  = (%tnmbr >= 0)
@@ -2501,13 +2539,18 @@ namespace Tools
         public static readwrite property FullLogging, boolean
 
         ;;; <summary>
-        ;;; <summary>
-        ;;; The name of the replicator log file.
-        ;;; If running in interactive mode this will be TT:
+        ;;; The channel that the replicator log file is open on.
         ;;; </summary>
-        public static readwrite property LogFileName, string
+        public static readwrite property LogFileChannel, int
 
-        ;;; Include key data in debug logs?
+		;;; <summary>
+		;;; The name of the replicator log file.
+		;;; If running in interactive mode this will be TT:
+		;;; </summary>
+		public static readwrite property LogFileName, string
+
+		;;; <summary>
+		;;; Include key data in debug logs?
         ;;; </summary>
         public static readwrite property LogKeys, boolean
 

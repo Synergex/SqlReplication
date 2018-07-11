@@ -5,7 +5,7 @@
 ;                 : D:\PUBLIC\SqlReplicationIoHooks\PRJVS\repository\bin\Release
 ;                 : Version 10.3.3e
 ;
-;  GENERATED      : 10-JUL-2018, 17:50:47
+;  GENERATED      : 11-JUL-2018, 13:10:37
 ;                 : Version 10.3.3e
 ;  EXPORT OPTIONS : [ALL] 
  
@@ -19,7 +19,7 @@ Enumeration REPLICATION_INSTRUCTION
           DELETE_TABLE 8, SHUTDOWN 9, INSERT_RELATIVE 10,
           UPDATE_RELATIVE 11, ADD_INDEXES 12, DELETE_INDEXES 13,
           BULK_LOAD_TABLE 14, DELETE_ALL_INSTRUCTIONS 20, CLOSE_FILE 21,
-          CHANGE_INTERVAL 22, CREATE_CSV 23
+          CHANGE_INTERVAL 22, CREATE_CSV 23, CYCLE_LOG 24
  
 Template DEPARTMENT_ID   Type ALPHA   Size 15
    Description "Department ID"

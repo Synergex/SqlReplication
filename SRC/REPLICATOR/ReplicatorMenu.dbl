@@ -138,14 +138,15 @@ proc
         .endc
         display(tt,$SCR_POS(12,2),"I.  Change interval")
 		display(tt,$SCR_POS(13,2),"N.  Change instance name")
+		display(tt,$SCR_POS(14,2),"R.  Restart log file")
 
-        display(tt,$SCR_POS(15,2),"A.  Available tables")
-        display(tt,$SCR_POS(16,2),"T.  Set current table")
+        display(tt,$SCR_POS(16,2),"A.  Available tables")
+        display(tt,$SCR_POS(17,2),"T.  Set current table")
 
         if (windows)
-            display(tt,$SCR_POS(17,2),"M.  Start maintenance program")
+            display(tt,$SCR_POS(18,2),"M.  Start maintenance program")
 
-        display(tt,$SCR_POS(19,2),"E.  Exit")
+        display(tt,$SCR_POS(20,2),"E.  Exit")
 
         if (tableName)
         begin
@@ -278,7 +279,9 @@ EndOfPipe,		close pipechn
 					(REPLICATION_INSTRUCTION.CREATE_CSV),
 						outbuf.operation = "Export to CSV"
 					(REPLICATION_INSTRUCTION.CLOSE_FILE),
-                        outbuf.operation = "Close file"
+						outbuf.operation = "Close file"
+					(REPLICATION_INSTRUCTION.CYCLE_LOG),
+						outbuf.operation = "Restart log"
                     endusing
 
                     outbuf.table = instruction.structure_name
@@ -435,6 +438,12 @@ eof,        close chn
 				display(tt,$SCR_POS(23,2),$SCR_CLR(EOS),$SCR_POS(4,17),instanceName)
 			else
 				display(tt,$SCR_POS(23,2),$SCR_CLR(EOS),$SCR_POS(4,17),"<none>")
+		end
+		
+		("R "),
+		begin
+			xcall Replicate(REPLICATION_INSTRUCTION.CYCLE_LOG)
+			display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Command queued")
 		end
 		
 		("C "),
