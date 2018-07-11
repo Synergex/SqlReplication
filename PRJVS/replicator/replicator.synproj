@@ -94,6 +94,7 @@
     </Compile>
     <Compile Include="ChangeEveryEmployee.dbl" />
     <Compile Include="ConvertQueueFile.dbl" />
+    <Compile Include="QueueMonitor.dbl" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\library\library.synproj">

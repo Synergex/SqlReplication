@@ -134,7 +134,7 @@ proc
         display(tt,$SCR_POS(9,2), "V.  View instructions")
         display(tt,$SCR_POS(10,2),"P.  Purge instructions")
         .ifndef D_VMS
-        display(tt,$SCR_POS(11,2),"Q.  Instruction count")
+        display(tt,$SCR_POS(11,2),"Q.  Queue length")
         .endc
         display(tt,$SCR_POS(12,2),"I.  Change interval")
         display(tt,$SCR_POS(13,2),"N.  Change instance name")
@@ -333,8 +333,7 @@ eof,        close chn
             data chn, i4
             data msg, a50
             open(chn=0,"I:I","REPLICATOR_DATA:REPLICATION.ISM")
-            msg = %string(%isinfo(chn,"NUMRECS"),"ZZZ,ZZZ,ZZX") [LEFT]
-            msg = %atrim(msg) + " outstanding instructions"
+			msg = "Queue length: " + %string(%isinfo(chn,"NUMRECS"))
             display(tt,$scr_pos(23,2),$scr_clr(EOL),%atrim(msg))
             close chn
             accept(tt,chn)

@@ -1,0 +1,24 @@
+
+main QueueMonitor
+	record
+		tt, int
+		qfile, int
+	endrecord
+proc
+
+	xcall flags(7004000,1)
+	
+	open(tt=0,i,"tt:")
+	display(tt,$scr_clr(SCREEN),"Replicator Queue Monitor")
+
+
+	repeat
+	begin
+		open(qfile=0,"I:I","REPLICATOR_DATA:REPLICATION.ISM")
+		display(tt,$scr_pos(3,1),$scr_clr(EOL),"Queue length: " + %string(%isinfo(qfile,"NUMRECS")))
+		close qfile
+		sleep 1
+	end
+
+
+endmain
