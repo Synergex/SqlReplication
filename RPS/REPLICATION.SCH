@@ -1,12 +1,12 @@
  
 ;  SYNERGY DATA LANGUAGE OUTPUT
 ;
-;  REPOSITORY     : C:\DEV\PUBLIC\SqlReplicationIoHooks\RPS\rpsmain.ism
-;                 : C:\DEV\PUBLIC\SqlReplicationIoHooks\RPS\rpstext.ism
-;                 : Version 10.3.3d
+;  REPOSITORY     : D:\PUBLIC\SqlReplicationIoHooks\PRJVS\repository\bin\Release
+;                 : D:\PUBLIC\SqlReplicationIoHooks\PRJVS\repository\bin\Release
+;                 : Version 10.3.3e
 ;
-;  GENERATED      : 26-JAN-2018, 14:14:07
-;                 : Version 10.3.3d
+;  GENERATED      : 10-JUL-2018, 17:50:47
+;                 : Version 10.3.3e
 ;  EXPORT OPTIONS : [ALL] 
  
  
@@ -342,8 +342,10 @@ Key RECORD_NUMBER   ACCESS   Order ASCENDING   Dups NO
 Structure REPLICATION   DBL ISAM
    Description "Replication request queue"
  
-Field TRANSACTION_ID   Type ALPHA   Size 20
-   Description "Unique transaction ID (timestamp)"
+Field TRANSACTION_ID   Type AUTOTIME   Size 8
+   Description "Unique transaction ID (I8 timestamp)"
+   Report Just LEFT   Input Just LEFT   Readonly
+   Nonull
  
 Field ACTION   Type DECIMAL   Size 2
    Description "Replicator action"
@@ -355,14 +357,58 @@ Field RECORD   Type ALPHA   Size 65000
    Description "Record affected"
  
 Key TRANSACTION_ID   ACCESS   Order ASCENDING   Dups NO   Density 100
-   Description "Transaction ID (timestamp)"
+   Description "Transaction ID (I8 timestamp)"
+   Segment FIELD   TRANSACTION_ID  SegType CTIMESTAMP
+ 
+Structure REPLICATION_OLD   DBL ISAM
+   Description "Replication request queue (old format)"
+ 
+Field TRANSACTION_ID   Type ALPHA   Size 20
+   Description "Unique transaction ID (I8 timestamp)"
+   Readonly
+   Nonull
+ 
+Field ACTION   Type DECIMAL   Size 2
+   Description "Replicator action"
+ 
+Field STRUCTURE_NAME   Type ALPHA   Size 32
+   Description "the SDMS structure name"
+ 
+Field RECORD   Type ALPHA   Size 65000
+   Description "Record affected"
+ 
+Key TRANSACTION_ID   ACCESS   Order ASCENDING   Dups NO   Density 100
+   Description "Transaction ID (I8 timestamp)"
    Segment FIELD   TRANSACTION_ID
  
 Structure REPLICATION_VMS   DBL ISAM
    Description "Replication request queue (OpenVMS)"
  
+Field TRANSACTION_ID   Type AUTOTIME   Size 8
+   Description "Unique transaction ID (timestamp)"
+   Report Just LEFT   Input Just LEFT   Readonly
+   Nonull
+ 
+Field ACTION   Type DECIMAL   Size 2
+   Description "Replicator action"
+ 
+Field STRUCTURE_NAME   Type ALPHA   Size 32
+   Description "the SDMS structure name"
+ 
+Field RECORD   Type ALPHA   Size 32000
+   Description "Record affected"
+ 
+Key TRANSACTION_ID   ACCESS   Order ASCENDING   Dups NO   Density 100
+   Description "Transaction ID (timestamp)"
+   Segment FIELD   TRANSACTION_ID  SegType CTIMESTAMP
+ 
+Structure REPLICATION_VMS_OLD   DBL ISAM
+   Description "Replication request queue (OpenVMS) Old"
+ 
 Field TRANSACTION_ID   Type ALPHA   Size 20
    Description "Unique transaction ID (timestamp)"
+   Readonly
+   Nonull
  
 Field ACTION   Type DECIMAL   Size 2
    Description "Replicator action"
@@ -376,6 +422,20 @@ Field RECORD   Type ALPHA   Size 32000
 Key TRANSACTION_ID   ACCESS   Order ASCENDING   Dups NO   Density 100
    Description "Transaction ID (timestamp)"
    Segment FIELD   TRANSACTION_ID
+ 
+Structure TEST   DBL ISAM
+   Description "test"
+ 
+Field F1   Type ALPHA   Size 1
+   Description "f1"
+ 
+Field F2   Type ALPHA   Size 2
+   Description "F2"
+ 
+Key K0   ACCESS   Order ASCENDING   Dups NO
+   Description "k0"
+   Segment FIELD   F1
+   Segment FIELD   F2
  
 File DEPARTMENT   DBL ISAM   "REPLICATOR_DATA:DEPARTMENT.ISM"
    Description "Department master file"

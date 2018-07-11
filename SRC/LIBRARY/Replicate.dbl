@@ -126,31 +126,31 @@ proc
 		if (^passed(a_record) && a_record)
 			instruction.record = a_record
 
-		repeat
-		begin
-			try
-			begin
-				if (a_action == REPLICATION_INSTRUCTION.SHUTDOWN) then
-				begin
-					;;Put the shutdown instruction at the head of the queue so that it is processes immediately
-					instruction.transaction_id = "00000000000000000000"
-				end
-				else
-					instruction.transaction_id = %datetime
+;		repeat
+;		begin
+;			try
+;			begin
+;				if (a_action == REPLICATION_INSTRUCTION.SHUTDOWN) then
+;				begin
+;					;;Put the shutdown instruction at the head of the queue so that it is processes immediately
+;					instruction.transaction_id = "00000000000000000000"
+;				end
+;				else
+;					instruction.transaction_id = %datetime
 				store(chn,instruction)
-				exitloop
-			end
-			catch (ex, @DuplicateException)
-			begin
-				if (instruction.transaction_id == "00000000000000000000")
-				begin
-					;;Ignore duplicate SHUTDOWN requests, pointless!
-					exitloop
-				end
-				sleep 0.01
-			end
-			endtry
-		end
+;				exitloop
+;			end
+;			catch (ex, @DuplicateException)
+;			begin
+;				if (instruction.transaction_id == "00000000000000000000")
+;				begin
+;					;;Ignore duplicate SHUTDOWN requests, pointless!
+;					exitloop
+;				end
+;				sleep 0.0001
+;			end
+;			endtry
+;		end
 	end
 	endusing
 

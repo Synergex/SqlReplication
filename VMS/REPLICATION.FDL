@@ -21,7 +21,7 @@ RECORD
 	BLOCK_SPAN              yes
 	CARRIAGE_CONTROL        carriage_return
 	FORMAT                  fixed
-	SIZE                    32054
+	SIZE                    32042
 
 AREA 0
 	ALLOCATION              16
@@ -49,9 +49,9 @@ KEY 0
 	NAME                    "TRANSACTION_ID"
 	NULL_KEY                no
 	PROLOG                  3
-	SEG0_LENGTH             20
+	SEG0_LENGTH             8
 	SEG0_POSITION           0
-	TYPE                    string
+	TYPE                    int8
 
 ANALYSIS_OF_AREA 0
 	RECLAIMED_SPACE         0

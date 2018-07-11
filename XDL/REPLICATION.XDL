@@ -1,4 +1,4 @@
-!	Synergy ISAM XDL File created Wed Oct 05 11:37:53 2016
+
 FILE
 	NAME		"REPLICATION.ISM"
 	ADDRESSING	48
@@ -8,32 +8,17 @@ FILE
 	KEYS		1
 
 RECORD
-	SIZE		65054
+	SIZE		65042
 	FORMAT		fixed
 	COMPRESS_DATA	yes
-
-	!5ca5 magic, revision 6, 9 byte record overhead
-	!Static vectoring enabled
-	!Default R6 file attributes:
-	!  Static RFAs enabled (Required)
-	!  256TB file size enabled
-	!Creation version 10.3.3a {Compat Level 6.0}
-	!0 of 32 byte file text allocation in use, @0x1698
-	!File created on Wed Oct 05 11:37:43 2016
-	!20 byte longest key
-	!0 free index blocks, 0x0 free list head
-	!0 records, 0 free
 
 KEY 0
 	!Primary key
 	START		1
-	LENGTH		20
-	TYPE		alpha
+	LENGTH		8
+	TYPE		ctimestamp
 	ORDER		ascending
 	NAME		"TRANSACTION_ID"
 	DUPLICATES	no
 	MODIFIABLE	no
 	DENSITY		100
-
-	!Root 0x2000, index depth 1
-	!Minimum keys per block 18

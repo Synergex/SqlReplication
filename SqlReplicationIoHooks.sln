@@ -67,14 +67,6 @@ Project("{BBD0F5D1-1CC4-42FD-BA4C-A96779C64378}") = "FileService", "FileService\
 EndProject
 Project("{930C7802-8A8C-48F9-8165-68863BCCD9DD}") = "FileServiceSetup", "FileServiceSetup\FileServiceSetup.wixproj", "{8D11BDFD-BFD7-473F-9199-D34D2CDA2D94}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Documentation", "Documentation", "{7F2BA8E6-118A-478D-96E8-B2C763E622D2}"
-	ProjectSection(SolutionItems) = preProject
-		Documentation\FileService.chm = Documentation\FileService.chm
-		Documentation\FileService.hsm = Documentation\FileService.hsm
-		Documentation\SqlReplication.chm = Documentation\SqlReplication.chm
-		Documentation\SqlReplication.hsm = Documentation\SqlReplication.hsm
-	EndProjectSection
-EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "File Definitions", "File Definitions", "{085E387B-6DDD-4056-AC7E-78B01B414ED7}"
 	ProjectSection(SolutionItems) = preProject
 		XDL\DEPARTMENT.XDL = XDL\DEPARTMENT.XDL
