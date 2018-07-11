@@ -11,6 +11,7 @@ proc
 	open(tt=0,i,"tt:")
 	display(tt,$scr_clr(SCREEN),"Replicator Queue Monitor")
 
+
 	repeat
 	begin
 		open(qfile=0,"I:I","REPLICATOR_DATA:REPLICATION.ISM")
