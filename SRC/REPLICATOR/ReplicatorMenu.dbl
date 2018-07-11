@@ -108,9 +108,9 @@ proc
 	;;Get the default instance name
 	xcall getlog("REPLICATOR_INSTANCE",instanceName,status)
 	if (instanceName) then
-		display(tt,$SCR_POS(4,2), "Instance name: " + %atrim(instanceName))
+		display(tt,$SCR_POS(4,1), "Instance name: " + %atrim(instanceName))
 	else
-		display(tt,$SCR_POS(4,2), "Instance name: <none>")
+		display(tt,$SCR_POS(4,1), "Instance name: <none>")
 
 	display(tt,$SCR_POS(4,40),"Current table: <none>")
 
@@ -238,8 +238,8 @@ EndOfPipe,		close pipechn
             data tmpvar, a1, " "
             open(chn=0,"I:I","REPLICATOR_DATA:REPLICATION.ISM")
 
-            display(tt,$SCR_POS(6,2),$SCR_CLR(EOS),"Operation             Table                           Affected Record",
-            &   $SCR_POS(7,2),              "--------------------  ------------------------------  ------------------------")
+			display(tt,$SCR_POS(6,1),$SCR_CLR(EOS), "Operation             Table                           Affected Record",
+            &          $SCR_POS(7,1),               "--------------------  ------------------------------  ------------------------")
 
             find(chn,,^FIRST) [EOF=eof]
 
@@ -284,19 +284,21 @@ EndOfPipe,		close pipechn
                     outbuf.table = instruction.structure_name
                     outbuf.keyval = instruction.record
 
-                    display(tt,$scr_pos(row,2),outbuf)
+                    display(tt,$scr_pos(row,1),outbuf)
                 end
 
-                display(tt,$SCR_POS(23,2),"Press a key for more, or M for menu: ")
+                display(tt,$SCR_POS(23,1),"Press M for more or ENTER for menu: ")
 
-                if (tmpvar=="M") then
-                    exitloop
+				if (tmpvar=="M") then
+				begin
+					accept(tt,tmpvar)
+					while (%ttsts)
+						accept(tt,tmpvar)
+				end
                 else
                 begin
-                    accept(tt,tmpvar)
-                    while (%ttsts)
-                        accept(tt,tmpvar)
-                end
+					exitloop
+				end
 
                 display(tt,$scr_pos(8,1),$scr_clr(EOS))
 
@@ -306,7 +308,7 @@ eof,        close chn
 
             if (tmpvar!="M")
             begin
-                display(tt,$SCR_POS(23,2),$SCR_CLR(EOS),"No more instructions. Press a key: ")
+                display(tt,$SCR_POS(23,1),$SCR_CLR(EOS),"No more instructions. Press a key: ")
                 begin
                     accept(tt,tmpvar)
                     while (%ttsts)
