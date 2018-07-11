@@ -9,15 +9,18 @@ proc
 	xcall flags(7004000,1)
 	
 	open(tt=0,i,"tt:")
+	open(qfile=0,"I:I","REPLICATOR_DATA:REPLICATION.ISM")
+
 	display(tt,$scr_clr(SCREEN),"Replicator Queue Monitor")
 
 	repeat
 	begin
-		open(qfile=0,"I:I","REPLICATOR_DATA:REPLICATION.ISM")
-		display(tt,$scr_pos(3,1),$scr_clr(EOL),"Queue length: " + %string(%isinfo(qfile,"NUMRECS")))
-		close qfile
+go,		display(tt,$scr_pos(3,1),$scr_clr(EOL),"Queue length: " + %string(%isinfo(qfile,"NUMRECS")))
 		sleep 1
+		find(qfile,,^FIRST) [EOF=go]
 	end
 
+	close qfile
+	close tt
 
 endmain
