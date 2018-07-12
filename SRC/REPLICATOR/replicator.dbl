@@ -1245,10 +1245,12 @@ ConfigureEnvironment,
     xcall flags(7004020,1)
 
     ;;Configure defaults
-    Settings.Initialize()
+	
+	Settings.Initialize()
 
-    ;;If we're running on the terminal, open the terminal channel
-    if (Settings.RunningOnTerminal)
+    ;;Running on terminal?
+	
+	if (Settings.RunningOnTerminal)
     begin
         data tmpchn, i4, 0
         open(tmpchn,o,"tt:")
@@ -1257,20 +1259,22 @@ ConfigureEnvironment,
         writes(Settings.TerminalChannel,"SQL Replicator Log")
     end
 
-    ;;Should we log major events to the system log in addition to the log file?
+	;;System log
+
     if (CommandLineParser.Parse("syslog")) then
     begin
         Settings.SystemLog = true
     end
     else
     begin
-        ;;Or via an environment variable?
+        ;;Environment variable?
         data tmpval, a3
         xcall getlog("REPLICATOR_SYSTEM_LOG",tmpval,length)
         Settings.SystemLog = ((length>0)&&(tmpval.eq."YES"))
     end
 
-    ;;Do we have a log file location on the command line?
+	;;Log file location
+
     if (CommandLineParser.Parse("logdir",clValues))
     begin
         using clValues.Count select
@@ -1282,29 +1286,15 @@ ConfigureEnvironment,
         endusing
     end
 
-;   ;;Create a new log file
-;   try
-;   begin
-;       data tmpchn, i4, 0
-;       open(tmpchn,o:s,Settings.LogFileName)
-;       close tmpchn
-        ;;Record the startup
-        xcall log("Replicator startup")
-;   end
-;   catch (ex)
-;   begin
-;       data tmpmsg = "Replicator failed to open log file " + Settings.LogFileName + ". Error number " + %string(%ernum)
-;       if (Settings.RunningOnTerminal) then
-;           writes(Settings.TerminalChannel,tmpmsg)
-;       else
-;           xcall syn_reportevent(D_EVENTLOG_ERROR_TYPE,tmpmsg)
-;       ok = false
-;   end
-;   endtry
+	;;Open log file
 
-    if (ok)
-    begin
-        ;;Is a local export directory specified via the command line?
+	ok = %open_log
+
+	;;Local export directory
+	
+	if (ok)
+	begin
+		;;Command line?
         if (CommandLineParser.Parse("localexport",clValues)) then
         begin
             using clValues.Count select
@@ -1324,7 +1314,7 @@ ConfigureEnvironment,
         end
         else
         begin
-            ;;Or via an environment variable?
+            ;;Environment variable?
             data tmpval, a80
             xcall getlog("REPLICATOR_EXPORT_LOCAL",tmpval,length)
             if (length)
@@ -1332,10 +1322,12 @@ ConfigureEnvironment,
         end
     end
 
-    if (ok)
+	;;Remote export host
+
+	if (ok)
     begin
-        ;;Is a remote export host specified via the command line?
-        if (CommandLineParser.Parse("fileservicehost",clValues)) then
+		;;Command line?
+		if (CommandLineParser.Parse("fileservicehost",clValues)) then
         begin
             using clValues.Count select
             (1),
@@ -1354,7 +1346,7 @@ ConfigureEnvironment,
         end
         else
         begin
-            ;;Or via an environment variable?
+            ;;Environment variable?
             data tmpval, a80
             xcall getlog("REPLICATOR_FILESERVICE_HOST",tmpval,length)
             if (length)
@@ -1362,9 +1354,11 @@ ConfigureEnvironment,
         end
     end
 
+	;;Remote export port
+
     if (ok)
     begin
-        ;;Is a remote export port specified via the command line?
+        ;;Command line?
         if (CommandLineParser.Parse("fileserviceport",clValues)) then
         begin
             using clValues.Count select
@@ -1384,7 +1378,7 @@ ConfigureEnvironment,
         end
         else
         begin
-            ;;Or via an environment variable?
+            ;;Environment variable?
             data tmpval, a80
             xcall getlog("REPLICATOR_FILESERVICE_PORT",tmpval,length)
             if (length)
@@ -1392,9 +1386,11 @@ ConfigureEnvironment,
         end
     end
 
+	;;Instance name
+
     if (ok)
     begin
-        ;;Is an instance name specified via the command line?
+        ;;Command line?
         if (CommandLineParser.Parse("instance",clValues)) then
         begin
             using clValues.Count select
@@ -1414,7 +1410,7 @@ ConfigureEnvironment,
         end
         else
         begin
-            ;;Or via an environment variable?
+            ;;Environment variable?
             data tmpval, a80
             xcall getlog("REPLICATOR_INSTANCE",tmpval,length)
             if (length)
@@ -1422,9 +1418,11 @@ ConfigureEnvironment,
         end
     end
 
+	;;Sleep interval
+
     if (ok)
     begin
-        ;;Is a sleep interval specified via the command line?
+        ;;Command line?
         if (CommandLineParser.Parse("interval",clValues)) then
         begin
             using clValues.Count select
@@ -1455,7 +1453,7 @@ ConfigureEnvironment,
         end
         else
         begin
-            ;;Or via an environment variable?
+            ;;Environment variable?
             data tmpval, a10
             xcall getlog("REPLICATOR_INTERVAL",tmpval,length)
             if (length>0)
@@ -1464,73 +1462,83 @@ ConfigureEnvironment,
         xcall log("Processing interval is " + %string(Settings.SleepTime) + " seconds.")
     end
 
+	;;Load progress reporting
+
     if (ok)
     begin
-        ;;Is load progress reporting enabled via the command line?
+        ;;Command line?
         if (CommandLineParser.Parse("progress")) then
         begin
             Settings.BulkLoadProgressReporting = true
         end
         else
         begin
-            ;;Or via an environment variable?
+            ;;Environment variable?
             data tmpval, a10
             xcall getlog("REPLICATOR_LOAD_PROGRESS",tmpval,length)
             Settings.BulkLoadProgressReporting = ((length>0)&&(tmpval.eq."YES"))
         end
     end
 
+	;;Verbose logging
+
     if (ok)
     begin
-        ;;Is verbose logging enabled via the command line?
+        ;;Command line?
         if (CommandLineParser.Parse("verbose")) then
         begin
             Settings.FullLogging = true
         end
         else
         begin
-            ;;Or via an environment variable?
+            ;;Environment variable?
             data tmpval, a3
             xcall getlog("REPLICATOR_FULL_LOG",tmpval,length)
             Settings.FullLogging = ((length>0)&&(tmpval.eq."YES"))
         end
     end
 
+	;;Key value logging
+
     if (ok)
     begin
-        ;;Is key value logging enabled via the command line?
+        ;;Command line?
         if (CommandLineParser.Parse("keyvalues")) then
         begin
             Settings.LogKeys = true
         end
         else
         begin
-            ;;Or via an environment variable?
+            ;;Environment variable?
             data tmpval, a3
             xcall getlog("REPLICATOR_LOG_KEYS",tmpval,length)
             Settings.LogKeys = ((length>0)&&(tmpval.eq."YES"))
         end
     end
 
+	;;Bulk load exception logging
+
     if (ok)
     begin
-        ;;Is bulk load exception logging enabled via the command line?
+        ;;Command line?
         if (CommandLineParser.Parse("loaderrors")) then
         begin
             Settings.LogLoadExceptions = true
         end
         else
         begin
-            ;;Or via an environment variable?
+            ;;Environment variable?
             data tmpval, a3
             xcall getlog("REPLICATOR_LOG_BULK_LOAD_EXCEPTIONS",tmpval,length)
             Settings.LogLoadExceptions = ((length>0)&&(tmpval.eq."YES"))
         end
     end
 
+	;;Email notifications
+
     if (ok)
     begin
-        ;;Are email notifications enabled via the command line?
+        ;;Command line?
         if (CommandLineParser.Parse("erroremail",clValues)) then
         begin
             using clValues.Count select
@@ -1552,7 +1560,7 @@ ConfigureEnvironment,
         end
         else
         begin
-            ;;Or via an environment variable?
+            ;;Environment variable?
             data tmpval, a1024
             xcall getlog("REPLICATOR_ERROR_EMAIL",tmpval,length)
             if (length>0)
@@ -1560,9 +1568,11 @@ ConfigureEnvironment,
         end
     end
 
+	;;Email server DNS name or IP address
+
     if (ok)
     begin
-        ;;Is an email server DNS name or IP address specified via the command line?
+        ;;Command line?
         if (CommandLineParser.Parse("mailserver",clValues)) then
         begin
             using clValues.Count select
@@ -1584,7 +1594,7 @@ ConfigureEnvironment,
         end
         else
         begin
-            ;;Or via an environment variable?
+            ;;Environment variable?
             data tmpval, a128
             xcall getlog("REPLICATOR_SMTP_SERVER",tmpval,length)
             if (length>0)
@@ -1592,9 +1602,11 @@ ConfigureEnvironment,
         end
     end
 
+	;;Email sender address
+
     if (ok)
     begin
-        ;;Is an email sender address specified via the command line?
+        ;;Command line?
         if (CommandLineParser.Parse("mailfrom",clValues)) then
         begin
             using clValues.Count select
@@ -1616,7 +1628,7 @@ ConfigureEnvironment,
         end
         else
         begin
-            ;;Or via an environment variable?
+            ;;Environment variable?
             data tmpval, a128
             xcall getlog("REPLICATOR_EMAIL_SENDER",tmpval,length)
             if (length>0)
@@ -1624,24 +1636,29 @@ ConfigureEnvironment,
         end
     end
 
+	;;Stop on error
+
     if (ok)
     begin
-        ;;Should the replicator STOP if it encounters an error?
+        ;;Command line?
         if (CommandLineParser.Parse("stoponerror")) then
         begin
             Settings.StopOnError = true
         end
         else
-        begin
+		begin
+			;;Environment variable?
             data tmpval, a3
             xcall getlog("REPLICATOR_ERROR_STOP",tmpval,length)
             Settings.StopOnError = ((length>0)&&(tmpval.eq."YES"))
         end
     end
 
+	;;Max columns
+
     if (ok)
     begin
-        ;;Do we have a max columns value  via the command line?
+        ;;Command line?
         if (CommandLineParser.Parse("maxcols",clValues)) then
         begin
             using clValues.Count select
@@ -1672,7 +1689,7 @@ ConfigureEnvironment,
         end
         else
         begin
-            ;;Or via an environment variable?
+            ;;Environment variable?
             data tmpval, a10
             xcall getlog("REPLICATOR_MAX_COLS",tmpval,length)
             if (length>0)
@@ -1680,9 +1697,11 @@ ConfigureEnvironment,
         end
     end
 
+	;;Max cursors
+
     if (ok)
     begin
-        ;;Do we have a max cursors value  via the command line?
+        ;;Command line?
         if (CommandLineParser.Parse("maxcursors",clValues)) then
         begin
             using clValues.Count select
@@ -1713,7 +1732,7 @@ ConfigureEnvironment,
         end
         else
         begin
-            ;;Or via an environment variable?
+            ;;Environment variable?
             data tmpval, a10
             xcall getlog("REPLICATOR_MAX_CURSORS",tmpval,length)
             if (length>0)
@@ -1721,9 +1740,38 @@ ConfigureEnvironment,
         end
     end
 
+	;;Transaction queue file location
+
+	if (ok)
+	begin
+		;;Command line?
+		if (CommandLineParser.Parse("datadir",clValues))
+		begin
+			using clValues.Count select
+			(1),
+			begin
+				data sts, i4
+				xcall setlog("REPLICATOR_DATA",(string)clValues[0],sts)
+			end
+			(0),
+			begin
+				xcall errorlog("Missing value after the -datadir option")
+				ok = false
+			end
+			(),
+			begin
+				xcall errorlog("Only one value may follow the -datadir option")
+				ok = false
+			end
+			endusing
+		end
+	end
+
+	;;Does the instruction queue file exist?
+
     if (ok)
-    begin
-        ;;Check if the instruction file exists, if not create it
+	begin
+		;;Is it there?
         try
         begin
             data tmpchn, i4, 0
@@ -1731,7 +1779,8 @@ ConfigureEnvironment,
             close tmpchn
         end
         catch (e, @Synergex.SynergyDE.NoFileFoundException)
-        begin
+		begin
+			;;No, create it
             try
             begin
                 .ifdef D_VMS
@@ -1741,23 +1790,26 @@ ConfigureEnvironment,
                 .endc
             end
             catch (ex, @Exception)
-            begin
+			begin
+				;;It's not there and we can't create it!
                 xcall errorlog("Failed to create transaction log file " + Settings.TransactionFile + " - Error was: " + e.Message)
                 ok = false
             end
             endtry
         end
         catch (e, @Exception)
-        begin
+		begin
+			;;It's there, but we can't open it!
             xcall errorlog("Failed to open transaction log file " + Settings.TransactionFile + " - Error was: " + e.Message)
             ok = false
         end
         endtry
     end
 
+	;;Open the instruction queue file
+
     if (ok)
     begin
-        ;;Open the instruction file
         try
         begin
             data tmpchn, i4, 0
@@ -1772,34 +1824,11 @@ ConfigureEnvironment,
         endtry
     end
 
-    if (ok)
-    begin
-        ;;Is the queue file location specified via the command line?
-        if (CommandLineParser.Parse("datadir",clValues))
-        begin
-            using clValues.Count select
-            (1),
-            begin
-                data sts, i4
-                xcall setlog("REPLICATOR_DATA",(string)clValues[0],sts)
-            end
-            (0),
-            begin
-                xcall errorlog("Missing value after the -datadir option")
-                ok = false
-            end
-            (),
-            begin
-                xcall errorlog("Only one value may follow the -datadir option")
-                ok = false
-            end
-            endusing
-        end
-    end
+	;;Database connect string
 
     if (ok)
     begin
-        ;;Is a database connect string specified via the command line?
+        ;;Command line?
         if (CommandLineParser.Parse("database",clValues)) then
         begin
             using clValues.Count select
@@ -1821,7 +1850,7 @@ ConfigureEnvironment,
         end
         else
         begin
-            ;;Or via an environment variable?
+            ;;Environment variable?
             data tmpval, a256
             xcall getlog("REPLICATOR_DATABASE",tmpval,length)
             if (length) then
@@ -1835,9 +1864,11 @@ ConfigureEnvironment,
         end
     end
 
+	;;Auto-commit
+
     if (ok)
     begin
-        ;;Should Auto-commit be ebabled in the database?
+        ;;Command line?
         if (CommandLineParser.Parse("autocommit",clValues)) then
         begin
             using clValues.Count select
@@ -1869,7 +1900,7 @@ ConfigureEnvironment,
         end
         else
         begin
-            ;;Or via an environment variable?
+            ;;Environment variable?
             data tmpval, a32
             xcall getlog("REPLICATOR_AUTO_COMMIT",tmpval,length)
             if (length)
@@ -1889,9 +1920,10 @@ ConfigureEnvironment,
         end
     end
 
+	;;Enable and Initialize SQL Connection
+
     if (ok)
     begin
-        ;;Enable and Initialize SQL Connection
         .ifdef OS_VMS
         xcall init_ssql
         .else
@@ -1905,9 +1937,10 @@ ConfigureEnvironment,
         end
     end
 
+	;;Connect to the database
+
     if (ok)
     begin
-        ;;Connect to the database
         xcall log("Connecting to database...")
         if (%ssc_connect(Settings.DatabaseChannel,Settings.DatabaseConnectString)==SSQL_NORMAL) then
             xcall log("Connected")
@@ -1932,9 +1965,10 @@ ConfigureEnvironment,
         end
     end
 
-    if (ok && Settings.AutoCommit)
+	;;Enable SQL Server Auto-Commit mode
+	
+	if (ok && Settings.AutoCommit)
     begin
-        ;;Enable SQL Server Auto-Commit mode
         if (%ssc_cmd(Settings.DatabaseChannel,,SSQL_ODBC_AUTOCOMMIT,"yes")==SSQL_NORMAL) then
             xcall log("Auto-commit enabled")
         else
@@ -1947,11 +1981,13 @@ ConfigureEnvironment,
     end
 
     ;;Register a shutdown handler
-    if (ok && !Settings.RunningOnTerminal)
+	
+	if (ok && !Settings.RunningOnTerminal)
         xcall syn_atexit(%xaddr("ReplicatorShutdown"))
 
-    .ifdef d_GUI
-    ;;If there has been a failure and we're running on the terminal, pause so error messages may be read
+	;;If there has been a failure and we're running on the terminal, pause so error messages may be read
+	
+	.ifdef d_GUI
     if (!ok && Settings.RunningOnTerminal)
     begin
         data tmpchr, a1
@@ -2191,30 +2227,45 @@ proc
 
 endsubroutine
 
+;;; <summary>
+;;; Open the log file
+;;; </summary>
+;;; <returns>Returns true if the log file was opened.</returns>
+function open_log, boolean
+	stack record
+		ok, boolean
+	endrecord
+proc
+
+	if (Settings.LogFileChannel==0)
+	begin
+		try
+		begin
+			open(Settings.LogFileChannel,a:s,Settings.LogFileName)
+			ok = true
+		end
+		catch (ex)
+		begin
+			data tmpmsg, string, "Replicator failed to open log file " + Settings.LogFileName + ". Error number " + %string(%ernum)
+			if (Settings.RunningOnTerminal) then
+				writes(Settings.TerminalChannel,tmpmsg)
+			else
+				xcall syn_reportevent(D_EVENTLOG_ERROR_TYPE,tmpmsg)
+			Settings.LogFileChannel = 0
+			ok = false
+		end
+		endtry
+	end
+
+	freturn ok
+
+endfunction
+
 ;;*****************************************************************************
 ;;
 subroutine log
     required in message, string
 proc
-
-    ;;Open the log file
-    if (Settings.LogFileChannel==0)
-    begin
-        try
-        begin
-            open(Settings.LogFileChannel,a:s,Settings.LogFileName)
-        end
-        catch (ex)
-        begin
-            data tmpmsg = "Replicator failed to open log file " + Settings.LogFileName + ". Error number " + %string(%ernum)
-            if (Settings.RunningOnTerminal) then
-                writes(Settings.TerminalChannel,tmpmsg)
-            else
-                xcall syn_reportevent(D_EVENTLOG_ERROR_TYPE,tmpmsg)
-            Settings.LogFileChannel = 0
-        end
-        endtry
-    end
 
     ;;Log the message
 
