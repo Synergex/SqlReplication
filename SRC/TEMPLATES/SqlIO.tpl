@@ -1,5 +1,5 @@
 <CODEGEN_FILENAME><StructureName>SqlIO.dbl</CODEGEN_FILENAME>
-<REQUIRES_CODEGEN_VERSION>5.2.1</REQUIRES_CODEGEN_VERSION>
+<REQUIRES_CODEGEN_VERSION>5.3.3</REQUIRES_CODEGEN_VERSION>
 ;//*****************************************************************************
 ;//
 ;// Title:      SqlIo.tpl
@@ -391,7 +391,7 @@ proc
 
     if (ok && !%IndexExists(a_dbchn,"IX_<StructureName>_<KeyName>",errtxt))
     begin
-        sql = 'CREATE <KEY_UNIQUE> INDEX IX_<StructureName>_<KeyName> ON "<StructureName>"(<SEGMENT_LOOP>"<SegmentName>" <SEGMENT_ORDER><,></SEGMENT_LOOP>)'
+        sql = 'CREATE <IF FIRST_UNIQUE_KEY>CLUSTERED<ELSE><KEY_UNIQUE></IF FIRST_UNIQUE_KEY> INDEX IX_<StructureName>_<KeyName> ON "<StructureName>"(<SEGMENT_LOOP>"<SegmentName>" <SEGMENT_ORDER><,></SEGMENT_LOOP>)'
 
         call open_cursor
 
