@@ -136,17 +136,20 @@ proc
         .ifndef D_VMS
         display(tt,$SCR_POS(11,2),"Q.  Queue length")
         .endc
-        display(tt,$SCR_POS(12,2),"I.  Change interval")
-        display(tt,$SCR_POS(13,2),"N.  Change instance name")
-        display(tt,$SCR_POS(14,2),"R.  Restart log file")
+		.ifdef D_GUI
+		display(tt,$SCR_POS(12,2),"QM. Start Queue Monitor")
+		.endc
+		display(tt,$SCR_POS(13,2),"I.  Change interval")
+        display(tt,$SCR_POS(14,2),"N.  Change instance name")
+        display(tt,$SCR_POS(15,2),"R.  Restart log file")
 
-        display(tt,$SCR_POS(16,2),"A.  Available tables")
-        display(tt,$SCR_POS(17,2),"T.  Set current table")
+        display(tt,$SCR_POS(17,2),"A.  Available tables")
+        display(tt,$SCR_POS(18,2),"T.  Set current table")
 
         if (windows)
-            display(tt,$SCR_POS(18,2),"M.  Start maintenance program")
+            display(tt,$SCR_POS(19,2),"M.  Start maintenance program")
 
-        display(tt,$SCR_POS(20,2),"E.  Exit")
+        display(tt,$SCR_POS(21,2),"E.  Exit")
 
         if (tableName)
         begin
@@ -343,7 +346,14 @@ eof,        close chn
         end
         .endc
 
-        ("I "),
+		.ifdef D_GUI
+		("QM"),
+		begin
+			xcall spawn("dbr REPLICATOR_EXE:QueueMonitor.dbr",D_NOWINDOW|D_NOWAIT)
+		end
+		.endc
+
+		("I "),
         begin
             data interval, a5
             display(tt,$SCR_POS(23,2),$SCR_CLR(EOS),"Interval (seconds): ")
