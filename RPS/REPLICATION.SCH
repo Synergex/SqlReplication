@@ -1,11 +1,11 @@
  
 ;  SYNERGY DATA LANGUAGE OUTPUT
 ;
-;  REPOSITORY     : D:\PUBLIC\SqlReplicationIoHooks\PRJVS\repository\bin\Release
-;                 : D:\PUBLIC\SqlReplicationIoHooks\PRJVS\repository\bin\Release
+;  REPOSITORY     : D:\PUBLIC\SqlReplicationIoHooks\RPS\rpsmain.ism
+;                 : D:\PUBLIC\SqlReplicationIoHooks\RPS\rpstext.ism
 ;                 : Version 10.3.3e
 ;
-;  GENERATED      : 11-JUL-2018, 15:43:49
+;  GENERATED      : 12-JUL-2018, 10:23:06
 ;                 : Version 10.3.3e
 ;  EXPORT OPTIONS : [ALL] 
  
@@ -349,6 +349,7 @@ Field TRANSACTION_ID   Type AUTOSEQ   Size 8
  
 Field ACTION   Type DECIMAL   Size 2
    Description "Replicator action"
+   Negative
  
 Field STRUCTURE_NAME   Type ALPHA   Size 32
    Description "the SDMS structure name"
@@ -391,6 +392,7 @@ Field TRANSACTION_ID   Type AUTOSEQ   Size 8
  
 Field ACTION   Type DECIMAL   Size 2
    Description "Replicator action"
+   Negative
  
 Field STRUCTURE_NAME   Type ALPHA   Size 32
    Description "the SDMS structure name"
