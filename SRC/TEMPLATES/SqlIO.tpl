@@ -62,14 +62,14 @@ import ReplicationLibrary
 ;;; Determines if the <StructureName> table exists in the database.
 ;;; </summary>
 ;;; <param name="a_dbchn">Connected database channel.</param>
-;;; <param name="a_auto_commit">Is the database in auto-commit mode.</param>
+;;; <param name="a_commit_mode">What commit mode are we using?</param>
 ;;; <param name="a_errtxt">Returned error text.</param>
 ;;; <returns>Returns 1 if the table exists, otherwise a number indicating the type of error.</returns>
 
 function <StructureName>Exists, ^val
 
     required in  a_dbchn,  i
-    required in  a_auto_commit, n
+    required in  a_commit_mode, i
     optional out a_errtxt, a
     endparams
 
@@ -151,14 +151,14 @@ endfunction
 ;;; Creates the <StructureName> table in the database.
 ;;; </summary>
 ;;; <param name="a_dbchn">Connected database channel.</param>
-;;; <param name="a_auto_commit">Is the database in auto-commit mode.</param>
+;;; <param name="a_commit_mode">What commit mode are we using?</param>
 ;;; <param name="a_errtxt">Returned error text.</param>
 ;;; <returns>Returns true on success, otherwise false.</returns>
 
 function <StructureName>Create, ^val
 
     required in  a_dbchn,  i
-    required in  a_auto_commit, n
+    required in  a_commit_mode, i
     optional out a_errtxt, a
     endparams
 
@@ -182,7 +182,7 @@ proc
 
     ;;Start a database transaction
 
-    if (!a_auto_commit)
+    if (a_commit_mode==3)
     begin
         if (%ssc_commit(a_dbchn,SSQL_TXON)==SSQL_NORMAL) then
             transaction=1
@@ -246,7 +246,7 @@ proc
 
     ;;Commit or rollback the transaction
 
-    if (!a_auto_commit && transaction)
+    if ((a_commit_mode==3) && transaction)
     begin
         if (ok) then
         begin
@@ -325,14 +325,14 @@ endfunction
 ;;; Add alternate key indexes to the <StructureName> table if they do not exist.
 ;;; </summary>
 ;;; <param name="a_dbchn">Connected database channel.</param>
-;;; <param name="a_auto_commit">Is the database in auto-commit mode.</param>
+;;; <param name="a_commit_mode">What commit mode are we using?</param>
 ;;; <param name="a_errtxt">Returned error text.</param>
 ;;; <returns>Returns true on success, otherwise false.</returns>
 
 function <StructureName>Index, ^val
 
     required in  a_dbchn,  i
-    required in  a_auto_commit, n
+    required in  a_commit_mode, i
     optional out a_errtxt, a
     endparams
 
@@ -356,7 +356,7 @@ proc
 
     ;;Start a database transaction
 
-    if (!a_auto_commit)
+    if (a_commit_mode==3)
     begin
         if (%ssc_commit(a_dbchn,SSQL_TXON)==SSQL_NORMAL) then
             transaction=1
@@ -405,7 +405,7 @@ proc
     </ALTERNATE_KEY_LOOP>
     ;;Commit or rollback the transaction
 
-    if (!a_auto_commit && transaction)
+    if ((a_commit_mode==3) && transaction)
     begin
         if (ok) then
         begin
@@ -483,14 +483,14 @@ endfunction
 ;;; Removes alternate key indexes from the <StructureName> table in the database.
 ;;; </summary>
 ;;; <param name="a_dbchn">Connected database channel.</param>
-;;; <param name="a_auto_commit">Is the database in auto-commit mode.</param>
+;;; <param name="a_commit_mode">What commit mode are we using?</param>
 ;;; <param name="a_errtxt">Returned error text.</param>
 ;;; <returns>Returns true on success, otherwise false.</returns>
 
 function <StructureName>UnIndex, ^val
 
     required in  a_dbchn,  i
-    required in  a_auto_commit, n
+    required in  a_commit_mode, i
     optional out a_errtxt, a
     endparams
 
@@ -514,7 +514,7 @@ proc
 
     ;;Start a database transaction
 
-    if (!a_auto_commit)
+    if (a_commit_mode==3)
     begin
         if (%ssc_commit(a_dbchn,SSQL_TXON)==SSQL_NORMAL) then
             transaction=1
@@ -563,7 +563,7 @@ proc
     </ALTERNATE_KEY_LOOP>
     ;;Commit or rollback the transaction
 
-    if (!a_auto_commit && transaction)
+    if ((a_commit_mode==3) && transaction)
     begin
         if (ok) then
         begin
@@ -642,7 +642,7 @@ endfunction
 ;;; Insert a row into the <StructureName> table.
 ;;; </summary>
 ;;; <param name="a_dbchn">Connected database channel.</param>
-;;; <param name="a_auto_commit">Is the database in auto-commit mode.</param>
+;;; <param name="a_commit_mode">What commit mode are we using?</param>
 <IF STRUCTURE_RELATIVE>
 ;;; <param name="a_recnum">Relative record number to be inserted.</param>
 </IF STRUCTURE_RELATIVE>
@@ -653,7 +653,7 @@ endfunction
 function <StructureName>Insert, ^val
 
     required in  a_dbchn,  i
-    required in  a_auto_commit, n
+    required in  a_commit_mode, i
     <IF STRUCTURE_RELATIVE>
     required in  a_recnum, n
     </IF STRUCTURE_RELATIVE>
@@ -722,7 +722,7 @@ proc
 
     ;;Start a database transaction
 
-    if (!a_auto_commit)
+    if (a_commit_mode==3)
     begin
         if (%ssc_commit(a_dbchn,SSQL_TXON)==SSQL_NORMAL) then
             transaction=1
@@ -834,7 +834,10 @@ proc
 
         <FIELD_LOOP>
         <IF ALPHA>
+		<IF PKSEGMENT>
+		<ELSE>
         <field_path> = %atrim(<field_path>)+%char(0)
+		</IF PKSEGMENT>
         </IF ALPHA>
         </FIELD_LOOP>
 
@@ -908,7 +911,7 @@ proc
 
     ;;Commit or rollback the transaction
 
-    if (!a_auto_commit && transaction)
+    if ((a_commit_mode==3) && transaction)
     begin
         if (ok) then
         begin
@@ -947,7 +950,7 @@ endfunction
 ;;; Inserts multiple rows into the <StructureName> table.
 ;;; </summary>
 ;;; <param name="a_dbchn">Connected database channel</param>
-;;; <param name="a_auto_commit">Is the database in auto-commit mode.</param>
+;;; <param name="a_commit_mode">What commit mode are we using?</param>
 ;;; <param name="a_data">Memory handle containing one or more rows to insert.</param>
 ;;; <param name="a_errtxt">Returned error text.</param>
 ;;; <param name="a_exception">Memory handle to load exception data records into.</param>
@@ -957,7 +960,7 @@ endfunction
 function <StructureName>InsertRows, ^val
 
     required in  a_dbchn,     i
-    required in  a_auto_commit, n
+    required in  a_commit_mode, i
     required in  a_data,      i
     optional out a_errtxt,    a
     optional out a_exception, i
@@ -1046,7 +1049,7 @@ proc
 
     ;;If enabled, disable auto-commit
 
-    if (a_auto_commit)
+    if (a_commit_mode==1)
     begin
         if (%ssc_cmd(a_dbchn,,SSQL_ODBC_AUTOCOMMIT,"no")!=SSQL_NORMAL)
         begin
@@ -1177,7 +1180,10 @@ proc
 
             <FIELD_LOOP>
             <IF ALPHA>
-            <field_path>=%atrim(<field_path>)+%char(0)
+			<IF PKSEGMENT>
+			<ELSE>
+			<field_path> = %atrim(<field_path>)+%char(0)
+			</IF PKSEGMENT>
             </IF ALPHA>
             </FIELD_LOOP>
 
@@ -1288,7 +1294,7 @@ proc
 
     ;;If necessary, re-enable auto-commit
 
-    if (a_auto_commit)
+    if (a_commit_mode==1)
     begin
         if (%ssc_cmd(a_dbchn,,SSQL_ODBC_AUTOCOMMIT,"yes")!=SSQL_NORMAL)
         begin
@@ -1323,7 +1329,7 @@ endfunction
 ;;; Updates a row in the <StructureName> table.
 ;;; </summary>
 ;;; <param name="a_dbchn">Connected database channel.</param>
-;;; <param name="a_auto_commit">Is the database in auto-commit mode.</param>
+;;; <param name="a_commit_mode">What commit mode are we using?</param>
 <IF STRUCTURE_RELATIVE>
 ;;; <param name="a_recnum">record number.</param>
 </IF STRUCTURE_RELATIVE>
@@ -1335,7 +1341,7 @@ endfunction
 function <StructureName>Update, ^val
 
     required in  a_dbchn,  i
-    required in  a_auto_commit, n
+    required in  a_commit_mode, i
     <IF STRUCTURE_RELATIVE>
     required in  a_recnum, n
     </IF STRUCTURE_RELATIVE>
@@ -1417,7 +1423,7 @@ proc
 
     ;;Start a database transaction
 
-    if (!a_auto_commit)
+    if (a_commit_mode==3)
     begin
         if (%ssc_commit(a_dbchn,SSQL_TXON)==SSQL_NORMAL) then
             transaction = true
@@ -1519,7 +1525,10 @@ proc
 
         <FIELD_LOOP>
         <IF ALPHA>
-        <field_path> = %atrim(<field_path>) + %char(0)
+		<IF PKSEGMENT>
+		<ELSE>
+        <field_path> = %atrim(<field_path>)+%char(0)
+		</IF PKSEGMENT>
         </IF ALPHA>
         </FIELD_LOOP>
 
@@ -1581,7 +1590,7 @@ proc
 
     ;;Commit or rollback the transaction
 
-    if (!a_auto_commit && transaction)
+    if ((a_commit_mode==3) && transaction)
     begin
         if (ok) then
         begin
@@ -1620,7 +1629,7 @@ endfunction
 ;;; Deletes a row from the <StructureName> table.
 ;;; </summary>
 ;;; <param name="a_dbchn">Connected database channel.</param>
-;;; <param name="a_auto_commit">Is the database in auto-commit mode.</param>
+;;; <param name="a_commit_mode">What commit mode are we using?</param>
 ;;; <param name="a_key">Unique key of row to be deleted.</param>
 ;;; <param name="a_errtxt">Returned error text.</param>
 ;;; <returns>Returns true on success, otherwise false.</returns>
@@ -1628,7 +1637,7 @@ endfunction
 function <StructureName>Delete, ^val
 
     required in  a_dbchn,  i
-    required in  a_auto_commit, n
+    required in  a_commit_mode, i
     required in  a_key,    a
     optional out a_errtxt, a
     endparams
@@ -1663,7 +1672,7 @@ proc
 
     ;;Start a database transaction
 
-    if (!a_auto_commit)
+    if (a_commit_mode==3)
     begin
         if (%ssc_commit(a_dbchn,SSQL_TXON)==SSQL_NORMAL) then
             transaction=1
@@ -1726,7 +1735,7 @@ proc
 
     ;;Commit or rollback the transaction
 
-    if (!a_auto_commit && transaction)
+    if ((a_commit_mode==3) && transaction)
     begin
         if (ok) then
         begin
@@ -1765,14 +1774,14 @@ endfunction
 ;;; Deletes all rows from the <StructureName> table.
 ;;; </summary>
 ;;; <param name="a_dbchn">Connected database channel.</param>
-;;; <param name="a_auto_commit">Is the database in auto-commit mode.</param>
+;;; <param name="a_commit_mode">What commit mode are we using?</param>
 ;;; <param name="a_errtxt">Returned error text.</param>
 ;;; <returns>Returns true on success, otherwise false.</returns>
 
 function <StructureName>Clear, ^val
 
     required in  a_dbchn,  i
-    required in  a_auto_commit, n
+    required in  a_commit_mode, i
     optional out a_errtxt, a
     endparams
 
@@ -1795,7 +1804,7 @@ proc
 
     ;;Start a database transaction
 
-    if (!a_auto_commit)
+    if (a_commit_mode==3)
     begin
         if (%ssc_commit(a_dbchn,SSQL_TXON)==SSQL_NORMAL) then
             transaction=1
@@ -1849,7 +1858,7 @@ proc
 
     ;;Commit or rollback the transaction
 
-    if (!a_auto_commit && transaction)
+    if ((a_commit_mode==3) && transaction)
     begin
         if (ok) then
         begin
@@ -1887,14 +1896,14 @@ endfunction
 ;;; Deletes the <StructureName> table from the database.
 ;;; </summary>
 ;;; <param name="a_dbchn">Connected database channel.</param>
-;;; <param name="a_auto_commit">Is the database in auto-commit mode.</param>
+;;; <param name="a_commit_mode">What commit mode are we using?</param>
 ;;; <param name="a_errtxt">Returned error text.</param>
 ;;; <returns>Returns true on success, otherwise false.</returns>
 
 function <StructureName>Drop, ^val
 
     required in  a_dbchn,  i
-    required in  a_auto_commit, n
+    required in  a_commit_mode, i
     optional out a_errtxt, a
     endparams
 
@@ -1916,11 +1925,11 @@ proc
 
     ;;Close any open cursors
 
-    xcall <StructureName>Close(a_dbchn,a_auto_commit)
+    xcall <StructureName>Close(a_dbchn,a_commit_mode)
 
     ;;Start a database transaction
 
-    if (!a_auto_commit)
+    if (a_commit_mode==3)
     begin
         if (%ssc_commit(a_dbchn,SSQL_TXON)==SSQL_NORMAL) then
             transaction=1
@@ -1983,7 +1992,7 @@ proc
 
     ;;Commit or rollback the transaction
 
-    if (!a_auto_commit && transaction)
+    if ((a_commit_mode==3) && transaction)
     begin
         if (ok) then
         begin
@@ -2021,7 +2030,7 @@ endfunction
 ;;; Load all data from <IF STRUCTURE_MAPPED><MAPPED_FILE><ELSE><FILE_NAME></IF STRUCTURE_MAPPED> into the <StructureName> table.
 ;;; </summary>
 ;;; <param name="a_dbchn">Connected database channel.</param>
-;;; <param name="a_auto_commit">Is the database in auto-commit mode.</param>
+;;; <param name="a_commit_mode">What commit mode are we using?</param>
 ;;; <param name="a_errtxt">Returned error text.</param>
 ;;; <param name="a_logex">Log exception records?</param>
 ;;; <param name="a_terminal">Terminal channel to log errors on.</param>
@@ -2033,7 +2042,7 @@ endfunction
 function <StructureName>Load, ^val
 
     required in  a_dbchn,    i
-    required in  a_auto_commit, n
+    required in  a_commit_mode, i
     optional out a_errtxt,   a
     optional in  a_logex,    i
     optional in  a_terminal, i
@@ -2221,7 +2230,7 @@ insert_data,
 
     attempted = (%mem_proc(DM_GETSIZE,mh)/^size(inpbuf))
 
-    if (%<StructureName>InsertRows(a_dbchn,a_auto_commit,mh,errtxt,ex_mh,a_terminal))
+    if (%<StructureName>InsertRows(a_dbchn,a_commit_mode,mh,errtxt,ex_mh,a_terminal))
     begin
         ;;Any exceptions?
         if (ex_mh) then
@@ -2272,7 +2281,7 @@ endfunction
 ;;; Bulk load data from <IF STRUCTURE_MAPPED><MAPPED_FILE><ELSE><FILE_NAME></IF STRUCTURE_MAPPED> into the <StructureName> table via a CSV file.
 ;;; </summary>
 ;;; <param name="a_dbchn">Connected database channel.</param>
-;;; <param name="a_auto_commit">Is the database in auto-commit mode.</param>
+;;; <param name="a_commit_mode">What commit mode are we using?</param>
 ;;; <param name="a_localpath">Path to local export directory</param>
 ;;; <param name="a_remotepath">Remote export directory or URL</param>
 ;;; <param name="a_terminal">Terminal channel to log errors on</param>
@@ -2284,7 +2293,7 @@ endfunction
 function <StructureName>BulkLoad, ^val
 
     required in  a_dbchn,      i
-    required in  a_auto_commit, n
+    required in  a_commit_mode, i
     required in  a_localpath,  string
     required in  a_server,     string
     required in  a_port,       string
@@ -2400,7 +2409,7 @@ proc
 
         ;;Start a database transaction
 
-        if (!a_auto_commit)
+        if (a_commit_mode==3)
         begin
             if (%ssc_commit(a_dbchn,SSQL_TXON)==SSQL_NORMAL) then
                 transaction = true
@@ -2490,7 +2499,7 @@ proc
 
         ;;Commit or rollback the transaction
 
-        if (!a_auto_commit && transaction)
+        if ((a_commit_mode==3) && transaction)
         begin
             if (ok) then
             begin
@@ -2674,12 +2683,12 @@ endfunction
 ;;; Close cursors associated with the <StructureName> table.
 ;;; </summary>
 ;;; <param name="a_dbchn">Connected database channel</param>
-;;; <param name="a_auto_commit">Is the database in auto-commit mode.</param>
+;;; <param name="a_commit_mode">What commit mode are we using?</param>
 
 subroutine <StructureName>Close
 
     required in  a_dbchn, i
-    required in  a_auto_commit, n
+    required in  a_commit_mode, i
     endparams
 
     .include "CONNECTDIR:ssql.def"

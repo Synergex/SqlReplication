@@ -64,20 +64,22 @@ main replicator
         noMoreInstructions, boolean            ;;End of instruction file
         switchMode,         boolean            ;;Switched from INSERT to UPDATE or vice versa
         switchDone,         boolean            ;;Have we tried to switch modes before?
-        bulkLoad,           boolean            ;;Use bulk load?
+		bulkLoad,           boolean            ;;Use bulk load?
+		doCheckCommit,		boolean            ;;Do we need to check if it's time to commit?
+		doForceCommit,		boolean            ;;Do we need to force a commit?
         errnum,             i4                 ;;Error number
         nsptr,              i4                 ;;Namespace pointer
         dberr,              i4                 ;;Database error
         length,             i4                 ;;Length of buffer
         status,             i4                 ;;General working status return
-        rows,               i4                 ;;Number of rows affected
+		rows,               i4                 ;;Number of rows affected
         functionName,       string             ;;External function to call
         primaryKey,         string             ;;Primary key of current record
         keyValue,           string             ;;Key value of the current ISAM record
         recordNumber,       d28                ;;Record number of the current relative record
         dberrtxt,           a1024
         structure_data,     strStructureData
-        clValues,           @ArrayList         ;;Values of a command-line parameter
+		clValues,           @ArrayList         ;;Values of a command-line parameter
     endrecord
 
     external function
@@ -92,30 +94,39 @@ proc
     begin
         ;;Main processing loop
         repeat
-        begin
-            ;;Check for outstanding instructions
+		begin
+            ;;Get the next instruction from the queue
             call GetInstruction
 
-            ;;If there are no more we'll just wait a while
             if (noMoreInstructions) then
-            begin
-                sleep Settings.SleepTime
+			begin
+				;;The queue is currently empty. If we're in batch commit mode then commit any outstanding changes
+				if (Settings.CommitMode == DatabaseCommitMode.Batch)
+				begin
+					call CommitTransaction
+				end
+				;;And sleep for a while before trying again
+				sleep Settings.SleepTime
             end
             else
 			begin
-				;;Is the action a negative number? If so this indicates that a shutdown request was queued.
+				;;Any action with a negative value has been co-opted to signify a shutdown request.
 				if (instruction.action < 0)
 				begin
-					;;Restore the recorded action to it's original state
+					;;Restore the recorded action to it's original (positive) value
 					instruction.action = -instruction.action
 					write(Settings.InstructionChannel,instruction)
 
-					;;And perform a shutdown
+					;;And shutdown
 					xcall log("Shutdown requested")
 					xcall ReplicatorShutdown
 					stop
 				end
 
+				;;We have an instruction to process
+
+				doCheckCommit = false
+				doForceCommit = false
                 switchDone = false
 
                 ;;If this is a routine request (create/update/delete) then do
@@ -148,53 +159,61 @@ proc
                 (REPLICATION_INSTRUCTION.CREATE_ROW),
                 begin
                     xcall verboselog("Insert row in table " + %atrim(instruction.structure_name))
-                    call DoInsert
+					call DoInsert
+					doCheckCommit = true
                 end
 
                 (REPLICATION_INSTRUCTION.UPDATE_ROW),
                 begin
                     xcall verboselog("Update row in table " + %atrim(instruction.structure_name))
                     call DoUpdate
-                end
+					doCheckCommit = true
+				end
 
                 (REPLICATION_INSTRUCTION.DELETE_ROW),
                 begin
                     xcall verboselog("Delete row from table " + %atrim(instruction.structure_name))
                     call DoDelete
-                end
+					doCheckCommit = true
+				end
 
                 (REPLICATION_INSTRUCTION.INSERT_RELATIVE),
                 begin
                     xcall verboselog("Insert row in table " + %atrim(instruction.structure_name))
                     call DoInsertRelative
-                end
+					doCheckCommit = true
+				end
 
                 (REPLICATION_INSTRUCTION.UPDATE_RELATIVE),
                 begin
                     xcall verboselog("Update row in table " + %atrim(instruction.structure_name))
                     call DoUpdateRelative
-                end
+					doCheckCommit = true
+				end
 
                 ;;"Special" processing requests
 
                 (REPLICATION_INSTRUCTION.ADD_INDEXES),
                 begin
                     xcall log("Add indexes to table " + %atrim(instruction.structure_name))
-                    call DoAddIndexes
-                end
+					call DoAddIndexes
+					doForceCommit = true
+				end
 
                 (REPLICATION_INSTRUCTION.CREATE_TABLE),
                 begin
                     xcall log("Create table " + %atrim(instruction.structure_name))
                     call DoCreateTable
-                end
+					doForceCommit = true
+				end
 
                 (REPLICATION_INSTRUCTION.LOAD_TABLE),
                 begin
                     xcall log("Load table " + %atrim(instruction.structure_name))
                     bulkLoad = false
                     call DoLoadTable
-                end
+					doForceCommit = true
+				end
 
                 (REPLICATION_INSTRUCTION.BULK_LOAD_TABLE),
                 begin
@@ -206,13 +225,15 @@ proc
                         xcall log("Load table " + %atrim(instruction.structure_name))
                     end
                     call DoLoadTable
-                end
+					doForceCommit = true
+				end
 
                 (REPLICATION_INSTRUCTION.CREATE_AND_LOAD_TABLE),
                 begin
                     xcall log("Create and load table " + %atrim(instruction.structure_name))
                     call DoCreateAndLoadTable
-                end
+					doForceCommit = true
+				end
 
                 (REPLICATION_INSTRUCTION.CREATE_CSV),
                 begin
@@ -224,25 +245,28 @@ proc
                 begin
                     xcall log("Truncate table " + %atrim(instruction.structure_name))
                     call DoDeleteAllRows
-                end
+					doForceCommit = true
+				end
 
                 (REPLICATION_INSTRUCTION.DELETE_INDEXES),
                 begin
                     xcall log("Remove indexes from table " + %atrim(instruction.structure_name))
                     call DoDeleteIndexes
-                end
+					doForceCommit = true
+				end
 
                 (REPLICATION_INSTRUCTION.DELETE_TABLE),
                 begin
                     xcall log("Delete table " + %atrim(instruction.structure_name))
                     call DoDeleteTable
-                end
+					doForceCommit = true
+				end
 
                 (REPLICATION_INSTRUCTION.CHANGE_INTERVAL),
                 begin
                     xcall log("Change processing interval")
                     call ChangeInterval
-                end
+				end
 
                 (REPLICATION_INSTRUCTION.CYCLE_LOG),
                 begin
@@ -253,8 +277,10 @@ proc
                 (REPLICATION_INSTRUCTION.SHUTDOWN),
                 begin
                     xcall log("Shutdown requested")
-                    delete(Settings.InstructionChannel)
-                    xcall ReplicatorShutdown
+					;;Delete the shutdown instruction from the queue
+					delete(Settings.InstructionChannel)
+
+					xcall ReplicatorShutdown
                     stop
                 end
 
@@ -263,6 +289,14 @@ proc
                 ;;Delete the instruction from the instruction file
                 delete(Settings.InstructionChannel)
 
+				;;If we're in batch commit mode, do we need to commit?
+				if (Settings.CommitMode == DatabaseCommitMode.Batch)
+				begin
+					if (doForceCommit || (doCheckCommit && ((Counters.BatchCounter += 1) == Settings.CommitBatchRows)))
+					begin
+						call CommitTransaction
+					end
+				end
             end
 
             ;;Reset to first record in instruction file and start over
@@ -292,6 +326,33 @@ proc
 
     ;;All done
     stop
+
+;;-----------------------------------------------------------------------------
+;; Start a transaction (only used in batch transaction mode)
+;;
+StartTransaction,
+
+	xcall verboselog("Start transaction")
+	xcall ssc_commit(Settings.DatabaseChannel,SSQL_TXON)
+	Counters.BatchCounter = 0
+
+	return
+
+;;-----------------------------------------------------------------------------
+;; Commit the current transaction and start a new one (only used in batch transaction mode)
+;;
+CommitTransaction,
+
+	if (Counters.BatchCounter > 0)
+	begin
+		xcall verboselog("Commit transaction with " + %string(Counters.BatchCounter) + " changes")
+		xcall verboselog("Start transaction")
+		xcall ssc_commit(Settings.DatabaseChannel,SSQL_TXON)
+		Counters.BatchCommits += 1
+		Counters.BatchCounter = 0
+	end
+
+	return
 
 ;;-----------------------------------------------------------------------------
 ;; Look for a pending instruction
@@ -325,101 +386,78 @@ GetInstruction,
 
 CheckFileTable,
 
-    ;;Do we already have an entry for this file in our namespace?
+    ;;If there is already an entry for the file in our namespace then we're good to go
 
-    if (nsptr = %nspc_find(Settings.ChannelInfo,instruction.structure_name,structure_data)) then
+    if (nsptr = %nspc_find(Settings.ChannelInfo,instruction.structure_name,structure_data))
     begin
-        ;;Yes, we're good to go!
         return
     end
-    else
+	
+    xcall verboselog("First instruction checks for table " + %atrim(instruction.structure_name))
+
+    ;;No, open the file and make sure it worked
+	
+	call OpenFile
+
+    ;;If we failed to open the file then we have a serious problem!
+	
+	if (!structure_data.structure_chan)
     begin
-        xcall verboselog("First instruction checks for table " + %atrim(instruction.structure_name))
+        xcall errorlog("Failed to open ISAM file for structure " + %atrim(instruction.structure_name))
+        return
+    end
 
-        ;;No, open the file and make sure it worked
-        call OpenFile
+    ;;Get the record size of the file
+	
+	try
+    begin
+        functionName = %atrim(instruction.structure_name) + "Length"
+        structure_data.structure_size = %xsubr(functionName)
+    end
+    catch (ex, @SynException)
+    begin
+        ok = %LogFunctionFail(functionName,ex.Errno,ex.Message)
+        return
+    end
+    endtry
 
-        ;;If we failed to open the file then we have a serious problem!
-        if (!structure_data.structure_chan)
-        begin
-            xcall errorlog("Failed to open ISAM file for structure " + %atrim(instruction.structure_name))
-            return
-        end
+    ;;Get the type of the file
+	
+	try
+    begin
+        functionName = %atrim(instruction.structure_name) + "Type"
+        xcall xsubr(functionName,structure_data.structure_type)
+    end
+    catch (ex, @SynException)
+    begin
+        ok = %LogFunctionFail(functionName,ex.Errno,ex.Message)
+        return
+    end
+    endtry
 
-        ;;Get the record size of the file
-        try
-        begin
-            functionName = %atrim(instruction.structure_name) + "Length"
-            structure_data.structure_size = %xsubr(functionName)
-        end
-        catch (ex, @SynException)
-        begin
-            ok = %LogFunctionFail(functionName,ex.Errno,ex.Message)
-            return
-        end
-        endtry
+    using structure_data.structure_type select
 
-        ;;Get the type of the file
-        try
+    ("DBL ISAM"),
+    begin
+        ;;Search for the first unique key. There should always be one, because without one the
+        ;;constructor in the I/O hooks class would not activate replication for the file.
+        data thisKey, i4
+        structure_data.structure_keynum = -1
+        for thisKey from 0 thru %isinfo(structure_data.structure_chan,"NUMKEYS") - 1
         begin
-            functionName = %atrim(instruction.structure_name) + "Type"
-            xcall xsubr(functionName,structure_data.structure_type)
-        end
-        catch (ex, @SynException)
-        begin
-            ok = %LogFunctionFail(functionName,ex.Errno,ex.Message)
-            return
-        end
-        endtry
-
-        using structure_data.structure_type select
-
-        ("DBL ISAM"),
-        begin
-            ;;Search for the first unique key. There should always be one, because without one the
-            ;;constructor in the I/O hooks class would not activate replication for the file.
-            data thisKey, i4
-            structure_data.structure_keynum = -1
-            for thisKey from 0 thru %isinfo(structure_data.structure_chan,"NUMKEYS") - 1
+            if (!%isinfo(structure_data.structure_chan,"DUPS",thisKey))
             begin
-                if (!%isinfo(structure_data.structure_chan,"DUPS",thisKey))
-                begin
-                    ;;Found it!
-                    structure_data.structure_keynum = thisKey
-                    exitloop
-                end
-            end
-
-            ;;Did we find a unique key?
-            if (structure_data.structure_keynum>=0) then
-            begin
-                ;;Report the key that will be used
-                xcall verboselog(" - Key " + %string(structure_data.structure_keynum) + " will be used to synchronize data")
-
-                ;;And save the structure name
-                structure_data.structure_name = instruction.structure_name
-
-                ;;Record the new open file in the namespace
-                nsptr = %nspc_add(Settings.ChannelInfo,instruction.structure_name,structure_data)
-            end
-            else
-            begin
-                ;;In theory we should never get here because CodeGen should not be able to create the
-                ;;required code if no unique key is present.
-                ;;But just in case, this will cause the replicator to abort
-                close structure_data.structure_chan
-                clear structure_data.structure_chan
-                xcall errorlog("File for structure " + %atrim(instruction.structure_name) + " has no unique key!")
+                ;;Found it!
+                structure_data.structure_keynum = thisKey
+                exitloop
             end
         end
 
-        ("RELATIVE"),
+        ;;Did we find a unique key?
+        if (structure_data.structure_keynum>=0) then
         begin
-            ;;Report that record numbers will be used
-            xcall verboselog(" - Record numbers will be used to synchronize data")
-
-            ;;Set the key number to -1 to prevent it being used accidentally
-            structure_data.structure_keynum = -1
+            ;;Report the key that will be used
+            xcall verboselog(" - Key " + %string(structure_data.structure_keynum) + " will be used to synchronize data")
 
             ;;And save the structure name
             structure_data.structure_name = instruction.structure_name
@@ -427,9 +465,33 @@ CheckFileTable,
             ;;Record the new open file in the namespace
             nsptr = %nspc_add(Settings.ChannelInfo,instruction.structure_name,structure_data)
         end
-
-        endusing
+        else
+        begin
+            ;;In theory we should never get here because CodeGen should not be able to create the
+            ;;required code if no unique key is present.
+            ;;But just in case, this will cause the replicator to abort
+            close structure_data.structure_chan
+            clear structure_data.structure_chan
+            xcall errorlog("File for structure " + %atrim(instruction.structure_name) + " has no unique key!")
+        end
     end
+
+    ("RELATIVE"),
+    begin
+        ;;Report that record numbers will be used
+        xcall verboselog(" - Record numbers will be used to synchronize data")
+
+        ;;Set the key number to -1 to prevent it being used accidentally
+        structure_data.structure_keynum = -1
+
+        ;;And save the structure name
+        structure_data.structure_name = instruction.structure_name
+
+        ;;Record the new open file in the namespace
+        nsptr = %nspc_add(Settings.ChannelInfo,instruction.structure_name,structure_data)
+    end
+
+    endusing
 
     return
 
@@ -438,7 +500,7 @@ CheckFileTable,
 ;;
 OpenFile,
 
-    xcall log(" - Opening associated data file")
+    xcall verboselog(" - Opening associated data file")
 
     try
     begin
@@ -475,7 +537,7 @@ CheckTable,
     try
     begin
         functionName = %atrim(instruction.structure_name) + "Exists"
-        status = %xsubr(functionName,Settings.DatabaseChannel,Settings.AutoCommit,dberrtxt)
+        status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,dberrtxt)
     end
     catch (ex, @SynException)
     begin
@@ -511,7 +573,7 @@ CreateTable,
     try
     begin
         functionName = %atrim(instruction.structure_name) + "Create"
-        status = %xsubr(functionName,Settings.DatabaseChannel,Settings.AutoCommit,dberrtxt)
+        status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,dberrtxt)
     end
     catch (ex, @SynException)
     begin
@@ -551,9 +613,9 @@ LoadTable,
         functionName = %atrim(instruction.structure_name) + "Load"
 
         if (Settings.RunningOnTerminal) then
-            status = %xsubr(functionName,Settings.DatabaseChannel,Settings.AutoCommit,dberrtxt,Settings.LogLoadExceptions,Settings.TerminalChannel,successCount,failCount,Settings.BulkLoadProgressReporting)
+            status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,dberrtxt,Settings.LogLoadExceptions,Settings.TerminalChannel,successCount,failCount,Settings.BulkLoadProgressReporting)
         else
-            status = %xsubr(functionName,Settings.DatabaseChannel,Settings.AutoCommit,dberrtxt,Settings.LogLoadExceptions,,successCount,failCount)
+            status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,dberrtxt,Settings.LogLoadExceptions,,successCount,failCount)
 
         if (status) then
         begin
@@ -565,7 +627,7 @@ LoadTable,
             ;;Now add alternate key indexes
             xcall log(" - Adding indexes...")
             functionName = %atrim(instruction.structure_name) + "Index"
-            status = %xsubr(functionName,Settings.DatabaseChannel,Settings.AutoCommit,dberrtxt)
+            status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,dberrtxt)
 
             if (status) then
             begin
@@ -613,7 +675,7 @@ BulkLoadTable,
             tt = Settings.TerminalChannel
 
         functionName = %atrim(instruction.structure_name) + "BulkLoad"
-        status = %xsubr(functionName,Settings.DatabaseChannel,Settings.AutoCommit,Settings.LocalExportPath,Settings.FileServiceHost,Settings.FileServicePort,tt,totalRows,failRows,dberrtxt)
+        status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,Settings.LocalExportPath,Settings.FileServiceHost,Settings.FileServicePort,tt,totalRows,failRows,dberrtxt)
 
         if (status) then
         begin
@@ -625,7 +687,7 @@ BulkLoadTable,
             ;;Now add alternate key indexes
             xcall log(" - Adding indexes...")
             functionName = %atrim(instruction.structure_name) + "Index"
-            status = %xsubr(functionName,Settings.DatabaseChannel,Settings.AutoCommit,dberrtxt)
+            status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,dberrtxt)
 
             if (status) then
             begin
@@ -678,7 +740,7 @@ DoInsert,
     try
     begin
         functionName = %atrim(instruction.structure_name) + 'Insert'
-        status = %xsubr(functionName,Settings.DatabaseChannel,Settings.AutoCommit,instruction.record(1,structure_data.structure_size),dberrtxt)
+        status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,instruction.record(1,structure_data.structure_size),dberrtxt)
     end
     catch (ex, @SynException)
     begin
@@ -739,7 +801,7 @@ DoInsertRelative,
     try
     begin
         functionName = %atrim(instruction.structure_name) + 'Insert'
-        status = %xsubr(functionName,Settings.DatabaseChannel,Settings.AutoCommit,recordNumber,instruction.record(1,structure_data.structure_size),dberrtxt)
+        status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,recordNumber,instruction.record(1,structure_data.structure_size),dberrtxt)
     end
     catch (ex, @SynException)
     begin
@@ -798,7 +860,7 @@ DoUpdate,
     try
     begin
         functionName = %atrim(instruction.structure_name) + 'Update'
-        status = %xsubr(functionName,Settings.DatabaseChannel,Settings.AutoCommit,instruction.record(1,structure_data.structure_size),rows,dberrtxt)
+        status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,instruction.record(1,structure_data.structure_size),rows,dberrtxt)
     end
     catch (ex, @SynException)
     begin
@@ -860,7 +922,7 @@ DoUpdateRelative,
     try
     begin
         functionName = %atrim(instruction.structure_name) + 'Update'
-        status = %xsubr(functionName,Settings.DatabaseChannel,Settings.AutoCommit,recordNumber,instruction.record(1,structure_data.structure_size),rows,dberrtxt)
+        status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,recordNumber,instruction.record(1,structure_data.structure_size),rows,dberrtxt)
     end
     catch (ex, @SynException)
     begin
@@ -911,7 +973,7 @@ DoDelete,
     try
     begin
         functionName = %atrim(instruction.structure_name) + 'Delete'
-        status = %xsubr(functionName,Settings.DatabaseChannel,Settings.AutoCommit,(a)keyValue,dberrtxt)
+        status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,(a)keyValue,dberrtxt)
         if (status) then
         begin
             xcall verboselog(" - Row deleted")
@@ -944,7 +1006,7 @@ DoCreateTable,
     try
     begin
         functionName = %atrim(instruction.structure_name) + "Exists"
-        status = %xsubr(functionName,Settings.DatabaseChannel,Settings.AutoCommit,dberrtxt)
+        status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,dberrtxt)
         using status select
         (1),
         begin
@@ -957,7 +1019,7 @@ DoCreateTable,
             try
             begin
                 functionName = %atrim(instruction.structure_name) + "Create"
-                status = %xsubr(functionName,Settings.DatabaseChannel,Settings.AutoCommit,dberrtxt)
+                status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,dberrtxt)
                 if (status) then
                 begin
                     xcall verboselog(" - Table created")
@@ -1004,7 +1066,7 @@ DoLoadTable,
     try
     begin
         functionName = %atrim(instruction.structure_name) + "Exists"
-        status = %xsubr(functionName,Settings.DatabaseChannel,Settings.AutoCommit,dberrtxt)
+        status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,dberrtxt)
     end
     catch (ex, @SynException)
     begin
@@ -1083,7 +1145,7 @@ DoDeleteAllRows,
     try
     begin
         functionName = %atrim(instruction.structure_name) + "Clear"
-        status = %xsubr(functionName,Settings.DatabaseChannel,Settings.AutoCommit,dberrtxt)
+        status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,dberrtxt)
         if (status) then
         begin
             xcall verboselog(" - Table truncated")
@@ -1129,7 +1191,7 @@ DoDeleteTable,
     try
     begin
         functionName = %atrim(instruction.structure_name) + "Drop"
-        status = %xsubr(functionName,Settings.DatabaseChannel,Settings.AutoCommit,dberrtxt)
+        status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,dberrtxt)
         if (status) then
         begin
             xcall verboselog(" - Table deleted")
@@ -1161,7 +1223,7 @@ DoAddIndexes,
     try
     begin
         functionName = %atrim(instruction.structure_name) + "Index"
-        status = %xsubr(functionName,Settings.DatabaseChannel,Settings.AutoCommit,dberrtxt)
+        status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,dberrtxt)
         if (status) then
         begin
             xcall verboselog(" - Indexes added")
@@ -1192,7 +1254,7 @@ DoDeleteIndexes,
     try
     begin
         functionName = %atrim(instruction.structure_name) + "UnIndex"
-        status = %xsubr(functionName,Settings.DatabaseChannel,Settings.AutoCommit,dberrtxt)
+        status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,dberrtxt)
         if (status) then
         begin
             xcall verboselog(" - Indexes removed")
@@ -1877,36 +1939,38 @@ ConfigureEnvironment,
         end
     end
 
-    ;;Auto-commit
+    ;;Commit mode
 
     if (ok)
     begin
         ;;Command line?
-        if (CommandLineParser.Parse("autocommit",clValues)) then
+        if (CommandLineParser.Parse("commitmode",clValues)) then
         begin
             using clValues.Count select
             (1),
             begin
                 using ((string)clValues[0]).ToUpper() select
-                ("YES"),
-                    Settings.AutoCommit = true
-                ("NO"),
-                    Settings.AutoCommit = false
-                (),
+                ("AUTOMATIC"),
+                    Settings.CommitMode = DatabaseCommitMode.Automatic
+				("BATCH"),
+					Settings.CommitMode = DatabaseCommitMode.Batch
+				("MANUAL"),
+					Settings.CommitMode = DatabaseCommitMode.Manual
+				(),
                 begin
-                    xcall errorlog("Invalid option value following the -autocommit option. Specify YES or NO.")
+                    xcall errorlog("Invalid option value following the -commitmode option. Specify AUTOMATIC, BATCH (default) or MANUAL.")
                     ok = false
                 end
                 endusing
             end
             (0),
             begin
-                xcall errorlog("Missing value after the -autocommit option")
+				xcall errorlog("Missing value after the -commitmode option")
                 ok = false
             end
             (),
             begin
-                xcall errorlog("Only one value may follow the -autocommit option")
+				xcall errorlog("Only one value may follow the -commitmode option")
                 ok = false
             end
             endusing
@@ -1915,15 +1979,17 @@ ConfigureEnvironment,
         begin
             ;;Environment variable?
             data tmpval, a32
-            xcall getlog("REPLICATOR_AUTO_COMMIT",tmpval,length)
+            xcall getlog("REPLICATOR_COMMIT_MODE",tmpval,length)
             if (length)
             begin
                 using ((String)tmpval(1:length)).ToUpper() select
-                ("YES"),
-                    Settings.AutoCommit = true
-                ("NO"),
-                    Settings.AutoCommit = false
-                (),
+				("AUTOMATIC"),
+					Settings.CommitMode = DatabaseCommitMode.Automatic
+				("BATCH"),
+					Settings.CommitMode = DatabaseCommitMode.Batch
+				("MANUAL"),
+					Settings.CommitMode = DatabaseCommitMode.Manual
+				(),
                 begin
                     xcall errorlog("Invalid value specified for option REPLICATOR_AUTO_COMMIT. Specify YES or NO.")
                     ok = false
@@ -1933,7 +1999,75 @@ ConfigureEnvironment,
         end
     end
 
-    ;;Enable and Initialize SQL Connection
+	;;Commit batch size
+
+	if (ok)
+	begin
+		;;Command line?
+		if (CommandLineParser.Parse("commitbatch",clValues)) then
+		begin
+			using clValues.Count select
+			(1),
+			begin
+				try
+				begin
+					Settings.CommitBatchRows = %integer((string)clValues[0])
+
+					if (Settings.CommitBatchRows<2)
+					begin
+						xcall errorlog("Invalid option value following the -commitbatch option. Specify an integer greater than 1.")
+						ok = false
+					end
+
+				end
+				catch (e, @Exception)
+				begin
+					xcall errorlog("Invalid option value following the -commitbatch option. Specify an integer greater than 1.")
+					ok = false
+				end
+				endtry
+			end
+			(0),
+			begin
+				xcall errorlog("Missing value after the -commitbatch option")
+				ok = false
+			end
+			(),
+			begin
+				xcall errorlog("Only one value may follow the -commitbatch option")
+				ok = false
+			end
+			endusing
+		end
+		else
+		begin
+			;;Environment variable?
+			data tmpval, a32
+			xcall getlog("REPLICATOR_COMMIT_BATCH",tmpval,length)
+			if (length)
+			begin
+				try
+				begin
+					Settings.CommitBatchRows = %integer(%atrim(tmpval))
+
+					if (Settings.CommitBatchRows<2)
+					begin
+						xcall errorlog("Invalid option value for REPLICATOR_COMMIT_BATCH. Specify an integer greater than 1.")
+						ok = false
+					end
+
+				end
+				catch (e, @Exception)
+				begin
+					xcall errorlog("Invalid option value for REPLICATOR_COMMIT_BATCH. Specify an integer greater than 1.")
+					ok = false
+				end
+				endtry
+			end
+		end
+	end
+
+	;;Enable and Initialize SQL Connection
 
     if (ok)
     begin
@@ -1978,20 +2112,37 @@ ConfigureEnvironment,
         end
     end
 
-    ;;Enable SQL Server Auto-Commit mode
+    ;;Enable SQL Server Auto-Commit mode?
 
-    if (ok && Settings.AutoCommit)
-    begin
-        if (%ssc_cmd(Settings.DatabaseChannel,,SSQL_ODBC_AUTOCOMMIT,"yes")==SSQL_NORMAL) then
-            xcall log("Auto-commit enabled")
-        else
-        begin
-            xcall ssc_getemsg(Settings.DatabaseChannel,dberrtxt,length)
-            xcall errorlog("Failed to enable auto-commit!")
-            xcall log("Error message was : " + dberrtxt(1,length))
-            ok = false
-        end
-    end
+	if (ok)
+	begin
+		using Settings.CommitMode select
+
+		(DatabaseCommitMode.Automatic),
+		begin
+			xcall log("Commit mode: AUTOMATIC")
+			if (%ssc_cmd(Settings.DatabaseChannel,,SSQL_ODBC_AUTOCOMMIT,"yes")!=SSQL_NORMAL)
+			begin
+				xcall ssc_getemsg(Settings.DatabaseChannel,dberrtxt,length)
+				xcall errorlog("Failed to enable auto-commit!")
+				xcall log("Error message was : " + dberrtxt(1,length))
+				ok = false
+			end
+		end
+
+		(DatabaseCommitMode.Batch),
+		begin
+			xcall log("Commit mode: BATCH")
+			call StartTransaction
+		end
+
+		(DatabaseCommitMode.Manual),
+		begin
+			xcall log("Commit mode: MANUAL")
+		end
+
+		endusing
+	end
 
     ;;Register a shutdown handler
 
@@ -2136,22 +2287,42 @@ subroutine ReplicatorShutdown
 
 proc
 
+	;;If we are in batch commit mode, commit any final changes
+
+	if (Settings.CommitMode == DatabaseCommitMode.Batch && Counters.BatchCounter > 0)
+	begin
+		xcall verboselog("Commit transaction with " + %string(Counters.BatchCounter) + " changes")
+		xcall ssc_commit(Settings.DatabaseChannel,SSQL_TXON)
+		Counters.BatchCommits += 1
+		Counters.BatchCounter = 0
+	end
+
+	;;Report the counters
+
     message = "--------------------------------------------------" + %char(13) + %char(10)
     message += "Shutdown of replicator instance " + Settings.InstanceName + %char(13) + %char(10)
     message += "INSERTS: " + %string(Counters.Inserts,"ZZZ,ZZZ,ZZZ,ZZX") + %char(13) + %char(10)
     message += "UPDATES: " + %string(Counters.Updates,"ZZZ,ZZZ,ZZZ,ZZX") + %char(13) + %char(10)
-    message += "DELETES: " + %string(Counters.Deletes,"ZZZ,ZZZ,ZZZ,ZZX") + %char(13) + %char(10)
+	message += "DELETES: " + %string(Counters.Deletes,"ZZZ,ZZZ,ZZZ,ZZX") + %char(13) + %char(10)
+	if (Settings.CommitMode == DatabaseCommitMode.Batch)
+		message += "COMMITS: " + %string(Counters.BatchCommits,"ZZZ,ZZZ,ZZZ,ZZX") + %char(13) + %char(10)
     message += "ERRORS:  " + %string(Counters.Errors, "ZZZ,ZZZ,ZZZ,ZZX") + %char(13) + %char(10)
     message += "--------------------------------------------------"
 
-    xcall log(message)
+	if (Settings.LogFileChannel != 0)
+		writes(Settings.LogFileChannel,message)
 
-    ;;If were writing to the system log, record the startup
-    if (Settings.SystemLog)
+	if (Settings.RunningOnTerminal)
+		writes(Settings.TerminalChannel,message)
+
+    ;;If were writing to the system log, record the counters there too
+	
+	if (Settings.SystemLog)
         xcall syn_reportevent(D_EVENTLOG_INFORMATION_TYPE,message)
 
-    ;;If we're sending emails then let's record the shutdown
-    if (Settings.CanSendEmail())
+    ;;If we're sending emails then send a shutting down message
+	
+	if (Settings.CanSendEmail())
     begin
         data body = new string[10]
         body[01] = "<html>"
@@ -2168,7 +2339,8 @@ proc
     end
 
     ;;Clean up any database cursors and data files that we have open
-    if (Settings.ChannelInfo)
+	
+	if (Settings.ChannelInfo)
     begin
         for idx from 1 thru %nspc_stoa(Settings.ChannelInfo,9999)
         begin
@@ -2180,7 +2352,7 @@ proc
             try
             begin
                 functionName = %atrim(structure_data.structure_name) + "Close"
-                xcall xsubr(functionName,Settings.DatabaseChannel,Settings.AutoCommit)
+                xcall xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode)
             end
             catch (ex)
             begin
@@ -2198,28 +2370,32 @@ proc
 
     end
 
-    ;;Close our connection to the database
-    if (Settings.DatabaseChannel)
+    ;;Disconnect from the database
+	
+	if (Settings.DatabaseChannel)
     begin
         xcall ssc_release(Settings.DatabaseChannel)
         Settings.DatabaseChannel = 0
     end
 
-    ;;Close the instructions file
+	;;Close the instruction queue file
+
     if (Settings.InstructionChannel)
     begin
         close Settings.InstructionChannel
         Settings.InstructionChannel = 0
     end
 
-    ;;Delete the PID file
+	;;Delete the PID file
+
     if (!Settings.RunningOnTerminal)
     begin
         data pidFileSpec, string, "REPLICATOR_LOGDIR:REPLICATOR_" + Settings.InstanceName + ".PID"
         xcall delet(pidFileSpec)
     end
 
-    ;;Make sure that the keyboard input buffer is empty
+	;;Make sure that the keyboard input buffer is empty
+
     if (Settings.RunningOnTerminal)
     begin
         data tmpvar, a1
@@ -2227,7 +2403,8 @@ proc
             accept(Settings.TerminalChannel,tmpvar)
     end
 
-    ;;On Windows, give the user the chance to read the final messages
+	;;On Windows, give the user the chance to read the final messages
+
     .ifdef D_GUI
     if (Settings.RunningOnTerminal)
     begin
@@ -2253,8 +2430,10 @@ proc
     if (Settings.LogFileChannel==0)
     begin
         try
-        begin
-            open(Settings.LogFileChannel,a:s,Settings.LogFileName)
+		begin
+			data tmpchn, int
+			open(tmpchn=0,a:s,Settings.LogFileName)
+			Settings.LogFileChannel = tmpchn
             ok = true
         end
         catch (ex)
@@ -2481,7 +2660,18 @@ namespace Tools
 
         public static Errors, int
 
+		public static BatchCommits, int
+
+		public static BatchCounter, int
+
     endclass
+
+	;; Do not change these values, they are processed via their integer value in the SqlIO routines!
+	public enum DatabaseCommitMode
+		Automatic,	1
+		Batch,		2
+		Manual,		3
+	endenum
 
     ;;; <summary>
     ;;; Represents various settings used within the replicator application.
@@ -2502,7 +2692,8 @@ namespace Tools
             endrecord
         proc
             now = %datetime
-            AutoCommit         = true
+			CommitBatchRows    = 1000
+			CommitMode         = DatabaseCommitMode.Batch
             ErrorSleepTime     = 0.01
             LocalExportPath    = ^null
             FileServiceHost    = ^null
@@ -2694,9 +2885,14 @@ namespace Tools
         endmethod
 
         ;;; <summary>
-        ;;; Is the database in auto-commit mode.
+        ;;; Database commit mode (Automatic, Manual or Batch).
         ;;; </summary>
-        public static readwrite property AutoCommit, boolean
+		public static readwrite property CommitMode, DatabaseCommitMode
+
+		;;; <summary>
+		;;; If the replicator is in batch commit mode, how many rows constitute a batch?
+		;;; </summary>
+		public static readwrite property CommitBatchRows, int
 
     endclass
 

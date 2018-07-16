@@ -165,8 +165,8 @@ proc
             display(tt,$SCR_POS(11,40),"X.  Export to CSV")
         end
 
-        display(tt,$SCR_POS(24,2),$SCR_CLR(EOS),"Select an option: ")
-        reads(tt,option)
+		display(tt,$SCR_POS(24,2),$SCR_CLR(EOS),"Select an option: ")
+		reads(tt,option)
 
         using option select
 
@@ -305,13 +305,19 @@ norec,		close chn
                         outbuf.operation = "Shutdown"
                     (REPLICATION_INSTRUCTION.DELETE_ALL_INSTRUCTIONS),
                         outbuf.operation = "Purge instructions"
-                    (REPLICATION_INSTRUCTION.CREATE_CSV),
-                        outbuf.operation = "Export to CSV"
-                    (REPLICATION_INSTRUCTION.CLOSE_FILE),
+					(REPLICATION_INSTRUCTION.CREATE_CSV),
+						outbuf.operation = "Export to CSV"
+					(REPLICATION_INSTRUCTION.CLOSE_FILE),
                         outbuf.operation = "Close file"
-                    (REPLICATION_INSTRUCTION.CYCLE_LOG),
+					(REPLICATION_INSTRUCTION.CYCLE_LOG),
                         outbuf.operation = "Restart log"
-                    endusing
+					(REPLICATION_INSTRUCTION.ADD_INDEXES),
+						outbuf.operation = "Add indexes"
+					(REPLICATION_INSTRUCTION.DELETE_INDEXES),
+						outbuf.operation = "Delete indexes"
+					(REPLICATION_INSTRUCTION.CHANGE_INTERVAL),
+						outbuf.operation = "Change interval"
+					endusing
 
 					if (stopping)
 						outbuf.operation = %atrim(outbuf.operation) + "*"
@@ -363,10 +369,8 @@ eof,        close chn
         ("Q "),
         begin
             data chn, i4
-            data msg, a50
             open(chn=0,"I:I","REPLICATOR_DATA:REPLICATION.ISM")
-			msg = "Queue length: " + %string(%isinfo(chn,"NUMRECS"))
-            display(tt,$scr_pos(24,2),$scr_clr(EOL),%atrim(msg))
+			display(tt,$scr_pos(24,2),$scr_clr(EOL),"Queue length: " + %string(%isinfo(chn,"NUMRECS")))
             close chn
             accept(tt,chn)
             while (%ttsts)
