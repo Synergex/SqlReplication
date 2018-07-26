@@ -345,7 +345,10 @@ CommitTransaction,
 
 	if (Counters.BatchCounter > 0)
 	begin
-		xcall verboselog("Commit transaction with " + %string(Counters.BatchCounter) + " changes")
+		data message, string, "Commit transaction with " + %string(Counters.BatchCounter) + " change"
+		if (Counters.BatchCounter>1)
+			message = message + "s"
+		xcall verboselog(message)
 		xcall verboselog("Start transaction")
 		xcall ssc_commit(Settings.DatabaseChannel,SSQL_TXON)
 		Counters.BatchCommits += 1
@@ -2291,7 +2294,10 @@ proc
 
 	if (Settings.CommitMode == DatabaseCommitMode.Batch && Counters.BatchCounter > 0)
 	begin
-		xcall verboselog("Commit transaction with " + %string(Counters.BatchCounter) + " changes")
+		message = "Commit transaction with " + %string(Counters.BatchCounter) + " change"
+		if (Counters.BatchCounter>1)
+			message = message + "s"
+		xcall verboselog(message)
 		xcall ssc_commit(Settings.DatabaseChannel,SSQL_TXON)
 		Counters.BatchCommits += 1
 		Counters.BatchCounter = 0
