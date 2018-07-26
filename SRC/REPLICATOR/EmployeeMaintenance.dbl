@@ -83,7 +83,7 @@ proc
 		try
 		begin
 			open(ech=0,u:i,"REPLICATOR_DATA:EMPLOYEE.ISM")
-			new IOHooksISAM(ech,"Employee")
+			xcall ConfigureReplication(ech)
 		end
 		catch (e, @Exception)
 		begin
