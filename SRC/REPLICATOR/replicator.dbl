@@ -101,7 +101,7 @@ proc
             if (noMoreInstructions) then
 			begin
 				;;The queue is currently empty. If we're in batch commit mode then commit any outstanding changes
-				if (Settings.CommitMode == DatabaseCommitMode.Batch)
+			    if ((Settings.CommitMode == DatabaseCommitMode.Batch) && (Counters.BatchCounter > 0))
 				begin
 					call CommitTransaction
 				end
@@ -343,14 +343,13 @@ StartTransaction,
 ;;
 CommitTransaction,
 
-	if (Counters.BatchCounter > 0)
 	begin
 		data message, string, "Commit transaction with " + %string(Counters.BatchCounter) + " change"
 		if (Counters.BatchCounter>1)
 			message = message + "s"
 		xcall verboselog(message)
-		xcall verboselog("Start transaction")
 		xcall ssc_commit(Settings.DatabaseChannel,SSQL_TXON)
+		xcall verboselog("Start transaction")
 		Counters.BatchCommits += 1
 		Counters.BatchCounter = 0
 	end
