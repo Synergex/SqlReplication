@@ -292,7 +292,8 @@ proc
 				;;If we're in batch commit mode, do we need to commit?
 				if (Settings.CommitMode == DatabaseCommitMode.Batch)
 				begin
-					if (doForceCommit || (doCheckCommit && ((Counters.BatchCounter += 1) == Settings.CommitBatchRows)))
+					;;This logic may look a little "hokey", but there is a reason for it!
+					if ((doForceCommit && (Counters.BatchCounter+=1)) || (doCheckCommit && ((Counters.BatchCounter += 1) == Settings.CommitBatchRows)))
 					begin
 						call CommitTransaction
 					end
