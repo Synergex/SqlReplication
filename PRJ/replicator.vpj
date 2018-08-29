@@ -773,7 +773,7 @@
         <ExecMacro CmdLine="syn_set SYNIMPDIR=%(ROOT)PROTO"/>
         <ExecMacro CmdLine="syn_set REPLICATOR_EXE=%(ROOT)EXE"/>
         <ExecMacro CmdLine="syn_set REPLICATOR_DATA=%(ROOT)DAT"/>
-        <ExecMacro CmdLine="syn_set REPLICATOR_DATABASE=net:SqlReplicationUser/SqlReplicationPassword/SqlReplication/SISQL2017///@1958:192.168.93.13!VTX12_SQLNATIVE"/>
+        <ExecMacro CmdLine="syn_set REPLICATOR_DATABASE=VTX12_SQLNATIVE://SqlReplication/.///Trusted_connection=yes"/>
         <ExecMacro CmdLine="syn_set REPLICATOR_LOGDIR=%(ROOT)EXE"/>
         <ExecMacro CmdLine="syn_set REPLICATOR_INTERVAL=2"/>
         <ExecMacro CmdLine="syn_set REPLICATOR_FULL_LOG=YES"/>
