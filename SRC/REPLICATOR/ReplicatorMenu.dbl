@@ -102,12 +102,12 @@ proc
 
     ;;Display and process the menu
 
-	display(tt,$SCR_POS(1,1),$SCR_CLR(SCREEN),"Replicator Control")
+    display(tt,$SCR_POS(1,1),$SCR_CLR(SCREEN),"Replicator Control")
 
     ;;Get the default instance name
     xcall getlog("REPLICATOR_INSTANCE",instanceName,status)
     if (instanceName) then
-		display(tt,$SCR_POS(1,25), "Instance: " + %atrim(instanceName))
+        display(tt,$SCR_POS(1,25), "Instance: " + %atrim(instanceName))
     else
         display(tt,$SCR_POS(1,25), "Instance: <none>")
 
@@ -130,17 +130,17 @@ proc
         end
 
         display(tt,$SCR_POS(5,2), "SN. Stop Replicator  (Now)")
-		display(tt,$SCR_POS(6,2), "SQ. Stop Replicator  (Queued)")
-		
-		display(tt,$SCR_POS(8,2), "V.  View instructions")
+        display(tt,$SCR_POS(6,2), "SQ. Stop Replicator  (Queued)")
+
+        display(tt,$SCR_POS(8,2), "V.  View instructions")
         display(tt,$SCR_POS(9,2), "P.  Purge instructions")
         .ifndef D_VMS
         display(tt,$SCR_POS(10,2),"Q.  Queue length")
         .endc
-		.ifdef D_GUI
-		display(tt,$SCR_POS(11,2),"QM. Start Queue Monitor")
-		.endc
-		display(tt,$SCR_POS(13,2),"I.  Change interval")
+        .ifdef D_GUI
+        display(tt,$SCR_POS(11,2),"QM. Start Queue Monitor")
+        .endc
+        display(tt,$SCR_POS(13,2),"I.  Change interval")
         display(tt,$SCR_POS(14,2),"N.  Change instance name")
         display(tt,$SCR_POS(15,2),"R.  Restart log file")
 
@@ -165,8 +165,8 @@ proc
             display(tt,$SCR_POS(11,40),"X.  Export to CSV")
         end
 
-		display(tt,$SCR_POS(24,2),$SCR_CLR(EOS),"Select an option: ")
-		reads(tt,option)
+        display(tt,$SCR_POS(24,2),$SCR_CLR(EOS),"Select an option: ")
+        reads(tt,option)
 
         using option select
 
@@ -230,26 +230,26 @@ EndOfPipe,      close pipechn
             if (windows)
                 xcall spawn("dbr -d REPLICATOR_EXE:replicator.dbr",D_NOWINDOW|D_NOWAIT)
 
-		("SN"),
-		begin
-			;;Stop now. To do this we need to flip the action field of the first record to a negative value.
-			;;If there is no first record then queue a shutdown
-			data chn, i4
-			open(chn=0,"U:I","REPLICATOR_DATA:REPLICATION.ISM")
-again,		sleep 0.01
-			read(chn,instruction,^FIRST) [$ERR_LOCKED=again,$ERR_EOF=norec]
-			;;The queue is not empty, schedule a shutdown via the first item in the queue
-			instruction.action = -instruction.action
-			write(chn,instruction)
-			close chn
-			exit
-			;;The queue is empty, schedule a shutdown via a specific instruction
-norec,		close chn
-			xcall Replicate(REPLICATION_INSTRUCTION.SHUTDOWN)
-			display(tt,$scr_pos(24,2),$SCR_CLR(EOL),"Command queued")
-		end
+        ("SN"),
+        begin
+            ;;Stop now. To do this we need to flip the action field of the first record to a negative value.
+            ;;If there is no first record then queue a shutdown
+            data chn, i4
+            open(chn=0,"U:I","REPLICATOR_DATA:REPLICATION.ISM")
+again,      sleep 0.01
+            read(chn,instruction,^FIRST) [$ERR_LOCKED=again,$ERR_EOF=norec]
+            ;;The queue is not empty, schedule a shutdown via the first item in the queue
+            instruction.action = -instruction.action
+            write(chn,instruction)
+            close chn
+            exit
+            ;;The queue is empty, schedule a shutdown via a specific instruction
+norec,      close chn
+            xcall Replicate(REPLICATION_INSTRUCTION.SHUTDOWN)
+            display(tt,$scr_pos(24,2),$SCR_CLR(EOL),"Command queued")
+        end
 
-		("SQ"),
+        ("SQ"),
         begin
             xcall Replicate(REPLICATION_INSTRUCTION.SHUTDOWN)
             display(tt,$scr_pos(24,2),$SCR_CLR(EOL),"Command queued")
@@ -259,8 +259,8 @@ norec,		close chn
         begin
             data chn, i4
             data row, i4
-			data tmpvar, a1, " "
-			data stopping, boolean
+            data tmpvar, a1, " "
+            data stopping, boolean
             open(chn=0,"I:I","REPLICATOR_DATA:REPLICATION.ISM")
 
             display(tt,$SCR_POS(3,1),$SCR_CLR(EOS), "Operation             Table                           Affected Record",
@@ -275,10 +275,10 @@ norec,		close chn
                     reads(chn,instruction,eof)
                     clear outbuf
 
-					stopping = instruction.action < 0
+                    stopping = instruction.action < 0
 
-					if (stopping)
-						instruction.action = -instruction.action
+                    if (stopping)
+                        instruction.action = -instruction.action
 
                     using instruction.action select
                     (REPLICATION_INSTRUCTION.CREATE_ROW),
@@ -305,22 +305,22 @@ norec,		close chn
                         outbuf.operation = "Shutdown"
                     (REPLICATION_INSTRUCTION.DELETE_ALL_INSTRUCTIONS),
                         outbuf.operation = "Purge instructions"
-					(REPLICATION_INSTRUCTION.CREATE_CSV),
-						outbuf.operation = "Export to CSV"
-					(REPLICATION_INSTRUCTION.CLOSE_FILE),
+                    (REPLICATION_INSTRUCTION.CREATE_CSV),
+                        outbuf.operation = "Export to CSV"
+                    (REPLICATION_INSTRUCTION.CLOSE_FILE),
                         outbuf.operation = "Close file"
-					(REPLICATION_INSTRUCTION.CYCLE_LOG),
+                    (REPLICATION_INSTRUCTION.CYCLE_LOG),
                         outbuf.operation = "Restart log"
-					(REPLICATION_INSTRUCTION.ADD_INDEXES),
-						outbuf.operation = "Add indexes"
-					(REPLICATION_INSTRUCTION.DELETE_INDEXES),
-						outbuf.operation = "Delete indexes"
-					(REPLICATION_INSTRUCTION.CHANGE_INTERVAL),
-						outbuf.operation = "Change interval"
-					endusing
+                    (REPLICATION_INSTRUCTION.ADD_INDEXES),
+                        outbuf.operation = "Add indexes"
+                    (REPLICATION_INSTRUCTION.DELETE_INDEXES),
+                        outbuf.operation = "Delete indexes"
+                    (REPLICATION_INSTRUCTION.CHANGE_INTERVAL),
+                        outbuf.operation = "Change interval"
+                    endusing
 
-					if (stopping)
-						outbuf.operation = %atrim(outbuf.operation) + "*"
+                    if (stopping)
+                        outbuf.operation = %atrim(outbuf.operation) + "*"
 
                     outbuf.table = instruction.structure_name
                     outbuf.keyval = instruction.record
@@ -370,7 +370,7 @@ eof,        close chn
         begin
             data chn, i4
             open(chn=0,"I:I","REPLICATOR_DATA:REPLICATION.ISM")
-			display(tt,$scr_pos(24,2),$scr_clr(EOL),"Queue length: " + %string(%isinfo(chn,"NUMRECS")))
+            display(tt,$scr_pos(24,2),$scr_clr(EOL),"Queue length: " + %string(%isinfo(chn,"NUMRECS")))
             close chn
             accept(tt,chn)
             while (%ttsts)
@@ -379,14 +379,14 @@ eof,        close chn
         end
         .endc
 
-		.ifdef D_GUI
-		("QM"),
-		begin
-			xcall spawn("dbr REPLICATOR_EXE:QueueMonitor.dbr",D_NOWINDOW|D_NOWAIT)
-		end
-		.endc
+        .ifdef D_GUI
+        ("QM"),
+        begin
+            xcall spawn("dbr REPLICATOR_EXE:QueueMonitor.dbr",D_NOWINDOW|D_NOWAIT)
+        end
+        .endc
 
-		("I "),
+        ("I "),
         begin
             data interval, a5
             display(tt,$SCR_POS(24,2),$SCR_CLR(EOS),"Interval (seconds): ")
