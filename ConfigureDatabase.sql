@@ -6,8 +6,8 @@ GO
 
 CREATE DATABASE [SqlReplication]
  CONTAINMENT = NONE
- ON  PRIMARY ( NAME = N'SqlReplicationIoHooks', FILENAME = N'C:\Program Files\Microsoft SQL Server\MSSQL14.MSSQLSERVER\MSSQL\DATA\SqlReplication.mdf' , SIZE = 10MB , MAXSIZE = UNLIMITED, FILEGROWTH = 65536KB )
- LOG ON ( NAME = N'SqlReplicationIoHooks_log', FILENAME = N'C:\Program Files\Microsoft SQL Server\MSSQL14.MSSQLSERVER\MSSQL\DATA\SqlReplication_log.ldf' , SIZE = 5MB , MAXSIZE = 2048GB , FILEGROWTH = 65536KB )
+ ON  PRIMARY ( NAME = N'SqlReplication', FILENAME = N'C:\Program Files\Microsoft SQL Server\MSSQL14.MSSQLSERVER\MSSQL\DATA\SqlReplication.mdf' , SIZE = 10MB , MAXSIZE = UNLIMITED, FILEGROWTH = 65536KB )
+ LOG ON ( NAME = N'SqlReplication_log', FILENAME = N'C:\Program Files\Microsoft SQL Server\MSSQL14.MSSQLSERVER\MSSQL\DATA\SqlReplication_log.ldf' , SIZE = 5MB , MAXSIZE = 2048GB , FILEGROWTH = 65536KB )
 GO
 
 ALTER DATABASE [SqlReplication] SET COMPATIBILITY_LEVEL = 140

@@ -25,9 +25,9 @@
     <!-- ************************************************************************************************************* -->
     <!-- Setting these properties causes these URL's to be displayed when the application is selected in "Programs and Features"-->
 
-    <Property Id="ARPHELPLINK"      Value="https://github.com/SteveIves/SqlReplicationIoHooks/issues" />
-    <Property Id="ARPURLINFOABOUT"  Value="https://github.com/SteveIves/SqlReplicationIoHooks/wiki/Introduction-to-FileService" />
-    <Property Id="ARPURLUPDATEINFO" Value="https://github.com/SteveIves/SqlReplicationIoHooks/releases" />
+    <Property Id="ARPHELPLINK"      Value="https://github.com/SteveIves/SqlReplication/issues" />
+    <Property Id="ARPURLINFOABOUT"  Value="https://github.com/SteveIves/SqlReplication/wiki/Introduction-to-FileService" />
+    <Property Id="ARPURLUPDATEINFO" Value="https://github.com/SteveIves/SqlReplication/releases" />
 
     <MajorUpgrade DowngradeErrorMessage="A newer version of [ProductName] is already installed." />
 
@@ -243,7 +243,7 @@
         <util:InternetShortcut
                   Id="OnlineDocumentationShortcut"
                   Name="File Service Documentation (On-line)"
-                  Target="https://github.com/SteveIves/SqlReplicationIoHooks/wiki/Introduction-to-FileService"/>
+                  Target="https://github.com/SteveIves/SqlReplication/wiki/Introduction-to-FileService"/>
         <RegistryValue Root="HKCU" Key="Software\Synergex\FileService" Name="DocumentationShortcutsInstalled" Type="integer" Value="1" KeyPath="yes"/>
       </Component>
     </DirectoryRef>

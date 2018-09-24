@@ -1073,16 +1073,16 @@ proc
 
             ;;Clean up any alpha variables
 
-            employee.emp_first_name=%atrim(employee.emp_first_name)+%char(0)
-            employee.emp_last_name=%atrim(employee.emp_last_name)+%char(0)
-            employee.emp_dept=%atrim(employee.emp_dept)+%char(0)
-            employee.emp_phone_work=%atrim(employee.emp_phone_work)+%char(0)
-            employee.emp_phone_home=%atrim(employee.emp_phone_home)+%char(0)
-            employee.emp_phone_cell=%atrim(employee.emp_phone_cell)+%char(0)
-            employee.emp_email=%atrim(employee.emp_email)+%char(0)
-            employee.emp_address_street=%atrim(employee.emp_address_street)+%char(0)
-            employee.emp_address_city=%atrim(employee.emp_address_city)+%char(0)
-            employee.emp_address_state=%atrim(employee.emp_address_state)+%char(0)
+			employee.emp_first_name = %atrim(employee.emp_first_name)+%char(0)
+			employee.emp_last_name = %atrim(employee.emp_last_name)+%char(0)
+			employee.emp_dept = %atrim(employee.emp_dept)+%char(0)
+			employee.emp_phone_work = %atrim(employee.emp_phone_work)+%char(0)
+			employee.emp_phone_home = %atrim(employee.emp_phone_home)+%char(0)
+			employee.emp_phone_cell = %atrim(employee.emp_phone_cell)+%char(0)
+			employee.emp_email = %atrim(employee.emp_email)+%char(0)
+			employee.emp_address_street = %atrim(employee.emp_address_street)+%char(0)
+			employee.emp_address_city = %atrim(employee.emp_address_city)+%char(0)
+			employee.emp_address_state = %atrim(employee.emp_address_state)+%char(0)
 
             ;;Clean up any decimal variables
 
@@ -1355,16 +1355,16 @@ proc
     begin
         ;;Clean up any alpha fields
 
-        employee.emp_first_name = %atrim(employee.emp_first_name) + %char(0)
-        employee.emp_last_name = %atrim(employee.emp_last_name) + %char(0)
-        employee.emp_dept = %atrim(employee.emp_dept) + %char(0)
-        employee.emp_phone_work = %atrim(employee.emp_phone_work) + %char(0)
-        employee.emp_phone_home = %atrim(employee.emp_phone_home) + %char(0)
-        employee.emp_phone_cell = %atrim(employee.emp_phone_cell) + %char(0)
-        employee.emp_email = %atrim(employee.emp_email) + %char(0)
-        employee.emp_address_street = %atrim(employee.emp_address_street) + %char(0)
-        employee.emp_address_city = %atrim(employee.emp_address_city) + %char(0)
-        employee.emp_address_state = %atrim(employee.emp_address_state) + %char(0)
+        employee.emp_first_name = %atrim(employee.emp_first_name)+%char(0)
+        employee.emp_last_name = %atrim(employee.emp_last_name)+%char(0)
+        employee.emp_dept = %atrim(employee.emp_dept)+%char(0)
+        employee.emp_phone_work = %atrim(employee.emp_phone_work)+%char(0)
+        employee.emp_phone_home = %atrim(employee.emp_phone_home)+%char(0)
+        employee.emp_phone_cell = %atrim(employee.emp_phone_cell)+%char(0)
+        employee.emp_email = %atrim(employee.emp_email)+%char(0)
+        employee.emp_address_street = %atrim(employee.emp_address_street)+%char(0)
+        employee.emp_address_city = %atrim(employee.emp_address_city)+%char(0)
+        employee.emp_address_state = %atrim(employee.emp_address_state)+%char(0)
 
         ;;Clean up any decimal fields
 
