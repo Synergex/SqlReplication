@@ -326,6 +326,9 @@ endfunction
 ;;; </summary>
 ;;; <param name="a_dbchn">Connected database channel.</param>
 ;;; <param name="a_commit_mode">What commit mode are we using?</param>
+;;; <param name="a_db_timeout">Database timeout in seconds.</param>
+;;; <param name="a_bl_timeout">Bulk load timeout in seconds.</param>
+;;; <param name="a_terminal">Terminal channel to log to (optional).</param>
 ;;; <param name="a_errtxt">Returned error text.</param>
 ;;; <returns>Returns true on success, otherwise false.</returns>
 
@@ -333,6 +336,9 @@ function <StructureName>Index, ^val
 
     required in  a_dbchn,  i
     required in  a_commit_mode, i
+    required in  a_db_timeout, n
+    required in  a_bl_timeout, n
+    optional in  a_terminal, n
     optional out a_errtxt, a
     endparams
 
@@ -340,19 +346,25 @@ function <StructureName>Index, ^val
 
     .align
     stack record local_data
-        ok          ,boolean    ;;Return status
-        dberror     ,int        ;;Database error number
-        cursor      ,int        ;;Database cursor
-        length      ,int        ;;Length of a string
-        transaction ,int        ;;Transaction in process
-        keycount    ,int        ;;Total number of keys
-        errtxt      ,a512       ;;Returned error message text
-        sql         ,string     ;;SQL statement
+        ok                  ,boolean    ;;Return status
+        dberror             ,int        ;;Database error number
+        cursor              ,int        ;;Database cursor
+        length              ,int        ;;Length of a string
+        transaction         ,int        ;;Transaction in process
+        keycount            ,int        ;;Total number of keys
+        errtxt              ,a512       ;;Returned error message text
+        loggingToTerminal   ,boolean
+        now                 ,a20        ;;Current date and time
+        sql                 ,string     ;;SQL statement
     endrecord
+
+    .define ttlog(x) if (loggingToTerminal) writes(a_terminal,"   - " + %string(^d(now(9:8)),"XX:XX:XX.XX ") + x)
 
 proc
     init local_data
     ok = true
+
+    loggingToTerminal = (^passed(a_terminal) && a_terminal)
 
     ;;Start a database transaction
 
@@ -368,12 +380,32 @@ proc
         end
     end
 
+    ;;Set the SQL statement execution timeout to the bulk load value
+
+    if (ok)
+    begin
+        now = %datetime
+        ttlog("Setting database timeout to " + %string(a_bl_timeout) + " seconds")
+        if (%ssc_cmd(a_dbchn,,SSQL_TIMEOUT,%string(a_bl_timeout))==SSQL_FAILURE)
+        begin
+            ok = false
+            if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+                errtxt="Failed to set database timeout"
+        end
+    end
+
     <IF STRUCTURE_HAS_UNIQUE_PK>
     <ELSE>
     ;;The structure has no unique primary key, so no primary key constraint was added to the table. Create an index instead.
 
     if (ok && !IndexExists(a_dbchn,"IX_<StructureName>_<PRIMARY_KEY><KeyName></PRIMARY_KEY>",errtxt))
     begin
+        if (loggingToTerminal)
+        begin
+            now = %datetime
+            ttlog("  - Adding index IX_<StructureName>_<PRIMARY_KEY><KeyName></PRIMARY_KEY>")
+        end
+
         sql = '<PRIMARY_KEY>CREATE INDEX IX_<StructureName>_<KeyName> ON "<StructureName>"(<SEGMENT_LOOP>"<SegmentName>" <SEGMENT_ORDER><,></SEGMENT_LOOP>)</PRIMARY_KEY>'
 
         call open_cursor
@@ -391,6 +423,12 @@ proc
 
     if (ok && !%IndexExists(a_dbchn,"IX_<StructureName>_<KeyName>",errtxt))
     begin
+        if (loggingToTerminal)
+        begin
+            now = %datetime
+            ttlog("  - Adding index IX_<StructureName>_<KeyName>")
+        end
+
         sql = 'CREATE <IF FIRST_UNIQUE_KEY>CLUSTERED<ELSE><KEY_UNIQUE></IF FIRST_UNIQUE_KEY> INDEX IX_<StructureName>_<KeyName> ON "<StructureName>"(<SEGMENT_LOOP>"<SegmentName>" <SEGMENT_ORDER><,></SEGMENT_LOOP>)'
 
         call open_cursor
@@ -403,6 +441,22 @@ proc
     end
 
     </ALTERNATE_KEY_LOOP>
+    if (ok)
+    begin
+        if (loggingToTerminal)
+        begin
+            now = %datetime
+            ttlog("  - Done adding indexes")
+        end
+    end
+
+    ;;Set the database timeout back to the regular value
+
+    now = %datetime
+    ttlog("Resetting database timeout to " + %string(a_db_timeout) + " seconds")
+    if (%ssc_cmd(a_dbchn,,SSQL_TIMEOUT,%string(a_db_timeout))==SSQL_FAILURE)
+        nop
+
     ;;Commit or rollback the transaction
 
     if ((a_commit_mode==3) && transaction)
@@ -834,10 +888,10 @@ proc
 
         <FIELD_LOOP>
         <IF ALPHA>
-		<IF PKSEGMENT>
-		<ELSE>
+        <IF PKSEGMENT>
+        <ELSE>
         <field_path> = %atrim(<field_path>)+%char(0)
-		</IF PKSEGMENT>
+        </IF PKSEGMENT>
         </IF ALPHA>
         </FIELD_LOOP>
 
@@ -1180,10 +1234,10 @@ proc
 
             <FIELD_LOOP>
             <IF ALPHA>
-			<IF PKSEGMENT>
-			<ELSE>
-			<field_path> = %atrim(<field_path>)+%char(0)
-			</IF PKSEGMENT>
+            <IF PKSEGMENT>
+            <ELSE>
+            <field_path> = %atrim(<field_path>)+%char(0)
+            </IF PKSEGMENT>
             </IF ALPHA>
             </FIELD_LOOP>
 
@@ -1525,10 +1579,10 @@ proc
 
         <FIELD_LOOP>
         <IF ALPHA>
-		<IF PKSEGMENT>
-		<ELSE>
+        <IF PKSEGMENT>
+        <ELSE>
         <field_path> = %atrim(<field_path>)+%char(0)
-		</IF PKSEGMENT>
+        </IF PKSEGMENT>
         </IF ALPHA>
         </FIELD_LOOP>
 
@@ -2284,6 +2338,8 @@ endfunction
 ;;; <param name="a_commit_mode">What commit mode are we using?</param>
 ;;; <param name="a_localpath">Path to local export directory</param>
 ;;; <param name="a_remotepath">Remote export directory or URL</param>
+;;; <param name="a_db_timeout">Database timeout in seconds.</param>
+;;; <param name="a_bl_timeout">Bulk load timeout in seconds.</param>
 ;;; <param name="a_terminal">Terminal channel to log errors on</param>
 ;;; <param name="a_records">Total number of records processed</param>
 ;;; <param name="a_exceptions">Total number of exception records detected</param>
@@ -2297,6 +2353,8 @@ function <StructureName>BulkLoad, ^val
     required in  a_localpath,  string
     required in  a_server,     string
     required in  a_port,       string
+    required in  a_db_timeout, n
+    required in  a_bl_timeout, n
     optional in  a_terminal,   n
     optional out a_records,    n
     optional out a_exceptions, n
@@ -2328,9 +2386,10 @@ function <StructureName>BulkLoad, ^val
         exceptionCount,         int
         errtxt,                 a512       ;;Error message text
         fsc,                    @FileServiceClient
+        now,                    a20
     endrecord
 
-    .define ttlog(x) if (loggingToTerminal) writes(a_terminal,"   - " + x)
+    .define ttlog(x) if (loggingToTerminal) writes(a_terminal,"   - " + %string(^d(now(9:8)),"XX:XX:XX.XX ") + x)
 
 proc
 
@@ -2345,9 +2404,13 @@ proc
     if (remoteBulkLoad = ((a_server!=^null) && (a_server.nes." ")))
     begin
         fsc = new FileServiceClient(a_server,a_port)
+
+        now = %datetime
         ttlog("Verifying FileService connection")
+
         if (!fsc.Ping(errtxt))
         begin
+            now = %datetime
             ttlog(errtxt = "No response from FileService, bulk upload cancelled")
             ok = false
         end
@@ -2382,7 +2445,9 @@ proc
 
         ;;And export the data
 
+        now = %datetime
         ttlog("Exporting delimited file")
+
         ok = %<StructureName>Csv(localCsvFile,recordCount,errtxt)
     end
 
@@ -2392,6 +2457,7 @@ proc
 
         if (remoteBulkLoad) then
         begin
+            now = %datetime
             ttlog("Uploading delimited file to database host")
             ok = fsc.UploadChunked(localCsvFile,remoteCsvFile,320,fileToLoad,errtxt)
         end
@@ -2405,12 +2471,13 @@ proc
     begin
         ;;Bulk load the database table
 
-        ttlog("Executing SQL BULK INSERT")
-
         ;;Start a database transaction
 
         if (a_commit_mode==3)
         begin
+            now = %datetime
+            ttlog("Starting transaction")
+
             if (%ssc_commit(a_dbchn,SSQL_TXON)==SSQL_NORMAL) then
                 transaction = true
             else
@@ -2425,6 +2492,9 @@ proc
 
         if (ok)
         begin
+            now = %datetime
+            ttlog("Opening cursor")
+
             errorFile = fileToLoad + "_err"
 
             sql = "BULK INSERT <StructureName> FROM '" + fileToLoad + "' WITH (FIRSTROW=2,FIELDTERMINATOR='|',ROWTERMINATOR='\n', ERRORFILE='" + errorFile + "')"
@@ -2439,15 +2509,17 @@ proc
             end
         end
 
-        ;;Disable the SQL Server timeout.
+        ;;Set the SQL statement execution timeout to the bulk load value
 
         if (ok)
         begin
-            if (%ssc_cmd(a_dbchn,,SSQL_TIMEOUT,"0")==SSQL_FAILURE)
+            now = %datetime
+            ttlog("Setting database timeout to " + %string(a_bl_timeout) + " seconds")
+            if (%ssc_cmd(a_dbchn,,SSQL_TIMEOUT,%string(a_bl_timeout))==SSQL_FAILURE)
             begin
                 ok = false
                 if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
-                    errtxt="Failed to extend SQL Connection timeout period"
+                    errtxt="Failed to set database timeout"
             end
         end
 
@@ -2455,14 +2527,19 @@ proc
 
         if (ok)
         begin
+            now = %datetime
+            ttlog("Executing BULK INSERT")
             if (%ssc_execute(a_dbchn,cursor,SSQL_STANDARD)==SSQL_FAILURE)
             begin
                 if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_NORMAL) then
                 begin
+                    now = %datetime
+                    ttlog("Bulk insert error")
                     using dberror select
                     (-4864),
                     begin
                         ;Bulk load data conversion error
+                        now = %datetime
                         ttlog("Data conversion errors were reported")
                         clear dberror, errtxt
                         call GetExceptionDetails
@@ -2485,17 +2562,12 @@ proc
             call DeleteFiles
         end
 
-        ;;Restore the SQL Server timeout to 60 seconds
+        ;;Set the database timeout back to the regular value
 
-        if (ok)
-        begin
-            if (%ssc_cmd(a_dbchn,,SSQL_TIMEOUT,"60")==SSQL_FAILURE)
-            begin
-                ok = false
-                if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
-                    errtxt="Failed to restore SQL Connection timeout period"
-            end
-        end
+        now = %datetime
+        ttlog("Resetting database timeout to " + %string(a_db_timeout) + " seconds")
+        if (%ssc_cmd(a_dbchn,,SSQL_TIMEOUT,%string(a_db_timeout))==SSQL_FAILURE)
+            nop
 
         ;;Commit or rollback the transaction
 
@@ -2503,7 +2575,8 @@ proc
         begin
             if (ok) then
             begin
-                ;;Success, commit the transaction
+                now = %datetime
+                ttlog("COMMIT")
                 if (%ssc_commit(a_dbchn,SSQL_TXOFF)==SSQL_FAILURE)
                 begin
                     if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
@@ -2514,6 +2587,8 @@ proc
             else
             begin
                 ;;There was an error, rollback the transaction
+                now = %datetime
+                ttlog("ROLLBACK")
                 xcall ssc_rollback(a_dbchn,SSQL_TXOFF)
             end
         end
@@ -2522,6 +2597,8 @@ proc
 
         if (cursorOpen)
         begin
+            now = %datetime
+            ttlog("Closing cursor")
             if (%ssc_close(a_dbchn,cursor)==SSQL_FAILURE)
             begin
                 if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
@@ -2543,12 +2620,19 @@ proc
     if (^passed(a_errtxt))
         a_errtxt = errtxt
 
+      now = %datetime
+      ttlog("BULK ULOAD COMPLETE")
+
     freturn ok
 
 GetExceptionDetails,
 
     ;;If we get here then the bulk load reported one or more "data conversion error" issues
     ;;There should be two files on the server
+
+    now = %datetime
+    ttlog("Data conversion errors, processing exceptions")
+
 
     if (remoteBulkLoad) then
     begin
@@ -2562,6 +2646,7 @@ GetExceptionDetails,
                 ;;Download the error file
                 data exceptionRecords, [#]string
 
+                now = %datetime
                 ttlog("Downloading remote exceptions data file")
 
                 if (fsc.DownloadText(remoteExceptionsFile,exceptionRecords))
@@ -2578,18 +2663,21 @@ GetExceptionDetails,
 
                     exceptionCount = exceptionRecords.Length
 
+                    now = %datetime
                     ttlog(%string(exceptionCount) + " items saved to " + localExceptionsFile)
                 end
             end
             else
             begin
                 ;;Error file does not exist! In theory this should not happen, because we got here due to "data conversion error" being reported
+                now = %datetime
                 ttlog("Remote exceptions data file not found!")
             end
         end
         else
         begin
             ;;Failed to determine if file exists
+            now = %datetime
             ttlog("Failed to determine if remote exceptions data file exists. Error was " + tmpmsg)
         end
 
@@ -2602,6 +2690,7 @@ GetExceptionDetails,
                 ;;Download the error file
                 data exceptionRecords, [#]string
 
+                now = %datetime
                 ttlog("Downloading remote exceptions log file")
 
                 if (fsc.DownloadText(remoteExceptionsLog,exceptionRecords))
@@ -2616,18 +2705,21 @@ GetExceptionDetails,
 
                     close ex_ch
 
+                    now = %datetime
                     ttlog(%string(exceptionRecords.Length) + " items saved to " + localExceptionsLog)
                 end
             end
             else
             begin
                 ;;Error file does not exist! In theory this should not happen, because we got here due to "data conversion error" being reported
+                now = %datetime
                 ttlog("Remote exceptions file not found!")
             end
         end
         else
         begin
             ;;Failed to determine if file exists
+            now = %datetime
             ttlog("Failed to determine if remote exceptions log file exists. Error was " + tmpmsg)
         end
     end
@@ -2646,11 +2738,13 @@ GetExceptionDetails,
                 exceptionCount += 1
             end
 eof,        close ex_ch
+            now = %datetime
             ttlog(%string(exceptionCount) + " exception items found in " + localExceptionsFile)
         end
         else
         begin
             ;;Error file does not exist! In theory this should not happen, because we got here due to "data conversion error" being reported
+            now = %datetime
             ttlog("Exceptions data file not found!")
         end
     end
@@ -2661,6 +2755,9 @@ DeleteFiles,
 
     ;;Delete local files
 
+    now = %datetime
+    ttlog("Deleting local files")
+
     xcall delet(localCsvFile)
     xcall delet(localExceptionsFile)
     xcall delet(localExceptionsLog)
@@ -2669,6 +2766,9 @@ DeleteFiles,
 
     if (remoteBulkLoad)
     begin
+        now = %datetime
+        ttlog("Deleting remote files")
+
         fsc.Delete(remoteCsvFile)
         fsc.Delete(remoteExceptionsFile)
         fsc.Delete(remoteExceptionsLog)

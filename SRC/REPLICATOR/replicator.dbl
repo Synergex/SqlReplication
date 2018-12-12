@@ -628,25 +628,30 @@ LoadTable,
             Counters.Errors  += failCount
 
             ;;Now add alternate key indexes
-            xcall log(" - Adding indexes...")
-            functionName = %atrim(instruction.structure_name) + "Index"
-            status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,dberrtxt)
-
-            if (status) then
             begin
-                xcall log(" - Indexes added")
-                if (Settings.CanSendEmail())
+                data tt, int, 0
+                if (Settings.RunningOnTerminal)
+                    tt = Settings.TerminalChannel
+
+                xcall log(" - Adding indexes...")
+                functionName = %atrim(instruction.structure_name) + "Index"
+                status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,Settings.DatabaseTimeout,Settings.BulkLoadTimeout,tt,dberrtxt)
+
+                if (status) then
                 begin
-                    data subject, string, "loaded table " + %atrim(instruction.structure_name)
-                    data body = new string[#] { "A full table load completed. " + %string(successCount) + " rows inserted, " + %string(failCount) + " rows failed." }
-                    xcall SendEmail(subject,body)
+                    xcall log(" - Indexes added")
+                    if (Settings.CanSendEmail())
+                    begin
+                        data subject, string, "loaded table " + %atrim(instruction.structure_name)
+                        data body = new string[#] { "A full table load completed. " + %string(successCount) + " rows inserted, " + %string(failCount) + " rows failed." }
+                        xcall SendEmail(subject,body)
+                    end
+                end
+                else
+                begin
+                    xcall LogFunctionError(functionName,status,dberrtxt)
                 end
             end
-            else
-            begin
-                xcall LogFunctionError(functionName,status,dberrtxt)
-            end
-
         end
         else
         begin
@@ -678,7 +683,7 @@ BulkLoadTable,
             tt = Settings.TerminalChannel
 
         functionName = %atrim(instruction.structure_name) + "BulkLoad"
-        status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,Settings.LocalExportPath,Settings.FileServiceHost,Settings.FileServicePort,tt,totalRows,failRows,dberrtxt)
+        status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,Settings.LocalExportPath,Settings.FileServiceHost,Settings.FileServicePort,Settings.DatabaseTimeout,Settings.BulkLoadTimeout,tt,totalRows,failRows,dberrtxt)
 
         if (status) then
         begin
@@ -690,7 +695,7 @@ BulkLoadTable,
             ;;Now add alternate key indexes
             xcall log(" - Adding indexes...")
             functionName = %atrim(instruction.structure_name) + "Index"
-            status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,dberrtxt)
+            status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,Settings.DatabaseTimeout,Settings.BulkLoadTimeout,tt,dberrtxt)
 
             if (status) then
             begin
@@ -1225,8 +1230,12 @@ DoAddIndexes,
 
     try
     begin
+        data tt, int, 0
+        if (Settings.RunningOnTerminal)
+            tt = Settings.TerminalChannel
+
         functionName = %atrim(instruction.structure_name) + "Index"
-        status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,dberrtxt)
+        status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,tt,dberrtxt)
         if (status) then
         begin
             xcall verboselog(" - Indexes added")
@@ -2124,6 +2133,60 @@ ConfigureEnvironment,
         end
     end
 
+    ;;Bulk load and indexing timeout
+
+    if (ok)
+    begin
+        ;;Command line?
+        if (CommandLineParser.Parse("bulkloadtimeout",clValues)) then
+        begin
+            using clValues.Count select
+            (1),
+            begin
+                try
+                begin
+                    Settings.BulkLoadTimeout = %integer((string)clValues[0])
+                end
+                catch (e, @Exception)
+                begin
+                    xcall errorlog("Invalid option value following the -bulkloadtimeout option. Specify an integer greater than 1.")
+                    ok = false
+                end
+                endtry
+            end
+            (0),
+            begin
+                xcall errorlog("Missing value after the -bulkloadtimeout option")
+                ok = false
+            end
+            (),
+            begin
+                xcall errorlog("Only one value may follow the -bulkloadtimeout option")
+                ok = false
+            end
+            endusing
+        end
+        else
+        begin
+            ;;Environment variable?
+            data tmpval, a32
+            xcall getlog("REPLICATOR_BULKLOAD_TIMEOUT",tmpval,length)
+            if (length)
+            begin
+                try
+                begin
+                    Settings.BulkLoadTimeout = %integer(%atrim(tmpval))
+                end
+                catch (e, @Exception)
+                begin
+                    xcall errorlog("Invalid option value for REPLICATOR_BULKLOAD_TIMEOUT. Specify an integer greater than 1.")
+                    ok = false
+                end
+                endtry
+            end
+        end
+    end
+
     ;;Enable and Initialize SQL Connection
 
     if (ok)
@@ -2201,13 +2264,10 @@ ConfigureEnvironment,
         endusing
     end
 
-    ;;Extend the default SQL Server execution timeout period from 60 seconds to 120 seconds
+    ;;Set the SQL statement execution timeout
 
     if (ok)
     begin
-        if (Settings.DatabaseTimeout == 60)
-            exit
-
         xcall log("Setting database execution timeout to " + %string(Settings.DatabaseTimeout) + " seconds")
         if (%ssc_cmd(Settings.DatabaseChannel,,SSQL_TIMEOUT,%string(Settings.DatabaseTimeout))!=SSQL_NORMAL)
         begin
@@ -2785,6 +2845,7 @@ namespace Tools
             SystemLog          = false
             TransactionFile    = "REPLICATOR_DATA:REPLICATION.ISM"
             DatabaseTimeout    = 60
+            BulkLoadTimeout    = 900
         endmethod
 
 
@@ -2973,9 +3034,14 @@ namespace Tools
         public static readwrite property CommitBatchRows, int
 
         ;;; <summary>
-        ;;; Database statement execution timeout in seconds. The default for SQL Server is 60 seconds.
+        ;;; Database statement execution timeout in seconds. The default is 60 seconds.
         ;;; </summary>
         public static readwrite property DatabaseTimeout, int
+
+        ;;; <summary>
+        ;;; Database statement execution timeout for bulk load and indexing operations in seconds. The default value is 900 seconds (15 minutes).
+        ;;; </summary>
+        public static readwrite property BulkLoadTimeout, int
 
     endclass
 
