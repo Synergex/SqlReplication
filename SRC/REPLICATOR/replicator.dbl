@@ -629,13 +629,9 @@ LoadTable,
 
             ;;Now add alternate key indexes
             begin
-                data tt, int, 0
-                if (Settings.RunningOnTerminal)
-                    tt = Settings.TerminalChannel
-
                 xcall log(" - Adding indexes...")
                 functionName = %atrim(instruction.structure_name) + "Index"
-                status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,Settings.DatabaseTimeout,Settings.BulkLoadTimeout,tt,dberrtxt)
+                status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,Settings.DatabaseTimeout,Settings.BulkLoadTimeout,Settings.LogFileChannel,dberrtxt)
 
                 if (status) then
                 begin
@@ -677,13 +673,9 @@ BulkLoadTable,
     begin
         data totalRows, int
         data failRows, int
-        data tt, int, 0
-
-        if (Settings.RunningOnTerminal)
-            tt = Settings.TerminalChannel
 
         functionName = %atrim(instruction.structure_name) + "BulkLoad"
-        status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,Settings.LocalExportPath,Settings.FileServiceHost,Settings.FileServicePort,Settings.DatabaseTimeout,Settings.BulkLoadTimeout,tt,totalRows,failRows,dberrtxt)
+        status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,Settings.LocalExportPath,Settings.FileServiceHost,Settings.FileServicePort,Settings.DatabaseTimeout,Settings.BulkLoadTimeout,Settings.LogFileChannel,totalRows,failRows,dberrtxt)
 
         if (status) then
         begin
@@ -695,7 +687,7 @@ BulkLoadTable,
             ;;Now add alternate key indexes
             xcall log(" - Adding indexes...")
             functionName = %atrim(instruction.structure_name) + "Index"
-            status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,Settings.DatabaseTimeout,Settings.BulkLoadTimeout,tt,dberrtxt)
+            status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,Settings.DatabaseTimeout,Settings.BulkLoadTimeout,Settings.LogFileChannel,dberrtxt)
 
             if (status) then
             begin
@@ -1230,12 +1222,8 @@ DoAddIndexes,
 
     try
     begin
-        data tt, int, 0
-        if (Settings.RunningOnTerminal)
-            tt = Settings.TerminalChannel
-
         functionName = %atrim(instruction.structure_name) + "Index"
-        status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,tt,dberrtxt)
+        status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,Settings.DatabaseTimeout,Settings.BulkLoadTimeout,Settings.LogFileChannel,dberrtxt)
         if (status) then
         begin
             xcall verboselog(" - Indexes added")
@@ -2847,7 +2835,6 @@ namespace Tools
             DatabaseTimeout    = 60
             BulkLoadTimeout    = 900
         endmethod
-
 
         ;;; <summary>
         ;;; A synergy namespace used to store information about SDMS channels that the replicator currently has open
