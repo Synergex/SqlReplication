@@ -93,7 +93,6 @@
       <Link>ReplicatorStop.dbl</Link>
     </Compile>
     <Compile Include="ChangeEveryEmployee.dbl" />
-    <Compile Include="ConvertQueueFile.dbl" />
     <Compile Include="QueueMonitor.dbl" />
   </ItemGroup>
   <ItemGroup>

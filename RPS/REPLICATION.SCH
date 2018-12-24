@@ -1,12 +1,12 @@
  
 ;  SYNERGY DATA LANGUAGE OUTPUT
 ;
-;  REPOSITORY     : D:\PUBLIC\SqlReplication\RPS\rpsmain.ism
-;                 : D:\PUBLIC\SqlReplication\RPS\rpstext.ism
-;                 : Version 10.3.3e
+;  REPOSITORY     : D:\SqlReplication\RPS\rpsmain.ism
+;                 : D:\SqlReplication\RPS\rpstext.ism
+;                 : Version 10.3.3f
 ;
-;  GENERATED      : 12-JUL-2018, 10:23:06
-;                 : Version 10.3.3e
+;  GENERATED      : 24-DEC-2018, 09:21:11
+;                 : Version 10.3.3f
 ;  EXPORT OPTIONS : [ALL] 
  
  
@@ -183,144 +183,6 @@ Key ZIP_CODE   ACCESS   Order ASCENDING   Dups YES   Insert END
    Description "Zip code"
    Segment FIELD   EMP_ADDRESS_ZIP  SegType ALPHA  SegOrder ASCENDING
  
-Structure EMPLOYEES   DBL ISAM
-   Description "Employee Master File (MAPPED)"
-   Long Description
-      "@MAP=EMPLOYEE;"
- 
-Field EMPLOYEE_ID   Template EMPLOYEE_ID
-   Long Description
-      "@MAP=EMP_ID;"
-   Info Line "Enter an employee ID"
- 
-Field FIRST_NAME   Template PERSON_FIRST_NAME
-   Long Description
-      "@MAP=EMP_FIRST_NAME;"
-   Prompt "First name"   Info Line "Enter the employees first name"
-   Required
- 
-Field LAST_NAME   Template PERSON_LAST_NAME
-   Long Description
-      "@MAP=EMP_LAST_NAME;"
-   Info Line "Enter the employees last name"
- 
-Field DEPARTMENT   Template DEPARTMENT_ID
-   Description "Employee's department ID"
-   Long Description
-      "@MAP=EMP_DEPT;"
-   Info Line "Enter a department ID"   Nodisabled
- 
-Field HIRE_DATE   Type DATE   Size 8   Stored YYYYMMDD
-   Coerced Type NULLABLE_DATETIME
-   Description "Date hired"
-   Long Description
-      "@MAP=EMP_HIRE_DATE;"
-   Prompt "Hire Date"   Info Line "Enter the employees date of hire"
-   Date Today
- 
-Field WORK_PHONE   Type ALPHA   Size 14
-   Description "Work phone number"
-   Long Description
-      "@MAP=EMP_PHONE_WORK;"
-   Prompt "Work phone"
- 
-Field HOME_PHONE   Type ALPHA   Size 14
-   Description "Home phone number"
-   Long Description
-      "@MAP=EMP_PHONE_HOME;"
-   Prompt "Home phone"
- 
-Field CELL_PHONE   Type ALPHA   Size 14
-   Description "Cell phone number"
-   Long Description
-      "@MAP=EMP_PHONE_CELL;"
-   Prompt "Cell phone"
- 
-Field PAID   Type DECIMAL   Size 1
-   Description "Employee pay method"
-   Long Description
-      "@MAP=EMP_PAID;"
-   Prompt "Paid"   Info Line "Is the employee paid hourly or salaried"
-   Default "1"   Automatic
-   Selection List 0 0 0  Entries "Hourly", "Salaried"
-   Enumerated 8 1 1
- 
-Field OK_TO_CALL_HOME   Type DECIMAL   Size 1
-   Description "OK to call at home"
-   Long Description
-      "@MAP=EMP_HOME_OK;"
-   Prompt "Call home OK"   Info Line "Is it OK to call this employee at home"
-   Checkbox
-   Default "1"   Automatic
- 
-Field DATE_OF_BIRTH   Type DATE   Size 8   Stored YYYYMMDD
-   Coerced Type NULLABLE_DATETIME
-   Description "Date of birth"
-   Long Description
-      "@MAP=EMP_DATE_OF_BIRTH;"
-   Prompt "Date of birth"   Info Line "Enter the employees date of birth"
- 
-Field HIRE_TIME   Type TIME   Size 4   Stored HHMM
-   Description "Hire time"
-   Long Description
-      "@MAP=EMP_HIRE_TIME;"
-   Prompt "Hire time"   Info Line "Enter the time the employee was hired"
-   Time Now
- 
-Field EMAIL   Type ALPHA   Size 40
-   Description "Email address"
-   Long Description
-      "@MAP=EMP_EMAIL;"
-   Prompt "Email"
- 
-Field STREET   Type ALPHA   Size 30
-   Description "Street address"
-   Long Description
-      "@MAP=EMP_ADDRESS_STREET;"
-   Prompt "Address"   Info Line "What is the employees street address?"
- 
-Field CITY   Type ALPHA   Size 20
-   Description "City"
-   Long Description
-      "@MAP=EMP_ADDRESS_CITY;"
-   Prompt "City"   Info Line "What city does the employee live in?"
- 
-Field STATE   Type ALPHA   Size 2
-   Description "State"
-   Long Description
-      "@MAP=EMP_ADDRESS_STATE;"
-   Prompt "State"   User Text "Which state does the employee live in?"
-   Uppercase
- 
-Field ZIP   Type DECIMAL   Size 5
-   Description "Zip code"
-   Long Description
-      "@MAP=EMP_ADDRESS_ZIP;"
-   Prompt "Zip code"   Info Line "What is the employees home ZIP code?"
- 
-Key EMP_ID   ACCESS   Order ASCENDING   Dups NO
-   Segment FIELD   EMPLOYEE_ID  SegType ALPHA
- 
-Key EMP_DEPT   ACCESS   Order ASCENDING   Dups YES   Insert END
-   Modifiable YES   Krf 001
-   Description "Department ID"
-   Segment FIELD   DEPARTMENT
- 
-Key EMP_LAST_NAME   ACCESS   Order ASCENDING   Dups YES   Insert END
-   Modifiable YES   Krf 002
-   Description "Last name"
-   Segment FIELD   LAST_NAME  SegType NOCASE  SegOrder ASCENDING
- 
-Key STATE_CODE   ACCESS   Order ASCENDING   Dups YES   Insert END
-   Modifiable YES   Krf 003
-   Description "State"
-   Segment FIELD   STATE  SegType ALPHA  SegOrder ASCENDING
- 
-Key ZIP_CODE   ACCESS   Order ASCENDING   Dups YES   Insert END
-   Modifiable YES   Krf 004
-   Description "Zip code"
-   Segment FIELD   ZIP  SegType ALPHA  SegOrder ASCENDING
- 
 Structure RELSTR   RELATIVE
    Description "Relative structure"
  
@@ -361,27 +223,6 @@ Key TRANSACTION_ID   ACCESS   Order ASCENDING   Dups NO   Density 100
    Description "Transaction ID (I8 timestamp)"
    Segment FIELD   TRANSACTION_ID  SegType SEQUENCE
  
-Structure REPLICATION_OLD   DBL ISAM
-   Description "Replication request queue (old format)"
- 
-Field TRANSACTION_ID   Type ALPHA   Size 20
-   Description "Unique transaction ID (I8 timestamp)"
-   Readonly
-   Nonull
- 
-Field ACTION   Type DECIMAL   Size 2
-   Description "Replicator action"
- 
-Field STRUCTURE_NAME   Type ALPHA   Size 32
-   Description "the SDMS structure name"
- 
-Field RECORD   Type ALPHA   Size 65000
-   Description "Record affected"
- 
-Key TRANSACTION_ID   ACCESS   Order ASCENDING   Dups NO   Density 100
-   Description "Transaction ID (I8 timestamp)"
-   Segment FIELD   TRANSACTION_ID
- 
 Structure REPLICATION_VMS   DBL ISAM
    Description "Replication request queue (OpenVMS)"
  
@@ -403,41 +244,6 @@ Field RECORD   Type ALPHA   Size 32000
 Key TRANSACTION_ID   ACCESS   Order ASCENDING   Dups NO   Density 100
    Description "Transaction ID (timestamp)"
    Segment FIELD   TRANSACTION_ID  SegType SEQUENCE
- 
-Structure REPLICATION_VMS_OLD   DBL ISAM
-   Description "Replication request queue (OpenVMS) Old"
- 
-Field TRANSACTION_ID   Type ALPHA   Size 20
-   Description "Unique transaction ID (timestamp)"
-   Readonly
-   Nonull
- 
-Field ACTION   Type DECIMAL   Size 2
-   Description "Replicator action"
- 
-Field STRUCTURE_NAME   Type ALPHA   Size 32
-   Description "the SDMS structure name"
- 
-Field RECORD   Type ALPHA   Size 32000
-   Description "Record affected"
- 
-Key TRANSACTION_ID   ACCESS   Order ASCENDING   Dups NO   Density 100
-   Description "Transaction ID (timestamp)"
-   Segment FIELD   TRANSACTION_ID
- 
-Structure TEST   DBL ISAM
-   Description "test"
- 
-Field F1   Type ALPHA   Size 1
-   Description "f1"
- 
-Field F2   Type ALPHA   Size 2
-   Description "F2"
- 
-Key K0   ACCESS   Order ASCENDING   Dups NO
-   Description "k0"
-   Segment FIELD   F1
-   Segment FIELD   F2
  
 File DEPARTMENT   DBL ISAM   "REPLICATOR_DATA:DEPARTMENT.ISM"
    Description "Department master file"
