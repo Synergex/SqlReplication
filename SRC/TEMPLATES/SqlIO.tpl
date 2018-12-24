@@ -212,7 +212,7 @@ proc
         </FIELD_LOOP>
         <IF STRUCTURE_ISAM>
         <IF STRUCTURE_HAS_UNIQUE_PK>
-        & + 'CONSTRAINT PK_<StructureName> PRIMARY KEY CLUSTERED(<PRIMARY_KEY><SEGMENT_LOOP>"<SegmentName>" <SEGMENT_ORDER><,></SEGMENT_LOOP></PRIMARY_KEY>)'
+        & + 'CONSTRAINT PK_<StructureName> PRIMARY KEY CLUSTERED(<PRIMARY_KEY><SEGMENT_LOOP>"<FieldSqlName>" <SEGMENT_ORDER><,></SEGMENT_LOOP></PRIMARY_KEY>)'
         </IF STRUCTURE_HAS_UNIQUE_PK>
         </IF STRUCTURE_ISAM>
         <IF STRUCTURE_RELATIVE>
@@ -400,7 +400,7 @@ proc
         now = %datetime
         writelog("  - Adding index IX_<StructureName>_<PRIMARY_KEY><KeyName></PRIMARY_KEY>")
 
-        sql = '<PRIMARY_KEY>CREATE INDEX IX_<StructureName>_<KeyName> ON "<StructureName>"(<SEGMENT_LOOP>"<SegmentName>" <SEGMENT_ORDER><,></SEGMENT_LOOP>)</PRIMARY_KEY>'
+        sql = '<PRIMARY_KEY>CREATE INDEX IX_<StructureName>_<KeyName> ON "<StructureName>"(<SEGMENT_LOOP>"<FieldSqlName>" <SEGMENT_ORDER><,></SEGMENT_LOOP>)</PRIMARY_KEY>'
 
         call open_cursor
 
@@ -420,7 +420,7 @@ proc
         now = %datetime
         writelog("  - Adding index IX_<StructureName>_<KeyName>")
 
-        sql = 'CREATE <IF FIRST_UNIQUE_KEY>CLUSTERED<ELSE><KEY_UNIQUE></IF FIRST_UNIQUE_KEY> INDEX IX_<StructureName>_<KeyName> ON "<StructureName>"(<SEGMENT_LOOP>"<SegmentName>" <SEGMENT_ORDER><,></SEGMENT_LOOP>)'
+        sql = 'CREATE <IF FIRST_UNIQUE_KEY>CLUSTERED<ELSE><KEY_UNIQUE></IF FIRST_UNIQUE_KEY> INDEX IX_<StructureName>_<KeyName> ON "<StructureName>"(<SEGMENT_LOOP>"<FieldSqlName>" <SEGMENT_ORDER><,></SEGMENT_LOOP>)'
 
         call open_cursor
 
@@ -809,16 +809,16 @@ proc
         if (%ssc_bind(a_dbchn,csr_<structure_name>_insert1,<REMAINING_INCLUSIVE_MAX_250>,
     </IF COUNTER_1_EQ_1>
         <IF ALPHA>
-        &    <field_path><IF NOMORE>)==SSQL_FAILURE)<ELSE><IF COUNTER_1_LT_250>,<ELSE>)==SSQL_FAILURE)</IF COUNTER_1_LT_250></IF NOMORE>
+        &    <structure_name>.<field_original_name_modified><IF NOMORE>)==SSQL_FAILURE)<ELSE><IF COUNTER_1_LT_250>,<ELSE>)==SSQL_FAILURE)</IF COUNTER_1_LT_250></IF NOMORE>
         </IF ALPHA>
         <IF DECIMAL>
-        &    <field_path><IF NOMORE>)==SSQL_FAILURE)<ELSE><IF COUNTER_1_LT_250>,<ELSE>)==SSQL_FAILURE)</IF COUNTER_1_LT_250></IF NOMORE>
+        &    <structure_name>.<field_original_name_modified><IF NOMORE>)==SSQL_FAILURE)<ELSE><IF COUNTER_1_LT_250>,<ELSE>)==SSQL_FAILURE)</IF COUNTER_1_LT_250></IF NOMORE>
         </IF DECIMAL>
         <IF INTEGER>
-        &    <field_path><IF NOMORE>)==SSQL_FAILURE)<ELSE><IF COUNTER_1_LT_250>,<ELSE>)==SSQL_FAILURE)</IF COUNTER_1_LT_250></IF NOMORE>
+        &    <structure_name>.<field_original_name_modified><IF NOMORE>)==SSQL_FAILURE)<ELSE><IF COUNTER_1_LT_250>,<ELSE>)==SSQL_FAILURE)</IF COUNTER_1_LT_250></IF NOMORE>
         </IF INTEGER>
         <IF DATE>
-        &    ^a(<field_path>)<IF NOMORE>)==SSQL_FAILURE)<ELSE><IF COUNTER_1_LT_250>,<ELSE>)==SSQL_FAILURE)</IF COUNTER_1_LT_250></IF NOMORE>
+        &    ^a(<structure_name>.<field_original_name_modified>)<IF NOMORE>)==SSQL_FAILURE)<ELSE><IF COUNTER_1_LT_250>,<ELSE>)==SSQL_FAILURE)</IF COUNTER_1_LT_250></IF NOMORE>
         </IF DATE>
         <IF TIME>
         &    tmp<FieldSqlName><IF NOMORE>)==SSQL_FAILURE)<ELSE><IF COUNTER_1_LT_250>,<ELSE>)==SSQL_FAILURE)</IF COUNTER_1_LT_250></IF NOMORE>
@@ -827,7 +827,7 @@ proc
         <IF USERTIMESTAMP>
         &    tmp<FieldSqlName><IF NOMORE>)==SSQL_FAILURE)<ELSE><IF COUNTER_1_LT_250>,<ELSE>)==SSQL_FAILURE)</IF COUNTER_1_LT_250></IF NOMORE>
         <ELSE>
-        &    <field_path><IF NOMORE>)==SSQL_FAILURE)<ELSE><IF COUNTER_1_LT_250>,<ELSE>)==SSQL_FAILURE)</IF COUNTER_1_LT_250></IF NOMORE>
+        &    <structure_name>.<field_original_name_modified><IF NOMORE>)==SSQL_FAILURE)<ELSE><IF COUNTER_1_LT_250>,<ELSE>)==SSQL_FAILURE)</IF COUNTER_1_LT_250></IF NOMORE>
         </IF USERTIMESTAMP>
         </IF USER>
     <IF COUNTER_1_EQ_250>
@@ -873,7 +873,7 @@ proc
         <IF ALPHA>
         <IF PKSEGMENT>
         <ELSE>
-        <field_path> = %atrim(<field_path>)+%char(0)
+        <structure_name>.<field_original_name_modified> = %atrim(<structure_name>.<field_original_name_modified>)+%char(0)
         </IF PKSEGMENT>
         </IF ALPHA>
         </FIELD_LOOP>
@@ -882,8 +882,8 @@ proc
 
         <FIELD_LOOP>
         <IF DECIMAL>
-        if ((!<field_path>)||(!%IsNumeric(^a(<field_path>))))
-            clear <field_path>
+        if ((!<structure_name>.<field_original_name_modified>)||(!%IsNumeric(^a(<structure_name>.<field_original_name_modified>))))
+            clear <structure_name>.<field_original_name_modified>
         </IF DECIMAL>
         </FIELD_LOOP>
 
@@ -891,8 +891,8 @@ proc
 
         <FIELD_LOOP>
         <IF DATE>
-        if ((!<field_path>)||(!%IsDate(^a(<field_path>))))
-            ^a(<field_path>(1:1))=%char(0)
+        if ((!<structure_name>.<field_original_name_modified>)||(!%IsDate(^a(<structure_name>.<field_original_name_modified>))))
+            ^a(<structure_name>.<field_original_name_modified>(1:1))=%char(0)
         </IF DATE>
         </FIELD_LOOP>
 
@@ -900,8 +900,8 @@ proc
 
         <FIELD_LOOP>
         <IF TIME>
-        if ((!<field_path>)||(!%IsTime(^a(<field_path>))))
-            ^a(<field_path>(1:1))=%char(0)
+        if ((!<structure_name>.<field_original_name_modified>)||(!%IsTime(^a(<structure_name>.<field_original_name_modified>))))
+            ^a(<structure_name>.<field_original_name_modified>(1:1))=%char(0)
         </IF TIME>
         </FIELD_LOOP>
 
@@ -910,13 +910,13 @@ proc
 
         <FIELD_LOOP>
         <IF USERTIMESTAMP>
-        tmp<FieldSqlName> = %string(^d(<field_path>),"XXXX-XX-XX XX:XX:XX.XXXXXX")
+        tmp<FieldSqlName> = %string(^d(<structure_name>.<field_original_name_modified>),"XXXX-XX-XX XX:XX:XX.XXXXXX")
         <ELSE>
         <IF TIME_HHMM>
-        tmp<FieldSqlName> = %string(<field_path>,"XX:XX")
+        tmp<FieldSqlName> = %string(<structure_name>.<field_original_name_modified>,"XX:XX")
         </IF TIME_HHMM>
         <IF TIME_HHMMSS>
-        tmp<FieldSqlName> = %string(<field_path>,"XX:XX:XX")
+        tmp<FieldSqlName> = %string(<structure_name>.<field_original_name_modified>,"XX:XX:XX")
         </IF TIME_HHMMSS>
         </IF USERTIMESTAMP>
         </FIELD_LOOP>
@@ -1146,16 +1146,16 @@ proc
         if (%ssc_bind(a_dbchn,csr_<structure_name>_insert2,<REMAINING_INCLUSIVE_MAX_250>,
     </IF COUNTER_1_EQ_1>
         <IF ALPHA>
-        &    <field_path><IF NOMORE>)==SSQL_FAILURE)<ELSE><IF COUNTER_1_LT_250>,<ELSE>)==SSQL_FAILURE)</IF COUNTER_1_LT_250></IF NOMORE>
+        &    <structure_name>.<field_original_name_modified><IF NOMORE>)==SSQL_FAILURE)<ELSE><IF COUNTER_1_LT_250>,<ELSE>)==SSQL_FAILURE)</IF COUNTER_1_LT_250></IF NOMORE>
         </IF ALPHA>
         <IF DECIMAL>
-        &    <field_path><IF NOMORE>)==SSQL_FAILURE)<ELSE><IF COUNTER_1_LT_250>,<ELSE>)==SSQL_FAILURE)</IF COUNTER_1_LT_250></IF NOMORE>
+        &    <structure_name>.<field_original_name_modified><IF NOMORE>)==SSQL_FAILURE)<ELSE><IF COUNTER_1_LT_250>,<ELSE>)==SSQL_FAILURE)</IF COUNTER_1_LT_250></IF NOMORE>
         </IF DECIMAL>
         <IF INTEGER>
-        &    <field_path><IF NOMORE>)==SSQL_FAILURE)<ELSE><IF COUNTER_1_LT_250>,<ELSE>)==SSQL_FAILURE)</IF COUNTER_1_LT_250></IF NOMORE>
+        &    <structure_name>.<field_original_name_modified><IF NOMORE>)==SSQL_FAILURE)<ELSE><IF COUNTER_1_LT_250>,<ELSE>)==SSQL_FAILURE)</IF COUNTER_1_LT_250></IF NOMORE>
         </IF INTEGER>
         <IF DATE>
-        &    ^a(<field_path>)<IF NOMORE>)==SSQL_FAILURE)<ELSE><IF COUNTER_1_LT_250>,<ELSE>)==SSQL_FAILURE)</IF COUNTER_1_LT_250></IF NOMORE>
+        &    ^a(<structure_name>.<field_original_name_modified>)<IF NOMORE>)==SSQL_FAILURE)<ELSE><IF COUNTER_1_LT_250>,<ELSE>)==SSQL_FAILURE)</IF COUNTER_1_LT_250></IF NOMORE>
         </IF DATE>
         <IF TIME>
         &    tmp<FieldSqlName><IF NOMORE>)==SSQL_FAILURE)<ELSE><IF COUNTER_1_LT_250>,<ELSE>)==SSQL_FAILURE)</IF COUNTER_1_LT_250></IF NOMORE>
@@ -1164,7 +1164,7 @@ proc
         <IF USERTIMESTAMP>
         &    tmp<FieldSqlName><IF NOMORE>)==SSQL_FAILURE)<ELSE><IF COUNTER_1_LT_250>,<ELSE>)==SSQL_FAILURE)</IF COUNTER_1_LT_250></IF NOMORE>
         <ELSE>
-        &    <field_path><IF NOMORE>)==SSQL_FAILURE)<ELSE><IF COUNTER_1_LT_250>,<ELSE>)==SSQL_FAILURE)</IF COUNTER_1_LT_250></IF NOMORE>
+        &    <structure_name>.<field_original_name_modified><IF NOMORE>)==SSQL_FAILURE)<ELSE><IF COUNTER_1_LT_250>,<ELSE>)==SSQL_FAILURE)</IF COUNTER_1_LT_250></IF NOMORE>
         </IF USERTIMESTAMP>
         </IF USER>
     <IF COUNTER_1_EQ_250>
@@ -1219,7 +1219,7 @@ proc
             <IF ALPHA>
             <IF PKSEGMENT>
             <ELSE>
-            <field_path> = %atrim(<field_path>)+%char(0)
+            <structure_name>.<field_original_name_modified> = %atrim(<structure_name>.<field_original_name_modified>)+%char(0)
             </IF PKSEGMENT>
             </IF ALPHA>
             </FIELD_LOOP>
@@ -1228,8 +1228,8 @@ proc
 
             <FIELD_LOOP>
             <IF DECIMAL>
-            if ((!<field_path>)||(!%IsNumeric(^a(<field_path>))))
-                clear <field_path>
+            if ((!<structure_name>.<field_original_name_modified>)||(!%IsNumeric(^a(<structure_name>.<field_original_name_modified>))))
+                clear <structure_name>.<field_original_name_modified>
             </IF DECIMAL>
             </FIELD_LOOP>
 
@@ -1237,8 +1237,8 @@ proc
 
             <FIELD_LOOP>
             <IF DATE>
-            if ((!<field_path>)||(!%IsDate(^a(<field_path>))))
-                ^a(<field_path>(1:1))=%char(0)
+            if ((!<structure_name>.<field_original_name_modified>)||(!%IsDate(^a(<structure_name>.<field_original_name_modified>))))
+                ^a(<structure_name>.<field_original_name_modified>(1:1))=%char(0)
             </IF DATE>
             </FIELD_LOOP>
 
@@ -1246,8 +1246,8 @@ proc
 
             <FIELD_LOOP>
             <IF TIME>
-            if ((!<field_path>)||(!%IsTime(^a(<field_path>))))
-                ^a(<field_path>(1:1))=%char(0)
+            if ((!<structure_name>.<field_original_name_modified>)||(!%IsTime(^a(<structure_name>.<field_original_name_modified>))))
+                ^a(<structure_name>.<field_original_name_modified>(1:1))=%char(0)
             </IF TIME>
             </FIELD_LOOP>
 
@@ -1256,13 +1256,13 @@ proc
 
             <FIELD_LOOP>
             <IF USERTIMESTAMP>
-            tmp<FieldSqlName> = %string(^d(<field_path>),"XXXX-XX-XX XX:XX:XX.XXXXXX")
+            tmp<FieldSqlName> = %string(^d(<structure_name>.<field_original_name_modified>),"XXXX-XX-XX XX:XX:XX.XXXXXX")
             <ELSE>
             <IF TIME_HHMM>
-            tmp<FieldSqlName> = %string(<field_path>,"XX:XX")
+            tmp<FieldSqlName> = %string(<structure_name>.<field_original_name_modified>,"XX:XX")
             </IF TIME_HHMM>
             <IF TIME_HHMMSS>
-            tmp<FieldSqlName> = %string(<field_path>,"XX:XX:XX")
+            tmp<FieldSqlName> = %string(<structure_name>.<field_original_name_modified>,"XX:XX:XX")
             </IF TIME_HHMMSS>
             </IF USERTIMESTAMP>
             </FIELD_LOOP>
@@ -1414,7 +1414,7 @@ function <StructureName>Update, ^val
         </IF USERTIMESTAMP>
         </FIELD_LOOP>
         <IF STRUCTURE_ISAM>
-        & +              ' WHERE <UNIQUE_KEY><SEGMENT_LOOP><COUNTER_1_INCREMENT>"<SegmentName>"=:<COUNTER_1_VALUE> <AND> </SEGMENT_LOOP></UNIQUE_KEY>'
+        & +              ' WHERE <UNIQUE_KEY><SEGMENT_LOOP><COUNTER_1_INCREMENT>"<FieldSqlName>"=:<COUNTER_1_VALUE> <AND> </SEGMENT_LOOP></UNIQUE_KEY>'
         </IF STRUCTURE_ISAM>
         <IF STRUCTURE_RELATIVE>
         & +              ' WHERE "RecordNumber"=:<COUNTER_1_INCREMENT><COUNTER_1_VALUE>'
@@ -1495,16 +1495,16 @@ proc
         if (%ssc_bind(a_dbchn,csr_<structure_name>_update,<REMAINING_INCLUSIVE_MAX_250>,
     </IF COUNTER_1_EQ_1>
         <IF ALPHA>
-        &    <field_path><IF NOMORE>)==SSQL_FAILURE)<ELSE><IF COUNTER_1_LT_250>,<ELSE>)==SSQL_FAILURE)</IF COUNTER_1_LT_250></IF NOMORE>
+        &    <structure_name>.<field_original_name_modified><IF NOMORE>)==SSQL_FAILURE)<ELSE><IF COUNTER_1_LT_250>,<ELSE>)==SSQL_FAILURE)</IF COUNTER_1_LT_250></IF NOMORE>
         </IF ALPHA>
         <IF DECIMAL>
-        &    <field_path><IF NOMORE>)==SSQL_FAILURE)<ELSE><IF COUNTER_1_LT_250>,<ELSE>)==SSQL_FAILURE)</IF COUNTER_1_LT_250></IF NOMORE>
+        &    <structure_name>.<field_original_name_modified><IF NOMORE>)==SSQL_FAILURE)<ELSE><IF COUNTER_1_LT_250>,<ELSE>)==SSQL_FAILURE)</IF COUNTER_1_LT_250></IF NOMORE>
         </IF DECIMAL>
         <IF INTEGER>
-        &    <field_path><IF NOMORE>)==SSQL_FAILURE)<ELSE><IF COUNTER_1_LT_250>,<ELSE>)==SSQL_FAILURE)</IF COUNTER_1_LT_250></IF NOMORE>
+        &    <structure_name>.<field_original_name_modified><IF NOMORE>)==SSQL_FAILURE)<ELSE><IF COUNTER_1_LT_250>,<ELSE>)==SSQL_FAILURE)</IF COUNTER_1_LT_250></IF NOMORE>
         </IF INTEGER>
         <IF DATE>
-        &    ^a(<field_path>)<IF NOMORE>)==SSQL_FAILURE)<ELSE><IF COUNTER_1_LT_250>,<ELSE>)==SSQL_FAILURE)</IF COUNTER_1_LT_250></IF NOMORE>
+        &    ^a(<structure_name>.<field_original_name_modified>)<IF NOMORE>)==SSQL_FAILURE)<ELSE><IF COUNTER_1_LT_250>,<ELSE>)==SSQL_FAILURE)</IF COUNTER_1_LT_250></IF NOMORE>
         </IF DATE>
         <IF TIME>
         &    tmp<FieldSqlName><IF NOMORE>)==SSQL_FAILURE)<ELSE><IF COUNTER_1_LT_250>,<ELSE>)==SSQL_FAILURE)</IF COUNTER_1_LT_250></IF NOMORE>
@@ -1513,7 +1513,7 @@ proc
         <IF USERTIMESTAMP>
         &    tmp<FieldSqlName><IF NOMORE>)==SSQL_FAILURE)<ELSE><IF COUNTER_1_LT_250>,<ELSE>)==SSQL_FAILURE)</IF COUNTER_1_LT_250></IF NOMORE>
         <ELSE>
-        &    <field_path><IF NOMORE>)==SSQL_FAILURE)<ELSE><IF COUNTER_1_LT_250>,<ELSE>)==SSQL_FAILURE)</IF COUNTER_1_LT_250></IF NOMORE>
+        &    <structure_name>.<field_original_name_modified><IF NOMORE>)==SSQL_FAILURE)<ELSE><IF COUNTER_1_LT_250>,<ELSE>)==SSQL_FAILURE)</IF COUNTER_1_LT_250></IF NOMORE>
         </IF USERTIMESTAMP>
         </IF USER>
     <IF COUNTER_1_EQ_250>
@@ -1564,7 +1564,7 @@ proc
         <IF ALPHA>
         <IF PKSEGMENT>
         <ELSE>
-        <field_path> = %atrim(<field_path>)+%char(0)
+        <structure_name>.<field_original_name_modified> = %atrim(<structure_name>.<field_original_name_modified>)+%char(0)
         </IF PKSEGMENT>
         </IF ALPHA>
         </FIELD_LOOP>
@@ -1573,8 +1573,8 @@ proc
 
         <FIELD_LOOP>
         <IF DECIMAL>
-        if ((!<field_path>)||(!%IsNumeric(^a(<field_path>))))
-            clear <field_path>
+        if ((!<structure_name>.<field_original_name_modified>)||(!%IsNumeric(^a(<structure_name>.<field_original_name_modified>))))
+            clear <structure_name>.<field_original_name_modified>
         </IF DECIMAL>
         </FIELD_LOOP>
 
@@ -1582,8 +1582,8 @@ proc
 
         <FIELD_LOOP>
         <IF DATE>
-        if ((!<field_path>)||(!%IsDate(^a(<field_path>))))
-            ^a(<field_path>(1:1)) = %char(0)
+        if ((!<structure_name>.<field_original_name_modified>)||(!%IsDate(^a(<structure_name>.<field_original_name_modified>))))
+            ^a(<structure_name>.<field_original_name_modified>(1:1)) = %char(0)
         </IF DATE>
         </FIELD_LOOP>
 
@@ -1591,8 +1591,8 @@ proc
 
         <FIELD_LOOP>
         <IF TIME>
-        if ((!<field_path>)||(!%IsTime(^a(<field_path>))))
-            ^a(<field_path>(1:1)) = %char(0)
+        if ((!<structure_name>.<field_original_name_modified>)||(!%IsTime(^a(<structure_name>.<field_original_name_modified>))))
+            ^a(<structure_name>.<field_original_name_modified>(1:1)) = %char(0)
         </IF TIME>
         </FIELD_LOOP>
 
@@ -1601,13 +1601,13 @@ proc
 
         <FIELD_LOOP>
         <IF USERTIMESTAMP>
-        tmp<FieldSqlName> = %string(^d(<field_path>),"XXXX-XX-XX XX:XX:XX.XXXXXX")
+        tmp<FieldSqlName> = %string(^d(<structure_name>.<field_original_name_modified>),"XXXX-XX-XX XX:XX:XX.XXXXXX")
         <ELSE>
         <IF TIME_HHMM>
-        tmp<FieldSqlName> = %string(<field_path>,"XX:XX")
+        tmp<FieldSqlName> = %string(<structure_name>.<field_original_name_modified>,"XX:XX")
         </IF TIME_HHMM>
         <IF TIME_HHMMSS>
-        tmp<FieldSqlName> = %string(<field_path>,"XX:XX:XX")
+        tmp<FieldSqlName> = %string(<structure_name>.<field_original_name_modified>,"XX:XX:XX")
         </IF TIME_HHMMSS>
         </IF USERTIMESTAMP>
         </FIELD_LOOP>
@@ -1729,9 +1729,9 @@ proc
         <UNIQUE_KEY>
         <SEGMENT_LOOP>
         <IF ALPHA>
-        & + ' "<SegmentName>"=' + "'" + %atrim(^a(<structureName>.<segment_name>)) + "' <AND>"
+        & + ' "<FieldSqlName>"=' + "'" + %atrim(^a(<structureName>.<segment_name>)) + "' <AND>"
         <ELSE>
-        & + ' "<SegmentName>"=' + "'" + %string(<structureName>.<segment_name>) + "' <AND>"
+        & + ' "<FieldSqlName>"=' + "'" + %string(<structureName>.<segment_name>) + "' <AND>"
         </IF ALPHA>
         </SEGMENT_LOOP>
         </UNIQUE_KEY>
@@ -2904,28 +2904,28 @@ proc
                 &   + %string(records) + "|"
                 </IF STRUCTURE_RELATIVE>
                 <IF ALPHA>
-                &    + %atrim(<field_path>) + "<IF MORE>|</IF MORE>"
+                &    + %atrim(<structure_name>.<field_original_name_modified>) + "<IF MORE>|</IF MORE>"
                 </IF ALPHA>
                 <IF DECIMAL>
-                &    + %string(<field_path>) + "<IF MORE>|</IF MORE>"
+                &    + %string(<structure_name>.<field_original_name_modified>) + "<IF MORE>|</IF MORE>"
                 </IF DECIMAL>
                 <IF DATE>
-                &    + %string(<field_path>,"XXXX-XX-XX") + "<IF MORE>|</IF MORE>"
+                &    + %string(<structure_name>.<field_original_name_modified>,"XXXX-XX-XX") + "<IF MORE>|</IF MORE>"
                 </IF DATE>
                 <IF DATE_YYMMDD>
-                &    + %atrim(^a(<field_path>)) + "<IF MORE>|</IF MORE>"
+                &    + %atrim(^a(<structure_name>.<field_original_name_modified>)) + "<IF MORE>|</IF MORE>"
                 </IF DATE_YYMMDD>
                 <IF TIME_HHMM>
-                &    + %string(<field_path>,"XX:XX") + "<IF MORE>|</IF MORE>"
+                &    + %string(<structure_name>.<field_original_name_modified>,"XX:XX") + "<IF MORE>|</IF MORE>"
                 </IF TIME_HHMM>
                 <IF TIME_HHMMSS>
-                &    + %string(<field_path>,"XX:XX:XX") + "<IF MORE>|</IF MORE>"
+                &    + %string(<structure_name>.<field_original_name_modified>,"XX:XX:XX") + "<IF MORE>|</IF MORE>"
                 </IF TIME_HHMMSS>
                 <IF USER>
                 <IF USERTIMESTAMP>
-                &    + %string(^d(<field_path>),"XXXX-XX-XX XX:XX:XX.XXXXXX") + "<IF MORE>|</IF MORE>"
+                &    + %string(^d(<structure_name>.<field_original_name_modified>),"XXXX-XX-XX XX:XX:XX.XXXXXX") + "<IF MORE>|</IF MORE>"
                 <ELSE>
-                &    + %atrim(<field_path>) + "<IF MORE>|</IF MORE>"
+                &    + %atrim(<structure_name>.<field_original_name_modified>) + "<IF MORE>|</IF MORE>"
                 </IF USERTIMESTAMP>
                 </IF USER>
                 </FIELD_LOOP>

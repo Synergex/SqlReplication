@@ -5,7 +5,7 @@
 ;                 : D:\SqlReplication\RPS\rpstext.ism
 ;                 : Version 10.3.3f
 ;
-;  GENERATED      : 24-DEC-2018, 09:21:11
+;  GENERATED      : 24-DEC-2018, 10:04:13
 ;                 : Version 10.3.3f
 ;  EXPORT OPTIONS : [ALL] 
  
@@ -102,19 +102,20 @@ Field EMP_HIRE_DATE   Type DATE   Size 8   Stored YYYYMMDD
  
 Field EMP_PHONE_WORK   Type ALPHA   Size 14
    Description "Work phone number"
-   Prompt "Work phone"
+   Prompt "Work phone"   ODBC Name WORK_PHONE
  
 Field EMP_PHONE_HOME   Type ALPHA   Size 14
    Description "Home phone number"
-   Prompt "Home phone"
+   Prompt "Home phone"   ODBC Name HOME_PHONE
  
 Field EMP_PHONE_CELL   Type ALPHA   Size 14
    Description "Cell phone number"
-   Prompt "Cell phone"
+   Prompt "Cell phone"   ODBC Name CELL_PHONE
  
 Field EMP_PAID   Type DECIMAL   Size 1
    Description "Employee pay method"
    Prompt "Paid"   Info Line "Is the employee paid hourly or salaried"
+   ODBC Name PAY_FREQUENCY
    Default "1"   Automatic
    Selection List 0 0 0  Entries "Hourly", "Salaried"
    Enumerated 8 1 1
@@ -122,43 +123,50 @@ Field EMP_PAID   Type DECIMAL   Size 1
 Field EMP_HOME_OK   Type DECIMAL   Size 1
    Description "OK to call at home"
    Prompt "Call home OK"   Info Line "Is it OK to call this employee at home"
-   Checkbox
+   ODBC Name OK_TO_CALL_HOME   Checkbox
    Default "1"   Automatic
  
 Field EMP_DATE_OF_BIRTH   Type DATE   Size 8   Stored YYYYMMDD
    Coerced Type NULLABLE_DATETIME
    Description "Date of birth"
    Prompt "Date of birth"   Info Line "Enter the employees date of birth"
+   ODBC Name DATE_OF_BIRTH
  
 Field EMP_HIRE_TIME   Type TIME   Size 4   Stored HHMM
    Description "Hire time"
    Prompt "Hire time"   Info Line "Enter the time the employee was hired"
+   ODBC Name HIRE_TIME
    Time Now
  
 Field EMP_EMAIL   Type ALPHA   Size 40
    Description "Email address"
-   Prompt "Email"
+   Prompt "Email"   ODBC Name EMAIL_ADDRESS
  
 Field EMP_ADDRESS_STREET   Type ALPHA   Size 30
    Description "Street address"
    Prompt "Address"   Info Line "What is the employees street address?"
+   ODBC Name STREET_ADDRESS
  
 Field EMP_ADDRESS_CITY   Type ALPHA   Size 20
    Description "City"
    Prompt "City"   Info Line "What city does the employee live in?"
+   ODBC Name CITY
  
 Field EMP_ADDRESS_STATE   Type ALPHA   Size 2
    Description "State"
    Prompt "State"   User Text "Which state does the employee live in?"
+   ODBC Name STATE
    Uppercase
  
 Field EMP_ADDRESS_ZIP   Type DECIMAL   Size 5
    Description "Zip code"
    Prompt "Zip code"   Info Line "What is the employees home ZIP code?"
+   ODBC Name ZIP_CODE
  
 Field NONAME_001   Type ALPHA   Size 78   Language Noview   Script Noview
    Report Noview   Nonamelink
    Description "Spare space"
+   ODBC Name SPARE_SPACE_1
  
 Key EMP_ID   ACCESS   Order ASCENDING   Dups NO
    Segment FIELD   EMP_ID  SegType ALPHA
