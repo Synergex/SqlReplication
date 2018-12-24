@@ -186,7 +186,6 @@
             Name="Source Files"
             Filters="*.dbl;*.tpl;*.dbc">
             <F N="../SRC/REPLICATOR/ChangeEveryEmployee.dbl"/>
-            <F N="../SRC/REPLICATOR/ConvertQueueFile.dbl"/>
             <F N="../SRC/REPLICATOR/EmployeeDataReport.dbl"/>
             <F N="../SRC/REPLICATOR/EmployeeMaintenance.dbl"/>
             <F N="../SRC/REPLICATOR/InstructionCount.dbl"/>
