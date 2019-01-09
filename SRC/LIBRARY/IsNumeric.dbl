@@ -48,7 +48,9 @@ function IsNumeric, boolean
     
 proc
     
-	retval = true
+    ;;Is there a "-" in there?
+    if %instr(1,a_number,"-")
+        freturn false
     
 	posn = ^size(a_number)
     
@@ -65,7 +67,7 @@ proc
 		end
 		catch (ex, @BadDigitException)
 		begin
-			retval = false
+			freturn false
 		end
 		endtry
 	end
@@ -78,12 +80,12 @@ proc
 		end
 		catch (ex, @BadDigitException)
 		begin
-			retval = false
+			freturn false
 		end
 		endtry
 	end
     
-	freturn retval
+	freturn true
     
 endfunction
 
