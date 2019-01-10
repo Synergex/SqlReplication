@@ -2903,19 +2903,19 @@ proc
                 &    + %atrim(<structure_name>.<field_original_name_modified>) + "<IF MORE>|</IF MORE>"
                 </IF ALPHA>
                 <IF DECIMAL>
-                &    + %string(<structure_name>.<field_original_name_modified>) + "<IF MORE>|</IF MORE>"
+                &    + %MakeDecimalForCsv(<structure_name>.<field_original_name_modified>) + "<IF MORE>|</IF MORE>"
                 </IF DECIMAL>
                 <IF DATE>
-                &    + %string(<structure_name>.<field_original_name_modified>,"XXXX-XX-XX") + "<IF MORE>|</IF MORE>"
+                &    + %MakeDateForCsv(<structure_name>.<field_original_name_modified>) + "<IF MORE>|</IF MORE>"
                 </IF DATE>
                 <IF DATE_YYMMDD>
                 &    + %atrim(^a(<structure_name>.<field_original_name_modified>)) + "<IF MORE>|</IF MORE>"
                 </IF DATE_YYMMDD>
                 <IF TIME_HHMM>
-                &    + %string(<structure_name>.<field_original_name_modified>,"XX:XX") + "<IF MORE>|</IF MORE>"
+                &    + %MakeTimeForCsv(<structure_name>.<field_original_name_modified>,"XX:XX") + "<IF MORE>|</IF MORE>"
                 </IF TIME_HHMM>
                 <IF TIME_HHMMSS>
-                &    + %string(<structure_name>.<field_original_name_modified>,"XX:XX:XX") + "<IF MORE>|</IF MORE>"
+                &    + %MakeTimeForCsv(<structure_name>.<field_original_name_modified>,"XX:XX:XX") + "<IF MORE>|</IF MORE>"
                 </IF TIME_HHMMSS>
                 <IF USER>
                 <IF USERTIMESTAMP>
