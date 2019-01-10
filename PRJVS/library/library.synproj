@@ -131,6 +131,15 @@
     <Compile Include="..\..\SRC\LIBRARY\LastRecordCache.dbl">
       <Link>LastRecordCache.dbl</Link>
     </Compile>
+    <Compile Include="..\..\SRC\LIBRARY\MakeDateForCsv.dbl">
+      <Link>MakeDateForCsv.dbl</Link>
+    </Compile>
+    <Compile Include="..\..\SRC\LIBRARY\MakeDecimalForCsv.dbl">
+      <Link>MakeDecimalForCsv.dbl</Link>
+    </Compile>
+    <Compile Include="..\..\SRC\LIBRARY\MakeTimeForCsv.dbl">
+      <Link>MakeTimeForCsv.dbl</Link>
+    </Compile>
     <Compile Include="..\..\SRC\LIBRARY\PopulateReplicationKey.dbl">
       <Link>PopulateReplicationKey.dbl</Link>
     </Compile>
