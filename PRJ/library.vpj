@@ -201,6 +201,9 @@
             <F N="../SRC/LIBRARY/IsTime.dbl"/>
             <F N="../SRC/LIBRARY/Json.dbl"/>
             <F N="../SRC/LIBRARY/LastRecordCache.dbl"/>
+            <F N="../SRC/LIBRARY/MakeDateForCsv.dbl"/>
+            <F N="../SRC/LIBRARY/MakeDecimalForCsv.dbl"/>
+            <F N="../SRC/LIBRARY/MakeTimeForCsv.dbl"/>
             <F N="../SRC/LIBRARY/PopulateReplicationKey.dbl"/>
             <F N="../SRC/LIBRARY/Replicate.dbl"/>
             <F N="../SRC/LIBRARY/SmtpMail.dbl"/>
