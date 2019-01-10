@@ -80,9 +80,6 @@
     <Compile Include="..\..\SRC\LIBRARY\ConfigureReplication.dbl">
       <Link>ConfigureReplication.dbl</Link>
     </Compile>
-    <Compile Include="..\..\SRC\LIBRARY\EmployeeIsamIO.dbl">
-      <Link>EmployeeIsamIO.dbl</Link>
-    </Compile>
     <Compile Include="..\..\SRC\LIBRARY\EmployeeSqlIO.dbl">
       <Link>EmployeeSqlIO.dbl</Link>
     </Compile>
