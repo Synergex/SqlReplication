@@ -1,0 +1,15 @@
+
+function MakeTimeForCsv, string
+    required in aTime, n
+proc
+    if (aTime)
+    begin
+        using ^size(aTime) select
+        (4),
+            freturn %string(aTime,"XX:XX")
+        (6),
+            freturn %string(aTime,"XX:XX:XX")
+        endusing
+    end
+    freturn ""
+endfunction

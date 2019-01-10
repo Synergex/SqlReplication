@@ -1,0 +1,8 @@
+
+function MakeDateForCsv, string
+    required in aDate, n
+proc
+    if (aDate)
+        freturn %string(aDate,"XXXX-XX-XX")
+    freturn ""
+endfunction

@@ -1,0 +1,8 @@
+
+function MakeDecimalForCsv, string
+    required in aNumber, n
+proc
+    if (aNumber) && %IsNumeric(^a(aNumber))
+        freturn %string(aNumber)
+    freturn ""
+endfunction
