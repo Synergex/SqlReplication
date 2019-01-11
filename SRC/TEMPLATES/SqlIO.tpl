@@ -740,7 +740,7 @@ function <StructureName>Insert, ^val
     endrecord
 
     global common
-        csr_<structure_name>_insert1, i4, 0
+        c1<StructureName>, i4, 0
     endcommon
 
 proc
@@ -751,7 +751,7 @@ proc
     <IF STRUCTURE_RELATIVE>
     recordNumber = a_recnum
     </IF STRUCTURE_RELATIVE>
-    openAndBind = (csr_<structure_name>_insert1 == 0)
+    openAndBind = (c1<StructureName> == 0)
 
     ;;Start a database transaction
 
@@ -772,7 +772,7 @@ proc
 
     if (ok && openAndBind)
     begin
-        if (%ssc_open(a_dbchn,csr_<structure_name>_insert1,sql,SSQL_NONSEL,SSQL_STANDARD)==SSQL_FAILURE)
+        if (%ssc_open(a_dbchn,c1<StructureName>,sql,SSQL_NONSEL,SSQL_STANDARD)==SSQL_FAILURE)
         begin
             ok = false
             sts = 0
@@ -786,7 +786,7 @@ proc
     <IF STRUCTURE_RELATIVE>
     if (ok && openAndBind)
     begin
-        if (%ssc_bind(a_dbchn,csr_<structure_name>_insert1,1,recordNumber)==SSQL_FAILURE)
+        if (%ssc_bind(a_dbchn,c1<StructureName>,1,recordNumber)==SSQL_FAILURE)
         begin
             ok = false
             sts = 0
@@ -802,7 +802,7 @@ proc
     <IF COUNTER_1_EQ_1>
     if (ok && openAndBind)
     begin
-        if (%ssc_bind(a_dbchn,csr_<structure_name>_insert1,<REMAINING_INCLUSIVE_MAX_250>,
+        if (%ssc_bind(a_dbchn,c1<StructureName>,<REMAINING_INCLUSIVE_MAX_250>,
     </IF COUNTER_1_EQ_1>
         <IF ALPHA>
         &    <structure_name>.<field_original_name_modified><IF NOMORE>)==SSQL_FAILURE)<ELSE><IF COUNTER_1_LT_250>,<ELSE>)==SSQL_FAILURE)</IF COUNTER_1_LT_250></IF NOMORE>
@@ -919,7 +919,7 @@ proc
 
         ;;Execute the INSERT statement
 
-        if (%ssc_execute(a_dbchn,csr_<structure_name>_insert1,SSQL_STANDARD)==SSQL_FAILURE)
+        if (%ssc_execute(a_dbchn,c1<StructureName>,SSQL_STANDARD)==SSQL_FAILURE)
         begin
             ok = false
             sts = 0
@@ -1063,7 +1063,7 @@ function <StructureName>InsertRows, ^val
     endrecord
 
     global common
-        csr_<structure_name>_insert2, i4
+        c2<StructureName>, i4
     endcommon
 
 proc
@@ -1071,7 +1071,7 @@ proc
     init local_data
     ok = true
 
-    openAndBind = (csr_<structure_name>_insert2 == 0)
+    openAndBind = (c2<StructureName> == 0)
 
     if (^passed(a_exception)&&a_exception)
         clear a_exception
@@ -1111,7 +1111,7 @@ proc
 
     if (ok && openAndBind)
     begin
-        if (%ssc_open(a_dbchn,csr_<structure_name>_insert2,sql,SSQL_NONSEL,SSQL_STANDARD)==SSQL_FAILURE)
+        if (%ssc_open(a_dbchn,c2<StructureName>,sql,SSQL_NONSEL,SSQL_STANDARD)==SSQL_FAILURE)
         begin
             ok = false
             if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
@@ -1124,7 +1124,7 @@ proc
 <IF STRUCTURE_RELATIVE>
     if (ok && openAndBind)
     begin
-        if (%ssc_bind(a_dbchn,csr_<structure_name>_insert2,1,recordNumber)==SSQL_FAILURE)
+        if (%ssc_bind(a_dbchn,c2<StructureName>,1,recordNumber)==SSQL_FAILURE)
         begin
             ok = false
             if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
@@ -1139,7 +1139,7 @@ proc
     <IF COUNTER_1_EQ_1>
     if (ok && openAndBind)
     begin
-        if (%ssc_bind(a_dbchn,csr_<structure_name>_insert2,<REMAINING_INCLUSIVE_MAX_250>,
+        if (%ssc_bind(a_dbchn,c2<StructureName>,<REMAINING_INCLUSIVE_MAX_250>,
     </IF COUNTER_1_EQ_1>
         <IF ALPHA>
         &    <structure_name>.<field_original_name_modified><IF NOMORE>)==SSQL_FAILURE)<ELSE><IF COUNTER_1_LT_250>,<ELSE>)==SSQL_FAILURE)</IF COUNTER_1_LT_250></IF NOMORE>
@@ -1265,7 +1265,7 @@ proc
 
             ;;Execute the statement
 
-            if (%ssc_execute(a_dbchn,csr_<structure_name>_insert2,SSQL_STANDARD)==SSQL_FAILURE)
+            if (%ssc_execute(a_dbchn,c2<StructureName>,SSQL_STANDARD)==SSQL_FAILURE)
             begin
                 if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
                     errtxt="Failed to execute SQL statement"
@@ -1434,14 +1434,14 @@ function <StructureName>Update, ^val
     endrecord
 
     global common
-        csr_<structure_name>_update, i4
+        c3<StructureName>, i4
     endcommon
 proc
 
     init local_data
     ok = true
 
-    openAndBind = (csr_<structure_name>_update == 0)
+    openAndBind = (c3<StructureName> == 0)
 
     if (^passed(a_rows))
         clear a_rows
@@ -1472,7 +1472,7 @@ proc
 
     if (ok && openAndBind)
     begin
-        if (%ssc_open(a_dbchn,csr_<structure_name>_update,sql,SSQL_NONSEL,SSQL_STANDARD)==SSQL_FAILURE)
+        if (%ssc_open(a_dbchn,c3<StructureName>,sql,SSQL_NONSEL,SSQL_STANDARD)==SSQL_FAILURE)
         begin
             ok = false
             if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
@@ -1488,7 +1488,7 @@ proc
 
     if (ok && openAndBind)
     begin
-        if (%ssc_bind(a_dbchn,csr_<structure_name>_update,<REMAINING_INCLUSIVE_MAX_250>,
+        if (%ssc_bind(a_dbchn,c3<StructureName>,<REMAINING_INCLUSIVE_MAX_250>,
     </IF COUNTER_1_EQ_1>
         <IF ALPHA>
         &    <structure_name>.<field_original_name_modified><IF NOMORE>)==SSQL_FAILURE)<ELSE><IF COUNTER_1_LT_250>,<ELSE>)==SSQL_FAILURE)</IF COUNTER_1_LT_250></IF NOMORE>
@@ -1537,10 +1537,10 @@ proc
     if (ok && openAndBind)
     begin
         <IF STRUCTURE_ISAM>
-        if (%ssc_bind(a_dbchn,csr_<structure_name>_update,<UNIQUE_KEY><KEY_SEGMENTS>,<SEGMENT_LOOP><IF DATEORTIME>^a(</IF DATEORTIME><structure_name>.<segment_name><IF DATEORTIME>)</IF DATEORTIME><,></SEGMENT_LOOP></UNIQUE_KEY>)==SSQL_FAILURE)
+        if (%ssc_bind(a_dbchn,c3<StructureName>,<UNIQUE_KEY><KEY_SEGMENTS>,<SEGMENT_LOOP><IF DATEORTIME>^a(</IF DATEORTIME><structure_name>.<segment_name><IF DATEORTIME>)</IF DATEORTIME><,></SEGMENT_LOOP></UNIQUE_KEY>)==SSQL_FAILURE)
         </IF STRUCTURE_ISAM>
         <IF STRUCTURE_RELATIVE>
-        if (%ssc_bind(a_dbchn,csr_<structure_name>_update,1,a_recnum)==SSQL_FAILURE)
+        if (%ssc_bind(a_dbchn,c3<StructureName>,1,a_recnum)==SSQL_FAILURE)
         </IF STRUCTURE_RELATIVE>
         begin
             ok = false
@@ -1608,7 +1608,7 @@ proc
         </IF USERTIMESTAMP>
         </FIELD_LOOP>
 
-        if (%ssc_execute(a_dbchn,csr_<structure_name>_update,SSQL_STANDARD,,rows)==SSQL_NORMAL) then
+        if (%ssc_execute(a_dbchn,c3<StructureName>,SSQL_STANDARD,,rows)==SSQL_NORMAL) then
         begin
             if (^passed(a_rows))
                 a_rows = rows
@@ -2770,35 +2770,35 @@ subroutine <StructureName>Close
 
     external common
         <IF STRUCTURE_ISAM>
-        csr_<structure_name>_insert1, i4
-        csr_<structure_name>_insert2, i4
+        c1<StructureName>, i4
+        c2<StructureName>, i4
         </IF STRUCTURE_ISAM>
-        csr_<structure_name>_update,  i4
+        c3<StructureName>,  i4
     endcommon
 
 proc
 
     <IF STRUCTURE_ISAM>
-    if (csr_<structure_name>_insert1)
+    if (c1<StructureName>)
     begin
-        if (%ssc_close(a_dbchn,csr_<structure_name>_insert1))
+        if (%ssc_close(a_dbchn,c1<StructureName>))
             nop
-        clear csr_<structure_name>_insert1
+        clear c1<StructureName>
     end
 
-    if (csr_<structure_name>_insert2)
+    if (c2<StructureName>)
     begin
-        if (%ssc_close(a_dbchn,csr_<structure_name>_insert2))
+        if (%ssc_close(a_dbchn,c2<StructureName>))
             nop
-        clear csr_<structure_name>_insert2
+        clear c2<StructureName>
     end
 
     </IF STRUCTURE_ISAM>
-    if (csr_<structure_name>_update)
+    if (c3<StructureName>)
     begin
-        if (%ssc_close(a_dbchn,csr_<structure_name>_update))
+        if (%ssc_close(a_dbchn,c3<StructureName>))
             nop
-        clear csr_<structure_name>_update
+        clear c3<StructureName>
     end
 
     xreturn
