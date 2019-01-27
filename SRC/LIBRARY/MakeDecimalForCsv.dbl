@@ -1,5 +1,5 @@
 
-function MakeDecimalForCsv, string
+function MakeDecimalForCsv, a
     required in aNumber, n
 proc
     if (aNumber) && %IsNumeric(^a(aNumber))

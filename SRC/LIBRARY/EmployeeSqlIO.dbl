@@ -2561,15 +2561,20 @@ function EmployeeCsv, ^val
     .define EXCEPTION_BUFSZ 100
 
     stack record local_data
-        ok,             boolean     ;;Return status
-        filechn,        int         ;;Data file channel
-        csvchn,         int         ;;CSV file channel
-        csvrec,         string      ;;A CSV file record
-        errnum,         int         ;;Error number
-        records,        int         ;;Number of records exported
-        errtxt,         a512        ;;Error message text
+        ok,                 boolean     ;;Return status
+        filechn,            int         ;;Data file channel
+        csvchn,             int         ;;CSV file channel
+        csvrec,             string      ;;A CSV file record
+        errnum,             int         ;;Error number
+        records,            int         ;;Number of records exported
+        errtxt,             a512        ;;Error message text
     endrecord
 
+    external function
+        MakeDateForCsv,     a
+        MakeDecimalForCsv,  a
+        MakeTimeForCsv,     a
+    endexternal
 proc
 
     init local_data
@@ -2632,7 +2637,7 @@ proc
                 &    + %MakeDecimalForCsv(employee.emp_paid) + "|"
                 &    + %MakeDecimalForCsv(employee.emp_home_ok) + "|"
                 &    + %MakeDateForCsv(employee.emp_date_of_birth) + "|"
-                &    + %MakeTimeForCsv(employee.emp_hire_time,"XX:XX") + "|"
+                &    + %MakeTimeForCsv(employee.emp_hire_time) + "|"
                 &    + %atrim(employee.emp_email) + "|"
                 &    + %atrim(employee.emp_address_street) + "|"
                 &    + %atrim(employee.emp_address_city) + "|"

@@ -1,5 +1,5 @@
 
-function MakeTimeForCsv, string
+function MakeTimeForCsv, a
     required in aTime, n
 proc
     if (aTime)

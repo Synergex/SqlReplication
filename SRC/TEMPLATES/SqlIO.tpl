@@ -2826,15 +2826,20 @@ function <StructureName>Csv, ^val
     .define EXCEPTION_BUFSZ 100
 
     stack record local_data
-        ok,             boolean     ;;Return status
-        filechn,        int         ;;Data file channel
-        csvchn,         int         ;;CSV file channel
-        csvrec,         string      ;;A CSV file record
-        errnum,         int         ;;Error number
-        records,        int         ;;Number of records exported
-        errtxt,         a512        ;;Error message text
+        ok,                 boolean     ;;Return status
+        filechn,            int         ;;Data file channel
+        csvchn,             int         ;;CSV file channel
+        csvrec,             string      ;;A CSV file record
+        errnum,             int         ;;Error number
+        records,            int         ;;Number of records exported
+        errtxt,             a512        ;;Error message text
     endrecord
 
+    external function
+        MakeDateForCsv,     a
+        MakeDecimalForCsv,  a
+        MakeTimeForCsv,     a
+    endexternal
 proc
 
     init local_data
@@ -2912,10 +2917,10 @@ proc
                 &    + %atrim(^a(<structure_name>.<field_original_name_modified>)) + "<IF MORE>|</IF MORE>"
                 </IF DATE_YYMMDD>
                 <IF TIME_HHMM>
-                &    + %MakeTimeForCsv(<structure_name>.<field_original_name_modified>,"XX:XX") + "<IF MORE>|</IF MORE>"
+                &    + %MakeTimeForCsv(<structure_name>.<field_original_name_modified>) + "<IF MORE>|</IF MORE>"
                 </IF TIME_HHMM>
                 <IF TIME_HHMMSS>
-                &    + %MakeTimeForCsv(<structure_name>.<field_original_name_modified>,"XX:XX:XX") + "<IF MORE>|</IF MORE>"
+                &    + %MakeTimeForCsv(<structure_name>.<field_original_name_modified>) + "<IF MORE>|</IF MORE>"
                 </IF TIME_HHMMSS>
                 <IF USER>
                 <IF USERTIMESTAMP>
