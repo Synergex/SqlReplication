@@ -733,7 +733,7 @@ function <StructureName>Insert, ^val
         tmp<FieldSqlName>, a5      ;;Storage for HH:MM time field
         </IF TIME_HHMM>
         <IF TIME_HHMMSS>
-        tmp<FieldSqlName>, a7      ;;Storage for HH:MM:SS time field
+        tmp<FieldSqlName>, a8      ;;Storage for HH:MM:SS time field
         </IF TIME_HHMMSS>
         </IF USERTIMESTAMP>
         </FIELD_LOOP>
@@ -1055,7 +1055,7 @@ function <StructureName>InsertRows, ^val
         tmp<FieldSqlName>, a5      ;;Storage for HH:MM time field
         </IF TIME_HHMM>
         <IF TIME_HHMMSS>
-        tmp<FieldSqlName>, a7      ;;Storage for HH:MM:SS time field
+        tmp<FieldSqlName>, a8      ;;Storage for HH:MM:SS time field
         </IF TIME_HHMMSS>
         </IF USERTIMESTAMP>
         </FIELD_LOOP>
@@ -1427,7 +1427,7 @@ function <StructureName>Update, ^val
         tmp<FieldSqlName>, a5      ;;Storage for HH:MM time field
         </IF TIME_HHMM>
         <IF TIME_HHMMSS>
-        tmp<FieldSqlName>, a7      ;;Storage for HH:MM:SS time field
+        tmp<FieldSqlName>, a8      ;;Storage for HH:MM:SS time field
         </IF TIME_HHMMSS>
         </IF USERTIMESTAMP>
         </FIELD_LOOP>
