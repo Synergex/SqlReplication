@@ -1,5 +1,5 @@
 <CODEGEN_FILENAME><StructureName>SqlIO.dbl</CODEGEN_FILENAME>
-<REQUIRES_CODEGEN_VERSION>5.3.11</REQUIRES_CODEGEN_VERSION>
+<REQUIRES_CODEGEN_VERSION>5.3.14</REQUIRES_CODEGEN_VERSION>
 ;//*****************************************************************************
 ;//
 ;// Title:       SqlIO.tpl
@@ -48,6 +48,7 @@
 ;;*****************************************************************************
 
 import ReplicationLibrary
+import Synergex.SynergyDE.Select
 
 .ifndef str<StructureName>
 .include "<STRUCTURE_NOALIAS>" repository, structure="str<StructureName>", end
@@ -888,7 +889,11 @@ proc
         <FIELD_LOOP>
         <IF DATE>
         if ((!<structure_name>.<field_original_name_modified>)||(!%IsDate(^a(<structure_name>.<field_original_name_modified>))))
+            <IF FIRST_UNIQUE_KEY_SEGMENT>
+            ^a(<structure_name>.<field_original_name_modified>) = "17530101"
+            <ELSE>
             ^a(<structure_name>.<field_original_name_modified>(1:1))=%char(0)
+            </IF FIRST_UNIQUE_KEY_SEGMENT>
         </IF DATE>
         </FIELD_LOOP>
 
@@ -1234,7 +1239,11 @@ proc
             <FIELD_LOOP>
             <IF DATE>
             if ((!<structure_name>.<field_original_name_modified>)||(!%IsDate(^a(<structure_name>.<field_original_name_modified>))))
+                <IF FIRST_UNIQUE_KEY_SEGMENT>
+                ^a(<structure_name>.<field_original_name_modified>) = "17530101"
+                <ELSE>
                 ^a(<structure_name>.<field_original_name_modified>(1:1))=%char(0)
+                </IF FIRST_UNIQUE_KEY_SEGMENT>
             </IF DATE>
             </FIELD_LOOP>
 
@@ -1579,7 +1588,11 @@ proc
         <FIELD_LOOP>
         <IF DATE>
         if ((!<structure_name>.<field_original_name_modified>)||(!%IsDate(^a(<structure_name>.<field_original_name_modified>))))
+            <IF FIRST_UNIQUE_KEY_SEGMENT>
+            ^a(<structure_name>.<field_original_name_modified>) = "17530101"
+            <ELSE>
             ^a(<structure_name>.<field_original_name_modified>(1:1)) = %char(0)
+            </IF FIRST_UNIQUE_KEY_SEGMENT>
         </IF DATE>
         </FIELD_LOOP>
 
@@ -1725,7 +1738,7 @@ proc
         <UNIQUE_KEY>
         <SEGMENT_LOOP>
         <IF ALPHA>
-        & + ' "<FieldSqlName>"=' + "'" + %atrim(^a(<structureName>.<segment_name>)) + "' <AND>"
+        & + ' "<FieldSqlName>"=' + "'" + %atrim(<structureName>.<segment_name>) + "' <AND>"
         <ELSE>
         & + ' "<FieldSqlName>"=' + "'" + %string(<structureName>.<segment_name>) + "' <AND>"
         </IF ALPHA>
@@ -2874,81 +2887,124 @@ proc
         .endc
 
         ;;Read and add data file records
-        repeat
+        foreach <structure_name> in new Select(new From(filechn,<structure_name>)<IF STRUCTURE_TAGS>,(Where)<TAG_LOOP><TAGLOOP_CONNECTOR_C><structure_name>.<tagloop_field_name><TAGLOOP_OPERATOR_DBL><TAGLOOP_TAG_VALUE></TAG_LOOP></IF STRUCTURE_TAGS>)
         begin
-            ;;Get the next record from the input file
-            try
-            begin
-                <IF STRUCTURE_TAGS>
-                repeat
-                begin
-                    reads(filechn,<structure_name>)
-                    if (<TAG_LOOP><TAGLOOP_CONNECTOR_C><structure_name>.<TAGLOOP_FIELD_NAME><TAGLOOP_OPERATOR_C><TAGLOOP_TAG_VALUE></TAG_LOOP>)
-                        exitloop
-                end
-                <ELSE>
-                reads(filechn,<structure_name>)
-                </IF STRUCTURE_TAGS>
+            records += 1
+            csvrec = ""
+            <FIELD_LOOP>
+            <IF STRUCTURE_RELATIVE>
+            &   + %string(records) + "|"
+            </IF STRUCTURE_RELATIVE>
+            <IF ALPHA>
+            &    + %atrim(<structure_name>.<field_original_name_modified>) + "<IF MORE>|</IF MORE>"
+            </IF ALPHA>
+            <IF DECIMAL>
+            &    + %MakeDecimalForCsv(<structure_name>.<field_original_name_modified>) + "<IF MORE>|</IF MORE>"
+            </IF DECIMAL>
+            <IF DATE>
+            &    + %MakeDateForCsv(<structure_name>.<field_original_name_modified>) + "<IF MORE>|</IF MORE>"
+            </IF DATE>
+            <IF DATE_YYMMDD>
+            &    + %atrim(^a(<structure_name>.<field_original_name_modified>)) + "<IF MORE>|</IF MORE>"
+            </IF DATE_YYMMDD>
+            <IF TIME_HHMM>
+            &    + %MakeTimeForCsv(<structure_name>.<field_original_name_modified>) + "<IF MORE>|</IF MORE>"
+            </IF TIME_HHMM>
+            <IF TIME_HHMMSS>
+            &    + %MakeTimeForCsv(<structure_name>.<field_original_name_modified>) + "<IF MORE>|</IF MORE>"
+            </IF TIME_HHMMSS>
+            <IF USER>
+            <IF USERTIMESTAMP>
+            &    + %string(^d(<structure_name>.<field_original_name_modified>),"XXXX-XX-XX XX:XX:XX.XXXXXX") + "<IF MORE>|</IF MORE>"
+            <ELSE>
+            &    + %atrim(<structure_name>.<field_original_name_modified>) + "<IF MORE>|</IF MORE>"
+            </IF USERTIMESTAMP>
+            </IF USER>
+            </FIELD_LOOP>
 
-                ;;Make sure there are no | characters in the data
-                if (%instr(1,<structure_name>,"|"))
-                begin
-                    data tmpData, string, <structure_name>
-                    tmpData.Replace("|"," ")
-                    <structure_name> = tmpData
-                end
-
-                records += 1
-                csvrec = ""
-                <FIELD_LOOP>
-                <IF STRUCTURE_RELATIVE>
-                &   + %string(records) + "|"
-                </IF STRUCTURE_RELATIVE>
-                <IF ALPHA>
-                &    + %atrim(<structure_name>.<field_original_name_modified>) + "<IF MORE>|</IF MORE>"
-                </IF ALPHA>
-                <IF DECIMAL>
-                &    + %MakeDecimalForCsv(<structure_name>.<field_original_name_modified>) + "<IF MORE>|</IF MORE>"
-                </IF DECIMAL>
-                <IF DATE>
-                &    + %MakeDateForCsv(<structure_name>.<field_original_name_modified>) + "<IF MORE>|</IF MORE>"
-                </IF DATE>
-                <IF DATE_YYMMDD>
-                &    + %atrim(^a(<structure_name>.<field_original_name_modified>)) + "<IF MORE>|</IF MORE>"
-                </IF DATE_YYMMDD>
-                <IF TIME_HHMM>
-                &    + %MakeTimeForCsv(<structure_name>.<field_original_name_modified>) + "<IF MORE>|</IF MORE>"
-                </IF TIME_HHMM>
-                <IF TIME_HHMMSS>
-                &    + %MakeTimeForCsv(<structure_name>.<field_original_name_modified>) + "<IF MORE>|</IF MORE>"
-                </IF TIME_HHMMSS>
-                <IF USER>
-                <IF USERTIMESTAMP>
-                &    + %string(^d(<structure_name>.<field_original_name_modified>),"XXXX-XX-XX XX:XX:XX.XXXXXX") + "<IF MORE>|</IF MORE>"
-                <ELSE>
-                &    + %atrim(<structure_name>.<field_original_name_modified>) + "<IF MORE>|</IF MORE>"
-                </IF USERTIMESTAMP>
-                </IF USER>
-                </FIELD_LOOP>
-
-                .ifdef OS_WINDOWS7
-                writes(csvchn,csvrec)
-                .else
-                puts(csvchn,csvrec + %char(13) + %char(10))
-                .endc
-            end
-            catch (e, @EndOfFileException)
-            begin
-                exitloop
-            end
-            catch (e, @Exception)
-            begin
-                ok = false
-                errtxt = "Unexpected error when reading data file: " + e.Message
-                exitloop
-            end
-            endtry
+            .ifdef OS_WINDOWS7
+            writes(csvchn,csvrec)
+            .else
+            puts(csvchn,csvrec + %char(13) + %char(10))
+            .endc
         end
+
+;       ;;Read and add data file records
+;       repeat
+;       begin
+;           ;;Get the next record from the input file
+;           try
+;           begin
+;               <IF STRUCTURE_TAGS>
+;               repeat
+;               begin
+;                   reads(filechn,<structure_name>)
+;                   if (<TAG_LOOP><TAGLOOP_CONNECTOR_C><structure_name>.<TAGLOOP_FIELD_NAME><TAGLOOP_OPERATOR_C><TAGLOOP_TAG_VALUE></TAG_LOOP>)
+;                       exitloop
+;               end
+;               <ELSE>
+;               reads(filechn,<structure_name>)
+;               </IF STRUCTURE_TAGS>
+;
+;               ;;Make sure there are no | characters in the data
+;               if (%instr(1,<structure_name>,"|"))
+;               begin
+;                   data tmpData, string, <structure_name>
+;                   tmpData.Replace("|"," ")
+;                   <structure_name> = tmpData
+;               end
+;
+;               records += 1
+;               csvrec = ""
+;               <FIELD_LOOP>
+;               <IF STRUCTURE_RELATIVE>
+;               &   + %string(records) + "|"
+;               </IF STRUCTURE_RELATIVE>
+;               <IF ALPHA>
+;               &    + %atrim(<structure_name>.<field_original_name_modified>) + "<IF MORE>|</IF MORE>"
+;               </IF ALPHA>
+;               <IF DECIMAL>
+;               &    + %MakeDecimalForCsv(<structure_name>.<field_original_name_modified>) + "<IF MORE>|</IF MORE>"
+;               </IF DECIMAL>
+;               <IF DATE>
+;               &    + %MakeDateForCsv(<structure_name>.<field_original_name_modified>) + "<IF MORE>|</IF MORE>"
+;               </IF DATE>
+;               <IF DATE_YYMMDD>
+;               &    + %atrim(^a(<structure_name>.<field_original_name_modified>)) + "<IF MORE>|</IF MORE>"
+;               </IF DATE_YYMMDD>
+;               <IF TIME_HHMM>
+;               &    + %MakeTimeForCsv(<structure_name>.<field_original_name_modified>) + "<IF MORE>|</IF MORE>"
+;               </IF TIME_HHMM>
+;               <IF TIME_HHMMSS>
+;               &    + %MakeTimeForCsv(<structure_name>.<field_original_name_modified>) + "<IF MORE>|</IF MORE>"
+;               </IF TIME_HHMMSS>
+;               <IF USER>
+;               <IF USERTIMESTAMP>
+;               &    + %string(^d(<structure_name>.<field_original_name_modified>),"XXXX-XX-XX XX:XX:XX.XXXXXX") + "<IF MORE>|</IF MORE>"
+;               <ELSE>
+;               &    + %atrim(<structure_name>.<field_original_name_modified>) + "<IF MORE>|</IF MORE>"
+;               </IF USERTIMESTAMP>
+;               </IF USER>
+;               </FIELD_LOOP>
+;
+;               .ifdef OS_WINDOWS7
+;               writes(csvchn,csvrec)
+;               .else
+;               puts(csvchn,csvrec + %char(13) + %char(10))
+;                .endc
+;            end
+;            catch (e, @EndOfFileException)
+;            begin
+;                exitloop
+;            end
+;            catch (e, @Exception)
+;            begin
+;                ok = false
+;                errtxt = "Unexpected error when reading data file: " + e.Message
+;                exitloop
+;            end
+;            endtry
+;        end
     end
 
     ;;Close the CSV file
@@ -3039,7 +3095,10 @@ proc
     <structureName>.<segment_name> = ^d(aKeyValue(segPos:<SEGMENT_LENGTH>))
     </IF DECIMAL>
     <IF DATE>
-    <structureName>.<segment_name> = ^d(aKeyValue(segPos:<SEGMENT_LENGTH>))
+    if ((!<structureName>.<segment_name>)||(!%IsDate(^a(<structureName>.<segment_name>)))) then
+        ^a(<structureName>.<segment_name>) = "17530101"
+    else
+        <structureName>.<segment_name> = ^d(aKeyValue(segPos:<SEGMENT_LENGTH>))
     </IF DATE>
     <IF TIME>
     <structureName>.<segment_name> = ^d(aKeyValue(segPos:<SEGMENT_LENGTH>))
