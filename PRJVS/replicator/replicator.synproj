@@ -74,25 +74,21 @@
     </PostBuildEvent>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="..\..\SRC\REPLICATOR\EmployeeDataReport.dbl">
-      <Link>EmployeeDataReport.dbl</Link>
-    </Compile>
-    <Compile Include="..\..\SRC\REPLICATOR\EmployeeMaintenance.dbl">
-      <Link>EmployeeMaintenance.dbl</Link>
-    </Compile>
     <Compile Include="..\..\SRC\REPLICATOR\InstructionCount.dbl">
       <Link>InstructionCount.dbl</Link>
     </Compile>
     <Compile Include="..\..\SRC\REPLICATOR\replicator.dbl">
       <Link>replicator.dbl</Link>
     </Compile>
+    <None Include="..\..\SRC\REPLICATOR\ReplicatorCosmos.dbl">
+      <Link>ReplicatorCosmos.dbl</Link>
+    </None>
     <Compile Include="..\..\SRC\REPLICATOR\ReplicatorMenu.dbl">
       <Link>ReplicatorMenu.dbl</Link>
     </Compile>
     <Compile Include="..\..\SRC\REPLICATOR\ReplicatorStop.dbl">
       <Link>ReplicatorStop.dbl</Link>
     </Compile>
-    <Compile Include="ChangeEveryEmployee.dbl" />
     <Compile Include="QueueMonitor.dbl" />
   </ItemGroup>
   <ItemGroup>

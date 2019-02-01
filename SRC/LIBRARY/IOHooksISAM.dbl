@@ -171,14 +171,14 @@ namespace ReplicationLibrary
         proc
             ;;A record was just updated. If it changed then replicate the change.
             if (mActive && !aError)
-			begin
+            begin
                 if (LastRecordCache.HasChanged(mChannel,aRecord))
-				begin
-					data tableName, string, getTableName(aRecord)
-					if (tableName(1:1)!="*")
-	                    xcall replicate(REPLICATION_INSTRUCTION.UPDATE_ROW,tableName,aRecord)
-				end
-			end
+                begin
+                    data tableName, string, getTableName(aRecord)
+                    if (tableName(1:1)!="*")
+                        xcall replicate(REPLICATION_INSTRUCTION.UPDATE_ROW,tableName,aRecord)
+                end
+            end
         endmethod
 
         ;;---------------------------------------------------------------------
@@ -206,11 +206,11 @@ namespace ReplicationLibrary
         proc
             ;;A new record was just created. Replicate the change.
             if (mActive && !aError)
-			begin
-				data tableName, string, getTableName(aRecord)
-				if (tableName(1:1)!="*")
-	                xcall replicate(REPLICATION_INSTRUCTION.CREATE_ROW,tableName,aRecord)
-			end
+            begin
+                data tableName, string, getTableName(aRecord)
+                if (tableName(1:1)!="*")
+                    xcall replicate(REPLICATION_INSTRUCTION.CREATE_ROW,tableName,aRecord)
+            end
         endmethod
 
         ;;---------------------------------------------------------------------
@@ -222,11 +222,11 @@ namespace ReplicationLibrary
         proc
             ;;A record was just deleted. Replicate the change.
             if (mActive && !aError)
-			begin
-				data tableName, string, getTableName(LastRecordCache.Retrieve(mChannel))
-				if (tableName(1:1)!="*")
-	                xcall replicate(REPLICATION_INSTRUCTION.DELETE_ROW,tableName,LastRecordCache.Retrieve(mChannel))
-			end
+            begin
+                data tableName, string, getTableName(LastRecordCache.Retrieve(mChannel))
+                if (tableName(1:1)!="*")
+                    xcall replicate(REPLICATION_INSTRUCTION.DELETE_ROW,tableName,LastRecordCache.Retrieve(mChannel))
+            end
         endmethod
 
         ;;---------------------------------------------------------------------
@@ -246,46 +246,41 @@ namespace ReplicationLibrary
         private method getTableName, string
             required in aRecord, a
         proc
-;            if (mMultiTable) then
-;            begin
-;                using mTableName select
+            if (mMultiTable) then
+            begin
+                using mTableName select
+
+                ;An example of a file with multple record formats, each of which is replicated to a different table.
+                ("CMSSMF"),
+                begin
+                    using aRecord(1:2) select
+                    ('52'),	mreturn "UnitType"
+                    ('53'), mreturn "Unit"
+                    endusing
+                end
 ;
-;				 ;An example of a file with multple record formats, each of which is replicated to a different table.
+;                ;An example of a file with a header record defined using one structure, and data with another.
 ;                ("FILENAME"),
 ;                begin
 ;                    data rec, strSomething, aRecord
 ;                    ;;Make sure you cover all the bases here, if not it'll be a problem!
-;					 ;;The structures you will need should be available because they are public in the _IO routines
-;                    if (rec.some_tag_field=="1") then
-;                        mreturn "Table1"
-;                    if (rec.some_tag_field=="2") then
-;                        mreturn "TableName2"
-;                    if (rec.some_tag_field=="3")
-;                        mreturn "Table3"
-;                end
-;
-;				 ;An example of a file with a header record defined using one structure, and data with another.
-;                ("FILENAME"),
-;                begin
-;                    data rec, strSomething, aRecord
-;                    ;;Make sure you cover all the bases here, if not it'll be a problem!
-;					 ;;The structures you will need should be available because they are public in the _IO routines
+;                    ;;The structures you will need should be available because they are public in the _IO routines
 ;                    if (rec.some_tag_field=="HEADER") then
 ;                        mreturn "*IGNORE"
 ;                    if (rec.some_tag_field=="DATA") then
 ;                        mreturn "TableName1"
 ;                end
 ;
-;				 ;Anything else, the programmer forgot to declare it here.
-;				 ;Returning anything beginning with * will cause the replication request to be ignored
-;                (),
-;                    mreturn "*BUG"
-;                endusing
-;            end
-;            else
-;            begin
+;               ;Anything else, the programmer forgot to declare it here.
+;               ;Returning anything beginning with * will cause the replication request to be ignored
+                (),
+                    mreturn "*BUG"
+                endusing
+            end
+            else
+            begin
                 mreturn mTableName
-;            end
+            end
 
         endmethod
 

@@ -11,9 +11,9 @@ Project("{BBD0F5D1-1CC4-42FD-BA4C-A96779C64378}") = "repository", "PRJVS\reposit
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Templates", "Templates", "{B28D0BFD-E6F5-4A1E-95B2-B8BBA9036688}"
 	ProjectSection(SolutionItems) = preProject
+		SRC\TEMPLATES\CosmosIO.tpl = SRC\TEMPLATES\CosmosIO.tpl
 		SRC\TEMPLATES\FileDataReport.tpl = SRC\TEMPLATES\FileDataReport.tpl
 		SRC\TEMPLATES\GetReplicatedTables.tpl = SRC\TEMPLATES\GetReplicatedTables.tpl
-		SRC\TEMPLATES\IsamIO.tpl = SRC\TEMPLATES\IsamIO.tpl
 		SRC\TEMPLATES\SqlIO.tpl = SRC\TEMPLATES\SqlIO.tpl
 	EndProjectSection
 EndProject
@@ -34,6 +34,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		SignFile.bat = SignFile.bat
 		UnregisterFileService.bat = UnregisterFileService.bat
 		UnregisterReplicatorService.bat = UnregisterReplicatorService.bat
+		UserDefinedTokens.tkn = UserDefinedTokens.tkn
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "VMS", "VMS", "{D858AA93-37A9-4551-A62F-5F1AE2DDE2A8}"

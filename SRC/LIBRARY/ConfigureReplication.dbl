@@ -72,30 +72,27 @@ proc
     begin
         using fileSpec select
 
-;       ;;A single-record layout file that already had a unique key
+        ;;Single-record layout files that already have a unique key
 ;       ("FILE1.ISM"),
 ;           new IoHooksISAM(channel,"File1")
-;
-;       ;;A single-record layout file with REPLICATION_KEY added
+
+        ;;Single-record layout files with REPLICATION_KEY added
 ;       ("FILE2.ISM"),
 ;       begin
 ;           new IoHooksISAM(channel,"File2")
 ;           repkey_required[channel] = 1
 ;       end
-;
-;       ;;A multi-record layout file that already had a unique key
-;       ("FILE3.ISM"), ;;Multiple possibilities (FILE3A, FILE3B, FILE3C)
-;           new IoHooksISAM(channel,"MULTI_File3")
-;
-;       ;;A multi-record layout file with REPLICATION_KEY added
+
+       ;;Multi-record layout files that already have a unique key
+       ("CMSSMF.ISM"), ;;Multiple possibilities (FILE3A, FILE3B, FILE3C)
+           new IoHooksISAM(channel,"MULTI_CMSSMF")
+
+        ;;Multi-record layout files with REPLICATION_KEY added
 ;       ("FILE4.ISM"), ;;Multiple possibilities (FILE4A, FILE4B, FILE4C)
 ;       begin
 ;           new IoHooksISAM(channel,"MULTI_File4")
 ;           repkey_required[channel] = 1
 ;       end
-
-        ("EMPLOYEE.ISM"),
-            new IoHooksISAM(channel,"EMPLOYEE")
 
         endusing
     end
