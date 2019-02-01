@@ -37,23 +37,8 @@
 ;;*****************************************************************************
 
 main InstructionCount
-    record
-        s, @Json.JsonSerializer
-    endrecord
-    record
-        result, string
-    endrecord
+
 proc
-
-    s = new Json.JsonSerializer()
-    s.MapOpen()
-    s.Pair("Prop1","value1")
-    s.Pair("Prop2","value2")
-    s.Pair("Prop3","value3")
-    s.MapClose()
-    result = s.CurrentBuffer
-
-
 	xcall flags(7004020,1)
 	open(1,o,"tt:")
 	open(2,i:i,"REPLICATOR_DATA:REPLICATION.ISM")

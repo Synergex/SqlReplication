@@ -80,6 +80,9 @@
     <Compile Include="..\..\SRC\LIBRARY\ConfigureReplication.dbl">
       <Link>ConfigureReplication.dbl</Link>
     </Compile>
+    <Compile Include="..\..\SRC\LIBRARY\EmployeeSqlIO.dbl">
+      <Link>EmployeeSqlIO.dbl</Link>
+    </Compile>
     <Compile Include="..\..\SRC\LIBRARY\File.dbl">
       <Link>File.dbl</Link>
     </Compile>
@@ -89,6 +92,12 @@
     <Compile Include="..\..\SRC\LIBRARY\FileServiceClient.dbl">
       <Link>FileServiceClient.dbl</Link>
     </Compile>
+    <Compile Include="..\..\SRC\LIBRARY\GenerateDepartmentData.dbl">
+      <Link>GenerateDepartmentData.dbl</Link>
+    </Compile>
+    <Compile Include="..\..\SRC\LIBRARY\GenerateEmployeeData.dbl">
+      <Link>GenerateEmployeeData.dbl</Link>
+    </Compile>
     <Compile Include="..\..\SRC\LIBRARY\GetReplicatedTables.dbl">
       <Link>GetReplicatedTables.dbl</Link>
     </Compile>
@@ -97,9 +106,6 @@
     </Compile>
     <Compile Include="..\..\SRC\LIBRARY\IOHooksISAM.dbl">
       <Link>IOHooksISAM.dbl</Link>
-    </Compile>
-    <Compile Include="..\..\SRC\LIBRARY\IOHooksISAMCosmos.dbl">
-      <Link>IOHooksISAMCosmos.dbl</Link>
     </Compile>
     <Compile Include="..\..\SRC\LIBRARY\IOHooksRELATIVE.dbl">
       <Link>IOHooksRELATIVE.dbl</Link>
@@ -119,9 +125,6 @@
     <Compile Include="..\..\SRC\LIBRARY\Json.dbl">
       <Link>Json.dbl</Link>
     </Compile>
-    <Compile Include="..\..\SRC\LIBRARY\JsonSerializer.dbl">
-      <Link>JsonSerializer.dbl</Link>
-    </Compile>
     <Compile Include="..\..\SRC\LIBRARY\LastRecordCache.dbl">
       <Link>LastRecordCache.dbl</Link>
     </Compile>
@@ -140,26 +143,11 @@
     <Compile Include="..\..\SRC\LIBRARY\Replicate.dbl">
       <Link>Replicate.dbl</Link>
     </Compile>
-    <Compile Include="..\..\SRC\LIBRARY\ReplicateCosmos.dbl">
-      <Link>ReplicateCosmos.dbl</Link>
-    </Compile>
     <Compile Include="..\..\SRC\LIBRARY\SmtpMail.dbl">
       <Link>SmtpMail.dbl</Link>
     </Compile>
     <Compile Include="..\..\SRC\LIBRARY\StringTools.dbl">
       <Link>StringTools.dbl</Link>
-    </Compile>
-    <Compile Include="..\..\SRC\LIBRARY\UnitCosmosIO.dbl">
-      <Link>UnitCosmosIO.dbl</Link>
-    </Compile>
-    <Compile Include="..\..\SRC\LIBRARY\UnitSqlIO.dbl">
-      <Link>UnitSqlIO.dbl</Link>
-    </Compile>
-    <Compile Include="..\..\SRC\LIBRARY\UnitTypeCosmosIO.dbl">
-      <Link>UnitTypeCosmosIO.dbl</Link>
-    </Compile>
-    <Compile Include="..\..\SRC\LIBRARY\UnitTypeSqlIO.dbl">
-      <Link>UnitTypeSqlIO.dbl</Link>
     </Compile>
   </ItemGroup>
   <ItemGroup>

@@ -1,0 +1,43 @@
+
+import Synergex.SynergyDE.Select
+import ReplicationLibrary
+
+;;; <summary>
+;;; Make a change to every employee record in order to queue up a bunch of replication transactions for testing.
+;;; </summary>
+
+main ChangeEveryEmployee
+
+	.include "EMPLOYEE" repository, record="emp"
+
+	record
+		tt, int
+		ch, int
+		ix, int
+	endrecord
+
+proc
+	open(tt=0,i,"tt:")
+	writes(tt,%string(^d(%datetime),"XXXX-XX-XX XX:XX:XX.XXXXXX"))
+
+	;;Open the file
+	open(ch=0,U:I,"REPLICATOR_DATA:EMPLOYEE.ISM")
+
+	;;Add the I/O Hooks
+	new IoHooksISAM(ch,"EMPLOYEE")
+
+	;;Update every record
+	foreach emp in new Select(new From(ch,emp))
+	begin
+		emp.emp_home_ok = !emp_home_ok
+		Select.GetEnum().Current = emp
+		ix += 1
+	end
+
+	;;All done
+	writes(tt,%string(^d(%datetime),"XXXX-XX-XX XX:XX:XX.XXXXXX"))
+	writes(tt,%string(ix) + " records updated")
+	close ch
+	close tt
+
+endmain
