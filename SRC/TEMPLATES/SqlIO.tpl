@@ -1,5 +1,5 @@
 <CODEGEN_FILENAME><StructureName>SqlIO.dbl</CODEGEN_FILENAME>
-<REQUIRES_CODEGEN_VERSION>5.3.11</REQUIRES_CODEGEN_VERSION>
+<REQUIRES_CODEGEN_VERSION>5.3.14</REQUIRES_CODEGEN_VERSION>
 ;//*****************************************************************************
 ;//
 ;// Title:       SqlIO.tpl
@@ -734,7 +734,7 @@ function <StructureName>Insert, ^val
         tmp<FieldSqlName>, a5      ;;Storage for HH:MM time field
         </IF TIME_HHMM>
         <IF TIME_HHMMSS>
-        tmp<FieldSqlName>, a7      ;;Storage for HH:MM:SS time field
+        tmp<FieldSqlName>, a8      ;;Storage for HH:MM:SS time field
         </IF TIME_HHMMSS>
         </IF USERTIMESTAMP>
         </FIELD_LOOP>
@@ -889,7 +889,11 @@ proc
         <FIELD_LOOP>
         <IF DATE>
         if ((!<structure_name>.<field_original_name_modified>)||(!%IsDate(^a(<structure_name>.<field_original_name_modified>))))
+            <IF FIRST_UNIQUE_KEY_SEGMENT>
+            ^a(<structure_name>.<field_original_name_modified>) = "17530101"
+            <ELSE>
             ^a(<structure_name>.<field_original_name_modified>(1:1))=%char(0)
+            </IF FIRST_UNIQUE_KEY_SEGMENT>
         </IF DATE>
         </FIELD_LOOP>
 
@@ -1056,7 +1060,7 @@ function <StructureName>InsertRows, ^val
         tmp<FieldSqlName>, a5      ;;Storage for HH:MM time field
         </IF TIME_HHMM>
         <IF TIME_HHMMSS>
-        tmp<FieldSqlName>, a7      ;;Storage for HH:MM:SS time field
+        tmp<FieldSqlName>, a8      ;;Storage for HH:MM:SS time field
         </IF TIME_HHMMSS>
         </IF USERTIMESTAMP>
         </FIELD_LOOP>
@@ -1235,7 +1239,11 @@ proc
             <FIELD_LOOP>
             <IF DATE>
             if ((!<structure_name>.<field_original_name_modified>)||(!%IsDate(^a(<structure_name>.<field_original_name_modified>))))
+                <IF FIRST_UNIQUE_KEY_SEGMENT>
+                ^a(<structure_name>.<field_original_name_modified>) = "17530101"
+                <ELSE>
                 ^a(<structure_name>.<field_original_name_modified>(1:1))=%char(0)
+                </IF FIRST_UNIQUE_KEY_SEGMENT>
             </IF DATE>
             </FIELD_LOOP>
 
@@ -1428,7 +1436,7 @@ function <StructureName>Update, ^val
         tmp<FieldSqlName>, a5      ;;Storage for HH:MM time field
         </IF TIME_HHMM>
         <IF TIME_HHMMSS>
-        tmp<FieldSqlName>, a7      ;;Storage for HH:MM:SS time field
+        tmp<FieldSqlName>, a8      ;;Storage for HH:MM:SS time field
         </IF TIME_HHMMSS>
         </IF USERTIMESTAMP>
         </FIELD_LOOP>
@@ -1580,7 +1588,11 @@ proc
         <FIELD_LOOP>
         <IF DATE>
         if ((!<structure_name>.<field_original_name_modified>)||(!%IsDate(^a(<structure_name>.<field_original_name_modified>))))
+            <IF FIRST_UNIQUE_KEY_SEGMENT>
+            ^a(<structure_name>.<field_original_name_modified>) = "17530101"
+            <ELSE>
             ^a(<structure_name>.<field_original_name_modified>(1:1)) = %char(0)
+            </IF FIRST_UNIQUE_KEY_SEGMENT>
         </IF DATE>
         </FIELD_LOOP>
 
@@ -1726,7 +1738,7 @@ proc
         <UNIQUE_KEY>
         <SEGMENT_LOOP>
         <IF ALPHA>
-        & + ' "<FieldSqlName>"=' + "'" + %atrim(^a(<structureName>.<segment_name>)) + "' <AND>"
+        & + ' "<FieldSqlName>"=' + "'" + %atrim(<structureName>.<segment_name>) + "' <AND>"
         <ELSE>
         & + ' "<FieldSqlName>"=' + "'" + %string(<structureName>.<segment_name>) + "' <AND>"
         </IF ALPHA>
@@ -3083,7 +3095,10 @@ proc
     <structureName>.<segment_name> = ^d(aKeyValue(segPos:<SEGMENT_LENGTH>))
     </IF DECIMAL>
     <IF DATE>
-    <structureName>.<segment_name> = ^d(aKeyValue(segPos:<SEGMENT_LENGTH>))
+    if ((!<structureName>.<segment_name>)||(!%IsDate(^a(<structureName>.<segment_name>)))) then
+        ^a(<structureName>.<segment_name>) = "17530101"
+    else
+        <structureName>.<segment_name> = ^d(aKeyValue(segPos:<SEGMENT_LENGTH>))
     </IF DATE>
     <IF TIME>
     <structureName>.<segment_name> = ^d(aKeyValue(segPos:<SEGMENT_LENGTH>))
