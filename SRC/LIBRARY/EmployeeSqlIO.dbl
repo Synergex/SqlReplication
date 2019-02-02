@@ -10,6 +10,7 @@
 ;;*****************************************************************************
 
 import ReplicationLibrary
+import Synergex.SynergyDE.Select
 
 .ifndef strEmployee
 .include "EMPLOYEE" repository, structure="strEmployee", end
@@ -2609,58 +2610,33 @@ proc
         .endc
 
         ;;Read and add data file records
-        repeat
+        foreach employee in new Select(new From(filechn,employee))
         begin
-            ;;Get the next record from the input file
-            try
-            begin
-                reads(filechn,employee)
+            records += 1
+            csvrec = ""
+            &    + %MakeDecimalForCsv(employee.emp_id) + "|"
+            &    + %atrim(employee.emp_first_name) + "|"
+            &    + %atrim(employee.emp_last_name) + "|"
+            &    + %atrim(employee.emp_dept) + "|"
+            &    + %MakeDateForCsv(employee.emp_hire_date) + "|"
+            &    + %atrim(employee.emp_phone_work) + "|"
+            &    + %atrim(employee.emp_phone_home) + "|"
+            &    + %atrim(employee.emp_phone_cell) + "|"
+            &    + %MakeDecimalForCsv(employee.emp_paid) + "|"
+            &    + %MakeDecimalForCsv(employee.emp_home_ok) + "|"
+            &    + %MakeDateForCsv(employee.emp_date_of_birth) + "|"
+            &    + %MakeTimeForCsv(employee.emp_hire_time) + "|"
+            &    + %atrim(employee.emp_email) + "|"
+            &    + %atrim(employee.emp_address_street) + "|"
+            &    + %atrim(employee.emp_address_city) + "|"
+            &    + %atrim(employee.emp_address_state) + "|"
+            &    + %MakeDecimalForCsv(employee.emp_address_zip) + ""
 
-                ;;Make sure there are no | characters in the data
-                if (%instr(1,employee,"|"))
-                begin
-                    data tmpData, string, employee
-                    tmpData.Replace("|"," ")
-                    employee = tmpData
-                end
-
-                records += 1
-                csvrec = ""
-                &    + %MakeDecimalForCsv(employee.emp_id) + "|"
-                &    + %atrim(employee.emp_first_name) + "|"
-                &    + %atrim(employee.emp_last_name) + "|"
-                &    + %atrim(employee.emp_dept) + "|"
-                &    + %MakeDateForCsv(employee.emp_hire_date) + "|"
-                &    + %atrim(employee.emp_phone_work) + "|"
-                &    + %atrim(employee.emp_phone_home) + "|"
-                &    + %atrim(employee.emp_phone_cell) + "|"
-                &    + %MakeDecimalForCsv(employee.emp_paid) + "|"
-                &    + %MakeDecimalForCsv(employee.emp_home_ok) + "|"
-                &    + %MakeDateForCsv(employee.emp_date_of_birth) + "|"
-                &    + %MakeTimeForCsv(employee.emp_hire_time) + "|"
-                &    + %atrim(employee.emp_email) + "|"
-                &    + %atrim(employee.emp_address_street) + "|"
-                &    + %atrim(employee.emp_address_city) + "|"
-                &    + %atrim(employee.emp_address_state) + "|"
-                &    + %MakeDecimalForCsv(employee.emp_address_zip) + ""
-
-                .ifdef OS_WINDOWS7
-                writes(csvchn,csvrec)
-                .else
-                puts(csvchn,csvrec + %char(13) + %char(10))
-                .endc
-            end
-            catch (e, @EndOfFileException)
-            begin
-                exitloop
-            end
-            catch (e, @Exception)
-            begin
-                ok = false
-                errtxt = "Unexpected error when reading data file: " + e.Message
-                exitloop
-            end
-            endtry
+            .ifdef OS_WINDOWS7
+            writes(csvchn,csvrec)
+            .else
+            puts(csvchn,csvrec + %char(13) + %char(10))
+            .endc
         end
     end
 

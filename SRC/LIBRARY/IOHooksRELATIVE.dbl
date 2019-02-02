@@ -43,11 +43,11 @@ namespace ReplicationLibrary
     ;;-------------------------------------------------------------------------
     ;;I/O hooks class that implements SQL Replication for relative files
     ;;
-    public sealed class IOHooksRELATIVE extends IOHooks
+    public class IOHooksRELATIVE extends IOHooks
 
-        private mTableName, string
-        private mActive, boolean, false
-        private mChannel, int, 0
+        protected mTableName, string
+        protected mActive, boolean, false
+        protected mChannel, int, 0
 
         ;;---------------------------------------------------------------------
         ;;Constructor
@@ -66,6 +66,16 @@ namespace ReplicationLibrary
             .include "REPLICATION" repository, structure="strInstruction", end
             .endc
         proc
+            ;;Has SQL replication been suppressed via SQL_REPLICATION_DISABLED="YES"?
+            begin
+                data envvalue, a20
+                data envsts, i4
+                xcall getlog("SQL_REPLICATION_DISABLED",envvalue,envsts)
+                upcase envvalue
+                if (envvalue=="YES")
+                    mreturn
+            end
+
             ;;Make sure the channel is to a relative file and open in update mode
             xcall getfa(aChannel,"OMD",openMode)
 
@@ -97,7 +107,7 @@ namespace ReplicationLibrary
         proc
             ;;A record was just written. If it changed then replicate the change.
             if (mActive && !aError)
-                xcall replicate(REPLICATION_INSTRUCTION.UPDATE_RELATIVE,mTableName,%string(aRecnum)+":"+aRecord)
+                xcall Replicate(REPLICATION_INSTRUCTION.UPDATE_RELATIVE,mTableName,%string(aRecnum)+":"+aRecord)
         endmethod
 
         ;;-------------------------------------------------------------------------------------

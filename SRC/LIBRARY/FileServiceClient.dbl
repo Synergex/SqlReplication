@@ -296,7 +296,7 @@ namespace ReplicationLibrary
 			using httpError = %http_get(getURI("text/"+serverFileName),,responseBody,errtxt,requestHeaders,responseHeaders,,,,,,,"1.1") select
 			(0), ;OK (actually 200)
 			begin
-				data parser,   @JsonParser, new JsonParser()
+				data parser,   @Json, new Json()
 				data arrayObj, @JsonArray
 				data itemObj,  @JsonText
 				data result,   @JsonValue, parser.ParseJson(responseBody)

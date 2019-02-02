@@ -1,0 +1,385 @@
+
+import System.Collections
+
+namespace Json
+
+    ;;; <summary>
+    ;;; Defines the various states that can be pushed to the stack.
+    ;;; </summary>
+    public enum SerializerStackType
+        None,
+        Object,
+        Array
+    endenum
+
+    ;;; <summary>
+    ;;; Builds a Harmony Core TraditionalBridge JSON message and writes it to a channel.
+    ;;; </summary>
+    public class JsonSerializer
+
+        private buffer, string
+        private alphaBuf, a65535
+        private alphaPosition, i4
+        ;;TODO: make a real stack out of a dynamic array or something like that
+        private serializerStack, @ArrayList
+        ;;TODO: buffer writes into an a65535 instead of calling write directly
+        ;;TODO: validation
+        private expectingName, boolean, true
+        private first, boolean, true
+
+        .define STACK_STATE, ((SerializerStackType)serializerStack[serializerStack.Count - 1])
+        .define STACK_STATE_ARRAY, (serializerStack.Count > 0 && STACK_STATE == SerializerStackType.Array)
+
+        ;;; <summary>
+        ;;; Constructs a new serializer associated with an open channel.
+        ;;; </summary>
+        public method JsonSerializer
+        proc
+            alphaPosition = 0
+            clear alphaBuf
+            buffer = ""
+            serializerStack = new System.Collections.ArrayList()
+            serializerStack.Add((@SerializerStackType)SerializerStackType.None)
+        endmethod
+
+        ;;; <summary>
+        ;;; Adds a new serializer state to the top of the stack. The stack indicates
+        ;;; whether the serializer is currently processing an onject or an array.
+        ;;; </summary>
+        ;;; <param name="type">SerializerStackType to push</param>
+        private method Push, void
+            req in type, SerializerStackType
+        proc
+            serializerStack.Add((@SerializerStackType)type)
+        endmethod
+
+        private method AppendOutput, void
+            input, a
+        proc
+            if(buffer == ^null)
+                buffer = ""
+            if(^size(input) > 65535) then
+            begin
+                if(alphaPosition > 0)
+                begin
+                    buffer += alphaBuf(1:alphaPosition)
+                    clear alphaBuf
+                end
+                buffer += input
+                mreturn
+            end
+            else if(^size(input) + alphaPosition > 65535)
+            begin
+                buffer += alphaBuf(1:alphaPosition)
+                clear alphaBuf
+            end
+            alphaBuf(alphaPosition + 1:^size(input)) = input
+            alphaPosition += ^size(input)
+        endmethod
+
+        ;;; <summary>
+        ;;; Removes the top serializer state from the stack. The stack indicates
+        ;;; whether the serializer is currently processing an onject or an array.
+        ;;; </summary>
+        ;;; <returns>The SerializerStackType that was removed from the stack.</returns>
+        private method Pop, SerializerStackType
+            record
+                stackResult, SerializerStackType
+        proc
+            stackResult = STACK_STATE
+            serializerStack.RemoveAt(serializerStack.Count - 1)
+            mreturn stackResult
+        endmethod
+
+        ;;; <summary>
+        ;;; 
+        ;;; </summary>
+        public method Null, void
+            record
+                inArray, boolean
+        proc
+            inArray = STACK_STATE_ARRAY
+            AppendOutput(",null")
+            first = false
+            if(!inArray)
+                expectingName = true
+        endmethod
+
+        .region "Serialization methods"
+
+        ;;; <summary>
+        ;;; Begins the definition of a new JSON object by adding a { character to the buffer.
+        ;;; </summary>
+        public method StartObject, void
+            stack record
+                input, @string
+            endrecord
+        proc
+            input = ""
+            if(!first && STACK_STATE_ARRAY)
+                input += ","
+            expectingName = true
+            first = true
+            Push(SerializerStackType.Object)
+            input += "{"
+            AppendOutput(input)
+        endmethod
+
+        ;TODO: Consider renaming this to ObjectClose
+
+        ;;; <summary>
+        ;;; Ends the definition of the current JSON object by adding a } character to the buffer.
+        ;;; If the object being closed represents the entire JSON "packet" (because the } matches
+        ;;; an { at the beginning of the buffer) then the buffer is written to the channel and cleared.
+        ;;; </summary>
+        ;;; <param name="sentMessage">(Optional) If the operation resulted in the sending of the json message to the channel then the message content can be returned.</param>
+        public method EndObject, void
+            stack record
+                message, string
+            endrecord
+        proc
+            first = false
+            Pop()
+            expectingName = !STACK_STATE_ARRAY
+            AppendOutput("}")
+            message = buffer
+        endmethod
+
+        ;;; <summary>
+        ;;; Begins the definition of a new JSON array by adding a [ character to the buffer.
+        ;;; </summary>
+        public method StartArray, void
+            record
+                input, @string
+        proc
+            input = ""
+            if(!first && STACK_STATE_ARRAY)
+                input += ","
+            first = true
+            expectingName = false
+            Push(SerializerStackType.Array)
+            input += "["
+            AppendOutput(input)
+        endmethod
+
+        ;;; <summary>
+        ;;; Ends the definition of the current JSON array by adding a ] character to the buffer.
+        ;;; If the array being closed represents the entire JSON "packet" (because the ] matches
+        ;;; an [ at the beginning of the buffer) then the buffer is written to the channel and cleared.
+        ;;; </summary>
+        ;;; <param name="sentMessage">(Optional) If the operation resulted in the sending of the json message to the channel then the message content can be returned.</param>
+        public method EndArray, void
+            optional out sentMessage, string
+            stack record
+                message, string
+            endrecord
+        proc
+            first = false
+            Pop()
+            expectingName = !STACK_STATE_ARRAY
+            AppendOutput("]")
+            message = buffer
+            if (^passed(sentMessage))
+                sentMessage = message
+        endmethod
+
+        ;;; <summary>
+        ;;; Adds an integer value to the JSON buffer.
+        ;;; </summary>
+        ;;; <param name="value">Value to add.</param>
+        public method Integer, void
+            req in value, n
+            record
+                inArray, boolean
+                input, @string
+        proc
+            input = ""
+            inArray = STACK_STATE_ARRAY
+            if(!first && inArray)
+                input += ","
+            first = false
+            input += %string(value)
+            if(!inArray)
+                expectingName = true
+            AppendOutput(input)
+        endmethod
+
+        ;;; <summary>
+        ;;; Adds a double value to the JSON buffer.
+        ;;; </summary>
+        ;;; <param name="value">Value to add.</param>
+        public method Double, void
+            req in value, id
+            record
+                inArray, boolean
+                input, @string
+        proc
+            input = ""
+            inArray = STACK_STATE_ARRAY
+            if(!first && inArray)
+                input += ","
+            first = false
+            input += %string(value)
+            if(!inArray)
+                expectingName = true
+            AppendOutput(input)
+        endmethod
+
+        ;;; <summary>
+        ;;; Adds a boolean value to the JSON buffer.
+        ;;; </summary>
+        ;;; <param name="value">Value to add.</param>
+        public method Bool, void
+            req in value, boolean
+            record
+                inArray, boolean
+                input, string
+        proc
+            input = ""
+            inArray = STACK_STATE_ARRAY
+            if(!first && inArray)
+                input += ","
+            if(value) then
+                input += "true"
+            else
+                input += "false"
+            first = false
+            if(!inArray)
+                expectingName = true
+            AppendOutput(input)
+        endmethod
+
+        ;;; <summary>
+        ;;; Adds a string value to the JSON buffer.
+        ;;; </summary>
+        ;;; <param name="value">Value to add.</param>
+        public method String, void
+            req in value, @string
+            record
+                inArray, boolean
+                input, @string
+        proc
+            input = ""
+            inArray = STACK_STATE_ARRAY
+            if (!first && (expectingName || inArray))
+                input += ","
+            first = false
+            ;;TODO this string might need to be encoded, it probably shouldnt have binary data in it
+            input += '"' + value + '"'
+            if (expectingName)
+                input += ":"
+            if (!inArray)
+                expectingName = !expectingName
+            AppendOutput(input)
+        endmethod
+
+        public method Pair, void
+            req in key, @string
+            req in value, @string
+            record
+                inArray, boolean
+                input, @string
+        proc
+            if (!expectingName)
+                throw new InvalidOperationException("received name + value pair when name was unexpected")
+            input = ""
+            inArray = STACK_STATE_ARRAY
+            if (!first)
+                input += ","
+            first = false
+            input += '"' + key + '":"' + value + '"'
+            AppendOutput(input)
+        endmethod
+
+        public method PairBool, void
+            req in key, @string
+            req in value, boolean
+            record
+                inArray, boolean
+                input, @string
+        proc
+            if (!expectingName)
+                throw new InvalidOperationException("received name + value pair when name was unexpected")
+            input = ""
+            inArray = STACK_STATE_ARRAY
+            if (!first)
+                input += ","
+            first = false
+            input += '"' + key + '":'
+            if (value) then
+                input += "true"
+            else
+                input += "false"
+            AppendOutput(input)
+        endmethod
+
+        public method Pair, void
+            req in key, @string
+            req in value, n.
+            record
+                inArray, boolean
+                input, @string
+        proc
+            if (!expectingName)
+                throw new InvalidOperationException("received name + value pair when name was unexpected")
+            input = ""
+            inArray = STACK_STATE_ARRAY
+            if (!first)
+                input += ","
+            first = false
+            input += '"' + key + '":' + %string(value)
+            AppendOutput(input)
+        endmethod
+
+        public method PairNull, void
+            req in key, @string
+            record
+                inArray, boolean
+                input, @string
+        proc
+            if(!expectingName)
+                throw new InvalidOperationException("received name + value pair when name was unexpected")
+            input = ""
+            inArray = STACK_STATE_ARRAY
+            if (!first)
+                input += ","
+            first = false
+            input += '"' + key + '":null'
+            AppendOutput(input)
+        endmethod
+
+        public method OutputScopeOpen, void
+        proc
+        endmethod
+
+        ;;abort the current output scope, rolling back any output in the buffer back to the last OutputScopeOpen call
+        public method OutputScopeAbort, void
+        proc
+            buffer = ""
+            clear alphaBuf
+            clear alphaPosition
+        endmethod
+
+        public method OutputScopeClose, void
+        proc
+        endmethod
+
+        .endregion
+
+        .region "Other public members"
+
+        ;;; <summary>
+        ;;; Expose the current JSON string
+        ;;; </summary>
+        public property JsonString, string
+            method get
+            proc
+                mreturn %atrim(alphaBuf)
+            endmethod
+        endproperty
+
+        .endregion
+
+    endclass
+
+endnamespace

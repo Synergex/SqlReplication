@@ -83,6 +83,9 @@
     <Compile Include="..\..\SRC\REPLICATOR\InstructionCount.dbl">
       <Link>InstructionCount.dbl</Link>
     </Compile>
+    <Compile Include="..\..\SRC\REPLICATOR\JsonSerializationTest.dbl">
+      <Link>JsonSerializationTest.dbl</Link>
+    </Compile>
     <Compile Include="..\..\SRC\REPLICATOR\replicator.dbl">
       <Link>replicator.dbl</Link>
     </Compile>

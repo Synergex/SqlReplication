@@ -191,6 +191,7 @@
             <F N="../SRC/LIBRARY/FileServiceClient.dbl"/>
             <F N="../SRC/LIBRARY/GenerateDepartmentData.dbl"/>
             <F N="../SRC/LIBRARY/GenerateEmployeeData.dbl"/>
+            <F N="../SRC/LIBRARY/GetDateTimeString.dbl"/>
             <F N="../SRC/LIBRARY/GetReplicatedTables.dbl"/>
             <F N="../SRC/LIBRARY/IndexExists.dbl"/>
             <F N="../SRC/LIBRARY/IOHooksISAM.dbl"/>
@@ -200,6 +201,7 @@
             <F N="../SRC/LIBRARY/IsNumeric.dbl"/>
             <F N="../SRC/LIBRARY/IsTime.dbl"/>
             <F N="../SRC/LIBRARY/Json.dbl"/>
+            <F N="../SRC/LIBRARY/JsonSerializer.dbl"/>
             <F N="../SRC/LIBRARY/LastRecordCache.dbl"/>
             <F N="../SRC/LIBRARY/MakeDateForCsv.dbl"/>
             <F N="../SRC/LIBRARY/MakeDecimalForCsv.dbl"/>
@@ -208,6 +210,7 @@
             <F N="../SRC/LIBRARY/Replicate.dbl"/>
             <F N="../SRC/LIBRARY/SmtpMail.dbl"/>
             <F N="../SRC/LIBRARY/StringTools.dbl"/>
+            <F N="../SRC/LIBRARY/SynPSG.System.Convert.dbl"/>
         </Folder>
         <Folder
             Name="Header Files"

@@ -43,14 +43,14 @@ namespace ReplicationLibrary
     ;;-------------------------------------------------------------------------
     ;;I/O hooks class that implements SQL Replication
     ;;
-    public sealed class IoHooksISAM extends IOHooks
+    public class IoHooksISAM extends IOHooks
 
-        private mTableName, string
-        private mActive, boolean, false
-        private mMultiTable, boolean
-        private mChannel, int, 0
-        private mFillTimeStamp, boolean, false
-        private mTimeStampPos, int, 0
+        protected mTableName,       string
+        protected mActive,          boolean,    false
+        protected mMultiTable,      boolean,    false
+        protected mChannel,         int,        0
+        protected mFillTimeStamp,   boolean,    false
+        protected mTimeStampPos,    int,        0
 
         ;;---------------------------------------------------------------------
         ;;Constructor
@@ -80,6 +80,16 @@ namespace ReplicationLibrary
             .include "REPLICATION" repository, structure="strInstruction", end
             .endc
         proc
+            ;;Has SQL replication been suppressed via SQL_REPLICATION_DISABLED="YES"?
+            begin
+                data envvalue, a20
+                data envsts, i4
+                xcall getlog("SQL_REPLICATION_DISABLED",envvalue,envsts)
+                upcase envvalue
+                if (envvalue=="YES")
+                    mreturn
+            end
+
             ;;Make sure the channel is to an indexed file and open in update mode
             xcall getfa(aChannel,"OMD",openMode)
             if (openMode=="U:I")
@@ -171,14 +181,14 @@ namespace ReplicationLibrary
         proc
             ;;A record was just updated. If it changed then replicate the change.
             if (mActive && !aError)
-			begin
+            begin
                 if (LastRecordCache.HasChanged(mChannel,aRecord))
-				begin
-					data tableName, string, getTableName(aRecord)
-					if (tableName(1:1)!="*")
-	                    xcall replicate(REPLICATION_INSTRUCTION.UPDATE_ROW,tableName,aRecord)
-				end
-			end
+                begin
+                    data tableName, string, getTableName(aRecord)
+                    if (tableName(1:1)!="*")
+                        xcall replicate(REPLICATION_INSTRUCTION.UPDATE_ROW,tableName,aRecord)
+                end
+            end
         endmethod
 
         ;;---------------------------------------------------------------------
@@ -206,11 +216,11 @@ namespace ReplicationLibrary
         proc
             ;;A new record was just created. Replicate the change.
             if (mActive && !aError)
-			begin
-				data tableName, string, getTableName(aRecord)
-				if (tableName(1:1)!="*")
-	                xcall replicate(REPLICATION_INSTRUCTION.CREATE_ROW,tableName,aRecord)
-			end
+            begin
+                data tableName, string, getTableName(aRecord)
+                if (tableName(1:1)!="*")
+                    xcall replicate(REPLICATION_INSTRUCTION.CREATE_ROW,tableName,aRecord)
+            end
         endmethod
 
         ;;---------------------------------------------------------------------
@@ -222,11 +232,11 @@ namespace ReplicationLibrary
         proc
             ;;A record was just deleted. Replicate the change.
             if (mActive && !aError)
-			begin
-				data tableName, string, getTableName(LastRecordCache.Retrieve(mChannel))
-				if (tableName(1:1)!="*")
-	                xcall replicate(REPLICATION_INSTRUCTION.DELETE_ROW,tableName,LastRecordCache.Retrieve(mChannel))
-			end
+            begin
+                data tableName, string, getTableName(LastRecordCache.Retrieve(mChannel))
+                if (tableName(1:1)!="*")
+                    xcall replicate(REPLICATION_INSTRUCTION.DELETE_ROW,tableName,LastRecordCache.Retrieve(mChannel))
+            end
         endmethod
 
         ;;---------------------------------------------------------------------
@@ -284,7 +294,7 @@ namespace ReplicationLibrary
 ;            end
 ;            else
 ;            begin
-                mreturn mTableName
+            mreturn mTableName
 ;            end
 
         endmethod

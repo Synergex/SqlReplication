@@ -98,6 +98,9 @@
     <Compile Include="..\..\SRC\LIBRARY\GenerateEmployeeData.dbl">
       <Link>GenerateEmployeeData.dbl</Link>
     </Compile>
+    <Compile Include="..\..\SRC\LIBRARY\GetDateTimeString.dbl">
+      <Link>GetDateTimeString.dbl</Link>
+    </Compile>
     <Compile Include="..\..\SRC\LIBRARY\GetReplicatedTables.dbl">
       <Link>GetReplicatedTables.dbl</Link>
     </Compile>
@@ -125,6 +128,9 @@
     <Compile Include="..\..\SRC\LIBRARY\Json.dbl">
       <Link>Json.dbl</Link>
     </Compile>
+    <Compile Include="..\..\SRC\LIBRARY\JsonSerializer.dbl">
+      <Link>JsonSerializer.dbl</Link>
+    </Compile>
     <Compile Include="..\..\SRC\LIBRARY\LastRecordCache.dbl">
       <Link>LastRecordCache.dbl</Link>
     </Compile>
@@ -148,6 +154,9 @@
     </Compile>
     <Compile Include="..\..\SRC\LIBRARY\StringTools.dbl">
       <Link>StringTools.dbl</Link>
+    </Compile>
+    <Compile Include="..\..\SRC\LIBRARY\SynPSG.System.Convert.dbl">
+      <Link>SynPSG.System.Convert.dbl</Link>
     </Compile>
   </ItemGroup>
   <ItemGroup>

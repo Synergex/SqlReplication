@@ -1,0 +1,44 @@
+function GetDateTimeString, a
+    stack record
+        group now, a
+            year,       a4
+            monthnum,   d2
+            day,        a2
+            time,       d6
+            ,           a6
+        endgroup
+        dayname,      a3
+        monthname,    a3
+    endrecord
+proc
+
+    now = %datetime
+
+    using monthnum select
+    (1),  monthname="JAN"
+    (2),  monthname="FEB"
+    (3),  monthname="MAR"
+    (4),  monthname="APR"
+    (5),  monthname="MAY"
+    (6),  monthname="JUN"
+    (7),  monthname="JUL"
+    (8),  monthname="AUG"
+    (9),  monthname="SEP"
+    (10), monthname="OCT"
+    (11), monthname="NOV"
+    (12), monthname="DEC"
+    endusing
+
+    using %wkday(^d(now(1:8))) select
+    (1),  dayname = "Sun"
+    (2),  dayname = "Mon"
+    (3),  dayname = "Tue"
+    (4),  dayname = "Wed"
+    (5),  dayname = "Thu"
+    (6),  dayname = "Fri"
+    (7),  dayname = "Sat"
+    endusing
+
+    freturn dayname + ", " + day + "-" + monthname + "-" + year + " " + %string(time,"XX:XX:XX")
+
+endfunction

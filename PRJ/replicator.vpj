@@ -189,6 +189,7 @@
             <F N="../SRC/REPLICATOR/EmployeeDataReport.dbl"/>
             <F N="../SRC/REPLICATOR/EmployeeMaintenance.dbl"/>
             <F N="../SRC/REPLICATOR/InstructionCount.dbl"/>
+            <F N="../SRC/REPLICATOR/JsonSerializationTest.dbl"/>
             <F N="../SRC/REPLICATOR/QueueMonitor.dbl"/>
             <F N="../SRC/REPLICATOR/replicator.dbl"/>
             <F N="../SRC/REPLICATOR/ReplicatorMenu.dbl"/>
@@ -223,6 +224,7 @@
             <F N="../VMS/SETUP.COM"/>
             <F N="../BAT/StartService.bat"/>
             <F N="../BAT/StopService.bat"/>
+            <F N="../UserDefinedTokens.tkn"/>
         </Folder>
     </Files>
     <Config
