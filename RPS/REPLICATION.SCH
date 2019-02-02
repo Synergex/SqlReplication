@@ -231,31 +231,6 @@ Key TRANSACTION_ID   ACCESS   Order ASCENDING   Dups NO   Density 100
    Description "Transaction ID (I8 timestamp)"
    Segment FIELD   TRANSACTION_ID  SegType SEQUENCE
  
-Structure REPLICATION_COSMOS   DBL ISAM
-   Description "Replication request queue for CosmosDB"
- 
-Field TRANSACTION_ID   Type AUTOSEQ   Size 8
-   Description "Unique transaction ID (I8 timestamp)"
-   Report Just LEFT   Input Just LEFT   Readonly
-   Nonull
- 
-Field ACTION   Type DECIMAL   Size 2
-   Description "Replicator action"
-   Negative
- 
-Field STRUCTURE_NAME   Type ALPHA   Size 32
-   Description "Table name"
- 
-Field BEFORE   Type ALPHA   Size 32500
-   Description "Record before changes"
- 
-Field AFTER   Type ALPHA   Size 32500
-   Description "Record after changes"
- 
-Key TRANSACTION_ID   ACCESS   Order ASCENDING   Dups NO   Density 100
-   Description "Transaction ID (I8 timestamp)"
-   Segment FIELD   TRANSACTION_ID  SegType SEQUENCE
- 
 Structure REPLICATION_VMS   DBL ISAM
    Description "Replication request queue (OpenVMS)"
  
@@ -297,13 +272,7 @@ File REPLICATION   DBL ISAM   "REPLICATOR_DATA:REPLICATION.ISM"
    Addressing 40BIT   Compress   Terabyte
    Assign REPLICATION
  
-File REPLICATION_COSMOS   DBL ISAM   "REPLICATOR_DATA:REPLICATION_COSMOS.ISM"
-   Description "SQL replication request queue (Cosmos)"
-   Addressing 40BIT   Compress   Terabyte
-   Assign REPLICATION_COSMOS
- 
 File REPLICATION_VMS   DBL ISAM   "REPLICATOR_DATA:REPLICATION.ISM"
    Description "SQL replication request queue file (VMS)"
    Addressing 40BIT
    Assign REPLICATION_VMS
- 

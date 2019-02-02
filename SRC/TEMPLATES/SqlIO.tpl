@@ -892,7 +892,7 @@ proc
             <IF FIRST_UNIQUE_KEY_SEGMENT>
             ^a(<structure_name>.<field_original_name_modified>) = "17530101"
             <ELSE>
-            ^a(<structure_name>.<field_original_name_modified>(1:1))=%char(0)
+            ^a(<structure_name>.<field_original_name_modified>(1:1)) = %char(0)
             </IF FIRST_UNIQUE_KEY_SEGMENT>
         </IF DATE>
         </FIELD_LOOP>
