@@ -34,6 +34,9 @@ $ DIB/OPT/VECTORS=VECTORS/OBJ=OBJ:LIBRARY.OBJ -
  + LIBSRC:IsTime.dbl -
  + LIBSRC:Json.dbl -
  + LIBSRC:LastRecordCache.dbl -
+ + LIBSRC:MakeDateForCsv.dbl -
+ + LIBSRC:MakeDecimalForCsv.dbl -
+ + LIBSRC:MakeTimeForCsv.dbl -
  + LIBSRC:PopulateReplicationKey.dbl - 
  + LIBSRC:Replicate.dbl -
  + LIBSRC:SmtpMail.dbl -
