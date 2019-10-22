@@ -430,13 +430,6 @@ proc
 
     </ALTERNATE_KEY_LOOP>
 
-    ;;Set the database timeout back to the regular value
-
-    now = %datetime
-    writelog("Resetting database timeout to " + %string(a_db_timeout) + " seconds")
-    if (%ssc_cmd(a_dbchn,,SSQL_TIMEOUT,%string(a_db_timeout))==SSQL_FAILURE)
-        nop
-
     ;;Commit or rollback the transaction
 
     if ((a_commit_mode==3) && transaction)
@@ -457,6 +450,13 @@ proc
             xcall ssc_rollback(a_dbchn,SSQL_TXOFF)
         end
     end
+
+    ;;Set the database timeout back to the regular value
+
+    now = %datetime
+    writelog("Resetting database timeout to " + %string(a_db_timeout) + " seconds")
+    if (%ssc_cmd(a_dbchn,,SSQL_TIMEOUT,%string(a_db_timeout))==SSQL_FAILURE)
+        nop
 
     ;;If there was an error message, return it to the calling routine
 

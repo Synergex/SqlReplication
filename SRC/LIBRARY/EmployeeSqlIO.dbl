@@ -421,13 +421,6 @@ proc
     end
 
 
-    ;;Set the database timeout back to the regular value
-
-    now = %datetime
-    writelog("Resetting database timeout to " + %string(a_db_timeout) + " seconds")
-    if (%ssc_cmd(a_dbchn,,SSQL_TIMEOUT,%string(a_db_timeout))==SSQL_FAILURE)
-        nop
-
     ;;Commit or rollback the transaction
 
     if ((a_commit_mode==3) && transaction)
@@ -448,6 +441,13 @@ proc
             xcall ssc_rollback(a_dbchn,SSQL_TXOFF)
         end
     end
+
+    ;;Set the database timeout back to the regular value
+
+    now = %datetime
+    writelog("Resetting database timeout to " + %string(a_db_timeout) + " seconds")
+    if (%ssc_cmd(a_dbchn,,SSQL_TIMEOUT,%string(a_db_timeout))==SSQL_FAILURE)
+        nop
 
     ;;If there was an error message, return it to the calling routine
 
@@ -848,9 +848,9 @@ proc
         ;;Clean up any date fields
 
         if ((!employee.emp_hire_date)||(!%IsDate(^a(employee.emp_hire_date))))
-            ^a(employee.emp_hire_date(1:1))=%char(0)
+            ^a(employee.emp_hire_date(1:1)) = %char(0)
         if ((!employee.emp_date_of_birth)||(!%IsDate(^a(employee.emp_date_of_birth))))
-            ^a(employee.emp_date_of_birth(1:1))=%char(0)
+            ^a(employee.emp_date_of_birth(1:1)) = %char(0)
 
         ;;Clean up any time fields
 
