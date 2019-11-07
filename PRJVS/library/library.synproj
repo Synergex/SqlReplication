@@ -155,9 +155,6 @@
     <Compile Include="..\..\SRC\LIBRARY\StringTools.dbl">
       <Link>StringTools.dbl</Link>
     </Compile>
-    <Compile Include="..\..\SRC\LIBRARY\SynPSG.System.Convert.dbl">
-      <Link>SynPSG.System.Convert.dbl</Link>
-    </Compile>
   </ItemGroup>
   <ItemGroup>
     <Content Include="..\..\SRC\LIBRARY\SmtpMail.def">
