@@ -1361,6 +1361,51 @@ ConfigureEnvironment,
         endusing
     end
 
+    ;;Instance name
+
+    if (ok)
+    begin
+        ;;Command line?
+        if (CommandLineParser.Parse("instance",clValues)) then
+        begin
+            using clValues.Count select
+            (1),
+            begin
+                data now, a20, %datetime
+                Settings.InstanceName = (string)clValues[0]
+                Settings.LogFileName = "REPLICATOR_LOGDIR:REPLICATOR_" + Settings.InstanceName + "_" + now(1:8) + "_" + now(9:6) + ".LOG"
+                Settings.TransactionFile = "REPLICATOR_DATA:REPLICATION_" + Settings.InstanceName + ".ISM"
+            end
+            (0),
+            begin
+                xcall errorlog("Missing value after the -instance option")
+                ok = false
+            end
+            (),
+            begin
+                xcall errorlog("Only one value may follow the -instance option")
+                ok = false
+            end
+            endusing
+        end
+        else
+        begin
+            ;;Environment variable?
+            data tmpval, a80
+            xcall getlog("REPLICATOR_INSTANCE",tmpval,length)
+            if (length)
+            begin
+                data now, a20, %datetime
+                Settings.InstanceName = tmpval(1:length)
+                Settings.LogFileName = "REPLICATOR_LOGDIR:REPLICATOR_" + Settings.InstanceName + "_" + now(1:8) + "_" + now(9:6) + ".LOG"
+                Settings.TransactionFile = "REPLICATOR_DATA:REPLICATION_" + Settings.InstanceName + ".ISM"
+            end
+        end
+
+        ;;Report the instance name
+        xcall log("Instance name " + Settings.InstanceName)
+    end
+
     ;;Open log file
 
     ok = %open_log
@@ -1458,38 +1503,6 @@ ConfigureEnvironment,
             xcall getlog("REPLICATOR_FILESERVICE_PORT",tmpval,length)
             if (length)
                 Settings.FileServicePort = tmpval(1:length)
-        end
-    end
-
-    ;;Instance name
-
-    if (ok)
-    begin
-        ;;Command line?
-        if (CommandLineParser.Parse("instance",clValues)) then
-        begin
-            using clValues.Count select
-            (1),
-                Settings.InstanceName = (string)clValues[0]
-            (0),
-            begin
-                xcall errorlog("Missing value after the -instance option")
-                ok = false
-            end
-            (),
-            begin
-                xcall errorlog("Only one value may follow the -instance option")
-                ok = false
-            end
-            endusing
-        end
-        else
-        begin
-            ;;Environment variable?
-            data tmpval, a80
-            xcall getlog("REPLICATOR_INSTANCE",tmpval,length)
-            if (length)
-                Settings.InstanceName = tmpval(1:length)
         end
     end
 
@@ -2600,16 +2613,12 @@ endsubroutine
 ;;*****************************************************************************
 ;;
 subroutine cycle_log
-    record
-        now, a20
-    endrecord
 proc
-
     ;;Open the log file
     if (Settings.LogFileChannel!=0)
     begin
-        now = %datetime
-        Settings.LogFileName = "REPLICATOR_LOGDIR:replicator_" + now(1:8) + "_" + now(9:6) + ".log"
+        data now, a20, %datetime
+        Settings.LogFileName = "REPLICATOR_LOGDIR:REPLICATOR_" + Settings.InstanceName + "_" + now(1:8) + "_" + now(9:6) + ".LOG"
 
         xcall log("New log file is " + Settings.LogFileName)
 
@@ -2825,13 +2834,13 @@ namespace Tools
             FileServicePort    = "8080"
             InstanceName       = "DEFAULT"
             LogFileChannel     = 0
-            LogFileName        = "REPLICATOR_LOGDIR:replicator_" + now(1:8) + "_" + now(9:6) + ".log"
+            LogFileName        = "REPLICATOR_LOGDIR:REPLICATOR_" + InstanceName + "_" + now(1:8) + "_" + now(9:6) + ".LOG"
             MaxCursors         = 128
             MaxColumns         = 254
             RunningOnTerminal  = (%tnmbr >= 0)
             SleepTime          = 60
             SystemLog          = false
-            TransactionFile    = "REPLICATOR_DATA:REPLICATION.ISM"
+            TransactionFile    = "REPLICATOR_DATA:REPLICATION_" + InstanceName + ".ISM"
             DatabaseTimeout    = 60
             BulkLoadTimeout    = 900
         endmethod

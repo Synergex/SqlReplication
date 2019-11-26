@@ -4,7 +4,7 @@ setlocal
 rem ---------------------------------------------------------------------------
 rem set code generation options
 
-set STRUCTURES=EMPLOYEE
+set STRUCTURES=EMPLOYEE DEPARTMENT
 
 rem set USE_STRUCTURE_ALIASES=-a %STRUCTURES%
 

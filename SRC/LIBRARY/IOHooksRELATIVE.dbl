@@ -45,9 +45,10 @@ namespace ReplicationLibrary
     ;;
     public class IOHooksRELATIVE extends IOHooks
 
-        protected mTableName, string
-        protected mActive, boolean, false
-        protected mChannel, int, 0
+        protected mTableName,       string
+        protected mInstanceName,    string
+        protected mActive,          boolean,    false
+        protected mChannel,         int,        0
 
         ;;---------------------------------------------------------------------
         ;;Constructor
@@ -55,6 +56,7 @@ namespace ReplicationLibrary
         public method IOHooksRELATIVE
             required in aChannel, n
             required in aTableName, string
+            required in aInstanceName, string
             endparams
             parent(aChannel)
             record
@@ -87,10 +89,20 @@ namespace ReplicationLibrary
                 if (recLen > ^size(strInstruction.record))
                     exit
 
-                ;;Record the channel number and structure name
-                mChannel = aChannel
-                mTableName = aTableName
+                ;;Record that we are active
                 mActive = true
+
+                ;;Record the channel number, table name and instance name
+                mChannel = aChannel
+
+                ;;Record the channel number, table name and instance name
+                mTableName = aTableName
+
+                ;;Record the channel number, table name and instance name
+                mInstanceName = aInstanceName
+
+                ;;Make sure we have the queue file open for this instance
+                xcall Replicate(mInstanceName,REPLICATION_INSTRUCTION.OPEN_FILE)
             end
         endmethod
 
@@ -107,10 +119,22 @@ namespace ReplicationLibrary
         proc
             ;;A record was just written. If it changed then replicate the change.
             if (mActive && !aError)
-                xcall Replicate(REPLICATION_INSTRUCTION.UPDATE_RELATIVE,mTableName,%string(aRecnum)+":"+aRecord)
+                xcall Replicate(mInstanceName,REPLICATION_INSTRUCTION.UPDATE_RELATIVE,mTableName,%string(aRecnum)+":"+aRecord)
         endmethod
 
-        ;;-------------------------------------------------------------------------------------
+        ;;---------------------------------------------------------------------
+        ;;CLOSE hooks
+
+        public override method close_pre_operation_hook, void
+            required in aFlags, IOFlags
+            endparams
+        proc
+            if (mActive)
+            begin
+                ;;Maybe close the queue file channel
+                xcall replicate(mInstanceName,REPLICATION_INSTRUCTION.CLOSE_FILE)
+            end
+        endmethod
 
     endclass
 

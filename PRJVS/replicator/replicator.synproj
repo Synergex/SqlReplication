@@ -74,6 +74,9 @@
     </PostBuildEvent>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="..\..\SRC\REPLICATOR\DepartmentMaintenance.dbl">
+      <Link>DepartmentMaintenance.dbl</Link>
+    </Compile>
     <Compile Include="..\..\SRC\REPLICATOR\EmployeeDataReport.dbl">
       <Link>EmployeeDataReport.dbl</Link>
     </Compile>

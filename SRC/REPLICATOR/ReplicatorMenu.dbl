@@ -41,24 +41,26 @@ import ReplicationLibrary
 main ReplicatorMenu
 
     record
-        tt,             i4
-        system,         d4
-        runtime,        d4
-        windows,        boolean
-        unix,           boolean
-        pid,            int
-        option,         a2
-        validTables,    @ArrayList
-        tableName,      a30
-        instanceName,   a15
-        status,         i4
+        tt,                 i4
+        system,             d4
+        runtime,            d4
+        windows,            boolean
+        unix,               boolean
+        pid,                int
+        option,             a2
+        validTables,        @ArrayList
+        tableName,          a30
+        instanceName,       string
+        queueFileName,      string
+        tmpInstanceName,    a15
+        status,             i4
     endrecord
 
-    .ifdef D_VMS
+.ifdef D_VMS
     .include "REPLICATION_VMS" repository, record="instruction", end
-    .else
+.else
     .include "REPLICATION" repository, record="instruction", end
-    .endc
+.endc
 
     record outbuf
         operation,  a20
@@ -79,19 +81,19 @@ proc
 
     try
     begin
-        .ifdef D_VMS
+.ifdef D_VMS
         xcall openelb("REPLICATOR_SH")
-        .else
+.else
         xcall openelb("REPLICATOR_EXE:library.elb")
-        .endc
+.endc
     end
     catch (ex, @Exception)
     begin
-        .ifdef D_VMS
+.ifdef D_VMS
         display(tt,"ERROR: Failed to activate shared image REPLICATOR_SH")
-        .else
+.else
         display(tt,"ERROR: Failed to activate ELB REPLICATOR_EXE:library.elb")
-        .endc
+.endc
         stop
     end
     endtry
@@ -104,13 +106,23 @@ proc
 
     display(tt,$SCR_POS(1,1),$SCR_CLR(SCREEN),"Replicator Control")
 
-    ;;Get the default instance name
-    xcall getlog("REPLICATOR_INSTANCE",instanceName,status)
-    if (instanceName) then
-        display(tt,$SCR_POS(1,25), "Instance: " + %atrim(instanceName))
-    else
-        display(tt,$SCR_POS(1,25), "Instance: <none>")
+    ;;Get the instance name, default to "DEFAULT"
+    xcall getlog("REPLICATOR_INSTANCE",tmpInstanceName,status)
 
+    if (tmpInstanceName) then
+    begin
+        upcase tmpInstanceName
+        instanceName = %atrimtostring(tmpInstanceName)
+    end
+    else
+    begin
+        instanceName = "DEFAULT"
+    end
+
+    ;;Set the queue file name for the instance
+    queueFileName = "REPLICATOR_DATA:REPLICATION_" + instanceName + ".ISM"
+
+    display(tt,$SCR_POS(1,25), "Instance: " + instanceName)
     display(tt,$SCR_POS(1,50),"Table: <none>")
 
     repeat
@@ -134,21 +146,18 @@ proc
 
         display(tt,$SCR_POS(8,2), "V.  View instructions")
         display(tt,$SCR_POS(9,2), "P.  Purge instructions")
-        .ifndef D_VMS
+.ifndef D_VMS
         display(tt,$SCR_POS(10,2),"Q.  Queue length")
-        .endc
-        .ifdef D_GUI
+.endc
+.ifdef D_GUI
         display(tt,$SCR_POS(11,2),"QM. Start Queue Monitor")
-        .endc
+.endc
         display(tt,$SCR_POS(13,2),"I.  Change interval")
         display(tt,$SCR_POS(14,2),"N.  Change instance name")
         display(tt,$SCR_POS(15,2),"R.  Restart log file")
 
         display(tt,$SCR_POS(17,2),"A.  Available tables")
         display(tt,$SCR_POS(18,2),"T.  Set current table")
-
-        if (windows)
-            display(tt,$SCR_POS(19,2),"M.  Start maintenance program")
 
         display(tt,$SCR_POS(21,2),"E.  Exit")
 
@@ -163,6 +172,9 @@ proc
             display(tt,$SCR_POS( 9,40),"TR. Truncate table")
             display(tt,$SCR_POS(10,40),"D.  Delete table")
             display(tt,$SCR_POS(11,40),"X.  Export to CSV")
+
+            if (windows && (tableName=="Employee" || tableName=="Department"))
+                display(tt,$SCR_POS(13,40),"M.  Maintainance")
         end
 
         display(tt,$SCR_POS(24,2),$SCR_CLR(EOS),"Select an option: ")
@@ -173,7 +185,18 @@ proc
         ("M "),
         begin
             if (windows)
-                xcall spawn("dbr REPLICATOR_EXE:employeemaintenance.dbr",D_NOWINDOW|D_NOWAIT)
+            begin
+                using tableName select
+                ("Department"),
+                begin
+                    xcall spawn("dbr REPLICATOR_EXE:DepartmentMaintenance.dbr",D_NOWINDOW|D_NOWAIT)
+                end
+                ("Employee"),
+                begin
+                    xcall spawn("dbr REPLICATOR_EXE:EmployeeMaintenance.dbr",D_NOWINDOW|D_NOWAIT)
+                end
+                endusing
+            end
         end
 
         ("SR"),
@@ -208,7 +231,7 @@ proc
                     writes(tt,%atrim(buffer))
                     instanceCount+=1
                 end
-EndOfPipe,      close pipechn
+            EndOfPipe,      close pipechn
 
                 if (!instanceCount)
                     display(tt,"No replicator instances found!")
@@ -235,8 +258,8 @@ EndOfPipe,      close pipechn
             ;;Stop now. To do this we need to flip the action field of the first record to a negative value.
             ;;If there is no first record then queue a shutdown
             data chn, i4
-            open(chn=0,"U:I","REPLICATOR_DATA:REPLICATION.ISM")
-again,      sleep 0.01
+            open(chn=0,"U:I",queueFileName)
+        again,      sleep 0.01
             read(chn,instruction,^FIRST) [$ERR_LOCKED=again,$ERR_EOF=norec]
             ;;The queue is not empty, schedule a shutdown via the first item in the queue
             instruction.action = -instruction.action
@@ -244,14 +267,14 @@ again,      sleep 0.01
             close chn
             exit
             ;;The queue is empty, schedule a shutdown via a specific instruction
-norec,      close chn
-            xcall Replicate(REPLICATION_INSTRUCTION.SHUTDOWN)
+        norec,      close chn
+            xcall Replicate(instanceName,REPLICATION_INSTRUCTION.SHUTDOWN)
             display(tt,$scr_pos(24,2),$SCR_CLR(EOL),"Command queued")
         end
 
         ("SQ"),
         begin
-            xcall Replicate(REPLICATION_INSTRUCTION.SHUTDOWN)
+            xcall Replicate(instanceName,REPLICATION_INSTRUCTION.SHUTDOWN)
             display(tt,$scr_pos(24,2),$SCR_CLR(EOL),"Command queued")
         end
 
@@ -261,10 +284,10 @@ norec,      close chn
             data row, i4
             data tmpvar, a1, " "
             data stopping, boolean
-            open(chn=0,"I:I","REPLICATOR_DATA:REPLICATION.ISM")
+            open(chn=0,"I:I",queueFileName)
 
             display(tt,$SCR_POS(3,1),$SCR_CLR(EOS), "Operation             Table                           Affected Record",
-            &          $SCR_POS(4,1),               "--------------------  ------------------------------  ------------------------")
+            &    $SCR_POS(4,1),               "--------------------  ------------------------------  ------------------------")
 
             find(chn,,^FIRST) [EOF=eof]
 
@@ -345,7 +368,7 @@ norec,      close chn
 
             end
 
-eof,        close chn
+        eof,        close chn
 
             if (tmpvar!="M")
             begin
@@ -361,15 +384,15 @@ eof,        close chn
 
         ("P "),
         begin
-            xcall Replicate(REPLICATION_INSTRUCTION.DELETE_ALL_INSTRUCTIONS)
+            xcall Replicate(instanceName,REPLICATION_INSTRUCTION.DELETE_ALL_INSTRUCTIONS)
             display(tt,$scr_pos(24,2),$SCR_CLR(EOL),"Command executed")
         end
 
-        .ifndef D_VMS
+.ifndef D_VMS
         ("Q "),
         begin
             data chn, i4
-            open(chn=0,"I:I","REPLICATOR_DATA:REPLICATION.ISM")
+            open(chn=0,"I:I",queueFileName)
             display(tt,$scr_pos(24,2),$scr_clr(EOL),"Queue length: " + %string(%isinfo(chn,"NUMRECS")))
             close chn
             accept(tt,chn)
@@ -377,14 +400,14 @@ eof,        close chn
                 accept(tt,chn)
             nextloop
         end
-        .endc
+.endc
 
-        .ifdef D_GUI
+.ifdef D_GUI
         ("QM"),
         begin
             xcall spawn("dbr REPLICATOR_EXE:QueueMonitor.dbr",D_NOWINDOW|D_NOWAIT)
         end
-        .endc
+.endc
 
         ("I "),
         begin
@@ -396,7 +419,7 @@ eof,        close chn
             begin
                 if (%IsNumeric(interval)) then
                 begin
-                    xcall Replicate(REPLICATION_INSTRUCTION.CHANGE_INTERVAL,,%atrim(interval))
+                    xcall Replicate(instanceName,REPLICATION_INSTRUCTION.CHANGE_INTERVAL,,%atrim(interval))
                     display(tt,$scr_pos(24,2),$SCR_CLR(EOL),"Command queued")
                 end
                 else
@@ -416,9 +439,9 @@ eof,        close chn
             data name, string
 
             display(tt,
-            &   $SCR_POS(4,2),$SCR_CLR(EOS),"Table",
-            &   $SCR_POS(5,2),              "------------------------------",
-            &   $SCR_POS(6,1))
+            &    $SCR_POS(4,2),$SCR_CLR(EOS),"Table",
+            &    $SCR_POS(5,2),              "------------------------------",
+            &    $SCR_POS(6,1))
 
             foreach name in validTables
                 writes(tt," " + name)
@@ -472,19 +495,40 @@ eof,        close chn
 
         ("N "),
         begin
-            clear instanceName
+            ;;Record the current instance name
+            data oldInstanceName, string, instanceName
+
+            ;;Gte a new instance name
+            clear tmpInstanceName
             display(tt,$SCR_POS(24,2),$SCR_CLR(EOS),"Instance name: ")
-            reads(tt,instanceName)
-            xcall setlog("REPLICATOR_INSTANCE",%atrim(instanceName),status)
-            if (instanceName) then
-                display(tt,$SCR_POS(24,2),$SCR_CLR(EOS),$SCR_POS(1,35),instanceName)
-            else
-                display(tt,$SCR_POS(24,2),$SCR_CLR(EOS),$SCR_POS(1,35),"<none>")
+            reads(tt,tmpInstanceName)
+            upcase tmpInstanceName
+
+            ;;Did it change?
+            if (tmpInstanceName != oldInstanceName)
+            begin
+                if (tmpInstanceName) then
+                begin
+                    instanceName = %atrimtostring(tmpInstanceName)
+                end
+                else
+                begin
+                    instanceName = "DEFAULT"
+                end
+
+                xcall setlog("REPLICATOR_INSTANCE",instanceName,status)
+
+                clear tmpInstanceName
+                display(tt,$SCR_POS(24,2),$SCR_CLR(EOS),$SCR_POS(1,35),tmpInstanceName,$SCR_POS(1,35),instanceName)
+
+                ;;Set the queue file name for the instance
+                queueFileName = "REPLICATOR_DATA:REPLICATION_" + instanceName + ".ISM"
+            end
         end
 
         ("R "),
         begin
-            xcall Replicate(REPLICATION_INSTRUCTION.CYCLE_LOG)
+            xcall Replicate(instanceName,REPLICATION_INSTRUCTION.CYCLE_LOG)
             display(tt,$scr_pos(24,2),$SCR_CLR(EOL),"Command queued")
         end
 
@@ -492,7 +536,7 @@ eof,        close chn
         begin
             if (tableName) then
             begin
-                xcall Replicate(REPLICATION_INSTRUCTION.CREATE_TABLE,tableName)
+                xcall Replicate(instanceName,REPLICATION_INSTRUCTION.CREATE_TABLE,tableName)
                 display(tt,$scr_pos(24,2),$SCR_CLR(EOL),"Command queued")
             end
             else
@@ -503,7 +547,7 @@ eof,        close chn
         begin
             if (tableName) then
             begin
-                xcall Replicate(REPLICATION_INSTRUCTION.LOAD_TABLE,tableName)
+                xcall Replicate(instanceName,REPLICATION_INSTRUCTION.LOAD_TABLE,tableName)
                 display(tt,$scr_pos(24,2),$SCR_CLR(EOL),"Command queued")
             end
             else
@@ -514,7 +558,7 @@ eof,        close chn
         begin
             if (tableName) then
             begin
-                xcall Replicate(REPLICATION_INSTRUCTION.CREATE_AND_LOAD_TABLE,tableName)
+                xcall Replicate(instanceName,REPLICATION_INSTRUCTION.CREATE_AND_LOAD_TABLE,tableName)
                 display(tt,$scr_pos(24,2),$SCR_CLR(EOL),"Command queued")
             end
             else
@@ -525,7 +569,7 @@ eof,        close chn
         begin
             if (tableName) then
             begin
-                xcall Replicate(REPLICATION_INSTRUCTION.BULK_LOAD_TABLE,tableName)
+                xcall Replicate(instanceName,REPLICATION_INSTRUCTION.BULK_LOAD_TABLE,tableName)
                 display(tt,$scr_pos(24,2),$SCR_CLR(EOL),"Command queued")
             end
             else
@@ -536,7 +580,7 @@ eof,        close chn
         begin
             if (tableName) then
             begin
-                xcall Replicate(REPLICATION_INSTRUCTION.ADD_INDEXES,tableName)
+                xcall Replicate(instanceName,REPLICATION_INSTRUCTION.ADD_INDEXES,tableName)
                 display(tt,$scr_pos(24,2),$SCR_CLR(EOL),"Command queued")
             end
             else
@@ -547,7 +591,7 @@ eof,        close chn
         begin
             if (tableName) then
             begin
-                xcall Replicate(REPLICATION_INSTRUCTION.DELETE_INDEXES,tableName)
+                xcall Replicate(instanceName,REPLICATION_INSTRUCTION.DELETE_INDEXES,tableName)
                 display(tt,$scr_pos(24,2),$SCR_CLR(EOL),"Command queued")
             end
             else
@@ -558,7 +602,7 @@ eof,        close chn
         begin
             if (tableName) then
             begin
-                xcall Replicate(REPLICATION_INSTRUCTION.DELETE_ALL_ROWS,tableName)
+                xcall Replicate(instanceName,REPLICATION_INSTRUCTION.DELETE_ALL_ROWS,tableName)
                 display(tt,$scr_pos(24,2),$SCR_CLR(EOL),"Command queued")
             end
             else
@@ -569,7 +613,7 @@ eof,        close chn
         begin
             if (tableName) then
             begin
-                xcall Replicate(REPLICATION_INSTRUCTION.DELETE_TABLE,tableName)
+                xcall Replicate(instanceName,REPLICATION_INSTRUCTION.DELETE_TABLE,tableName)
                 display(tt,$scr_pos(24,2),$SCR_CLR(EOL),"Command queued")
             end
             else
@@ -580,7 +624,7 @@ eof,        close chn
         begin
             if (tableName) then
             begin
-                xcall Replicate(REPLICATION_INSTRUCTION.CREATE_CSV,tableName)
+                xcall Replicate(instanceName,REPLICATION_INSTRUCTION.CREATE_CSV,tableName)
                 display(tt,$scr_pos(24,2),$SCR_CLR(EOL),"Command queued")
             end
             else

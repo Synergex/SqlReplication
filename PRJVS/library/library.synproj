@@ -80,6 +80,9 @@
     <Compile Include="..\..\SRC\LIBRARY\ConfigureReplication.dbl">
       <Link>ConfigureReplication.dbl</Link>
     </Compile>
+    <Compile Include="..\..\SRC\LIBRARY\DepartmentSqlIO.dbl">
+      <Link>DepartmentSqlIO.dbl</Link>
+    </Compile>
     <Compile Include="..\..\SRC\LIBRARY\EmployeeSqlIO.dbl">
       <Link>EmployeeSqlIO.dbl</Link>
     </Compile>
@@ -106,6 +109,9 @@
     </Compile>
     <Compile Include="..\..\SRC\LIBRARY\IndexExists.dbl">
       <Link>IndexExists.dbl</Link>
+    </Compile>
+    <Compile Include="..\..\SRC\LIBRARY\InstanceInfo.dbl">
+      <Link>InstanceInfo.dbl</Link>
     </Compile>
     <Compile Include="..\..\SRC\LIBRARY\IOHooksISAM.dbl">
       <Link>IOHooksISAM.dbl</Link>
@@ -143,6 +149,9 @@
     <Compile Include="..\..\SRC\LIBRARY\MakeTimeForCsv.dbl">
       <Link>MakeTimeForCsv.dbl</Link>
     </Compile>
+    <Compile Include="..\..\SRC\LIBRARY\OpenOrCreateQueueFile.dbl">
+      <Link>OpenOrCreateQueueFile.dbl</Link>
+    </Compile>
     <Compile Include="..\..\SRC\LIBRARY\PopulateReplicationKey.dbl">
       <Link>PopulateReplicationKey.dbl</Link>
     </Compile>
@@ -151,6 +160,9 @@
     </Compile>
     <Compile Include="..\..\SRC\LIBRARY\SmtpMail.dbl">
       <Link>SmtpMail.dbl</Link>
+    </Compile>
+    <Compile Include="..\..\SRC\LIBRARY\StringDictionary.dbl">
+      <Link>StringDictionary.dbl</Link>
     </Compile>
     <Compile Include="..\..\SRC\LIBRARY\StringTools.dbl">
       <Link>StringTools.dbl</Link>

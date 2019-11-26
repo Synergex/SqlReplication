@@ -1,15 +1,14 @@
 ;;*****************************************************************************
 ;;
-;; File:        InstructionCount.dbl
+;; File:        OpenOrCreateQueueFile.dbl
 ;;
-;; Type:        Application
+;; Description: Open or create a replicator instance queue file.
 ;;
-;; Description: Reports the current number of instructions in the replication
-;;              instructions file.
+;; Author:      Steve Ives, Synergex Professional Services Group
 ;;
 ;;*****************************************************************************
 ;;
-;; Copyright (c) 2016, Synergex International, Inc.
+;; Copyright (c) 2019, Synergex International, Inc.
 ;; All rights reserved.
 ;;
 ;; Redistribution and use in source and binary forms, with or without
@@ -36,14 +35,47 @@
 ;;
 ;;*****************************************************************************
 
-main InstructionCount
-
+;;; <summary>
+;;; Opens (creating if necessary) a replicator instance queue file.
+;;; </summary>
+;;; <param name="aQueueFileSpec">Queue file specification.</param>
+;;; <param name="aChannel">Returned channel number.</param>
+;;; <param name="aErrorMessage">Retunred error message (only of return value is false).</param>
+;;; <returns>Returns true on success.</returns>
+function OpenOrCreateQueueFile, boolean
+    required in  aQueueFileSpec, string
+    required out aChannel, int
+    required out aErrorMessage, string
+    stack record
+        ok, boolean
+    endrecord
 proc
-    xcall flags(7004020,1)
-    open(1,o,"tt:")
-    open(2,i:i,"REPLICATOR_DATA:REPLICATION_DEFAULT.ISM")
-    writes(1,"Instruction count: " + %string(%isinfo(2,"NUMRECS")))
-    close 2
-    close 1
-    stop
-endmain
+    repeat
+    begin
+        try
+        begin
+            open(aChannel=0,"U:I",aQueueFileSpec)
+            ok = true
+            exitloop
+        end
+        catch (e, @NoFileFoundException)
+        begin
+.ifdef D_VMS
+            xcall isamc(aQueueFileSpec + ", FIXED", 32042, 1, "START=1, LENGTH=8, TYPE=SEQUENCE, NAME=TRANSACTION_ID, DENSITY=100")
+.else
+            xcall isamc(aQueueFileSpec + ", FIXED, COMPRESS, PAGE=1024, TBYTE", 65042, 1, "START=1, LENGTH=8, TYPE=SEQUENCE, NAME=TRANSACTION_ID, DENSITY=100")
+.endc
+            nextloop
+        end
+        catch (e, @Exception)
+        begin
+            aErrorMessage = e.Message
+            ok = false
+            exitloop
+        end
+        endtry
+    end
+
+    freturn ok
+
+endfunction

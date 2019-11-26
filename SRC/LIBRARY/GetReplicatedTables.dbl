@@ -45,5 +45,6 @@ subroutine GetReplicatedTables
 proc
     tables = new ArrayList()
     tables.Add((string)"Employee")
+    tables.Add((string)"Department")
     xreturn
 endsubroutine

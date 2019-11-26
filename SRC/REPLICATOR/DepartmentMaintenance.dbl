@@ -1,0 +1,433 @@
+;;*****************************************************************************
+;;
+;; File:        DepartmentMaintenance.dbl
+;;
+;; Type:        Application (maintenance program)
+;;
+;; Description: Maintains records in the department file.
+;;
+;;*****************************************************************************
+;;
+;; Copyright (c) 2019, Synergex International, Inc.
+;; All rights reserved.
+;;
+;; Redistribution and use in source and binary forms, with or without
+;; modification, are permitted provided that the following conditions are met:
+;;
+;; * Redistributions of source code must retain the above copyright notice,
+;;   this list of conditions and the following disclaimer.
+;;
+;; * Redistributions in binary form must reproduce the above copyright notice,
+;;   this list of conditions and the following disclaimer in the documentation
+;;   and/or other materials provided with the distribution.
+;;
+;; THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+;; AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+;; IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+;; ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+;; LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+;; CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+;; SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+;; INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+;; CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+;; ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+;; POSSIBILITY OF SUCH DAMAGE.
+;;
+;;*****************************************************************************
+
+import ReplicationLibrary
+
+main DepartmentMaintenance
+
+    .include "DEPARTMENT" repository, structure="strDepartment"
+    .include "EMPLOYEE"   repository, structure="strEmployee"
+
+    record
+        ok,             i4
+        tt,             i4
+        dch,            i4
+        ech,            i4
+        department,     strDepartment
+        saveDepartment, strDepartment
+        employee,       strEmployee
+        tmpvar,         a80
+        fldnum,         d2
+        managerName,    string
+        allDone,        boolean
+    endrecord
+
+proc
+    ok = true
+    open(tt=0,i,"tt:")
+    xcall flags(7004000,1)
+
+    display(tt,$scr_clr(screen))
+
+.ifdef D_VMS
+    ;;On VMS it is necessary to use XCALL OPENELB in order that I/O hooks
+    ;;in shared images can be called.
+    try
+    begin
+        xcall openelb("REPLICATOR_SH")
+    end
+    catch (ex, @Exception)
+    begin
+        display(tt,"ERROR: Failed to activate shared image REPLICATOR_SH")
+        stop
+    end
+    endtry
+.endc
+
+    if (ok)
+    begin
+        try
+        begin
+            open(dch=0,u:i,"REPLICATOR_DATA:DEPARTMENT.ISM")
+            xcall ConfigureReplication(dch)
+        end
+        catch (e, @Exception)
+        begin
+            display(tt,"Failed to open department file!")
+            ok = false
+        end
+        endtry
+    end
+
+    if (ok)
+    begin
+        try
+        begin
+            open(ech=0,i:i,"REPLICATOR_DATA:EMPLOYEE.ISM")
+        end
+        catch (e, @Exception)
+        begin
+            display(tt,"Failed to open employee file!")
+            ok = false
+        end
+        endtry
+    end
+
+    ;;Main processing
+
+    if (ok)
+    begin
+        repeat
+        begin
+            ;;Display the department maintenance screen
+            call DisplayScreen
+
+            ;;Enter an employee #
+            repeat
+            begin
+                init department
+
+                display(tt,$scr_pos(4,30),$scr_clr(eol))
+                reads(tt,tmpvar(1:15))
+
+                using tmpvar select
+                (" "),
+                begin
+                    nextloop
+                end
+                ("E"),
+                begin
+                    ;;All done, exit
+                    allDone = true
+                    exitloop
+                end
+                (),
+                begin
+                    ;;We have a potential department ID
+                    department.dept_id = tmpvar(1:15)
+                    exitloop
+                end
+                endusing
+            end ;of department ID entry
+
+            ;;Are we all done?
+            if (allDone)
+                exitloop
+
+            ;;Read the department record
+            saveDepartment = department
+            begin
+                read(dch,department,department.dept_id) [$ERR_KEYNOT=NotFound,$ERR_EOF=NotFound,$ERR_LOCKED=Locked]
+
+                ;;Save and display the department data
+                saveDepartment = department
+                call DisplayData
+                exit
+
+        NotFound,
+                repeat
+                begin
+                    display(tt,$scr_pos(23,2),$scr_clr(eol),"Not found, create (Y/N) ? ")
+                    reads(tt,tmpvar(1:1))
+                    display(tt,$scr_pos(23,2),$scr_clr(eol))
+
+                    using tmpvar select
+                    ("Y"),
+                    begin
+                        department = saveDepartment
+                        call CreateNew
+                        exitloop
+                    end
+                    ("N"),
+                    begin
+                        exitloop
+                    end
+                    endusing
+                end
+                nextloop
+
+        Locked, display(tt,$scr_pos(23,2),"Record locked!")
+                reads(tt,tmpvar(1:1))
+                display(tt,$scr_pos(23,2),$scr_clr(eol))
+                nextloop
+            end
+
+            ;;Get the field number to edit
+
+            allDone = false
+
+            repeat
+            begin
+                display(tt,$scr_pos(23,2),$scr_clr(eol),"Field to edit (D to delete, E to exit) : ")
+                reads(tt,tmpvar(1:2))
+
+                using tmpvar select
+                ("E ","  "),
+                begin
+                    ;;All done, exit
+                    try
+                    begin
+                        write(dch,department)
+                        display(tt,$scr_pos(23,2),$scr_clr(eol),"Department record saved")
+                        sleep 0.5
+                        display(tt,$scr_pos(23,2),$scr_clr(eol))
+                    end
+                    catch (e, @Exception)
+                    begin
+                        display(tt,$scr_pos(23,2),$scr_clr(eol),e.Message)
+                        reads(tt,tmpvar(1:1))
+                        display(tt,$scr_pos(23,2),$scr_clr(eol))
+                    end
+                    endtry
+                    exitloop
+                end
+                ("D "),
+                begin
+                    ;;Delete
+                    repeat
+                    begin
+                        display(tt,$scr_pos(23,2),$scr_clr(eol),"Confirm delete (Y/N) ? ")
+                        reads(tt,tmpvar(1:1))
+                        using tmpvar select
+                        ("Y"),
+                        begin
+                            delete(dch)
+                            ;;All done, exit
+                            allDone = true
+                            exitloop
+                        end
+                        ("N"),
+                            exitloop
+                        endusing
+                    end
+                end
+                (),
+                begin
+                    try
+                    begin
+                        fldnum = tmpvar(1:2)
+                    end
+                    catch (e, @Exception)
+                    begin
+                        ;;Bad field number, just ignore it and try again
+                        nextloop
+                    end
+                    endtry
+
+                    ;;Edit a field
+                    call EditField
+                end
+                endusing
+
+                if (allDone)
+                begin
+                    allDone = false
+                    exitloop
+                end
+
+            end ;of field editing loop
+
+        end ;of main processing loop
+    end
+
+    if (ech && %chopen(ech))
+        close ech
+
+    if (dch && %chopen(dch))
+        close dch
+
+    display(tt,$scr_clr(screen))
+    close tt
+
+    stop
+
+DisplayScreen,
+
+    display(tt,$scr_clr(screen),
+    &    $scr_pos( 2,2),"Department Maintenance",
+    &    $scr_pos( 4,2),"Department ID (E to exit) :",
+    &    $scr_pos( 6,2),"1.        Department name :",
+    &    $scr_pos( 7,2),"2.     Manager employee # :")
+
+    return
+
+DisplayData,
+
+    call GetManagerName
+
+    display(tt,
+    &    $scr_pos( 6,30), department.dept_name,
+    &    $scr_pos( 7,30), %string(department.dept_manager)," - ",managerName)
+
+    return
+
+EditField,
+
+    using fldnum select
+    (1),	call DepartmentName
+    (2),	call Manager
+    endusing
+
+    return
+
+DepartmentName,
+
+    xcall flags(20,1)
+    repeat
+    begin
+        display(tt,$scr_pos(6,30),$scr_clr(eol))
+        reads(tt,department.dept_name)
+        if (department.dept_name)
+            exitloop
+    end
+    xcall flags(20,0)
+
+    return
+
+Manager,
+
+    repeat
+    begin
+        repeat
+        begin
+            display(tt,$scr_pos(7,30),$scr_clr(eol))
+            reads(tt,tmpvar(1:6))
+
+            using tmpvar(1:6) select
+            (" "),
+            begin
+                nextloop
+            end
+            (),
+            begin
+                ;;We have a potential employee number
+                if (%IsNumeric(tmpvar(1:6))) then
+                begin
+                    department.dept_manager = %integer(tmpvar(1:6))
+                    exitloop
+                end
+                else
+                begin
+                    display(tt,$scr_pos(23,2),"Invalid employee number!")
+                    reads(tt,tmpvar(1:1))
+                    display(tt,$scr_pos(23,2),$scr_clr(eol))
+                    nextloop
+                end
+            end
+            endusing
+
+        end
+
+        ;;Required field
+        if (!department.dept_manager)
+            nextloop
+
+        call GetManagerName
+
+        ;;Validate against department file
+        using managerName select
+        ("Not found!"),
+        begin
+            display(tt,$scr_pos(7,30),$scr_clr(eol),managerName)
+            reads(tt,tmpvar(1:1))
+        end
+        (),
+        begin
+            ;;Valid department
+            display(tt,$scr_pos(7,30),%string(department.dept_manager)," - ",managerName)
+            exitloop
+        end
+        endusing
+    end
+
+    return
+
+GetManagerName,
+
+    ;;Lookup employee record
+    try
+    begin
+        read(ech,employee,department.dept_manager)
+        managerName = %atrimtostring(employee.emp_first_name) + " " + %atrimtostring(employee.emp_last_name)
+    end
+    catch (e, @Exception)
+    begin
+        managerName = "Not found!"
+    end
+    endtry
+
+    return
+
+CreateNew,
+
+    ;;Arriving here, dept_id is already populated and the remainder of the department record has been initialized
+
+    call DepartmentName
+    call Manager
+
+    repeat
+    begin
+        display(tt,$scr_pos(23,2),$scr_clr(eol),"Save new department (Y/N) : ")
+        reads(tt,tmpvar(1:1))
+        using tmpvar select
+        ("Y"),
+        begin
+            ;;Save the new record
+            try
+            begin
+                store(dch,department)
+            end
+            catch (e, @Exception)
+            begin
+                display(tt,$scr_pos(23,2),$scr_clr(eol),"Failed to create department!")
+                reads(tt,tmpvar(1:1))	
+            end
+            endtry
+            exitloop
+        end
+        ("N"),
+        begin
+            exitloop
+        end
+        endusing
+    end
+
+    call DisplayScreen
+
+    return
+
+endmain

@@ -35,105 +35,186 @@
 ;;
 ;;*****************************************************************************
 
+import library
+
 .include "REPLICATION_INSTRUCTION" repository, enum, end
 
 subroutine Replicate
 
-	required in a_action, REPLICATION_INSTRUCTION
-	optional in a_tablename, a
-	optional in a_record, a
-	endparams
+    required in aInstanceName,  string
+    required in aAction,        REPLICATION_INSTRUCTION
+    optional in aTableName,     a
+    optional in aRecord,        a
 
-	.ifdef D_VMS
+.ifdef D_VMS
 	.include "REPLICATION_VMS" repository, stack record="instruction", end
-	.else
-	.include "REPLICATION" repository, stack record="instruction", end
-	.endc
+.else
+    .include "REPLICATION" repository, stack record="instruction", end
+.endc
 
-	static record
-		chn ,i4
-	endrecord
+    static record
+        instances, @StringDictionary
+    endrecord
+
+    stack record
+        instanceName, string
+        instanceData, @InstanceInfo
+    endrecord
 
 proc
+    instanceName = aInstanceName
 
-	;Do we need to open the replication transaction file?
-	if (!chn)
-		open(chn=0,"U:I","REPLICATOR_DATA:REPLICATION.ISM")
+    ;;-----------------------------------------------------------------------------------------------------------------------
+    ;;For several special instructions (e.g. STOP REPLICATOR) there is a chance that
+    ;;we could be called BEFORE the OPEN_FILE instruction has been called for the
+    ;;instance. We need to deal with that here.
 
-	using a_action select
+    if ((instances==^null && aAction!=REPLICATION_INSTRUCTION.OPEN_FILE) || (instances!=^null && aAction!=REPLICATION_INSTRUCTION.OPEN_FILE && !instances.TryGet(instanceName,instanceData)))
+    begin
+        data instanceQueueFile = "REPLICATOR_DATA:REPLICATION_" + instanceName + ".ISM"
+        data instanceChannel, int
+        data errorMessage, string
 
-	(REPLICATION_INSTRUCTION.CLOSE_FILE),
-	begin
-		if (chn && %chopen(chn))
-		begin
-			close chn
-			init chn
-		end
-	end
+        instances = new StringDictionary()
 
-	(REPLICATION_INSTRUCTION.DELETE_ALL_INSTRUCTIONS),
-	begin
-		;Delete pending instructions
-		try 
-		begin
-			data sts, d1
-			close chn
-			;;This seems really strange, but it is a work-around for a bug in ISCLR in All
-			;;versions prior to 10.3.3e that would cause any subsequent OPEN(CHN=0 to fail
-			;;following a failed XCALL ISCLR until a successful XCALL ISCLR had taken place.
-			;;The workaround is to open the file for exclusive access, and if that fails,
-			;;don't try to do the XCALL ISCLR
-			open(chn=0,"U:I","REPLICATOR_DATA:REPLICATION.ISM",SHARE:Q_EXCL_RW)
-			close chn
-			xcall isclr("REPLICATOR_DATA:REPLICATION.ISM",sts)
-			open(chn=0,"U:I","REPLICATOR_DATA:REPLICATION.ISM")
-		end
-		catch (ex, @FileInUseException)
-		begin
-			open(chn=0,"U:I","REPLICATOR_DATA:REPLICATION.ISM")
-			repeat
-			begin
-				try
-				begin
-					read(chn,instruction,^FIRST)
-					delete(chn)
-				end
-				catch (ex1, @EndOfFileException)
-				begin
-					exitloop
-				end
-				catch (ex1, @Exception)
-				begin
-					sleep 0.01
-				end
-				endtry
-			end
-		end
-		endtry
-	end
+        ;;Open the queue file for the instance
+        if (!%OpenOrCreateQueueFile(instanceQueueFile,instanceChannel,errorMessage))
+        begin
+            throw new ApplicationException("Failed to open or create replication queue file " + instanceQueueFile + ". Error was " + errorMessage)
+        end
+        ;;Create and record the instance data
+        instanceData = new InstanceInfo() { QueueFile=instanceQueueFile, Channel=instanceChannel, ReferenceCount=1 }
+        instances.Add(instanceName,instanceData)
+    end
+    ;;-----------------------------------------------------------------------------------------------------------------------
 
-	(),
-	begin
-		;;Configure the new instruction
+    using aAction select
 
-		init instruction
+    (REPLICATION_INSTRUCTION.OPEN_FILE),
+    begin
+        ;;Do we need to create the StringDictionary?
+        if (instances == ^null)
+        begin
+            instances = new StringDictionary()
+        end
 
-		instruction.action = (i)a_action
+        ;;Are we already tracking this instance?
+        if (instances.TryGet(instanceName,instanceData)) then
+        begin
+            ;;Already tracking this instance.
+            ;;Record the additional channel associated with the instance.
+            instanceData.ReferenceCount += 1
+        end
+        else
+        begin
+            ;;Not currently tracking this instance
+            data instanceQueueFile = "REPLICATOR_DATA:REPLICATION_" + instanceName + ".ISM"
+            data instanceChannel, int
+            data errorMessage, string
+            ;;Open the queue file for the instance
+            if (!%OpenOrCreateQueueFile(instanceQueueFile,instanceChannel,errorMessage))
+            begin
+                throw new ApplicationException("Failed to open or create replication queue file " + instanceQueueFile + ". Error was " + errorMessage)
+            end
+            ;;Create and record the instance data
+            instanceData = new InstanceInfo() { QueueFile=instanceQueueFile, Channel=instanceChannel, ReferenceCount=1 }
+            instances.Add(instanceName,instanceData)
+        end
+    end
 
-		if (^passed(a_tablename) && a_tablename)
-			instruction.structure_name = a_tablename
+    (REPLICATION_INSTRUCTION.CLOSE_FILE),
+    begin
+        ;;Get the instance data
+        instanceData = (@InstanceInfo)(instances.Get(instanceName))
+        ;;Record one less channel associated with the instance.
+        instanceData.ReferenceCount -= 1
+        ;;If there are no more channels associated with the instance, remove the instance data.
+        if (instanceData.ReferenceCount == 0)
+        begin
+            ;;Close the instances queue file
+            if (instanceData.Channel && %chopen(instanceData.Channel))
+            begin
+                close instanceData.Channel
+                instanceData.Channel = 0
+            end
+            instances.Remove(instanceName)
+            instanceData = ^null
+        end
 
-		if (^passed(a_record) && a_record)
-			instruction.record = a_record
+        ;;If we are no longer tracking any instances, remove the StringDictionary
+        if (instances.Count == 0)
+        begin
+            instances = ^null
+        end
+    end
 
-		;;And add it to the queue
+    (REPLICATION_INSTRUCTION.DELETE_ALL_INSTRUCTIONS),
+    begin
+        ;Delete pending instructions
+        try 
+        begin
+            data sts, d1
+            close instanceData.Channel
+            ;;This seems really strange, but it is a work-around for a bug in ISCLR in All
+            ;;versions prior to 10.3.3e that would cause any subsequent OPEN(CHN=0 to fail
+            ;;following a failed XCALL ISCLR until a successful XCALL ISCLR had taken place.
+            ;;The workaround is to open the file for exclusive access, and if that fails,
+            ;;don't try to do the XCALL ISCLR
+            open(instanceData.Channel=0,"U:I",instanceData.QueueFile,SHARE:Q_EXCL_RW)
+            close instanceData.Channel
+            xcall isclr(instanceData.QueueFile,sts)
+            open(instanceData.Channel=0,"U:I",instanceData.QueueFile)
+        end
+        catch (ex, @FileInUseException)
+        begin
+            open(instanceData.Channel=0,"U:I",instanceData.QueueFile)
+            repeat
+            begin
+                try
+                begin
+                    read(instanceData.Channel,instruction,^FIRST)
+                    delete(instanceData.Channel)
+                end
+                catch (ex1, @EndOfFileException)
+                begin
+                    exitloop
+                end
+                catch (ex1, @Exception)
+                begin
+                    sleep 0.01
+                end
+                endtry
+            end
+        end
+        endtry
+    end
 
-		store(chn,instruction)
+    (),
+    begin
+        ;;Configure the new instruction
 
-	end
-	endusing
+        init instruction
 
-	xreturn
+        instruction.action = (i)aAction
+
+        if (^passed(aTableName) && aTableName)
+        begin
+            instruction.structure_name = aTableName
+        end
+
+        if (^passed(aRecord) && aRecord)
+        begin
+            instruction.record = aRecord
+        end
+
+        ;;And add it to the queue
+
+        store(instanceData.Channel,instruction)
+
+    end
+    endusing
+
+    xreturn
 
 endsubroutine
 

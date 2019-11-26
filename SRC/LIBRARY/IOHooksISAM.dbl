@@ -46,6 +46,7 @@ namespace ReplicationLibrary
     public class IoHooksISAM extends IOHooks
 
         protected mTableName,       string
+        protected mInstanceName,    string
         protected mActive,          boolean,    false
         protected mMultiTable,      boolean,    false
         protected mChannel,         int,        0
@@ -58,6 +59,7 @@ namespace ReplicationLibrary
         public method IoHooksISAM
             required in aChannel, n
             required in aTableName, string
+            required in aInstanceName, string
             endparams
             parent(aChannel)
             record
@@ -74,11 +76,11 @@ namespace ReplicationLibrary
                 key_spos ,8d5
                 key_slen ,8d3
             endrecord
-            .ifdef D_VMS
+.ifdef D_VMS
             .include "REPLICATION_VMS" repository, structure="strInstruction", end
-            .else
+.else
             .include "REPLICATION" repository, structure="strInstruction", end
-            .endc
+.endc
         proc
             ;;Has SQL replication been suppressed via SQL_REPLICATION_DISABLED="YES"?
             begin
@@ -124,12 +126,24 @@ namespace ReplicationLibrary
 
                 if (mActive)
                 begin
-                    ;;Record the channel number and structure name
+                    ;;Record the channel number, table name and instance name
                     mChannel = aChannel
+
+                    ;;Record the table name
                     if (mMultiTable = aTableName.StartsWith("MULTI_")) then
+                    begin
                         mTableName = aTableName - "MULTI_"
+                    end
                     else
+                    begin
                         mTableName = aTableName
+                    end
+
+                    ;;Record the instance name
+                    mInstanceName = aInstanceName.Trim().ToUpper()
+
+                    ;;Make sure we have the queue file open for this instance
+                    xcall Replicate(mInstanceName,REPLICATION_INSTRUCTION.OPEN_FILE)
                 end
 
             end
@@ -186,7 +200,7 @@ namespace ReplicationLibrary
                 begin
                     data tableName, string, getTableName(aRecord)
                     if (tableName(1:1)!="*")
-                        xcall replicate(REPLICATION_INSTRUCTION.UPDATE_ROW,tableName,aRecord)
+                        xcall replicate(mInstanceName,REPLICATION_INSTRUCTION.UPDATE_ROW,tableName,aRecord)
                 end
             end
         endmethod
@@ -219,7 +233,7 @@ namespace ReplicationLibrary
             begin
                 data tableName, string, getTableName(aRecord)
                 if (tableName(1:1)!="*")
-                    xcall replicate(REPLICATION_INSTRUCTION.CREATE_ROW,tableName,aRecord)
+                    xcall replicate(mInstanceName,REPLICATION_INSTRUCTION.CREATE_ROW,tableName,aRecord)
             end
         endmethod
 
@@ -235,7 +249,7 @@ namespace ReplicationLibrary
             begin
                 data tableName, string, getTableName(LastRecordCache.Retrieve(mChannel))
                 if (tableName(1:1)!="*")
-                    xcall replicate(REPLICATION_INSTRUCTION.DELETE_ROW,tableName,LastRecordCache.Retrieve(mChannel))
+                    xcall replicate(mInstanceName,REPLICATION_INSTRUCTION.DELETE_ROW,tableName,LastRecordCache.Retrieve(mChannel))
             end
         endmethod
 
@@ -247,7 +261,12 @@ namespace ReplicationLibrary
             endparams
         proc
             if (mActive)
+            begin
+                ;;Clear the last record cache
                 LastRecordCache.Clear(mChannel)
+                ;;Maybe close the queue file channel
+                xcall replicate(mInstanceName,REPLICATION_INSTRUCTION.CLOSE_FILE)
+            end
         endmethod
 
         ;;-------------------------------------------------------------------------------------
@@ -260,12 +279,12 @@ namespace ReplicationLibrary
 ;            begin
 ;                using mTableName select
 ;
-;				 ;An example of a file with multple record formats, each of which is replicated to a different table.
+;                ;An example of a file with multple record formats, each of which is replicated to a different table.
 ;                ("FILENAME"),
 ;                begin
 ;                    data rec, strSomething, aRecord
 ;                    ;;Make sure you cover all the bases here, if not it'll be a problem!
-;					 ;;The structures you will need should be available because they are public in the _IO routines
+;                    ;;The structures you will need should be available because they are public in the _IO routines
 ;                    if (rec.some_tag_field=="1") then
 ;                        mreturn "Table1"
 ;                    if (rec.some_tag_field=="2") then
@@ -274,20 +293,20 @@ namespace ReplicationLibrary
 ;                        mreturn "Table3"
 ;                end
 ;
-;				 ;An example of a file with a header record defined using one structure, and data with another.
+;                ;An example of a file with a header record defined using one structure, and data with another.
 ;                ("FILENAME"),
 ;                begin
 ;                    data rec, strSomething, aRecord
 ;                    ;;Make sure you cover all the bases here, if not it'll be a problem!
-;					 ;;The structures you will need should be available because they are public in the _IO routines
+;                    ;;The structures you will need should be available because they are public in the _IO routines
 ;                    if (rec.some_tag_field=="HEADER") then
 ;                        mreturn "*IGNORE"
 ;                    if (rec.some_tag_field=="DATA") then
 ;                        mreturn "TableName1"
 ;                end
 ;
-;				 ;Anything else, the programmer forgot to declare it here.
-;				 ;Returning anything beginning with * will cause the replication request to be ignored
+;                ;Anything else, the programmer forgot to declare it here.
+;                ;Returning anything beginning with * will cause the replication request to be ignored
 ;                (),
 ;                    mreturn "*BUG"
 ;                endusing

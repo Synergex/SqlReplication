@@ -1,0 +1,231 @@
+;;*****************************************************************************
+;;
+;; File:        StringDictionary.dbl
+;;
+;; Description: Traditional Synergy String Dictionary class.
+;;
+;; Author:      Jeff Greene, Synergex Professional Services Group
+;;
+;;*****************************************************************************
+;;
+;; Copyright (c) 2019, Synergex International, Inc.
+;; All rights reserved.
+;;
+;; Redistribution and use in source and binary forms, with or without
+;; modification, are permitted provided that the following conditions are met:
+;;
+;; * Redistributions of source code must retain the above copyright notice,
+;;   this list of conditions and the following disclaimer.
+;;
+;; * Redistributions in binary form must reproduce the above copyright notice,
+;;   this list of conditions and the following disclaimer in the documentation
+;;   and/or other materials provided with the distribution.
+;;
+;; THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+;; AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+;; IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+;; ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+;; LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+;; CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+;; SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+;; INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+;; CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+;; ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+;; POSSIBILITY OF SUCH DAMAGE.
+;;
+;;*****************************************************************************
+
+import System.Collections
+
+.include 'DBLDIR:namspc.def'
+
+namespace library
+
+    public class StringDictionary
+
+        public class KeyValuePair
+            public method KeyValuePair
+                key, @string
+                value, @object
+            proc
+                this.Key = key
+                this.Value = value
+            endmethod
+
+
+            public Key, @string
+
+            public Value, @Object
+
+        endclass
+
+        private symbolTableId, i4
+        private objectStore, @ArrayList
+        private freeIndicies, @ArrayList
+
+        public method StringDictionary
+        proc
+            objectStore = new ArrayList()
+            freeIndicies = new ArrayList()
+            symbolTableId = nspc_open(D_NSPC_SPACE | D_NSPC_CASE, 4)
+        endmethod
+
+        method ~StringDictionary
+        proc
+            xcall nspc_close(symbolTableId)
+        endmethod
+
+        private method AddObjectInternal, i4
+            value, @object
+        proc
+            if(freeIndicies.Count > 0) then
+            begin
+                data freeIndex = (i4)freeIndicies[freeIndicies.Count - 1]
+                freeIndicies.RemoveAt(freeIndicies.Count - 1)
+                objectStore[freeIndex] = value
+                mreturn freeIndex
+            end
+            else
+                mreturn objectStore.Add(value)
+        endmethod
+
+        private method RemoveObjectInternal, void
+            index, i4
+        proc
+            freeIndicies.Add((@i4)index)
+            ;;cant just call removeAt because it would throw off all of the objects that are stored after it
+            ;;so we just add to a free list and manage the slots that way
+            objectStore[index] = ^null
+        endmethod
+
+        public method Add, void
+            req in key, @string
+            req in value, @object
+            record
+                existingId, i4
+                newObjectIndex, i4
+        proc
+
+            if(nspc_find(symbolTableId, key,, existingId) == 0) then
+            begin
+                newObjectIndex = AddObjectInternal(new KeyValuePair(key, value))
+                nspc_add(symbolTableId, key, newObjectIndex)
+            end
+            else 
+                throw new Exception("duplicate key")
+        endmethod
+
+        public method TryGet, boolean
+            req in key, @string 
+            req out value, @object
+            record
+                objectIndex, i4
+                kvp, @object
+        proc
+            if(nspc_find(symbolTableId, key,objectIndex) != 0) then
+            begin
+                kvp = objectStore[objectIndex]
+                value = ((@KeyValuePair)kvp).Value
+                mreturn true
+            end
+            else
+            begin
+                value = ^null
+                mreturn false
+            end
+        endmethod
+
+        public method Get, @object
+            req in key, @string 
+            record
+                objectIndex, i4
+                kvp, @Object
+        proc
+            if(nspc_find(symbolTableId, key,objectIndex) != 0) then
+            begin
+                kvp = objectStore[objectIndex]
+                mreturn ((@KeyValuePair)kvp).Value
+            end
+            else
+                throw new Exception("index not found")
+
+        endmethod
+
+        public method Set, void
+            req in key, @string 
+            req in value, @object
+            record
+                objectIndex, i4
+        proc
+            if(nspc_find(symbolTableId, key,objectIndex) != 0) then
+            begin
+                objectStore[objectIndex] = new KeyValuePair(key, value)
+            end
+            else
+                Add(key, value)
+
+        endmethod
+
+        public method Remove, void
+            req in key, @string
+            record
+                objectAccesCode, i4
+                objectIndex, i4
+        proc
+            if(nspc_find(symbolTableId, key,objectIndex, objectAccesCode) != 0)
+            begin
+                nspc_delete(symbolTableId, objectAccesCode)
+                RemoveObjectInternal(objectIndex)
+            end
+        endmethod
+
+        public method Contains, boolean
+            req in key, @string
+        proc
+            mreturn (nspc_find(symbolTableId, key) != 0)
+        endmethod
+
+        public method Clear, void
+        proc
+            nspc_reset(symbolTableId)
+            freeIndicies.Clear()
+            objectStore.Clear()
+        endmethod
+
+        public method Items, [#]@StringDictionary.KeyValuePair
+            record
+                itm, @StringDictionary.KeyValuePair
+                result, [#]@StringDictionary.KeyValuePair
+                itemCount, int
+                i, int
+        proc
+            itemCount = 0
+            foreach itm in objectStore
+            begin
+                if(itm != ^null)
+                    incr itemCount
+            end
+
+            result = new KeyValuePair[itemCount]
+            i = 1
+            foreach itm in objectStore
+            begin
+                if(itm != ^null)
+                begin
+                    result[i] = itm
+                    incr i
+                end
+            end
+            mreturn result
+        endmethod
+
+        public property Count, int
+            method get
+            proc
+                mreturn objectStore.Count - freeIndicies.Count
+            endmethod
+        endproperty
+
+    endclass
+
+endnamespace

@@ -65,7 +65,12 @@ proc
     ;;Get the open mode of the channel
     xcall getfa(channel,"OMD",openMode)
 
-    ;;Add I/O Hooks as necessary. The second paramrter is the DATABASE TABLE NAME to replicate to.
+    ;;Add I/O Hooks to channels as necessary.
+    ;;
+    ;;The second paramater to the I/O Hooks constructor is the TABLE NAME to replicate to.
+    ;;
+    ;;The third parameter to the I/O Hooks constructor is the REPLICATOR INSTANCE name to replicate to.
+    ;;This in turn determines the name of the queue file that instructions are written to.
     
     using openMode select
     ("U:I"),
@@ -74,28 +79,31 @@ proc
 
 ;       ;;A single-record layout file that already had a unique key
 ;       ("FILE1.ISM"),
-;           new IoHooksISAM(channel,"File1")
+;           new IoHooksISAM(channel,"File1","DEFAULT")
 ;
 ;       ;;A single-record layout file with REPLICATION_KEY added
 ;       ("FILE2.ISM"),
 ;       begin
-;           new IoHooksISAM(channel,"File2")
+;           new IoHooksISAM(channel,"File2","DEFAULT")
 ;           repkey_required[channel] = 1
 ;       end
 ;
 ;       ;;A multi-record layout file that already had a unique key
 ;       ("FILE3.ISM"), ;;Multiple possibilities (FILE3A, FILE3B, FILE3C)
-;           new IoHooksISAM(channel,"MULTI_File3")
+;           new IoHooksISAM(channel,"MULTI_File3","DEFAULT")
 ;
 ;       ;;A multi-record layout file with REPLICATION_KEY added
 ;       ("FILE4.ISM"), ;;Multiple possibilities (FILE4A, FILE4B, FILE4C)
 ;       begin
-;           new IoHooksISAM(channel,"MULTI_File4")
+;           new IoHooksISAM(channel,"MULTI_File4","DEFAULT")
 ;           repkey_required[channel] = 1
 ;       end
 
+        ("DEPARTMENT.ISM"),
+            new IoHooksISAM(channel,"DEPARTMENT","QUEUE1")
+
         ("EMPLOYEE.ISM"),
-            new IoHooksISAM(channel,"EMPLOYEE")
+            new IoHooksISAM(channel,"EMPLOYEE","QUEUE2")
 
         endusing
     end
@@ -105,7 +113,7 @@ proc
 
 ;       ;;A relative file
 ;       ("FILE1.DDF"),
-;           new IoHooksRELATIVE(channel,"File1")
+;           new IoHooksRELATIVE(channel,"File1","DEFAULT")
 
         endusing
     end

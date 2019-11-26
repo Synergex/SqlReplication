@@ -1,5 +1,5 @@
 <!DOCTYPE Workspace SYSTEM "http://www.slickedit.com/dtd/vse/10.0/vpw.dtd">
-<Workspace Version="10.0" VendorName="SlickEdit" OEMVendorName="Synergy/DE Workbench 10.3.3g">
+<Workspace Version="10.0" VendorName="SlickEdit" OEMVendorName="Synergy/DE Workbench 11.1.1a">
 	<Projects>
 		<Project File="PRJ/library.vpj"/>
 		<Project File="PRJ/replicator.vpj"/>

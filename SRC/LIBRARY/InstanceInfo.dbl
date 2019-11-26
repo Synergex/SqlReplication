@@ -1,15 +1,14 @@
 ;;*****************************************************************************
 ;;
-;; File:        InstructionCount.dbl
+;; File:        InstanceInfo.dbl
 ;;
-;; Type:        Application
+;; Description: Information about a replicator instances queue file.
 ;;
-;; Description: Reports the current number of instructions in the replication
-;;              instructions file.
+;; Author:      Steve Ives, Synergex Professional Services Group
 ;;
 ;;*****************************************************************************
 ;;
-;; Copyright (c) 2016, Synergex International, Inc.
+;; Copyright (c) 2019, Synergex International, Inc.
 ;; All rights reserved.
 ;;
 ;; Redistribution and use in source and binary forms, with or without
@@ -36,14 +35,28 @@
 ;;
 ;;*****************************************************************************
 
-main InstructionCount
+namespace library
 
-proc
-    xcall flags(7004020,1)
-    open(1,o,"tt:")
-    open(2,i:i,"REPLICATOR_DATA:REPLICATION_DEFAULT.ISM")
-    writes(1,"Instruction count: " + %string(%isinfo(2,"NUMRECS")))
-    close 2
-    close 1
-    stop
-endmain
+    ;;; <summary>
+    ;;; Information about a replicator instances queue file.
+    ;;; </summary>
+    public class InstanceInfo
+
+        ;;; <summary>
+        ;;; Queue file spec.
+        ;;; </summary>
+        public QueueFile, string
+
+        ;;; <summary>
+        ;;; Channel to queue file.
+        ;;; </summary>
+        public Channel, int
+
+        ;;; <summary>
+        ;;; How many tables (files) are currently replicating via this queue file / channel.
+        ;;; </summary>
+        public ReferenceCount, int
+
+    endclass
+
+endnamespace
