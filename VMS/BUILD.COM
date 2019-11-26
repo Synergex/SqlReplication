@@ -20,12 +20,14 @@ $ WRITE SYS$OUTPUT "Compiling library routines..."
 $ DIB/OPT/VECTORS=VECTORS/OBJ=OBJ:LIBRARY.OBJ -
    LIBSRC:CommandLineParser.dbl -
  + LIBSRC:ConfigureReplication.dbl -
+ + LIBSRC:DepartmentSqlIO.dbl -
  + LIBSRC:EmployeeSqlIO.dbl -
  + LIBSRC:File.dbl -
  + LIBSRC:FileChunkReader.dbl -
  + LIBSRC:FileServiceClient.dbl -
  + LIBSRC:GetReplicatedTables.dbl -
  + LIBSRC:IndexExists.dbl -
+ + LIBSRC:InstanceInfo.dbl -
  + LIBSRC:IOHooksISAM.dbl -
  + LIBSRC:IOHooksRELATIVE.dbl -
  + LIBSRC:IsDate.dbl -
@@ -37,9 +39,11 @@ $ DIB/OPT/VECTORS=VECTORS/OBJ=OBJ:LIBRARY.OBJ -
  + LIBSRC:MakeDateForCsv.dbl -
  + LIBSRC:MakeDecimalForCsv.dbl -
  + LIBSRC:MakeTimeForCsv.dbl -
+ + LIBSRC:OpenOrCreateQueueFile.dbl -
  + LIBSRC:PopulateReplicationKey.dbl - 
  + LIBSRC:Replicate.dbl -
  + LIBSRC:SmtpMail.dbl -
+ + LIBSRC:StringDictionary.dbl -
  + LIBSRC:StringTools.dbl
 $ !
 $ WRITE SYS$OUTPUT "Creating object library LIBRARY.OLB..."
@@ -59,6 +63,9 @@ $ LINK/EXE=REPLICATOR_EXE:REPLICATOR.EXE OBJ:REPLICATOR.OBJ,'OPTIONS_FILE
 $ !
 $ DIB/OPT/OBJ=OBJ: REPSRC:ReplicatorMenu.dbl
 $ LINK/EXE=REPLICATOR_EXE:ReplicatorMenu.exe OBJ:ReplicatorMenu.obj,'OPTIONS_FILE
+$ !
+$ DIB/OPT/OBJ=OBJ: REPSRC:DEPARTMENTEMAINTENANCE.DBL
+$ LINK/EXE=REPLICATOR_EXE:DEPARTMENTMAINTENANCE.EXE OBJ:DEPARTMENTMAINTENANCE.OBJ,'OPTIONS_FILE
 $ !
 $ DIB/OPT/OBJ=OBJ: REPSRC:EMPLOYEEMAINTENANCE.DBL
 $ LINK/EXE=REPLICATOR_EXE:EMPLOYEEMAINTENANCE.EXE OBJ:EMPLOYEEMAINTENANCE.OBJ,'OPTIONS_FILE

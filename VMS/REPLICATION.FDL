@@ -11,7 +11,7 @@ FILE
 	CONTIGUOUS              no
 	EXTENSION               0
 	FILE_MONITORING         no
-	NAME                    "REPLICATION.ISM"
+	NAME                    "REPLICATION_DEFAULT.ISM"
 	ORGANIZATION            indexed
 	GLOBAL_BUFFER_COUNT     0
 	GLBUFF_CNT_V83          0

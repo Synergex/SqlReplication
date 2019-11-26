@@ -70,11 +70,13 @@ namespace library
             symbolTableId = nspc_open(D_NSPC_SPACE | D_NSPC_CASE, 4)
         endmethod
 
+.ifndef OS_VMS
         method ~StringDictionary
         proc
             xcall nspc_close(symbolTableId)
         endmethod
 
+.endc
         private method AddObjectInternal, i4
             value, @object
         proc

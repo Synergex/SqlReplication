@@ -5,14 +5,17 @@ dblproto -out library $LIBSRC/*.dbl
 dbl -o REPLICATOR_OBJ:library.dbo \
   LIBSRC:CommandLineParser.dbl \
   LIBSRC:ConfigureReplication.dbl \
+  LIBSRC:DepartmentSqlIO.dbl \
   LIBSRC:EmployeeSqlIO.dbl \
   LIBSRC:File.dbl \
   LIBSRC:FileChunkReader.dbl \
   LIBSRC:FileServiceClient.dbl \
+  LIBSRC:GetDateTimeString.dbl \
   LIBSRC:GetReplicatedTables.dbl \
   LIBSRC:IndexExists.dbl \
   LIBSRC:IOHooksISAM.dbl \
   LIBSRC:IOHooksRELATIVE.dbl \
+  LIBSRC:InstanceInfo.dbl \
   LIBSRC:IsDate.dbl \
   LIBSRC:IsEmailAddress.dbl \
   LIBSRC:IsNumeric.dbl \
@@ -22,9 +25,11 @@ dbl -o REPLICATOR_OBJ:library.dbo \
   LIBSRC:MakeDateForCsv.dbl\
   LIBSRC:MakeDecimalForCsv.dbl\
   LIBSRC:MakeTimeForCsv.dbl\
+  LIBSRC:OpenOrCrteateQueueFile.dbl\
   LIBSRC:PopulateReplicationKey.dbl \
   LIBSRC:Replicate.dbl \
   LIBSRC:SmtpMail.dbl \
+  LIBSRC:StringDictionary.dbl \
   LIBSRC:StringTools.dbl
 
 dblink -l REPLICATOR_EXE:library.elb REPLICATOR_OBJ:library.dbo
@@ -34,6 +39,9 @@ dblink -o REPLICATOR_EXE:replicator.dbr REPLICATOR_OBJ:replicator.dbo REPLICATOR
 
 dbl -o REPLICATOR_OBJ:replicatormenu.dbo REPSRC:ReplicatorMenu.dbl
 dblink -o REPLICATOR_EXE:replicatormenu.dbr REPLICATOR_OBJ:replicatormenu.dbo REPLICATOR_EXE:library.elb
+
+dbl -o REPLICATOR_OBJ:departmentmaintenance.dbo REPSRC:DepartmentMaintenance.dbl
+dblink -o REPLICATOR_EXE:departmentmaintenance.dbr REPLICATOR_OBJ:departmentmaintenance.dbo REPLICATOR_EXE:library.elb
 
 dbl -o REPLICATOR_OBJ:employeemaintenance.dbo REPSRC:EmployeeMaintenance.dbl
 dblink -o REPLICATOR_EXE:employeemaintenance.dbr REPLICATOR_OBJ:employeemaintenance.dbo REPLICATOR_EXE:library.elb
