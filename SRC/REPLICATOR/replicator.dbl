@@ -2188,6 +2188,21 @@ ConfigureEnvironment,
         end
     end
 
+    ;;Enable the "Improve SQL statement caching for SQL Server" feature (Synergy V11)
+
+    if (ok)
+    begin
+        ;;The SQLPERFORMANCESQL environment variable causes SQL Connection to use SQLDescribeParam internally
+        ;;to improve performance for SQL statements with I/O parameters when accessing SQL Server.
+        ;;
+        ;;This is the equivalent of using %SSC_CMD(chn,,SSQL_PERFORMANCE_SQL)
+        ;;
+        ;;Setting this environment variable will have no effect on pre V11 systems, but will enable the
+        ;;enhanced performance feature under V11 and later versions.
+        ;;
+        xcall setlog("SQLPERFORMANCESQL","YES",length)
+    end
+
     ;;Enable and Initialize SQL Connection
 
     if (ok)
