@@ -134,9 +134,6 @@
     <Compile Include="..\..\SRC\LIBRARY\Json.dbl">
       <Link>Json.dbl</Link>
     </Compile>
-    <Compile Include="..\..\SRC\LIBRARY\JsonSerializer.dbl">
-      <Link>JsonSerializer.dbl</Link>
-    </Compile>
     <Compile Include="..\..\SRC\LIBRARY\LastRecordCache.dbl">
       <Link>LastRecordCache.dbl</Link>
     </Compile>

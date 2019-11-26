@@ -100,10 +100,10 @@ proc
 ;       end
 
         ("DEPARTMENT.ISM"),
-            new IoHooksISAM(channel,"DEPARTMENT","QUEUE1")
+            new IoHooksISAM(channel,"DEPARTMENT","DEFAULT")
 
         ("EMPLOYEE.ISM"),
-            new IoHooksISAM(channel,"EMPLOYEE","QUEUE2")
+            new IoHooksISAM(channel,"EMPLOYEE","DEFAULT")
 
         endusing
     end

@@ -74,6 +74,9 @@
     </PostBuildEvent>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="..\..\SRC\REPLICATOR\ChangeEveryEmployee.dbl">
+      <Link>ChangeEveryEmployee.dbl</Link>
+    </Compile>
     <Compile Include="..\..\SRC\REPLICATOR\DepartmentMaintenance.dbl">
       <Link>DepartmentMaintenance.dbl</Link>
     </Compile>
@@ -86,6 +89,9 @@
     <Compile Include="..\..\SRC\REPLICATOR\InstructionCount.dbl">
       <Link>InstructionCount.dbl</Link>
     </Compile>
+    <Compile Include="..\..\SRC\REPLICATOR\QueueMonitor.dbl">
+      <Link>QueueMonitor.dbl</Link>
+    </Compile>
     <Compile Include="..\..\SRC\REPLICATOR\replicator.dbl">
       <Link>replicator.dbl</Link>
     </Compile>
@@ -95,8 +101,6 @@
     <Compile Include="..\..\SRC\REPLICATOR\ReplicatorStop.dbl">
       <Link>ReplicatorStop.dbl</Link>
     </Compile>
-    <Compile Include="ChangeEveryEmployee.dbl" />
-    <Compile Include="QueueMonitor.dbl" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\library\library.synproj">

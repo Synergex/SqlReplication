@@ -185,6 +185,7 @@
             Filters="*.dbl;*.tpl;*.dbc">
             <F N="../SRC/LIBRARY/CommandLineParser.dbl"/>
             <F N="../SRC/LIBRARY/ConfigureReplication.dbl"/>
+            <F N="../SRC/LIBRARY/DepartmentSqlIO.dbl"/>
             <F N="../SRC/LIBRARY/EmployeeSqlIO.dbl"/>
             <F N="../SRC/LIBRARY/File.dbl"/>
             <F N="../SRC/LIBRARY/FileChunkReader.dbl"/>
@@ -194,6 +195,7 @@
             <F N="../SRC/LIBRARY/GetDateTimeString.dbl"/>
             <F N="../SRC/LIBRARY/GetReplicatedTables.dbl"/>
             <F N="../SRC/LIBRARY/IndexExists.dbl"/>
+            <F N="../SRC/LIBRARY/InstanceInfo.dbl"/>
             <F N="../SRC/LIBRARY/IOHooksISAM.dbl"/>
             <F N="../SRC/LIBRARY/IOHooksRELATIVE.dbl"/>
             <F N="../SRC/LIBRARY/IsDate.dbl"/>
@@ -201,16 +203,16 @@
             <F N="../SRC/LIBRARY/IsNumeric.dbl"/>
             <F N="../SRC/LIBRARY/IsTime.dbl"/>
             <F N="../SRC/LIBRARY/Json.dbl"/>
-            <F N="../SRC/LIBRARY/JsonSerializer.dbl"/>
             <F N="../SRC/LIBRARY/LastRecordCache.dbl"/>
             <F N="../SRC/LIBRARY/MakeDateForCsv.dbl"/>
             <F N="../SRC/LIBRARY/MakeDecimalForCsv.dbl"/>
             <F N="../SRC/LIBRARY/MakeTimeForCsv.dbl"/>
+            <F N="../SRC/LIBRARY/OpenOrCreateQueueFile.dbl"/>
             <F N="../SRC/LIBRARY/PopulateReplicationKey.dbl"/>
             <F N="../SRC/LIBRARY/Replicate.dbl"/>
             <F N="../SRC/LIBRARY/SmtpMail.dbl"/>
+            <F N="../SRC/LIBRARY/StringDictionary.dbl"/>
             <F N="../SRC/LIBRARY/StringTools.dbl"/>
-            <F N="../SRC/LIBRARY/SynPSG.System.Convert.dbl"/>
         </Folder>
         <Folder
             Name="Header Files"

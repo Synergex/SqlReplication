@@ -186,10 +186,10 @@
             Name="Source Files"
             Filters="*.dbl;*.tpl;*.dbc">
             <F N="../SRC/REPLICATOR/ChangeEveryEmployee.dbl"/>
+            <F N="../SRC/REPLICATOR/DepartmentMaintenance.dbl"/>
             <F N="../SRC/REPLICATOR/EmployeeDataReport.dbl"/>
             <F N="../SRC/REPLICATOR/EmployeeMaintenance.dbl"/>
             <F N="../SRC/REPLICATOR/InstructionCount.dbl"/>
-            <F N="../SRC/REPLICATOR/JsonSerializationTest.dbl"/>
             <F N="../SRC/REPLICATOR/QueueMonitor.dbl"/>
             <F N="../SRC/REPLICATOR/replicator.dbl"/>
             <F N="../SRC/REPLICATOR/ReplicatorMenu.dbl"/>
