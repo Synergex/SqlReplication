@@ -608,6 +608,8 @@ LoadTable,
 
     xcall log(" - Load starting at " + %TimeNow)
 
+    clear status
+
     try
     begin
         data successCount, int, 0
@@ -626,28 +628,6 @@ LoadTable,
             xcall log(" - " + %string(successCount) + " rows inserted, " + %string(failCount) + " rows failed.")
             Counters.Inserts += successCount
             Counters.Errors  += failCount
-
-            ;;Now add alternate key indexes
-            begin
-                xcall log(" - Adding indexes...")
-                functionName = %atrim(instruction.structure_name) + "Index"
-                status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,Settings.DatabaseTimeout,Settings.BulkLoadTimeout,Settings.LogFileChannel,dberrtxt)
-
-                if (status) then
-                begin
-                    xcall log(" - Indexes added")
-                    if (Settings.CanSendEmail())
-                    begin
-                        data subject, string, "loaded table " + %atrim(instruction.structure_name)
-                        data body = new string[#] { "A full table load completed. " + %string(successCount) + " rows inserted, " + %string(failCount) + " rows failed." }
-                        xcall SendEmail(subject,body)
-                    end
-                end
-                else
-                begin
-                    xcall LogFunctionError(functionName,status,dberrtxt)
-                end
-            end
         end
         else
         begin
@@ -660,6 +640,12 @@ LoadTable,
     end
     endtry
 
+    ;;Now add alternate key indexes
+    if (ok && status)
+    begin
+        call DoAddIndexes
+    end
+
     return
 
 ;;-----------------------------------------------------------------------------
@@ -668,6 +654,8 @@ LoadTable,
 BulkLoadTable,
 
     xcall log(" - Bulk load starting at " + %TimeNow)
+
+    clear status
 
     try
     begin
@@ -683,27 +671,6 @@ BulkLoadTable,
             xcall log("   - " + %string(totalRows) + " records processed, " + %string(failRows) + " failed.")
             Counters.Inserts += totalRows - failRows
             Counters.Errors  += failRows
-
-            ;;Now add alternate key indexes
-            xcall log(" - Adding indexes...")
-            functionName = %atrim(instruction.structure_name) + "Index"
-            status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,Settings.DatabaseTimeout,Settings.BulkLoadTimeout,Settings.LogFileChannel,dberrtxt)
-
-            if (status) then
-            begin
-                xcall log("   - Indexes added")
-                if (Settings.CanSendEmail())
-                begin
-                    data subject, string, "bulk loaded table " + %atrim(instruction.structure_name)
-                    data body = new string[#] { "A table bulk load completed." }
-                    xcall SendEmail(subject,body)
-                end
-            end
-            else
-            begin
-                xcall LogFunctionError(functionName,status,dberrtxt)
-            end
-
         end
         else
         begin
@@ -715,6 +682,12 @@ BulkLoadTable,
         ok = %LogFunctionFail(functionName,ex.Errno,ex.Message)
     end
     endtry
+
+    ;;Now add alternate key indexes
+    if (ok && status)
+    begin
+        call DoAddIndexes
+    end
 
     return
 
@@ -1238,6 +1211,10 @@ DoAddIndexes,
         else
             xcall LogFunctionError(functionName,status,dberrtxt)
     end
+    catch (ex, @RoutineNotFound)
+    begin
+        xcall verboselog(" - Addining indexes is not enabled for this table.")
+    end
     catch (ex, @SynException)
     begin
         ok = %LogFunctionFail(functionName,ex.Errno,ex.Message)
@@ -1268,6 +1245,10 @@ DoDeleteIndexes,
         end
         else
             xcall LogFunctionError(functionName,status,dberrtxt)
+    end
+    catch (ex, @RoutineNotFound)
+    begin
+        xcall verboselog(" - Removing indexes is not enabled for this table.")
     end
     catch (ex, @SynException)
     begin
