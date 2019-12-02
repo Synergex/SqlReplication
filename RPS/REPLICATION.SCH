@@ -3,10 +3,10 @@
 ;
 ;  REPOSITORY     : D:\SqlReplication\RPS\rpsmain.ism
 ;                 : D:\SqlReplication\RPS\rpstext.ism
-;                 : Version 10.3.3f
+;                 : Version 11.1.1a
 ;
-;  GENERATED      : 24-DEC-2018, 10:04:13
-;                 : Version 10.3.3f
+;  GENERATED      : 02-DEC-2019, 10:39:21
+;                 : Version 11.1.1a
 ;  EXPORT OPTIONS : [ALL] 
  
  
@@ -106,6 +106,8 @@ Field EMP_PHONE_WORK   Type ALPHA   Size 14
  
 Field EMP_PHONE_HOME   Type ALPHA   Size 14
    Description "Home phone number"
+   Long Description
+      "REPLICATOR_EXCLUDE"
    Prompt "Home phone"   ODBC Name HOME_PHONE
  
 Field EMP_PHONE_CELL   Type ALPHA   Size 14
@@ -122,6 +124,8 @@ Field EMP_PAID   Type DECIMAL   Size 1
  
 Field EMP_HOME_OK   Type DECIMAL   Size 1
    Description "OK to call at home"
+   Long Description
+      "REPLICATOR_EXCLUDE"
    Prompt "Call home OK"   Info Line "Is it OK to call this employee at home"
    ODBC Name OK_TO_CALL_HOME   Checkbox
    Default "1"   Automatic
@@ -276,3 +280,4 @@ File REPLICATION_VMS   DBL ISAM   "REPLICATOR_DATA:REPLICATION.ISM"
    Description "SQL replication request queue file (VMS)"
    Addressing 40BIT
    Assign REPLICATION_VMS
+ 

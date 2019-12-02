@@ -164,10 +164,8 @@ proc
         & + '"EmpDept" VARCHAR(15) NOT NULL,'
         & + '"EmpHireDate" DATE,'
         & + '"EmpPhoneWork" VARCHAR(14),'
-        & + '"EmpPhoneHome" VARCHAR(14),'
         & + '"EmpPhoneCell" VARCHAR(14),'
         & + '"EmpPaid" DECIMAL(1),'
-        & + '"EmpHomeOk" DECIMAL(1),'
         & + '"EmpDateOfBirth" DATE,'
         & + '"EmpHireTime" TIME(0),'
         & + '"EmpEmail" VARCHAR(40),'
@@ -725,10 +723,8 @@ function EmployeeInsert, ^val
         & +              '"EmpDept",'
         & +              '"EmpHireDate",'
         & +              '"EmpPhoneWork",'
-        & +              '"EmpPhoneHome",'
         & +              '"EmpPhoneCell",'
         & +              '"EmpPaid",'
-        & +              '"EmpHomeOk",'
         & +              '"EmpDateOfBirth",'
         & +              '"EmpHireTime",'
         & +              '"EmpEmail",'
@@ -736,7 +732,7 @@ function EmployeeInsert, ^val
         & +              '"EmpAddressCity",'
         & +              '"EmpAddressState",'
         & +              '"EmpAddressZip"'
-        & +              ") VALUES(:1,:2,:3,:4,:5,:6,:7,:8,:9,:10,:11,:12,:13,:14,:15,:16,:17)"
+        & +              ") VALUES(:1,:2,:3,:4,:5,:6,:7,:8,:9,:10,:11,:12,:13,:14,:15)"
     endliteral
 
     static record
@@ -794,10 +790,8 @@ proc
         &    employee.emp_dept,
         &    ^a(employee.emp_hire_date),
         &    employee.emp_phone_work,
-        &    employee.emp_phone_home,
         &    employee.emp_phone_cell,
         &    employee.emp_paid,
-        &    employee.emp_home_ok,
         &    ^a(employee.emp_date_of_birth),
         &    tmpEmpHireTime,
         &    employee.emp_email,
@@ -827,7 +821,6 @@ proc
         employee.emp_last_name = %atrim(employee.emp_last_name)+%char(0)
         employee.emp_dept = %atrim(employee.emp_dept)+%char(0)
         employee.emp_phone_work = %atrim(employee.emp_phone_work)+%char(0)
-        employee.emp_phone_home = %atrim(employee.emp_phone_home)+%char(0)
         employee.emp_phone_cell = %atrim(employee.emp_phone_cell)+%char(0)
         employee.emp_email = %atrim(employee.emp_email)+%char(0)
         employee.emp_address_street = %atrim(employee.emp_address_street)+%char(0)
@@ -840,8 +833,6 @@ proc
             clear employee.emp_id
         if ((!employee.emp_paid)||(!%IsNumeric(^a(employee.emp_paid))))
             clear employee.emp_paid
-        if ((!employee.emp_home_ok)||(!%IsNumeric(^a(employee.emp_home_ok))))
-            clear employee.emp_home_ok
         if ((!employee.emp_address_zip)||(!%IsNumeric(^a(employee.emp_address_zip))))
             clear employee.emp_address_zip
 
@@ -969,18 +960,16 @@ function EmployeeInsertRows, ^val
         & +              '"EmpDept",' ;#4
         & +              '"EmpHireDate",' ;#5
         & +              '"EmpPhoneWork",' ;#6
-        & +              '"EmpPhoneHome",' ;#7
-        & +              '"EmpPhoneCell",' ;#8
-        & +              '"EmpPaid",' ;#9
-        & +              '"EmpHomeOk",' ;#10
-        & +              '"EmpDateOfBirth",' ;#11
-        & +              '"EmpHireTime",' ;#12
-        & +              '"EmpEmail",' ;#13
-        & +              '"EmpAddressStreet",' ;#14
-        & +              '"EmpAddressCity",' ;#15
-        & +              '"EmpAddressState",' ;#16
-        & +              '"EmpAddressZip"' ;#17
-        & +              ") VALUES(:1,:2,:3,:4,:5,:6,:7,:8,:9,:10,:11,:12,:13,:14,:15,:16,:17)"
+        & +              '"EmpPhoneCell",' ;#7
+        & +              '"EmpPaid",' ;#8
+        & +              '"EmpDateOfBirth",' ;#9
+        & +              '"EmpHireTime",' ;#10
+        & +              '"EmpEmail",' ;#11
+        & +              '"EmpAddressStreet",' ;#12
+        & +              '"EmpAddressCity",' ;#13
+        & +              '"EmpAddressState",' ;#14
+        & +              '"EmpAddressZip"' ;#15
+        & +              ") VALUES(:1,:2,:3,:4,:5,:6,:7,:8,:9,:10,:11,:12,:13,:14,:15)"
     endliteral
 
     .include "EMPLOYEE" repository, structure="inpbuf", nofields, end
@@ -1059,10 +1048,8 @@ proc
         &    employee.emp_dept,
         &    ^a(employee.emp_hire_date),
         &    employee.emp_phone_work,
-        &    employee.emp_phone_home,
         &    employee.emp_phone_cell,
         &    employee.emp_paid,
-        &    employee.emp_home_ok,
         &    ^a(employee.emp_date_of_birth),
         &    tmpEmpHireTime,
         &    employee.emp_email,
@@ -1094,7 +1081,6 @@ proc
             employee.emp_last_name = %atrim(employee.emp_last_name)+%char(0)
             employee.emp_dept = %atrim(employee.emp_dept)+%char(0)
             employee.emp_phone_work = %atrim(employee.emp_phone_work)+%char(0)
-            employee.emp_phone_home = %atrim(employee.emp_phone_home)+%char(0)
             employee.emp_phone_cell = %atrim(employee.emp_phone_cell)+%char(0)
             employee.emp_email = %atrim(employee.emp_email)+%char(0)
             employee.emp_address_street = %atrim(employee.emp_address_street)+%char(0)
@@ -1107,8 +1093,6 @@ proc
                 clear employee.emp_id
             if ((!employee.emp_paid)||(!%IsNumeric(^a(employee.emp_paid))))
                 clear employee.emp_paid
-            if ((!employee.emp_home_ok)||(!%IsNumeric(^a(employee.emp_home_ok))))
-                clear employee.emp_home_ok
             if ((!employee.emp_address_zip)||(!%IsNumeric(^a(employee.emp_address_zip))))
                 clear employee.emp_address_zip
 
@@ -1263,18 +1247,16 @@ function EmployeeUpdate, ^val
         & +              '"EmpDept"=:4,'
         & +              '"EmpHireDate"=:5,'
         & +              '"EmpPhoneWork"=:6,'
-        & +              '"EmpPhoneHome"=:7,'
-        & +              '"EmpPhoneCell"=:8,'
-        & +              '"EmpPaid"=:9,'
-        & +              '"EmpHomeOk"=:10,'
-        & +              '"EmpDateOfBirth"=:11,'
-        & +              '"EmpHireTime"=:12,'
-        & +              '"EmpEmail"=:13,'
-        & +              '"EmpAddressStreet"=:14,'
-        & +              '"EmpAddressCity"=:15,'
-        & +              '"EmpAddressState"=:16,'
-        & +              '"EmpAddressZip"=:17'
-        & +              ' WHERE "EmpId"=:18  '
+        & +              '"EmpPhoneCell"=:7,'
+        & +              '"EmpPaid"=:8,'
+        & +              '"EmpDateOfBirth"=:9,'
+        & +              '"EmpHireTime"=:10,'
+        & +              '"EmpEmail"=:11,'
+        & +              '"EmpAddressStreet"=:12,'
+        & +              '"EmpAddressCity"=:13,'
+        & +              '"EmpAddressState"=:14,'
+        & +              '"EmpAddressZip"=:15'
+        & +              ' WHERE "EmpId"=:16  '
     endliteral
 
     static record
@@ -1336,10 +1318,8 @@ proc
         &    employee.emp_dept,
         &    ^a(employee.emp_hire_date),
         &    employee.emp_phone_work,
-        &    employee.emp_phone_home,
         &    employee.emp_phone_cell,
         &    employee.emp_paid,
-        &    employee.emp_home_ok,
         &    ^a(employee.emp_date_of_birth),
         &    tmpEmpHireTime,
         &    employee.emp_email,
@@ -1376,7 +1356,6 @@ proc
         employee.emp_last_name = %atrim(employee.emp_last_name)+%char(0)
         employee.emp_dept = %atrim(employee.emp_dept)+%char(0)
         employee.emp_phone_work = %atrim(employee.emp_phone_work)+%char(0)
-        employee.emp_phone_home = %atrim(employee.emp_phone_home)+%char(0)
         employee.emp_phone_cell = %atrim(employee.emp_phone_cell)+%char(0)
         employee.emp_email = %atrim(employee.emp_email)+%char(0)
         employee.emp_address_street = %atrim(employee.emp_address_street)+%char(0)
@@ -1389,8 +1368,6 @@ proc
             clear employee.emp_id
         if ((!employee.emp_paid)||(!%IsNumeric(^a(employee.emp_paid))))
             clear employee.emp_paid
-        if ((!employee.emp_home_ok)||(!%IsNumeric(^a(employee.emp_home_ok))))
-            clear employee.emp_home_ok
         if ((!employee.emp_address_zip)||(!%IsNumeric(^a(employee.emp_address_zip))))
             clear employee.emp_address_zip
 
@@ -2604,9 +2581,9 @@ proc
 
         ;;Add a row of column headers
         .ifdef OS_WINDOWS7
-        writes(csvchn,"EmpId|EmpFirstName|EmpLastName|EmpDept|EmpHireDate|EmpPhoneWork|EmpPhoneHome|EmpPhoneCell|EmpPaid|EmpHomeOk|EmpDateOfBirth|EmpHireTime|EmpEmail|EmpAddressStreet|EmpAddressCity|EmpAddressState|EmpAddressZip")
+        writes(csvchn,"EmpId|EmpFirstName|EmpLastName|EmpDept|EmpHireDate|EmpPhoneWork|EmpPhoneCell|EmpPaid|EmpDateOfBirth|EmpHireTime|EmpEmail|EmpAddressStreet|EmpAddressCity|EmpAddressState|EmpAddressZip")
         .else
-        puts(csvchn,"EmpId|EmpFirstName|EmpLastName|EmpDept|EmpHireDate|EmpPhoneWork|EmpPhoneHome|EmpPhoneCell|EmpPaid|EmpHomeOk|EmpDateOfBirth|EmpHireTime|EmpEmail|EmpAddressStreet|EmpAddressCity|EmpAddressState|EmpAddressZip" + %char(13) + %char(10))
+        puts(csvchn,"EmpId|EmpFirstName|EmpLastName|EmpDept|EmpHireDate|EmpPhoneWork|EmpPhoneCell|EmpPaid|EmpDateOfBirth|EmpHireTime|EmpEmail|EmpAddressStreet|EmpAddressCity|EmpAddressState|EmpAddressZip" + %char(13) + %char(10))
         .endc
 
         ;;Read and add data file records
@@ -2620,10 +2597,8 @@ proc
             &    + %atrim(employee.emp_dept) + "|"
             &    + %MakeDateForCsv(employee.emp_hire_date) + "|"
             &    + %atrim(employee.emp_phone_work) + "|"
-            &    + %atrim(employee.emp_phone_home) + "|"
             &    + %atrim(employee.emp_phone_cell) + "|"
             &    + %MakeDecimalForCsv(employee.emp_paid) + "|"
-            &    + %MakeDecimalForCsv(employee.emp_home_ok) + "|"
             &    + %MakeDateForCsv(employee.emp_date_of_birth) + "|"
             &    + %MakeTimeForCsv(employee.emp_hire_time) + "|"
             &    + %atrim(employee.emp_email) + "|"

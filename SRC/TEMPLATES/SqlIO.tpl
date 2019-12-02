@@ -1,5 +1,25 @@
 <CODEGEN_FILENAME><StructureName>SqlIO.dbl</CODEGEN_FILENAME>
 <REQUIRES_CODEGEN_VERSION>5.3.14</REQUIRES_CODEGEN_VERSION>
+;//****************************************************************************
+;//
+;// Guard against REPLICATOR_EXCLUDE being used on key segments
+;//
+<COUNTER_1_RESET>
+<FIELD_LOOP>
+  <IF CUSTOM_REPLICATOR_EXCLUDE>
+    <IF KEYSEGMENT>
+      <COUNTER_1_INCREMENT>
+      <IF COUNTER_1_EQ_1>
+*****************************************************************************
+CODE GENERATION EXCEPTIONS:
+
+      </IF COUNTER_1_EQ_1>
+Field <FIELD_NAME> may not be excluded via REPLICATOR_EXCLUDE because it is a key segment!
+
+    </IF KEYSEGMENT>
+  </IF CUSTOM_REPLICATOR_EXCLUDE>
+</FIELD_LOOP>
+;//
 ;//*****************************************************************************
 ;//
 ;// Title:       SqlIO.tpl
@@ -196,25 +216,33 @@ proc
     if (ok)
     begin
         sql = 'CREATE TABLE "<StructureName>" ('
-        <IF STRUCTURE_RELATIVE>
+;//
+;// Columns
+;//
+<IF STRUCTURE_RELATIVE>
         & + '"RecordNumber" INT NOT NULL,'
-        </IF STRUCTURE_RELATIVE>
-        <FIELD_LOOP>
-        <IF STRUCTURE_RELATIVE>
+</IF STRUCTURE_RELATIVE>
+<FIELD_LOOP>
+  <IF CUSTOM_NOT_REPLICATOR_EXCLUDE>
+    <IF STRUCTURE_RELATIVE>
         & + '"<FieldSqlName>" <FIELD_SQLTYPE><IF REQUIRED> NOT NULL</IF><,>'
-        </IF STRUCTURE_RELATIVE>
-        <IF STRUCTURE_ISAM>
+    </IF STRUCTURE_RELATIVE>
+    <IF STRUCTURE_ISAM>
         & + '"<FieldSqlName>" <FIELD_SQLTYPE><IF REQUIRED> NOT NULL</IF><IF LAST><IF STRUCTURE_HAS_UNIQUE_PK>,</IF STRUCTURE_HAS_UNIQUE_PK><ELSE>,</IF LAST>'
-        </IF STRUCTURE_ISAM>
-        </FIELD_LOOP>
-        <IF STRUCTURE_ISAM>
-        <IF STRUCTURE_HAS_UNIQUE_PK>
+    </IF STRUCTURE_ISAM>
+  </IF CUSTOM_NOT_REPLICATOR_EXCLUDE>
+</FIELD_LOOP>
+;//
+;// Primary key constraint
+;//
+<IF STRUCTURE_ISAM>
+  <IF STRUCTURE_HAS_UNIQUE_PK>
         & + 'CONSTRAINT PK_<StructureName> PRIMARY KEY CLUSTERED(<PRIMARY_KEY><SEGMENT_LOOP>"<FieldSqlName>" <SEGMENT_ORDER><,></SEGMENT_LOOP></PRIMARY_KEY>)'
-        </IF STRUCTURE_HAS_UNIQUE_PK>
-        </IF STRUCTURE_ISAM>
-        <IF STRUCTURE_RELATIVE>
+  </IF STRUCTURE_HAS_UNIQUE_PK>
+</IF STRUCTURE_ISAM>
+<IF STRUCTURE_RELATIVE>
         & + 'CONSTRAINT PK_<StructureName> PRIMARY KEY CLUSTERED("RecordNumber" ASC)'
-        </IF STRUCTURE_RELATIVE>
+</IF STRUCTURE_RELATIVE>
         & + ')'
 
         call open_cursor
@@ -388,8 +416,8 @@ proc
         end
     end
 
-    <IF STRUCTURE_HAS_UNIQUE_PK>
-    <ELSE>
+  <IF STRUCTURE_HAS_UNIQUE_PK>
+  <ELSE>
     ;;The structure has no unique primary key, so no primary key constraint was added to the table. Create an index instead.
 
     if (ok && !IndexExists(a_dbchn,"IX_<StructureName>_<PRIMARY_KEY><KeyName></PRIMARY_KEY>",errtxt))
@@ -408,8 +436,8 @@ proc
         end
     end
 
-    </IF STRUCTURE_HAS_UNIQUE_PK>
-    <ALTERNATE_KEY_LOOP>
+  </IF STRUCTURE_HAS_UNIQUE_PK>
+  <ALTERNATE_KEY_LOOP>
     ;;Create index <KEY_NUMBER> (<KEY_DESCRIPTION>)
 
     if (ok && !%IndexExists(a_dbchn,"IX_<StructureName>_<KeyName>",errtxt))
@@ -428,7 +456,7 @@ proc
         end
     end
 
-    </ALTERNATE_KEY_LOOP>
+  </ALTERNATE_KEY_LOOP>
 
     ;;Commit or rollback the transaction
 
@@ -560,8 +588,8 @@ proc
         end
     end
 
-    <IF STRUCTURE_HAS_UNIQUE_PK>
-    <ELSE>
+  <IF STRUCTURE_HAS_UNIQUE_PK>
+  <ELSE>
     if (ok)
     begin
 ;// Note: IF EXISTS only works for SQL Server 2016 and later. Remove it for earlier databases.
@@ -576,8 +604,8 @@ proc
         end
     end
 
-    </IF STRUCTURE_HAS_UNIQUE_PK>
-    <ALTERNATE_KEY_LOOP>
+  </IF STRUCTURE_HAS_UNIQUE_PK>
+  <ALTERNATE_KEY_LOOP>
     ;;Drop index <KEY_NUMBER> (<KEY_DESCRIPTION>)
 
     if (ok)
@@ -594,7 +622,7 @@ proc
         end
     end
 
-    </ALTERNATE_KEY_LOOP>
+  </ALTERNATE_KEY_LOOP>
     ;;Commit or rollback the transaction
 
     if ((a_commit_mode==3) && transaction)
@@ -688,9 +716,9 @@ function <StructureName>Insert, ^val
 
     required in  a_dbchn,  i
     required in  a_commit_mode, i
-    <IF STRUCTURE_RELATIVE>
+<IF STRUCTURE_RELATIVE>
     required in  a_recnum, n
-    </IF STRUCTURE_RELATIVE>
+</IF STRUCTURE_RELATIVE>
     required in  a_data,   a
     optional out a_errtxt, a
     endparams
@@ -706,38 +734,42 @@ function <StructureName>Insert, ^val
         transaction ,int        ;;Transaction in progress
         length      ,int        ;;Length of a string
         errtxt      ,a512       ;;Error message text
-        <IF STRUCTURE_RELATIVE>
+<IF STRUCTURE_RELATIVE>
         recordNumber,d28        ;;Relative record number
-        </IF STRUCTURE_RELATIVE>
+</IF STRUCTURE_RELATIVE>
     endrecord
 
     literal
         sql         ,a*, "INSERT INTO <StructureName> ("
-        <COUNTER_1_RESET>
-        <IF STRUCTURE_RELATIVE>
+<COUNTER_1_RESET>
+<IF STRUCTURE_RELATIVE>
         & +              '"RecordNumber",'
-        <COUNTER_1_INCREMENT>
-        </IF STRUCTURE_RELATIVE>
-        <FIELD_LOOP>
+<COUNTER_1_INCREMENT>
+</IF STRUCTURE_RELATIVE>
+<FIELD_LOOP>
+  <IF CUSTOM_NOT_REPLICATOR_EXCLUDE>
         & +              '"<FieldSqlName>"<,>'
-        </FIELD_LOOP>
-        & +              ") VALUES(<IF STRUCTURE_RELATIVE>:1,</IF STRUCTURE_RELATIVE><FIELD_LOOP><COUNTER_1_INCREMENT><IF USERTIMESTAMP>CONVERT(DATETIME2,:<COUNTER_1_VALUE>,21)<,><ELSE>:<COUNTER_1_VALUE><,></IF USERTIMESTAMP></FIELD_LOOP>)"
+  </IF CUSTOM_NOT_REPLICATOR_EXCLUDE>
+</FIELD_LOOP>
+        & +              ") VALUES(<IF STRUCTURE_RELATIVE>:1,</IF STRUCTURE_RELATIVE><FIELD_LOOP><IF CUSTOM_NOT_REPLICATOR_EXCLUDE><COUNTER_1_INCREMENT><IF USERTIMESTAMP>CONVERT(DATETIME2,:<COUNTER_1_VALUE>,21)<,><ELSE>:<COUNTER_1_VALUE><,></IF USERTIMESTAMP></IF CUSTOM_NOT_REPLICATOR_EXCLUDE></FIELD_LOOP>)"
     endliteral
 
     static record
         <structure_name>, str<StructureName>
-        <FIELD_LOOP>
-        <IF USERTIMESTAMP>
+<FIELD_LOOP>
+  <IF CUSTOM_NOT_REPLICATOR_EXCLUDE>
+    <IF USERTIMESTAMP>
         tmp<FieldSqlName>, a26     ;;Storage for user-defined timestamp field
-        <ELSE>
-        <IF TIME_HHMM>
+    <ELSE>
+      <IF TIME_HHMM>
         tmp<FieldSqlName>, a5      ;;Storage for HH:MM time field
-        </IF TIME_HHMM>
-        <IF TIME_HHMMSS>
+      </IF TIME_HHMM>
+      <IF TIME_HHMMSS>
         tmp<FieldSqlName>, a8      ;;Storage for HH:MM:SS time field
-        </IF TIME_HHMMSS>
-        </IF USERTIMESTAMP>
-        </FIELD_LOOP>
+      </IF TIME_HHMMSS>
+    </IF USERTIMESTAMP>
+  </IF CUSTOM_NOT_REPLICATOR_EXCLUDE>
+</FIELD_LOOP>
     endrecord
 
     global common
@@ -749,9 +781,9 @@ proc
     init local_data
     ok = true
     sts = 1
-    <IF STRUCTURE_RELATIVE>
+<IF STRUCTURE_RELATIVE>
     recordNumber = a_recnum
-    </IF STRUCTURE_RELATIVE>
+</IF STRUCTURE_RELATIVE>
     openAndBind = (c1<StructureName> == 0)
 
     ;;Start a database transaction
@@ -784,7 +816,7 @@ proc
 
     ;;Bind the host variables for data to be inserted
 
-    <IF STRUCTURE_RELATIVE>
+<IF STRUCTURE_RELATIVE>
     if (ok && openAndBind)
     begin
         if (%ssc_bind(a_dbchn,c1<StructureName>,1,recordNumber)==SSQL_FAILURE)
@@ -796,37 +828,38 @@ proc
         end
     end
 
-    </IF STRUCTURE_RELATIVE>
-    <COUNTER_1_RESET>
-    <FIELD_LOOP>
+</IF STRUCTURE_RELATIVE>
+<COUNTER_1_RESET>
+<FIELD_LOOP>
+  <IF CUSTOM_NOT_REPLICATOR_EXCLUDE>
     <COUNTER_1_INCREMENT>
     <IF COUNTER_1_EQ_1>
     if (ok && openAndBind)
     begin
         if (%ssc_bind(a_dbchn,c1<StructureName>,<REMAINING_INCLUSIVE_MAX_250>,
     </IF COUNTER_1_EQ_1>
-        <IF ALPHA>
+    <IF ALPHA>
         &    <structure_name>.<field_original_name_modified><IF NOMORE>)==SSQL_FAILURE)<ELSE><IF COUNTER_1_LT_250>,<ELSE>)==SSQL_FAILURE)</IF COUNTER_1_LT_250></IF NOMORE>
-        </IF ALPHA>
-        <IF DECIMAL>
+    </IF ALPHA>
+    <IF DECIMAL>
         &    <structure_name>.<field_original_name_modified><IF NOMORE>)==SSQL_FAILURE)<ELSE><IF COUNTER_1_LT_250>,<ELSE>)==SSQL_FAILURE)</IF COUNTER_1_LT_250></IF NOMORE>
-        </IF DECIMAL>
-        <IF INTEGER>
+    </IF DECIMAL>
+    <IF INTEGER>
         &    <structure_name>.<field_original_name_modified><IF NOMORE>)==SSQL_FAILURE)<ELSE><IF COUNTER_1_LT_250>,<ELSE>)==SSQL_FAILURE)</IF COUNTER_1_LT_250></IF NOMORE>
-        </IF INTEGER>
-        <IF DATE>
+    </IF INTEGER>
+    <IF DATE>
         &    ^a(<structure_name>.<field_original_name_modified>)<IF NOMORE>)==SSQL_FAILURE)<ELSE><IF COUNTER_1_LT_250>,<ELSE>)==SSQL_FAILURE)</IF COUNTER_1_LT_250></IF NOMORE>
-        </IF DATE>
-        <IF TIME>
+    </IF DATE>
+    <IF TIME>
         &    tmp<FieldSqlName><IF NOMORE>)==SSQL_FAILURE)<ELSE><IF COUNTER_1_LT_250>,<ELSE>)==SSQL_FAILURE)</IF COUNTER_1_LT_250></IF NOMORE>
-        </IF TIME>
-        <IF USER>
-        <IF USERTIMESTAMP>
+    </IF TIME>
+    <IF USER>
+      <IF USERTIMESTAMP>
         &    tmp<FieldSqlName><IF NOMORE>)==SSQL_FAILURE)<ELSE><IF COUNTER_1_LT_250>,<ELSE>)==SSQL_FAILURE)</IF COUNTER_1_LT_250></IF NOMORE>
-        <ELSE>
+      <ELSE>
         &    <structure_name>.<field_original_name_modified><IF NOMORE>)==SSQL_FAILURE)<ELSE><IF COUNTER_1_LT_250>,<ELSE>)==SSQL_FAILURE)</IF COUNTER_1_LT_250></IF NOMORE>
-        </IF USERTIMESTAMP>
-        </IF USER>
+      </IF USERTIMESTAMP>
+    </IF USER>
     <IF COUNTER_1_EQ_250>
         begin
             ok = false
@@ -835,9 +868,9 @@ proc
                 errtxt="Failed to bind variables"
         end
     end
-    <COUNTER_1_RESET>
+      <COUNTER_1_RESET>
     <ELSE>
-    <IF NOMORE>
+      <IF NOMORE>
         begin
             ok = false
             sts = 0
@@ -845,9 +878,10 @@ proc
                 errtxt="Failed to bind variables"
         end
     end
-    </IF NOMORE>
+      </IF NOMORE>
     </IF COUNTER_1_EQ_250>
-    </FIELD_LOOP>
+  </IF CUSTOM_NOT_REPLICATOR_EXCLUDE>
+</FIELD_LOOP>
 
     ;;Insert the row into the database
 
@@ -866,61 +900,71 @@ proc
 <IF DEFINED_CLEAN_DATA>
         ;;Clean up any alpha fields
 
-        <FIELD_LOOP>
-        <IF ALPHA>
+  <FIELD_LOOP>
+    <IF CUSTOM_NOT_REPLICATOR_EXCLUDE>
+      <IF ALPHA>
         <IF FIRST_UNIQUE_KEY_SEGMENT>
         <ELSE>
         <structure_name>.<field_original_name_modified> = %atrim(<structure_name>.<field_original_name_modified>)+%char(0)
         </IF FIRST_UNIQUE_KEY_SEGMENT>
-        </IF ALPHA>
-        </FIELD_LOOP>
+      </IF ALPHA>
+    </IF CUSTOM_NOT_REPLICATOR_EXCLUDE>
+  </FIELD_LOOP>
 
         ;;Clean up any decimal fields
 
-        <FIELD_LOOP>
-        <IF DECIMAL>
+  <FIELD_LOOP>
+    <IF CUSTOM_NOT_REPLICATOR_EXCLUDE>
+      <IF DECIMAL>
         if ((!<structure_name>.<field_original_name_modified>)||(!%IsNumeric(^a(<structure_name>.<field_original_name_modified>))))
             clear <structure_name>.<field_original_name_modified>
-        </IF DECIMAL>
-        </FIELD_LOOP>
+      </IF DECIMAL>
+    </IF CUSTOM_NOT_REPLICATOR_EXCLUDE>
+  </FIELD_LOOP>
 
         ;;Clean up any date fields
 
-        <FIELD_LOOP>
-        <IF DATE>
+  <FIELD_LOOP>
+    <IF CUSTOM_NOT_REPLICATOR_EXCLUDE>
+      <IF DATE>
         if ((!<structure_name>.<field_original_name_modified>)||(!%IsDate(^a(<structure_name>.<field_original_name_modified>))))
-            <IF FIRST_UNIQUE_KEY_SEGMENT>
+        <IF FIRST_UNIQUE_KEY_SEGMENT>
             ^a(<structure_name>.<field_original_name_modified>) = "17530101"
-            <ELSE>
+        <ELSE>
             ^a(<structure_name>.<field_original_name_modified>(1:1)) = %char(0)
-            </IF FIRST_UNIQUE_KEY_SEGMENT>
-        </IF DATE>
-        </FIELD_LOOP>
+        </IF FIRST_UNIQUE_KEY_SEGMENT>
+      </IF DATE>
+    </IF CUSTOM_NOT_REPLICATOR_EXCLUDE>
+  </FIELD_LOOP>
 
         ;;Clean up any time fields
 
-        <FIELD_LOOP>
-        <IF TIME>
+  <FIELD_LOOP>
+    <IF CUSTOM_NOT_REPLICATOR_EXCLUDE>
+      <IF TIME>
         if ((!<structure_name>.<field_original_name_modified>)||(!%IsTime(^a(<structure_name>.<field_original_name_modified>))))
             ^a(<structure_name>.<field_original_name_modified>(1:1))=%char(0)
-        </IF TIME>
-        </FIELD_LOOP>
+      </IF TIME>
+    </IF CUSTOM_NOT_REPLICATOR_EXCLUDE>
+  </FIELD_LOOP>
 
 </IF DEFINED_CLEAN_DATA>
         ;;Assign data to any temporary time or user-defined timestamp fields
 
-        <FIELD_LOOP>
-        <IF USERTIMESTAMP>
+<FIELD_LOOP>
+  <IF CUSTOM_NOT_REPLICATOR_EXCLUDE>
+    <IF USERTIMESTAMP>
         tmp<FieldSqlName> = %string(^d(<structure_name>.<field_original_name_modified>),"XXXX-XX-XX XX:XX:XX.XXXXXX")
-        <ELSE>
-        <IF TIME_HHMM>
+    <ELSE>
+      <IF TIME_HHMM>
         tmp<FieldSqlName> = %string(<structure_name>.<field_original_name_modified>,"XX:XX")
-        </IF TIME_HHMM>
-        <IF TIME_HHMMSS>
+      </IF TIME_HHMM>
+      <IF TIME_HHMMSS>
         tmp<FieldSqlName> = %string(<structure_name>.<field_original_name_modified>,"XX:XX:XX")
-        </IF TIME_HHMMSS>
-        </IF USERTIMESTAMP>
-        </FIELD_LOOP>
+      </IF TIME_HHMMSS>
+    </IF USERTIMESTAMP>
+  </IF CUSTOM_NOT_REPLICATOR_EXCLUDE>
+</FIELD_LOOP>
 
         ;;Execute the INSERT statement
 
@@ -1020,50 +1064,54 @@ function <StructureName>InsertRows, ^val
         ex_mc       ,int        ;;Items in exception array
         continue    ,int        ;;Continue after an error
         errtxt      ,a512       ;;Error message text
-        <IF STRUCTURE_RELATIVE>
+<IF STRUCTURE_RELATIVE>
         recordNumber,d28
-        </IF STRUCTURE_RELATIVE>
+</IF STRUCTURE_RELATIVE>
     endrecord
 
-    <COUNTER_1_RESET>
+<COUNTER_1_RESET>
     literal
         sql         ,a*, "INSERT INTO <StructureName> ("
-        <IF STRUCTURE_RELATIVE>
-        <COUNTER_1_INCREMENT>
+<IF STRUCTURE_RELATIVE>
+  <COUNTER_1_INCREMENT>
         & +              '"RecordNumber",' ;#<COUNTER_1_VALUE>
-        </IF STRUCTURE_RELATIVE>
-        <FIELD_LOOP>
-        <COUNTER_1_INCREMENT>
+</IF STRUCTURE_RELATIVE>
+<FIELD_LOOP>
+  <IF CUSTOM_NOT_REPLICATOR_EXCLUDE>
+    <COUNTER_1_INCREMENT>
         & +              '"<FieldSqlName>"<,>' ;#<COUNTER_1_VALUE>
-        </FIELD_LOOP>
-        <COUNTER_1_RESET>
-        & +              ") VALUES(<IF STRUCTURE_RELATIVE>:1,<COUNTER_1_INCREMENT></IF STRUCTURE_RELATIVE><FIELD_LOOP><COUNTER_1_INCREMENT><IF USERTIMESTAMP>CONVERT(DATETIME2,:<COUNTER_1_VALUE>,21)<,><ELSE>:<COUNTER_1_VALUE><,></IF USERTIMESTAMP></FIELD_LOOP>)"
+  </IF CUSTOM_NOT_REPLICATOR_EXCLUDE>
+</FIELD_LOOP>
+<COUNTER_1_RESET>
+        & +              ") VALUES(<IF STRUCTURE_RELATIVE>:1,<COUNTER_1_INCREMENT></IF STRUCTURE_RELATIVE><FIELD_LOOP><IF CUSTOM_NOT_REPLICATOR_EXCLUDE><COUNTER_1_INCREMENT><IF USERTIMESTAMP>CONVERT(DATETIME2,:<COUNTER_1_VALUE>,21)<,><ELSE>:<COUNTER_1_VALUE><,></IF USERTIMESTAMP></IF CUSTOM_NOT_REPLICATOR_EXCLUDE></FIELD_LOOP>)"
     endliteral
 
-    <IF STRUCTURE_ISAM>
+<IF STRUCTURE_ISAM>
     .include "<STRUCTURE_NOALIAS>" repository, structure="inpbuf", nofields, end
-    </IF STRUCTURE_ISAM>
-    <IF STRUCTURE_RELATIVE>
+</IF STRUCTURE_ISAM>
+<IF STRUCTURE_RELATIVE>
     structure inpbuf
         recnum, d28
         .include "<STRUCTURE_NOALIAS>" repository, group="inprec", nofields
     endstructure
-    </IF STRUCTURE_RELATIVE>
+</IF STRUCTURE_RELATIVE>
     .include "<STRUCTURE_NOALIAS>" repository, static record="<structure_name>", end
 
     static record
-        <FIELD_LOOP>
-        <IF USERTIMESTAMP>
+<FIELD_LOOP>
+  <IF CUSTOM_NOT_REPLICATOR_EXCLUDE>
+    <IF USERTIMESTAMP>
         tmp<FieldSqlName>, a26     ;;Storage for user-defined timestamp field
-        <ELSE>
-        <IF TIME_HHMM>
+    <ELSE>
+      <IF TIME_HHMM>
         tmp<FieldSqlName>, a5      ;;Storage for HH:MM time field
-        </IF TIME_HHMM>
-        <IF TIME_HHMMSS>
+      </IF TIME_HHMM>
+      <IF TIME_HHMMSS>
         tmp<FieldSqlName>, a8      ;;Storage for HH:MM:SS time field
-        </IF TIME_HHMMSS>
-        </IF USERTIMESTAMP>
-        </FIELD_LOOP>
+      </IF TIME_HHMMSS>
+    </IF USERTIMESTAMP>
+  </IF CUSTOM_NOT_REPLICATOR_EXCLUDE>
+</FIELD_LOOP>
         ,a1                         ;;In case there are no user timestamp, date or JJJJJJ date fields
     endrecord
 
@@ -1138,36 +1186,37 @@ proc
     end
 
 </IF STRUCTURE_RELATIVE>
-    <COUNTER_1_RESET>
-    <FIELD_LOOP>
+<COUNTER_1_RESET>
+<FIELD_LOOP>
+  <IF CUSTOM_NOT_REPLICATOR_EXCLUDE>
     <COUNTER_1_INCREMENT>
     <IF COUNTER_1_EQ_1>
     if (ok && openAndBind)
     begin
         if (%ssc_bind(a_dbchn,c2<StructureName>,<REMAINING_INCLUSIVE_MAX_250>,
     </IF COUNTER_1_EQ_1>
-        <IF ALPHA>
+    <IF ALPHA>
         &    <structure_name>.<field_original_name_modified><IF NOMORE>)==SSQL_FAILURE)<ELSE><IF COUNTER_1_LT_250>,<ELSE>)==SSQL_FAILURE)</IF COUNTER_1_LT_250></IF NOMORE>
-        </IF ALPHA>
-        <IF DECIMAL>
+    </IF ALPHA>
+    <IF DECIMAL>
         &    <structure_name>.<field_original_name_modified><IF NOMORE>)==SSQL_FAILURE)<ELSE><IF COUNTER_1_LT_250>,<ELSE>)==SSQL_FAILURE)</IF COUNTER_1_LT_250></IF NOMORE>
-        </IF DECIMAL>
-        <IF INTEGER>
+    </IF DECIMAL>
+    <IF INTEGER>
         &    <structure_name>.<field_original_name_modified><IF NOMORE>)==SSQL_FAILURE)<ELSE><IF COUNTER_1_LT_250>,<ELSE>)==SSQL_FAILURE)</IF COUNTER_1_LT_250></IF NOMORE>
-        </IF INTEGER>
-        <IF DATE>
+    </IF INTEGER>
+    <IF DATE>
         &    ^a(<structure_name>.<field_original_name_modified>)<IF NOMORE>)==SSQL_FAILURE)<ELSE><IF COUNTER_1_LT_250>,<ELSE>)==SSQL_FAILURE)</IF COUNTER_1_LT_250></IF NOMORE>
-        </IF DATE>
-        <IF TIME>
+    </IF DATE>
+    <IF TIME>
         &    tmp<FieldSqlName><IF NOMORE>)==SSQL_FAILURE)<ELSE><IF COUNTER_1_LT_250>,<ELSE>)==SSQL_FAILURE)</IF COUNTER_1_LT_250></IF NOMORE>
-        </IF TIME>
-        <IF USER>
-        <IF USERTIMESTAMP>
+    </IF TIME>
+    <IF USER>
+      <IF USERTIMESTAMP>
         &    tmp<FieldSqlName><IF NOMORE>)==SSQL_FAILURE)<ELSE><IF COUNTER_1_LT_250>,<ELSE>)==SSQL_FAILURE)</IF COUNTER_1_LT_250></IF NOMORE>
-        <ELSE>
+      <ELSE>
         &    <structure_name>.<field_original_name_modified><IF NOMORE>)==SSQL_FAILURE)<ELSE><IF COUNTER_1_LT_250>,<ELSE>)==SSQL_FAILURE)</IF COUNTER_1_LT_250></IF NOMORE>
-        </IF USERTIMESTAMP>
-        </IF USER>
+      </IF USERTIMESTAMP>
+    </IF USER>
     <IF COUNTER_1_EQ_250>
         begin
             ok = false
@@ -1175,18 +1224,19 @@ proc
                 errtxt="Failed to bind variables"
         end
     end
-    <COUNTER_1_RESET>
+      <COUNTER_1_RESET>
     <ELSE>
-    <IF NOMORE>
+      <IF NOMORE>
         begin
             ok = false
             if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
                 errtxt="Failed to bind variables"
         end
     end
-    </IF NOMORE>
+      </IF NOMORE>
     </IF COUNTER_1_EQ_250>
-    </FIELD_LOOP>
+  </IF CUSTOM_NOT_REPLICATOR_EXCLUDE>
+</FIELD_LOOP>
 
     ;;Insert the rows into the database
 
@@ -1197,80 +1247,90 @@ proc
         begin
             ;;Load data into bound record
 
-            <IF STRUCTURE_ISAM>
-            <IF STRUCTURE_MAPPED>
+<IF STRUCTURE_ISAM>
+  <IF STRUCTURE_MAPPED>
             <structure_name> = %<structure_name>_map(^m(inpbuf[cnt],a_data))
-            <ELSE>
+  <ELSE>
             <structure_name> = ^m(inpbuf[cnt],a_data)
-            </IF STRUCTURE_MAPPED>
-            </IF STRUCTURE_ISAM>
-            <IF STRUCTURE_RELATIVE>
+  </IF STRUCTURE_MAPPED>
+</IF STRUCTURE_ISAM>
+<IF STRUCTURE_RELATIVE>
             recordNumber = ^m(inpbuf[cnt].recnum,a_data)
-            <IF STRUCTURE_MAPPED>
+  <IF STRUCTURE_MAPPED>
             <structure_name> = %<structure_name>_map(^m(inpbuf[cnt].inprec,a_data))
-            <ELSE>
+  <ELSE>
             <structure_name> = ^m(inpbuf[cnt].inprec,a_data)
-            </IF STRUCTURE_MAPPED>
-            </IF STRUCTURE_RELATIVE>
+  </IF STRUCTURE_MAPPED>
+</IF STRUCTURE_RELATIVE>
 
 <IF DEFINED_CLEAN_DATA>
             ;;Clean up any alpha variables
 
-            <FIELD_LOOP>
-            <IF ALPHA>
-            <IF FIRST_UNIQUE_KEY_SEGMENT>
-            <ELSE>
+  <FIELD_LOOP>
+    <IF CUSTOM_NOT_REPLICATOR_EXCLUDE>
+      <IF ALPHA>
+        <IF FIRST_UNIQUE_KEY_SEGMENT>
+        <ELSE>
             <structure_name>.<field_original_name_modified> = %atrim(<structure_name>.<field_original_name_modified>)+%char(0)
-            </IF FIRST_UNIQUE_KEY_SEGMENT>
-            </IF ALPHA>
-            </FIELD_LOOP>
+        </IF FIRST_UNIQUE_KEY_SEGMENT>
+      </IF ALPHA>
+    </IF CUSTOM_NOT_REPLICATOR_EXCLUDE>
+  </FIELD_LOOP>
 
             ;;Clean up any decimal variables
 
-            <FIELD_LOOP>
-            <IF DECIMAL>
+  <FIELD_LOOP>
+    <IF CUSTOM_NOT_REPLICATOR_EXCLUDE>
+      <IF DECIMAL>
             if ((!<structure_name>.<field_original_name_modified>)||(!%IsNumeric(^a(<structure_name>.<field_original_name_modified>))))
                 clear <structure_name>.<field_original_name_modified>
-            </IF DECIMAL>
-            </FIELD_LOOP>
+      </IF DECIMAL>
+    </IF CUSTOM_NOT_REPLICATOR_EXCLUDE>
+  </FIELD_LOOP>
 
             ;;Clean up any date variables
 
-            <FIELD_LOOP>
-            <IF DATE>
+  <FIELD_LOOP>
+    <IF CUSTOM_NOT_REPLICATOR_EXCLUDE>
+      <IF DATE>
             if ((!<structure_name>.<field_original_name_modified>)||(!%IsDate(^a(<structure_name>.<field_original_name_modified>))))
-                <IF FIRST_UNIQUE_KEY_SEGMENT>
+        <IF FIRST_UNIQUE_KEY_SEGMENT>
                 ^a(<structure_name>.<field_original_name_modified>) = "17530101"
-                <ELSE>
+        <ELSE>
                 ^a(<structure_name>.<field_original_name_modified>(1:1))=%char(0)
-                </IF FIRST_UNIQUE_KEY_SEGMENT>
-            </IF DATE>
-            </FIELD_LOOP>
+        </IF FIRST_UNIQUE_KEY_SEGMENT>
+      </IF DATE>
+    </IF CUSTOM_NOT_REPLICATOR_EXCLUDE>
+  </FIELD_LOOP>
 
             ;;Clean up any time variables
 
-            <FIELD_LOOP>
-            <IF TIME>
+  <FIELD_LOOP>
+    <IF CUSTOM_NOT_REPLICATOR_EXCLUDE>
+      <IF TIME>
             if ((!<structure_name>.<field_original_name_modified>)||(!%IsTime(^a(<structure_name>.<field_original_name_modified>))))
                 ^a(<structure_name>.<field_original_name_modified>(1:1))=%char(0)
-            </IF TIME>
-            </FIELD_LOOP>
+      </IF TIME>
+    </IF CUSTOM_NOT_REPLICATOR_EXCLUDE>
+  </FIELD_LOOP>
 
 </IF DEFINED_CLEAN_DATA>
             ;;Assign any time or user-defined timestamp fields
 
-            <FIELD_LOOP>
-            <IF USERTIMESTAMP>
+<FIELD_LOOP>
+  <IF CUSTOM_NOT_REPLICATOR_EXCLUDE>
+    <IF USERTIMESTAMP>
             tmp<FieldSqlName> = %string(^d(<structure_name>.<field_original_name_modified>),"XXXX-XX-XX XX:XX:XX.XXXXXX")
-            <ELSE>
-            <IF TIME_HHMM>
+    <ELSE>
+      <IF TIME_HHMM>
             tmp<FieldSqlName> = %string(<structure_name>.<field_original_name_modified>,"XX:XX")
-            </IF TIME_HHMM>
-            <IF TIME_HHMMSS>
+      </IF TIME_HHMM>
+      <IF TIME_HHMMSS>
             tmp<FieldSqlName> = %string(<structure_name>.<field_original_name_modified>,"XX:XX:XX")
-            </IF TIME_HHMMSS>
-            </IF USERTIMESTAMP>
-            </FIELD_LOOP>
+      </IF TIME_HHMMSS>
+    </IF USERTIMESTAMP>
+  </IF CUSTOM_NOT_REPLICATOR_EXCLUDE>
+</FIELD_LOOP>
 
             ;;Execute the statement
 
@@ -1384,9 +1444,9 @@ function <StructureName>Update, ^val
 
     required in  a_dbchn,  i
     required in  a_commit_mode, i
-    <IF STRUCTURE_RELATIVE>
+<IF STRUCTURE_RELATIVE>
     required in  a_recnum, n
-    </IF STRUCTURE_RELATIVE>
+</IF STRUCTURE_RELATIVE>
     required in  a_data,   a
     optional out a_rows,   i
     optional out a_errtxt, a
@@ -1407,39 +1467,43 @@ function <StructureName>Update, ^val
 
     literal
         sql         ,a*, 'UPDATE <StructureName> SET '
-        <COUNTER_1_RESET>
-        <COUNTER_2_RESET>
-        <FIELD_LOOP>
-        <COUNTER_1_INCREMENT>
-        <COUNTER_2_INCREMENT>
-        <IF USERTIMESTAMP>
+<COUNTER_1_RESET>
+<COUNTER_2_RESET>
+<FIELD_LOOP>
+  <IF CUSTOM_NOT_REPLICATOR_EXCLUDE>
+    <COUNTER_1_INCREMENT>
+    <COUNTER_2_INCREMENT>
+    <IF USERTIMESTAMP>
         & +              '"<FieldSqlName>"=CONVERT(DATETIME2,:<COUNTER_1_VALUE>,21)<,>'
-        <ELSE>
+    <ELSE>
         & +              '"<FieldSqlName>"=:<COUNTER_1_VALUE><,>'
-        </IF USERTIMESTAMP>
-        </FIELD_LOOP>
-        <IF STRUCTURE_ISAM>
+    </IF USERTIMESTAMP>
+  </IF CUSTOM_NOT_REPLICATOR_EXCLUDE>
+</FIELD_LOOP>
+<IF STRUCTURE_ISAM>
         & +              ' WHERE <UNIQUE_KEY><SEGMENT_LOOP><COUNTER_1_INCREMENT>"<FieldSqlName>"=:<COUNTER_1_VALUE> <AND> </SEGMENT_LOOP></UNIQUE_KEY>'
-        </IF STRUCTURE_ISAM>
-        <IF STRUCTURE_RELATIVE>
+</IF STRUCTURE_ISAM>
+<IF STRUCTURE_RELATIVE>
         & +              ' WHERE "RecordNumber"=:<COUNTER_1_INCREMENT><COUNTER_1_VALUE>'
-        </IF STRUCTURE_RELATIVE>
+</IF STRUCTURE_RELATIVE>
     endliteral
 
     static record
         <structure_name>, str<StructureName>
-        <FIELD_LOOP>
-        <IF USERTIMESTAMP>
+<FIELD_LOOP>
+  <IF CUSTOM_NOT_REPLICATOR_EXCLUDE>
+    <IF USERTIMESTAMP>
         tmp<FieldSqlName>, a26     ;;Storage for user-defined timestamp field
-        <ELSE>
-        <IF TIME_HHMM>
+    <ELSE>
+      <IF TIME_HHMM>
         tmp<FieldSqlName>, a5      ;;Storage for HH:MM time field
-        </IF TIME_HHMM>
-        <IF TIME_HHMMSS>
+      </IF TIME_HHMM>
+      <IF TIME_HHMMSS>
         tmp<FieldSqlName>, a8      ;;Storage for HH:MM:SS time field
-        </IF TIME_HHMMSS>
-        </IF USERTIMESTAMP>
-        </FIELD_LOOP>
+      </IF TIME_HHMMSS>
+    </IF USERTIMESTAMP>
+  </IF CUSTOM_NOT_REPLICATOR_EXCLUDE>
+</FIELD_LOOP>
     endrecord
 
     global common
@@ -1490,8 +1554,9 @@ proc
     end
 
     ;;Bind the host variables for data to be updated
-    <COUNTER_1_RESET>
-    <FIELD_LOOP>
+<COUNTER_1_RESET>
+<FIELD_LOOP>
+  <IF CUSTOM_NOT_REPLICATOR_EXCLUDE>
     <COUNTER_1_INCREMENT>
     <IF COUNTER_1_EQ_1>
 
@@ -1499,28 +1564,28 @@ proc
     begin
         if (%ssc_bind(a_dbchn,c3<StructureName>,<REMAINING_INCLUSIVE_MAX_250>,
     </IF COUNTER_1_EQ_1>
-        <IF ALPHA>
+    <IF ALPHA>
         &    <structure_name>.<field_original_name_modified><IF NOMORE>)==SSQL_FAILURE)<ELSE><IF COUNTER_1_LT_250>,<ELSE>)==SSQL_FAILURE)</IF COUNTER_1_LT_250></IF NOMORE>
-        </IF ALPHA>
-        <IF DECIMAL>
+    </IF ALPHA>
+    <IF DECIMAL>
         &    <structure_name>.<field_original_name_modified><IF NOMORE>)==SSQL_FAILURE)<ELSE><IF COUNTER_1_LT_250>,<ELSE>)==SSQL_FAILURE)</IF COUNTER_1_LT_250></IF NOMORE>
-        </IF DECIMAL>
-        <IF INTEGER>
+    </IF DECIMAL>
+    <IF INTEGER>
         &    <structure_name>.<field_original_name_modified><IF NOMORE>)==SSQL_FAILURE)<ELSE><IF COUNTER_1_LT_250>,<ELSE>)==SSQL_FAILURE)</IF COUNTER_1_LT_250></IF NOMORE>
-        </IF INTEGER>
-        <IF DATE>
+    </IF INTEGER>
+    <IF DATE>
         &    ^a(<structure_name>.<field_original_name_modified>)<IF NOMORE>)==SSQL_FAILURE)<ELSE><IF COUNTER_1_LT_250>,<ELSE>)==SSQL_FAILURE)</IF COUNTER_1_LT_250></IF NOMORE>
-        </IF DATE>
-        <IF TIME>
+    </IF DATE>
+    <IF TIME>
         &    tmp<FieldSqlName><IF NOMORE>)==SSQL_FAILURE)<ELSE><IF COUNTER_1_LT_250>,<ELSE>)==SSQL_FAILURE)</IF COUNTER_1_LT_250></IF NOMORE>
-        </IF TIME>
-        <IF USER>
-        <IF USERTIMESTAMP>
+    </IF TIME>
+    <IF USER>
+      <IF USERTIMESTAMP>
         &    tmp<FieldSqlName><IF NOMORE>)==SSQL_FAILURE)<ELSE><IF COUNTER_1_LT_250>,<ELSE>)==SSQL_FAILURE)</IF COUNTER_1_LT_250></IF NOMORE>
-        <ELSE>
+      <ELSE>
         &    <structure_name>.<field_original_name_modified><IF NOMORE>)==SSQL_FAILURE)<ELSE><IF COUNTER_1_LT_250>,<ELSE>)==SSQL_FAILURE)</IF COUNTER_1_LT_250></IF NOMORE>
-        </IF USERTIMESTAMP>
-        </IF USER>
+      </IF USERTIMESTAMP>
+    </IF USER>
     <IF COUNTER_1_EQ_250>
         begin
             ok = false
@@ -1528,29 +1593,30 @@ proc
                 errtxt="Failed to bind variables"
         end
     end
-    <COUNTER_1_RESET>
+      <COUNTER_1_RESET>
     <ELSE>
-    <IF NOMORE>
+      <IF NOMORE>
         begin
             ok = false
             if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
                 errtxt="Failed to bind variables"
         end
     end
-    </IF NOMORE>
+      </IF NOMORE>
     </IF COUNTER_1_EQ_250>
-    </FIELD_LOOP>
+  </IF CUSTOM_NOT_REPLICATOR_EXCLUDE>
+</FIELD_LOOP>
 
     ;;Bind the host variables for the key segments / WHERE clause
 
     if (ok && openAndBind)
     begin
-        <IF STRUCTURE_ISAM>
+<IF STRUCTURE_ISAM>
         if (%ssc_bind(a_dbchn,c3<StructureName>,<UNIQUE_KEY><KEY_SEGMENTS>,<SEGMENT_LOOP><IF DATEORTIME>^a(</IF DATEORTIME><structure_name>.<segment_name><IF DATEORTIME>)</IF DATEORTIME><,></SEGMENT_LOOP></UNIQUE_KEY>)==SSQL_FAILURE)
-        </IF STRUCTURE_ISAM>
-        <IF STRUCTURE_RELATIVE>
+</IF STRUCTURE_ISAM>
+<IF STRUCTURE_RELATIVE>
         if (%ssc_bind(a_dbchn,c3<StructureName>,1,a_recnum)==SSQL_FAILURE)
-        </IF STRUCTURE_RELATIVE>
+</IF STRUCTURE_RELATIVE>
         begin
             ok = false
             if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
@@ -1565,61 +1631,71 @@ proc
 <IF DEFINED_CLEAN_DATA>
         ;;Clean up any alpha fields
 
-        <FIELD_LOOP>
-        <IF ALPHA>
+  <FIELD_LOOP>
+    <IF CUSTOM_NOT_REPLICATOR_EXCLUDE>
+      <IF ALPHA>
         <IF FIRST_UNIQUE_KEY_SEGMENT>
         <ELSE>
         <structure_name>.<field_original_name_modified> = %atrim(<structure_name>.<field_original_name_modified>)+%char(0)
         </IF FIRST_UNIQUE_KEY_SEGMENT>
-        </IF ALPHA>
-        </FIELD_LOOP>
+      </IF ALPHA>
+    </IF CUSTOM_NOT_REPLICATOR_EXCLUDE>
+  </FIELD_LOOP>
 
         ;;Clean up any decimal fields
 
-        <FIELD_LOOP>
-        <IF DECIMAL>
+  <FIELD_LOOP>
+    <IF CUSTOM_NOT_REPLICATOR_EXCLUDE>
+      <IF DECIMAL>
         if ((!<structure_name>.<field_original_name_modified>)||(!%IsNumeric(^a(<structure_name>.<field_original_name_modified>))))
             clear <structure_name>.<field_original_name_modified>
-        </IF DECIMAL>
-        </FIELD_LOOP>
+      </IF DECIMAL>
+    </IF CUSTOM_NOT_REPLICATOR_EXCLUDE>
+  </FIELD_LOOP>
 
         ;;Clean up any date fields
 
-        <FIELD_LOOP>
-        <IF DATE>
+  <FIELD_LOOP>
+    <IF CUSTOM_NOT_REPLICATOR_EXCLUDE>
+      <IF DATE>
         if ((!<structure_name>.<field_original_name_modified>)||(!%IsDate(^a(<structure_name>.<field_original_name_modified>))))
-            <IF FIRST_UNIQUE_KEY_SEGMENT>
+        <IF FIRST_UNIQUE_KEY_SEGMENT>
             ^a(<structure_name>.<field_original_name_modified>) = "17530101"
-            <ELSE>
+        <ELSE>
             ^a(<structure_name>.<field_original_name_modified>(1:1)) = %char(0)
-            </IF FIRST_UNIQUE_KEY_SEGMENT>
-        </IF DATE>
-        </FIELD_LOOP>
+        </IF FIRST_UNIQUE_KEY_SEGMENT>
+      </IF DATE>
+    </IF CUSTOM_NOT_REPLICATOR_EXCLUDE>
+  </FIELD_LOOP>
 
         ;;Clean up any time fields
 
-        <FIELD_LOOP>
-        <IF TIME>
+  <FIELD_LOOP>
+    <IF CUSTOM_NOT_REPLICATOR_EXCLUDE>
+      <IF TIME>
         if ((!<structure_name>.<field_original_name_modified>)||(!%IsTime(^a(<structure_name>.<field_original_name_modified>))))
             ^a(<structure_name>.<field_original_name_modified>(1:1)) = %char(0)
-        </IF TIME>
-        </FIELD_LOOP>
+      </IF TIME>
+    </IF CUSTOM_NOT_REPLICATOR_EXCLUDE>
+  </FIELD_LOOP>
 
 </IF DEFINED_CLEAN_DATA>
         ;;Assign any time and user-defined timestamp fields
 
-        <FIELD_LOOP>
-        <IF USERTIMESTAMP>
+  <FIELD_LOOP>
+    <IF CUSTOM_NOT_REPLICATOR_EXCLUDE>
+      <IF USERTIMESTAMP>
         tmp<FieldSqlName> = %string(^d(<structure_name>.<field_original_name_modified>),"XXXX-XX-XX XX:XX:XX.XXXXXX")
-        <ELSE>
+      <ELSE>
         <IF TIME_HHMM>
         tmp<FieldSqlName> = %string(<structure_name>.<field_original_name_modified>,"XX:XX")
         </IF TIME_HHMM>
         <IF TIME_HHMMSS>
         tmp<FieldSqlName> = %string(<structure_name>.<field_original_name_modified>,"XX:XX:XX")
         </IF TIME_HHMMSS>
-        </IF USERTIMESTAMP>
-        </FIELD_LOOP>
+      </IF USERTIMESTAMP>
+    </IF CUSTOM_NOT_REPLICATOR_EXCLUDE>
+  </FIELD_LOOP>
 
         if (%ssc_execute(a_dbchn,c3<StructureName>,SSQL_STANDARD,,rows)==SSQL_NORMAL) then
         begin
@@ -1735,15 +1811,15 @@ proc
     if (ok)
     begin
         sql = 'DELETE FROM "<StructureName>" WHERE'
-        <UNIQUE_KEY>
-        <SEGMENT_LOOP>
-        <IF ALPHA>
+  <UNIQUE_KEY>
+    <SEGMENT_LOOP>
+      <IF ALPHA>
         & + ' "<FieldSqlName>"=' + "'" + %atrim(<structureName>.<segment_name>) + "' <AND>"
-        <ELSE>
+      <ELSE>
         & + ' "<FieldSqlName>"=' + "'" + %string(<structureName>.<segment_name>) + "' <AND>"
-        </IF ALPHA>
-        </SEGMENT_LOOP>
-        </UNIQUE_KEY>
+      </IF ALPHA>
+    </SEGMENT_LOOP>
+  </UNIQUE_KEY>
         if (%ssc_open(a_dbchn,cursor,(a)sql,SSQL_NONSEL)==SSQL_FAILURE)
         begin
             ok = false
@@ -2098,29 +2174,29 @@ function <StructureName>Load, ^val
     endparams
 
     .include "CONNECTDIR:ssql.def"
-    <IF STRUCTURE_ISAM>
-    <IF STRUCTURE_MAPPED>
+<IF STRUCTURE_ISAM>
+  <IF STRUCTURE_MAPPED>
     .include "<MAPPED_STRUCTURE>" repository, structure="inpbuf", end
-    <ELSE>
+  <ELSE>
     .include "<STRUCTURE_NOALIAS>" repository, structure="inpbuf", end
-    </IF STRUCTURE_MAPPED>
-    </IF STRUCTURE_ISAM>
-    <IF STRUCTURE_RELATIVE>
+  </IF STRUCTURE_MAPPED>
+</IF STRUCTURE_ISAM>
+<IF STRUCTURE_RELATIVE>
     structure inpbuf
         recnum, d28
-        <IF STRUCTURE_MAPPED>
+  <IF STRUCTURE_MAPPED>
         .include "<MAPPED_STRUCTURE>" repository, group="inprec"
-        <ELSE>
+  <ELSE>
         .include "<STRUCTURE_NOALIAS>" repository, group="inprec"
-        </IF STRUCTURE_MAPPED>
+  </IF STRUCTURE_MAPPED>
     endstructure
     .include "<STRUCTURE_NOALIAS>" repository, structure="<STRUCTURE_NAME>", end
-    </IF STRUCTURE_RELATIVE>
-    <IF STRUCTURE_MAPPED>
+</IF STRUCTURE_RELATIVE>
+<IF STRUCTURE_MAPPED>
     .include "<MAPPED_STRUCTURE>" repository, stack record="tmprec", end
-    <ELSE>
+<ELSE>
     .include "<STRUCTURE_NOALIAS>" repository, stack record="tmprec", end
-    </IF STRUCTURE_MAPPED>
+</IF STRUCTURE_MAPPED>
 
     .define BUFFER_ROWS     1000
     .define EXCEPTION_BUFSZ 100
@@ -2140,18 +2216,18 @@ function <StructureName>Load, ^val
         ttl_failed  ,int        ;;Total failed inserts
         errnum      ,int        ;;Error number
         errtxt      ,a512       ;;Error message text
-        <IF STRUCTURE_RELATIVE>
+<IF STRUCTURE_RELATIVE>
         recordNumber,d28
-        </IF STRUCTURE_RELATIVE>
+</IF STRUCTURE_RELATIVE>
     endrecord
 
 proc
 
     init local_data
     ok = true
-    <IF STRUCTURE_RELATIVE>
+<IF STRUCTURE_RELATIVE>
     recordNumber = 0
-    </IF STRUCTURE_RELATIVE>
+</IF STRUCTURE_RELATIVE>
 
     ;;If we are logging exceptions, delete any existing exceptions file.
     if (^passed(a_logex) && a_logex)
@@ -2181,9 +2257,12 @@ proc
             ;;Get the next record from the input file
             try
             begin
+;//
+;// First record processing
+;//
                 if (firstRecord) then
                 begin
-                    <IF STRUCTURE_TAGS>
+<IF STRUCTURE_TAGS>
                     find(filechn,,^FIRST)
                     repeat
                     begin
@@ -2191,23 +2270,26 @@ proc
                         if (<TAG_LOOP><TAGLOOP_CONNECTOR_C>tmprec.<TAGLOOP_FIELD_NAME><TAGLOOP_OPERATOR_C><TAGLOOP_TAG_VALUE></TAG_LOOP>)
                             exitloop
                     end
-                    <ELSE>
+<ELSE>
                     read(filechn,tmprec,^FIRST)
-                    </IF STRUCTURE_TAGS>
+</IF STRUCTURE_TAGS>
                     firstRecord = false
                 end
+;//
+;// Subsequent record processing
+;//
                 else
                 begin
-                    <IF STRUCTURE_TAGS>
+<IF STRUCTURE_TAGS>
                     repeat
                     begin
                         reads(filechn,tmprec)
                         if (<TAG_LOOP><TAGLOOP_CONNECTOR_C>tmprec.<TAGLOOP_FIELD_NAME><TAGLOOP_OPERATOR_C><TAGLOOP_TAG_VALUE></TAG_LOOP>)
                             exitloop
                     end
-                    <ELSE>
+<ELSE>
                     reads(filechn,tmprec)
-                    </IF STRUCTURE_TAGS>
+</IF STRUCTURE_TAGS>
                 end
             end
             catch (ex, @EndOfFileException)
@@ -2223,13 +2305,13 @@ proc
             endtry
 
             ;;Got one, load it into or buffer
-            <IF STRUCTURE_ISAM>
+<IF STRUCTURE_ISAM>
             ^m(inpbuf[mc+=1],mh) = tmprec
-            </IF STRUCTURE_ISAM>
-            <IF STRUCTURE_RELATIVE>
+</IF STRUCTURE_ISAM>
+<IF STRUCTURE_RELATIVE>
             ^m(inpbuf[mc+=1].recnum,mh) = recordNumber
             ^m(inpbuf[mc].inprec,mh) = tmprec
-            </IF STRUCTURE_RELATIVE>
+</IF STRUCTURE_RELATIVE>
 
             ;;If the buffer is full, write it to the database
             if (mc==ms)
@@ -2782,16 +2864,16 @@ subroutine <StructureName>Close
     .include "CONNECTDIR:ssql.def"
 
     external common
-        <IF STRUCTURE_ISAM>
+<IF STRUCTURE_ISAM>
         c1<StructureName>, i4
         c2<StructureName>, i4
-        </IF STRUCTURE_ISAM>
+</IF STRUCTURE_ISAM>
         c3<StructureName>,  i4
     endcommon
 
 proc
 
-    <IF STRUCTURE_ISAM>
+<IF STRUCTURE_ISAM>
     if (c1<StructureName>)
     begin
         if (%ssc_close(a_dbchn,c1<StructureName>))
@@ -2806,7 +2888,7 @@ proc
         clear c2<StructureName>
     end
 
-    </IF STRUCTURE_ISAM>
+</IF STRUCTURE_ISAM>
     if (c3<StructureName>)
     begin
         if (%ssc_close(a_dbchn,c3<StructureName>))
@@ -2881,9 +2963,9 @@ proc
 
         ;;Add a row of column headers
         .ifdef OS_WINDOWS7
-        writes(csvchn,"<FIELD_LOOP><IF STRUCTURE_RELATIVE>RecordNumber|</IF STRUCTURE_RELATIVE><FieldSqlName><IF MORE>|</IF MORE></FIELD_LOOP>")
+        writes(csvchn,"<IF STRUCTURE_RELATIVE>RecordNumber|</IF STRUCTURE_RELATIVE><FIELD_LOOP><IF CUSTOM_NOT_REPLICATOR_EXCLUDE><FieldSqlName><IF MORE>|</IF MORE></IF CUSTOM_NOT_REPLICATOR_EXCLUDE></FIELD_LOOP>")
         .else
-        puts(csvchn,"<FIELD_LOOP><IF STRUCTURE_RELATIVE>RecordNumber|</IF STRUCTURE_RELATIVE><FieldSqlName><IF MORE>|</IF MORE></FIELD_LOOP>" + %char(13) + %char(10))
+        puts(csvchn,"<IF STRUCTURE_RELATIVE>RecordNumber|</IF STRUCTURE_RELATIVE><FIELD_LOOP><IF CUSTOM_NOT_REPLICATOR_EXCLUDE><FieldSqlName><IF MORE>|</IF MORE></IF CUSTOM_NOT_REPLICATOR_EXCLUDE></FIELD_LOOP>" + %char(13) + %char(10))
         .endc
 
         ;;Read and add data file records
@@ -2891,36 +2973,38 @@ proc
         begin
             records += 1
             csvrec = ""
-            <FIELD_LOOP>
-            <IF STRUCTURE_RELATIVE>
+<FIELD_LOOP>
+  <IF CUSTOM_NOT_REPLICATOR_EXCLUDE>
+    <IF STRUCTURE_RELATIVE>
             &   + %string(records) + "|"
-            </IF STRUCTURE_RELATIVE>
-            <IF ALPHA>
+    </IF STRUCTURE_RELATIVE>
+    <IF ALPHA>
             &    + %atrim(<structure_name>.<field_original_name_modified>) + "<IF MORE>|</IF MORE>"
-            </IF ALPHA>
-            <IF DECIMAL>
+    </IF ALPHA>
+    <IF DECIMAL>
             &    + %MakeDecimalForCsv(<structure_name>.<field_original_name_modified>) + "<IF MORE>|</IF MORE>"
-            </IF DECIMAL>
-            <IF DATE>
+    </IF DECIMAL>
+    <IF DATE>
             &    + %MakeDateForCsv(<structure_name>.<field_original_name_modified>) + "<IF MORE>|</IF MORE>"
-            </IF DATE>
-            <IF DATE_YYMMDD>
+    </IF DATE>
+    <IF DATE_YYMMDD>
             &    + %atrim(^a(<structure_name>.<field_original_name_modified>)) + "<IF MORE>|</IF MORE>"
-            </IF DATE_YYMMDD>
-            <IF TIME_HHMM>
+    </IF DATE_YYMMDD>
+    <IF TIME_HHMM>
             &    + %MakeTimeForCsv(<structure_name>.<field_original_name_modified>) + "<IF MORE>|</IF MORE>"
-            </IF TIME_HHMM>
-            <IF TIME_HHMMSS>
+    </IF TIME_HHMM>
+    <IF TIME_HHMMSS>
             &    + %MakeTimeForCsv(<structure_name>.<field_original_name_modified>) + "<IF MORE>|</IF MORE>"
-            </IF TIME_HHMMSS>
-            <IF USER>
-            <IF USERTIMESTAMP>
+    </IF TIME_HHMMSS>
+    <IF USER>
+      <IF USERTIMESTAMP>
             &    + %string(^d(<structure_name>.<field_original_name_modified>),"XXXX-XX-XX XX:XX:XX.XXXXXX") + "<IF MORE>|</IF MORE>"
-            <ELSE>
+      <ELSE>
             &    + %atrim(<structure_name>.<field_original_name_modified>) + "<IF MORE>|</IF MORE>"
-            </IF USERTIMESTAMP>
-            </IF USER>
-            </FIELD_LOOP>
+      </IF USERTIMESTAMP>
+    </IF USER>
+  </IF CUSTOM_NOT_REPLICATOR_EXCLUDE>
+</FIELD_LOOP>
 
             .ifdef OS_WINDOWS7
             writes(csvchn,csvrec)
