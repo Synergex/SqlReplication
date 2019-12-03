@@ -2920,6 +2920,12 @@ function <StructureName>Csv, ^val
 
     .define EXCEPTION_BUFSZ 100
 
+	external function
+		MakeDateForCsv,     a
+		MakeDecimalForCsv,  a
+		MakeTimeForCsv,     a
+    endexternal
+
     stack record local_data
         ok,                 boolean     ;;Return status
         filechn,            int         ;;Data file channel
@@ -2929,12 +2935,6 @@ function <StructureName>Csv, ^val
         records,            int         ;;Number of records exported
         errtxt,             a512        ;;Error message text
     endrecord
-
-    external function
-        MakeDateForCsv,     a
-        MakeDecimalForCsv,  a
-        MakeTimeForCsv,     a
-    endexternal
 proc
 
     init local_data
@@ -2969,7 +2969,7 @@ proc
         .endc
 
         ;;Read and add data file records
-        foreach <structure_name> in new Select(new From(filechn,<structure_name>)<IF STRUCTURE_TAGS>,(Where)<TAG_LOOP><TAGLOOP_CONNECTOR_C><structure_name>.<tagloop_field_name><TAGLOOP_OPERATOR_DBL><TAGLOOP_TAG_VALUE></TAG_LOOP></IF STRUCTURE_TAGS>)
+        foreach <structure_name> in new Select(new From(filechn,<structure_name>)<IF STRUCTURE_TAGS>,(Where)(<TAG_LOOP><TAGLOOP_CONNECTOR_C>(<structure_name>.<tagloop_field_name><TAGLOOP_OPERATOR_DBL><TAGLOOP_TAG_VALUE>)</TAG_LOOP>)</IF STRUCTURE_TAGS>)
         begin
             records += 1
             csvrec = ""
