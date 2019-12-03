@@ -58,6 +58,7 @@ subroutine Replicate
 
     stack record
         instanceName, string
+		instanceObj,  @object
         instanceData, @InstanceInfo
     endrecord
 
@@ -69,7 +70,7 @@ proc
     ;;we could be called BEFORE the OPEN_FILE instruction has been called for the
     ;;instance. We need to deal with that here.
 
-    if ((instances==^null && aAction!=REPLICATION_INSTRUCTION.OPEN_FILE) || (instances!=^null && aAction!=REPLICATION_INSTRUCTION.OPEN_FILE && !instances.TryGet(instanceName,instanceData)))
+    if ((instances==^null && aAction!=REPLICATION_INSTRUCTION.OPEN_FILE) || (instances!=^null && aAction!=REPLICATION_INSTRUCTION.OPEN_FILE && !instances.TryGet(instanceName,instanceObj)))
     begin
         data instanceQueueFile = "REPLICATOR_DATA:REPLICATION_" + instanceName + ".ISM"
         data instanceChannel, int
@@ -99,10 +100,11 @@ proc
         end
 
         ;;Are we already tracking this instance?
-        if (instances.TryGet(instanceName,instanceData)) then
+        if (instances.TryGet(instanceName,instanceObj)) then
         begin
             ;;Already tracking this instance.
             ;;Record the additional channel associated with the instance.
+			instanceData = (@InstanceInfo)instanceObj
             instanceData.ReferenceCount += 1
         end
         else
