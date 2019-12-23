@@ -2309,7 +2309,7 @@ proc
             ^m(inpbuf[mc+=1],mh) = tmprec
 </IF STRUCTURE_ISAM>
 <IF STRUCTURE_RELATIVE>
-            ^m(inpbuf[mc+=1].recnum,mh) = recordNumber
+            ^m(inpbuf[mc+=1].recnum,mh) = recordNumber += 1
             ^m(inpbuf[mc].inprec,mh) = tmprec
 </IF STRUCTURE_RELATIVE>
 
