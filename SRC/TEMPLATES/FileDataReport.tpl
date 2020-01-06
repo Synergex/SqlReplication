@@ -1,4 +1,4 @@
-<CODEGEN_FILENAME><StructureName>DataReport.dbl</CODEGEN_FILENAME>
+<CODEGEN_FILENAME><STRUCTURE_NAME>_DATA_REPORT.dbl</CODEGEN_FILENAME>
 
 import Synergex.SynergyDE.Select
 
