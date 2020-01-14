@@ -51,21 +51,24 @@ main replicator
 
 .align
     record
-        ok,                 boolean             ;;Main status
-        noMoreInstructions, boolean             ;;End of instruction file
-        switchMode,         boolean             ;;Switched from INSERT to UPDATE or vice versa
-        switchDone,         boolean             ;;Have we tried to switch modes before?
-        bulkLoad,           boolean             ;;Use bulk load?
-        doCheckCommit,      boolean             ;;Do we need to check if it's time to commit?
-        doForceCommit,      boolean             ;;Do we need to force a commit?
-        nsptr,              i4                  ;;Namespace pointer
-        status,             i4                  ;;General working status return
-        rows,               i4                  ;;Number of rows affected
-        functionName,       string              ;;External function to call
-        keyValue,           string              ;;Key value of the current ISAM record
-        recordNumber,       d28                 ;;Record number of the current relative record
-        dberrtxt,           a1024               ;;Error text from a failed database call
-        structure_data,     strStructureData    ;;Data stored for each structure
+        ok,                         boolean             ;;Main status
+        noMoreInstructions,         boolean             ;;End of instruction file
+        switchMode,                 boolean             ;;Switched from INSERT to UPDATE or vice versa
+        switchDone,                 boolean             ;;Have we tried to switch modes before?
+        bulkLoad,                   boolean             ;;Use bulk load?
+        doCheckCommit,              boolean             ;;Do we need to check if it's time to commit?
+        doForceCommit,              boolean             ;;Do we need to force a commit?
+        nsptr,                      i4                  ;;Namespace pointer
+        status,                     i4                  ;;General working status return
+        rows,                       i4                  ;;Number of rows affected
+        functionName,               string              ;;External function to call
+        keyValue,                   string              ;;Key value of the current ISAM record
+        recordNumber,               d28                 ;;Record number of the current relative record
+        dberrtxt,                   a1024               ;;Error text from a failed database call
+        structure_data,             strStructureData    ;;Data stored for each structure
+        uncommittedInstructions,    @ArrayList          ;;RFA's of any operation instructions pending commit
+        unboxedRfa,                 a6                  ;;RFA of instruction record
+        boxedRfa,                   @a                  ;;A boxed RFA value
     endrecord
 
     external function
@@ -74,15 +77,45 @@ main replicator
 
 proc
 
-    ok = %ConfigureEnvironment
-
-    if (ok)
+    if (ok = %ConfigureEnvironment)
     begin
+        ;;If we're in batch commit mode then initialize a collection to store the RFA's of any pending operations
+        if (Settings.CommitMode == DatabaseCommitMode.Batch)
+        begin
+            uncommittedInstructions = new ArrayList()
+        end
+
         ;;Main processing loop
         repeat
         begin
             ;;Get the next instruction from the queue
-            call GetInstruction
+            repeat
+            begin
+                try
+                begin
+                    reads(Settings.InstructionChannel,instruction,,LOCK:Q_AUTO_LOCK,GETRFA:unboxedRfa)
+                    noMoreInstructions = false
+
+                    ;;In batch commit mode, add the instructions RFA to the list of records to be deleted on commit
+                    if (Settings.CommitMode == DatabaseCommitMode.Batch)
+                    begin
+                        uncommittedInstructions.Add((@a)unboxedRfa)
+                    end
+
+                    exitloop
+                end
+                catch (ex, @EndOfFileException)
+                begin
+                    noMoreInstructions = true
+                    exitloop
+                end
+                catch (ex, @RecordLockedException)
+                begin
+                    sleep Settings.ErrorSleepTime
+                    nextloop
+                end
+                endtry
+            end
 
             if (noMoreInstructions) then
             begin
@@ -91,8 +124,20 @@ proc
                 begin
                     call CommitTransaction
                 end
+
                 ;;And sleep for a while before trying again
                 sleep Settings.SleepTime
+
+                ;;Reset to beginning of file
+                try
+                begin
+                    find(Settings.InstructionChannel,,^FIRST,LOCK:Q_NO_LOCK)
+                end
+                catch (ex)
+                begin
+                    nop
+                end
+                endtry
             end
             else
             begin
@@ -272,30 +317,24 @@ proc
 
                 endusing
 
-                ;;Delete the instruction from the instruction file
-                delete(Settings.InstructionChannel)
-
                 ;;If we're in batch commit mode, do we need to commit?
-                if (Settings.CommitMode == DatabaseCommitMode.Batch)
+                if (Settings.CommitMode == DatabaseCommitMode.Batch) then
                 begin
+                    ;;In batch commit mode we don't delete instructions until the entire batch is committed
+                    unlock Settings.InstructionChannel
+
                     ;;This logic may look a little "hokey", but there is a reason for it!
                     if ((doForceCommit && (Counters.BatchCounter+=1)) || (doCheckCommit && ((Counters.BatchCounter += 1) == Settings.CommitBatchRows)))
                     begin
                         call CommitTransaction
                     end
                 end
+                else
+                begin
+                    ;;Not in batch mode, delete the completed instruction now
+                    delete(Settings.InstructionChannel)
+                end
             end
-
-            ;;Reset to first record in instruction file and start over
-            try
-            begin
-                find(Settings.InstructionChannel,,^FIRST)
-            end
-            catch (ex)
-            begin
-                nop
-            end
-            endtry
         end
     end
 
@@ -320,38 +359,37 @@ CommitTransaction,
     begin
         data message, string, "Committing transaction with " + %string(Counters.BatchCounter) + " change(s)"
         Logger.VerboseLog(message)
-        status = %ssc_commit(Settings.DatabaseChannel,SSQL_TXON)
-        Logger.VerboseLog("Start transaction")
-        Counters.BatchCommits += 1
-        Counters.BatchCounter = 0
-    end
-
-    return
-
-;;-----------------------------------------------------------------------------
-;; Look for a pending instruction
-;;
-GetInstruction,
-    begin
-        repeat
+        if (%ssc_commit(Settings.DatabaseChannel,SSQL_TXON)==SSQL_NORMAL) then
         begin
-            try
+            ;;Delete all of the associated instructions from the queue file.
+            foreach boxedRfa in uncommittedInstructions
             begin
-                reads(Settings.InstructionChannel,instruction,,LOCK:Q_AUTO_LOCK)
-                noMoreInstructions = false
-                exitloop
+                unboxedRfa = (a)boxedRfa
+                try
+                begin
+                    read(Settings.InstructionChannel,instruction,,LOCK:Q_AUTO_LOCK,RFA:unboxedRfa)
+                    delete(Settings.InstructionChannel)
+                end
+                catch (e, @Exception)
+                begin
+                    ;TODO: Failed to delete a commited instruction. Now what?
+
+
+                end
+                endtry
             end
-            catch (ex, @EndOfFileException)
-            begin
-                noMoreInstructions = true
-                exitloop
-            end
-            catch (ex, @RecordLockedException)
-            begin
-                sleep Settings.ErrorSleepTime
-                nextloop
-            end
-            endtry
+
+            uncommittedInstructions.Clear()
+
+            Logger.VerboseLog("Start transaction")
+            Counters.BatchCommits += 1
+            Counters.BatchCounter = 0
+        end
+        else
+        begin
+            ;TODO: Commit failed - now what?
+
+
         end
     end
 
@@ -983,9 +1021,7 @@ DoCreateTable,
 
                         if (Settings.CanSendEmail())
                         begin
-                            data subject, string, "created table " + %atrim(instruction.structure_name)
-                            data body = new string[#] { "A new table was created in the database." }
-                            xcall SendEmail(subject,body)
+                            xcall SendEmail("Replicator " + Settings.InstanceName + " created table " + %atrim(instruction.structure_name))
                         end
                     end
                     else
@@ -1112,9 +1148,7 @@ DoDeleteAllRows,
 
                 if (Settings.CanSendEmail())
                 begin
-                    data subject, string, "truncated table " + %atrim(instruction.structure_name)
-                    data body = new string[#] { "All rows were deleted from the table." }
-                    xcall SendEmail(subject, body)
+                    xcall SendEmail("Replicator " + Settings.InstanceName + " truncated table " + %atrim(instruction.structure_name))
                 end
             end
             else
@@ -1159,9 +1193,7 @@ DoDeleteTable,
 
                 if (Settings.CanSendEmail())
                 begin
-                    data subject, string, "deleted table " + %atrim(instruction.structure_name)
-                    data body = new string[#] { "The table was deleted from the database." }
-                    xcall SendEmail(subject, body)
+                    xcall SendEmail("Replicator " + Settings.InstanceName + " deleted table " + %atrim(instruction.structure_name))
                 end
             end
             else
@@ -1192,9 +1224,7 @@ DoAddIndexes,
 
                 if (Settings.CanSendEmail())
                 begin
-                    data subject, string, "added indexes to table " + %atrim(instruction.structure_name)
-                    data body = new string[#] { "Alternate key indexes were added to the table." }
-                    xcall SendEmail(subject, body)
+                    xcall SendEmail("Replicator " + Settings.InstanceName + " added indexes to table " + %atrim(instruction.structure_name))
                 end
             end
             else
@@ -1228,9 +1258,7 @@ DoDeleteIndexes,
 
                 if (Settings.CanSendEmail())
                 begin
-                    data subject, string, "removed indexes from table " + %atrim(instruction.structure_name)
-                    data body = new string[#] { "Alternate key indexes were removed from the table." }
-                    xcall SendEmail(subject, body)
+                    xcall SendEmail("Replicator " + Settings.InstanceName + " removed indexes from table " + %atrim(instruction.structure_name))
                 end
             end
             else

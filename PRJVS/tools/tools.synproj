@@ -15,6 +15,8 @@
     <EnableCommonProperties>True</EnableCommonProperties>
     <CommonPropertiesFileLocation>$(SolutionDir)Common.props</CommonPropertiesFileLocation>
     <RootNamespace>tools</RootNamespace>
+    <SingleBuildTarget>
+    </SingleBuildTarget>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|x86' ">
     <IncludeDebugInformation>true</IncludeDebugInformation>
