@@ -69,7 +69,6 @@ main replicator
         uncommittedInstructions,    @ArrayList          ;;RFA's of any operation instructions pending commit
         unboxedRfa,                 a6                  ;;RFA of instruction record
         boxedRfa,                   @a                  ;;A boxed RFA value
-        lockMode,                   d1                  ;;Locking mode used when reading the queue file
     endrecord
 
     external function
@@ -80,16 +79,10 @@ proc
 
     if (ok = %ConfigureEnvironment)
     begin
-        ;;If we're in batch commit mode then initialize a collection to store the
-        ;;RFA's of any pending operations, and suppress record locking in the queeu file.
-        if (Settings.CommitMode == DatabaseCommitMode.Batch) then
+        ;;If we're in batch commit mode then initialize a collection to store the RFA's of any pending operations
+        if (Settings.CommitMode == DatabaseCommitMode.Batch)
         begin
             uncommittedInstructions = new ArrayList()
-            lockMode = Q_NO_LOCK
-        end
-        else
-        begin
-            lockMode = Q_AUTO_LOCK
         end
 
         ;;Main processing loop
@@ -100,7 +93,7 @@ proc
             begin
                 try
                 begin
-                    reads(Settings.InstructionChannel,instruction,,LOCK:lockMode,GETRFA:unboxedRfa)
+                    reads(Settings.InstructionChannel,instruction,,LOCK:Q_AUTO_LOCK,GETRFA:unboxedRfa)
                     noMoreInstructions = false
 
                     ;;In batch commit mode, add the instructions RFA to the list of records to be deleted on commit
@@ -327,6 +320,9 @@ proc
                 ;;If we're in batch commit mode, do we need to commit?
                 if (Settings.CommitMode == DatabaseCommitMode.Batch) then
                 begin
+                    ;;In batch commit mode we don't delete instructions until the batch has been committed
+                    unlock Settings.InstructionChannel
+
                     ;;This logic may look a little "hokey", but there is a reason for it!
                     if ((doForceCommit && (Counters.BatchCounter+=1)) || (doCheckCommit && ((Counters.BatchCounter += 1) == Settings.CommitBatchRows)))
                     begin
