@@ -146,22 +146,27 @@ proc
         ;;If we're sending emails then let's record the server startup
         if (Settings.CanSendEmail())
         begin
-            data body = new string[#] {"The SQL replicator instance was started."}
-            xcall SendEmail("Replicator instance " + Settings.InstanceName  + " started",body)
+            xcall SendEmail("Replicator " + Settings.InstanceName  + " started.")
         end
 
         ;;If were writing to the system log, record the startup
         if (Settings.SystemLog)
         begin
-            data tmpmsg, string, "Replicator instance " + Settings.InstanceName + " started" + %char(13) + %char(10)
+            data tmpmsg, string, "Replicator " + Settings.InstanceName + " started" + %char(13) + %char(10)
             tmpmsg += "Database connect string is " + Settings.DatabaseConnectString + %char(13) + %char(10)
             tmpmsg += "Transaction file is " + Settings.TransactionFile + %char(13) + %char(10)
             tmpmsg += "Log file is " + Settings.LogFileName + %char(13) + %char(10)
             tmpmsg += "Sleep interval is " + %string(Settings.SleepTime) + " seconds. " + %char(13) + %char(10)
+
             if (Settings.StopOnError) then
+            begin
                 tmpmsg += "Replicator will stop if any error is encountered" + %char(13) + %char(10)
+            end
             else
+            begin
                 tmpmsg += "Replicator will attempt to continue if errors are encountered" + %char(13) + %char(10)
+            end
+
             if (Settings.CanSendEmail()) then
             begin
                 tmpmsg += "Replicator is configured to send email messages to " + Settings.ErrorEmail + %char(13) + %char(10)
@@ -169,7 +174,9 @@ proc
                 tmpmsg += "Email server is " + Settings.EmailServer + %char(13) + %char(10)
             end
             else
+            begin
                 tmpmsg += "Replicator is NOT configured to send email messages" + %char(13) + %char(10)
+            end
 
             xcall syn_reportevent(D_EVENTLOG_INFORMATION_TYPE,tmpmsg)
         end

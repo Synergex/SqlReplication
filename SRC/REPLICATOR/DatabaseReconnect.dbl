@@ -72,16 +72,33 @@ proc
             
         Logger.Log(" - Attempt " + %string(connectionAttempt) + "...")
 
-        if (reconnected = %DatabaseConnect)
+        if (reconnected = %DatabaseConnect) then
         begin
             Logger.Log(" - Reconnected")
+
+            ;;Send email notification re re-connect success
+            if (Settings.CanSendEmail())
+            begin
+                xcall SendEmail("Replicator " + %atrim(Settings.InstanceName) + " reconnected to database.")
+            end
+
             exitloop
+        end
+        else if (Settings.CanSendEmail())
+        begin
+            ;;Send email notification re re-connect failure
+            xcall SendEmail("ERROR: Replicator " + %atrim(Settings.InstanceName) + " reconnect attempt " + %string(connectionAttempt) + " failed!")
         end
     end
 
     if (!reconnected)
     begin
         Logger.ErrorLog("Failed to reconnect to database!")
+        if (Settings.CanSendEmail())
+        begin
+            ;;Send email notification re re-connect failure
+            xcall SendEmail("ERROR: Replicator " + %atrim(Settings.InstanceName) + " reconnect failed!")
+        end
         freturn false
     end
 

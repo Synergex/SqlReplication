@@ -96,7 +96,7 @@ proc
         body[08] =      "ERRORS:  " + %string(Counters.Errors, "ZZZ,ZZZ,ZZZ,ZZX") + "</pre>"
         body[09] = "</body>"
         body[10] = "</html>"
-        xcall SendEmail("STOPPED",body,true)
+        xcall SendEmail("Replicator " + Settings.InstanceName + " stopped.",body,true)
     end
 
     ;;Clean up any database cursors and data files that we have open
