@@ -1868,8 +1868,6 @@ proc
 
     ;;Put the unique key value into the record
 
-;TODO: NEED TO FIGURE OUT HOW TO DEAL WITH this
-;      THE PASSED IN KEY VALUE WILL BE A KEY ON THE MAPPED FILE
     <structureName> = %<StructureName>KeyToRecord(a_key)
 
     ;;Start a database transaction
