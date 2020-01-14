@@ -61,6 +61,7 @@ main replicator
         nsptr,                      i4                  ;;Namespace pointer
         status,                     i4                  ;;General working status return
         rows,                       i4                  ;;Number of rows affected
+        oldSleepTime,               i4                  ;;Previous sleep time value
         functionName,               string              ;;External function to call
         keyValue,                   string              ;;Key value of the current ISAM record
         recordNumber,               d28                 ;;Record number of the current relative record
@@ -296,7 +297,28 @@ proc
                 (REPLICATION_INSTRUCTION.CHANGE_INTERVAL),
                 begin
                     Logger.Log("Change processing interval")
-                    call ChangeInterval
+
+                    oldSleepTime = Settings.SleepTime
+    
+                    try
+                    begin
+                        Settings.SleepTime = %integer(%atrim(instruction.record))
+                        if (Settings.SleepTime >= 1) then
+                        begin
+                            Logger.Log(" - Interval changed from " + %string(oldSleepTime) + " to " + %string(Settings.SleepTime) + " seconds")
+                        end
+                        else
+                        begin
+                            Logger.ErrorLog(" - Invalid interval of " + %string(Settings.SleepTime) + " seconds requested")
+                            Settings.SleepTime = oldSleepTime
+                        end
+                    end
+                    catch (ex)
+                    begin
+                        Logger.ErrorLog(" - Invalid interval " + %atrim(instruction.record) + " requested")
+                        Settings.SleepTime = oldSleepTime
+                    end
+                    endtry
                 end
 
                 (REPLICATION_INSTRUCTION.CYCLE_LOG),
@@ -343,11 +365,15 @@ proc
 
     ;;Release the namespace
     if (Settings.ChannelInfo)
+    begin
         xcall nspc_close(Settings.ChannelInfo)
+    end
 
     ;;Close the instructions file
     if (Settings.InstructionChannel&&%chopen(Settings.InstructionChannel))
+    begin
         close Settings.InstructionChannel
+    end
 
     ;;All done
     stop
@@ -356,41 +382,40 @@ proc
 ;; Commit the current transaction and start a new one (only used in batch transaction mode)
 ;;
 CommitTransaction,
+
+    Logger.VerboseLog("Committing transaction with " + %string(Counters.BatchCounter) + " change(s)")
+
+    if (%ssc_commit(Settings.DatabaseChannel,SSQL_TXON)==SSQL_NORMAL) then
     begin
-        data message, string, "Committing transaction with " + %string(Counters.BatchCounter) + " change(s)"
-        Logger.VerboseLog(message)
-        if (%ssc_commit(Settings.DatabaseChannel,SSQL_TXON)==SSQL_NORMAL) then
+        ;;Delete all of the associated instructions from the queue file.
+        foreach boxedRfa in uncommittedInstructions
         begin
-            ;;Delete all of the associated instructions from the queue file.
-            foreach boxedRfa in uncommittedInstructions
+            unboxedRfa = (a)boxedRfa
+            try
             begin
-                unboxedRfa = (a)boxedRfa
-                try
-                begin
-                    read(Settings.InstructionChannel,instruction,,LOCK:Q_AUTO_LOCK,RFA:unboxedRfa)
-                    delete(Settings.InstructionChannel)
-                end
-                catch (e, @Exception)
-                begin
-                    ;TODO: Failed to delete a commited instruction. Now what?
-
-
-                end
-                endtry
+                read(Settings.InstructionChannel,instruction,,LOCK:Q_AUTO_LOCK,RFA:unboxedRfa)
+                delete(Settings.InstructionChannel)
             end
+            catch (e, @Exception)
+            begin
+                ;TODO: Failed to delete a commited instruction. Now what?
 
-            uncommittedInstructions.Clear()
 
-            Logger.VerboseLog("Start transaction")
-            Counters.BatchCommits += 1
-            Counters.BatchCounter = 0
+            end
+            endtry
         end
-        else
-        begin
-            ;TODO: Commit failed - now what?
+
+        uncommittedInstructions.Clear()
+
+        Logger.VerboseLog("Start transaction")
+        Counters.BatchCommits += 1
+        Counters.BatchCounter = 0
+    end
+    else
+    begin
+        ;TODO: Commit failed - now what?
 
 
-        end
     end
 
     return
@@ -399,104 +424,79 @@ CommitTransaction,
 ;; Check if we have already opened this file in this process
 ;;
 CheckFileTable,
+
+    ;;If there is an entry for the file in our namespace then we're good to go
+
+    if (nsptr = %nspc_find(Settings.ChannelInfo,instruction.structure_name,structure_data))
     begin
-        ;;If there is an entry for the file in our namespace then we're good to go
+        return
+    end
 
-        if (nsptr = %nspc_find(Settings.ChannelInfo,instruction.structure_name,structure_data))
+    Logger.VerboseLog("First instruction checks for table " + %atrim(instruction.structure_name))
+
+    ;;No, open the file and make sure it worked
+
+    call OpenFile
+
+    ;;If we failed to open the file then we have a serious problem!
+
+    if (!structure_data.structure_chan)
+    begin
+        Logger.ErrorLog("Failed to open ISAM file for structure " + %atrim(instruction.structure_name))
+        return
+    end
+
+    ;;Get the record size of the file
+
+    try
+    begin
+        functionName = %atrim(instruction.structure_name) + "Length"
+        structure_data.structure_size = %xsubr(functionName)
+    end
+    catch (ex, @SynException)
+    begin
+        ok = Logger.LogFunctionFail(functionName,ex.Errno,ex.Message)
+        return
+    end
+    endtry
+
+    ;;Get the type of the file
+
+    try
+    begin
+        functionName = %atrim(instruction.structure_name) + "Type"
+        xcall xsubr(functionName,structure_data.structure_type)
+    end
+    catch (ex, @SynException)
+    begin
+        ok = Logger.LogFunctionFail(functionName,ex.Errno,ex.Message)
+        return
+    end
+    endtry
+
+    using structure_data.structure_type select
+
+    ("DBL ISAM"),
+    begin
+        ;;Search for the first unique key. There should always be one, because without one the
+        ;;constructor in the I/O hooks class would not activate replication for the file.
+        data thisKey, i4
+        structure_data.structure_keynum = -1
+        for thisKey from 0 thru %isinfo(structure_data.structure_chan,"NUMKEYS") - 1
         begin
-            return
-        end
-
-        Logger.VerboseLog("First instruction checks for table " + %atrim(instruction.structure_name))
-
-        ;;No, open the file and make sure it worked
-
-        call OpenFile
-
-        ;;If we failed to open the file then we have a serious problem!
-
-        if (!structure_data.structure_chan)
-        begin
-            Logger.ErrorLog("Failed to open ISAM file for structure " + %atrim(instruction.structure_name))
-            return
-        end
-
-        ;;Get the record size of the file
-
-        try
-        begin
-            functionName = %atrim(instruction.structure_name) + "Length"
-            structure_data.structure_size = %xsubr(functionName)
-        end
-        catch (ex, @SynException)
-        begin
-            ok = Logger.LogFunctionFail(functionName,ex.Errno,ex.Message)
-            return
-        end
-        endtry
-
-        ;;Get the type of the file
-
-        try
-        begin
-            functionName = %atrim(instruction.structure_name) + "Type"
-            xcall xsubr(functionName,structure_data.structure_type)
-        end
-        catch (ex, @SynException)
-        begin
-            ok = Logger.LogFunctionFail(functionName,ex.Errno,ex.Message)
-            return
-        end
-        endtry
-
-        using structure_data.structure_type select
-
-        ("DBL ISAM"),
-        begin
-            ;;Search for the first unique key. There should always be one, because without one the
-            ;;constructor in the I/O hooks class would not activate replication for the file.
-            data thisKey, i4
-            structure_data.structure_keynum = -1
-            for thisKey from 0 thru %isinfo(structure_data.structure_chan,"NUMKEYS") - 1
+            if (!%isinfo(structure_data.structure_chan,"DUPS",thisKey))
             begin
-                if (!%isinfo(structure_data.structure_chan,"DUPS",thisKey))
-                begin
-                    ;;Found it!
-                    structure_data.structure_keynum = thisKey
-                    exitloop
-                end
-            end
-
-            ;;Did we find a unique key?
-            if (structure_data.structure_keynum>=0) then
-            begin
-                ;;Report the key that will be used
-                Logger.VerboseLog(" - Key " + %string(structure_data.structure_keynum) + " will be used to synchronize data")
-
-                ;;And save the structure name
-                structure_data.structure_name = instruction.structure_name
-
-                ;;Record the new open file in the namespace
-                nsptr = %nspc_add(Settings.ChannelInfo,instruction.structure_name,structure_data)
-            end
-            else
-            begin
-                ;;In theory we should never get here because CodeGen should not be able to create the
-                ;;required code if no unique key is present.
-                ;;But just in case, this will cause the replicator to abort
-                close structure_data.structure_chan
-                clear structure_data.structure_chan
-                Logger.ErrorLog("File for structure " + %atrim(instruction.structure_name) + " has no unique key!")
+                ;;Found it!
+                structure_data.structure_keynum = thisKey
+                exitloop
             end
         end
 
-        ("RELATIVE"),
+        ;;Did we find a unique key?
+        if (structure_data.structure_keynum>=0) then
         begin
-            ;;Report that record numbers will be used
-            Logger.VerboseLog(" - Record numbers will be used to synchronize data")
-
-            ;;Set the key number to -1 to prevent it being used accidentally
-            structure_data.structure_keynum = -1
+            ;;Report the key that will be used
+            Logger.VerboseLog(" - Key " + %string(structure_data.structure_keynum) + " will be used to synchronize data")
 
             ;;And save the structure name
             structure_data.structure_name = instruction.structure_name
@@ -504,9 +504,33 @@ CheckFileTable,
             ;;Record the new open file in the namespace
             nsptr = %nspc_add(Settings.ChannelInfo,instruction.structure_name,structure_data)
         end
-
-        endusing
+        else
+        begin
+            ;;In theory we should never get here because CodeGen should not be able to create the
+            ;;required code if no unique key is present.
+            ;;But just in case, this will cause the replicator to abort
+            close structure_data.structure_chan
+            clear structure_data.structure_chan
+            Logger.ErrorLog("File for structure " + %atrim(instruction.structure_name) + " has no unique key!")
+        end
     end
+
+    ("RELATIVE"),
+    begin
+        ;;Report that record numbers will be used
+        Logger.VerboseLog(" - Record numbers will be used to synchronize data")
+
+        ;;Set the key number to -1 to prevent it being used accidentally
+        structure_data.structure_keynum = -1
+
+        ;;And save the structure name
+        structure_data.structure_name = instruction.structure_name
+
+        ;;Record the new open file in the namespace
+        nsptr = %nspc_add(Settings.ChannelInfo,instruction.structure_name,structure_data)
+    end
+
+    endusing
 
     return
 
@@ -514,31 +538,30 @@ CheckFileTable,
 ;; Open a Synergy data file
 ;;
 OpenFile,
+
+    Logger.VerboseLog(" - Opening associated data file")
+
+    try
     begin
-        Logger.VerboseLog(" - Opening associated data file")
+        functionName = %atrim(instruction.structure_name) + "OpenInput"
+        structure_data.structure_chan = %xsubr(functionName,dberrtxt)
+    end
+    catch (ex, @SynException)
+    begin
+        ok = Logger.LogFunctionFail(functionName,ex.Errno,ex.Message)
+        return
+    end
+    endtry
 
-        try
-        begin
-            functionName = %atrim(instruction.structure_name) + "OpenInput"
-            structure_data.structure_chan = %xsubr(functionName,dberrtxt)
-        end
-        catch (ex, @SynException)
-        begin
-            ok = Logger.LogFunctionFail(functionName,ex.Errno,ex.Message)
-            return
-        end
-        endtry
-
-        if (structure_data.structure_chan) then
-        begin
-            Logger.VerboseLog(" - File opened")
-            call CheckTable
-        end
-        else
-        begin
-            Logger.VerboseLog(" - Failed to open file!")
-            Logger.LogFunctionError(functionName,status,dberrtxt)
-        end
+    if (structure_data.structure_chan) then
+    begin
+        Logger.VerboseLog(" - File opened")
+        call CheckTable
+    end
+    else
+    begin
+        Logger.VerboseLog(" - Failed to open file!")
+        Logger.LogFunctionError(functionName,status,dberrtxt)
     end
 
     return
@@ -547,33 +570,36 @@ OpenFile,
 ;; Find out if a table exists in the SQL database. If not create and load it.
 ;;
 CheckTable,
+
+    Logger.VerboseLog(" - Checking if table exists")
+
+    try
     begin
-        Logger.VerboseLog(" - Checking if table exists")
-
-        try
-        begin
-            functionName = %atrim(instruction.structure_name) + "Exists"
-            status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,dberrtxt)
-        end
-        catch (ex, @SynException)
-        begin
-            ok = Logger.LogFunctionFail(functionName,ex.Errno,ex.Message)
-            return
-        end
-        endtry
-
-        using status select
-        (1),
-            Logger.VerboseLog(" - Table exists")
-        (0),
-        begin
-            Logger.VerboseLog(" - Table not found!")
-            call CreateTable
-        end
-        (<0),;Error
-            Logger.LogFunctionError(functionName,status,dberrtxt)
-        endusing
+        functionName = %atrim(instruction.structure_name) + "Exists"
+        status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,dberrtxt)
     end
+    catch (ex, @SynException)
+    begin
+        ok = Logger.LogFunctionFail(functionName,ex.Errno,ex.Message)
+        return
+    end
+    endtry
+
+    using status select
+    (1),
+    begin
+        Logger.VerboseLog(" - Table exists")
+    end
+    (0),
+    begin
+        Logger.VerboseLog(" - Table not found!")
+        call CreateTable
+    end
+    (<0),
+    begin
+        Logger.LogFunctionError(functionName,status,dberrtxt)
+    end
+    endusing
 
     return
 
@@ -584,34 +610,37 @@ CheckTable,
 ;; handled by DoCreateTable.
 ;;
 CreateTable,
+
+    Logger.Log(" - Creating table")
+
+    try
     begin
-        Logger.Log(" - Creating table")
+        functionName = %atrim(instruction.structure_name) + "Create"
+        status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,dberrtxt)
+    end
+    catch (ex, @SynException)
+    begin
+        ok = Logger.LogFunctionFail(functionName,ex.Errno,ex.Message)
+        return
+    end
+    endtry
 
-        try
+    if (status) then
+    begin
+        Logger.VerboseLog(" - Table created")
+        ;;Now do an initial load of the data
+        if (Settings.CanBulkLoad()) then
         begin
-            functionName = %atrim(instruction.structure_name) + "Create"
-            status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,dberrtxt)
-        end
-        catch (ex, @SynException)
-        begin
-            ok = Logger.LogFunctionFail(functionName,ex.Errno,ex.Message)
-            return
-        end
-        endtry
-
-        if (status) then
-        begin
-            Logger.VerboseLog(" - Table created")
-            ;;Now do an initial load of the data
-            if (Settings.CanBulkLoad()) then
-                call BulkLoadTable
-            else
-                call LoadTable
+            call BulkLoadTable
         end
         else
         begin
-            Logger.LogFunctionError(functionName,status,dberrtxt)
+            call LoadTable
         end
+    end
+    else
+    begin
+        Logger.LogFunctionError(functionName,status,dberrtxt)
     end
 
     return
@@ -620,46 +649,49 @@ CreateTable,
 ;; Perform an initial load of a new table in the SQL database
 ;;
 LoadTable,
+
+    Logger.Log(" - Load starting at " + %TimeNow)
+
+    clear status
+
+    try
     begin
-        Logger.Log(" - Load starting at " + %TimeNow)
+        data successCount, int, 0
+        data failCount, int, 0
 
-        clear status
+        functionName = %atrim(instruction.structure_name) + "Load"
 
-        try
+        if (Settings.RunningOnTerminal) then
         begin
-            data successCount, int, 0
-            data failCount, int, 0
-
-            functionName = %atrim(instruction.structure_name) + "Load"
-
-            if (Settings.RunningOnTerminal) then
-                status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,dberrtxt,Settings.LogLoadExceptions,Settings.TerminalChannel,successCount,failCount,Settings.BulkLoadProgressReporting)
-            else
-                status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,dberrtxt,Settings.LogLoadExceptions,,successCount,failCount)
-
-            if (status) then
-            begin
-                Logger.Log(" - Load complete at " + %TimeNow)
-                Logger.Log(" - " + %string(successCount) + " rows inserted, " + %string(failCount) + " rows failed.")
-                Counters.Inserts += successCount
-                Counters.Errors  += failCount
-            end
-            else
-            begin
-                Logger.LogFunctionError(functionName,status,dberrtxt)
-            end
+            status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,dberrtxt,Settings.LogLoadExceptions,Settings.TerminalChannel,successCount,failCount,Settings.BulkLoadProgressReporting)
         end
-        catch (ex, @SynException)
+        else
         begin
-            ok = Logger.LogFunctionFail(functionName,ex.Errno,ex.Message)
+            status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,dberrtxt,Settings.LogLoadExceptions,,successCount,failCount)
         end
-        endtry
 
-        ;;Now add alternate key indexes
-        if (ok && status)
+        if (status) then
         begin
-            call DoAddIndexes
+            Logger.Log(" - Load complete at " + %TimeNow)
+            Logger.Log(" - " + %string(successCount) + " rows inserted, " + %string(failCount) + " rows failed.")
+            Counters.Inserts += successCount
+            Counters.Errors  += failCount
         end
+        else
+        begin
+            Logger.LogFunctionError(functionName,status,dberrtxt)
+        end
+    end
+    catch (ex, @SynException)
+    begin
+        ok = Logger.LogFunctionFail(functionName,ex.Errno,ex.Message)
+    end
+    endtry
+
+    ;;Now add alternate key indexes
+    if (ok && status)
+    begin
+        call DoAddIndexes
     end
 
     return
@@ -668,42 +700,41 @@ LoadTable,
 ;; Perform a bulk load of a table from a delimited text file.
 ;;
 BulkLoadTable,
+
+    Logger.Log(" - Bulk load starting at " + %TimeNow)
+
+    clear status
+
+    try
     begin
-        Logger.Log(" - Bulk load starting at " + %TimeNow)
+        data totalRows, int
+        data failRows, int
 
-        clear status
+        functionName = %atrim(instruction.structure_name) + "BulkLoad"
+        status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,Settings.LocalExportPath,Settings.FileServiceHost,Settings.FileServicePort,Settings.DatabaseTimeout,Settings.BulkLoadTimeout,Settings.LogFileChannel,totalRows,failRows,dberrtxt)
 
-        try
+        if (status) then
         begin
-            data totalRows, int
-            data failRows, int
-
-            functionName = %atrim(instruction.structure_name) + "BulkLoad"
-            status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,Settings.LocalExportPath,Settings.FileServiceHost,Settings.FileServicePort,Settings.DatabaseTimeout,Settings.BulkLoadTimeout,Settings.LogFileChannel,totalRows,failRows,dberrtxt)
-
-            if (status) then
-            begin
-                Logger.Log(" - Bulk load complete at " + %TimeNow)
-                Logger.Log("   - " + %string(totalRows) + " records processed, " + %string(failRows) + " failed.")
-                Counters.Inserts += totalRows - failRows
-                Counters.Errors  += failRows
-            end
-            else
-            begin
-                Logger.LogFunctionError(functionName,status,dberrtxt)
-            end
+            Logger.Log(" - Bulk load complete at " + %TimeNow)
+            Logger.Log("   - " + %string(totalRows) + " records processed, " + %string(failRows) + " failed.")
+            Counters.Inserts += totalRows - failRows
+            Counters.Errors  += failRows
         end
-        catch (ex, @SynException)
+        else
         begin
-            ok = Logger.LogFunctionFail(functionName,ex.Errno,ex.Message)
+            Logger.LogFunctionError(functionName,status,dberrtxt)
         end
-        endtry
+    end
+    catch (ex, @SynException)
+    begin
+        ok = Logger.LogFunctionFail(functionName,ex.Errno,ex.Message)
+    end
+    endtry
 
-        ;;Now add alternate key indexes
-        if (ok && status)
-        begin
-            call DoAddIndexes
-        end
+    ;;Now add alternate key indexes
+    if (ok && status)
+    begin
+        call DoAddIndexes
     end
 
     return
@@ -712,59 +743,58 @@ BulkLoadTable,
 ;; Add a new row (ISAM)
 ;;
 DoInsert,
+
+    if (switchMode) then
     begin
-        if (switchMode) then
+        Logger.VerboseLog(" - Insert row in table " + %atrim(instruction.structure_name))
+        switchMode = false
+    end
+    else
+    begin
+        if (Settings.LogKeys)
         begin
-            Logger.VerboseLog(" - Insert row in table " + %atrim(instruction.structure_name))
-            switchMode = false
+            keyValue = %keyVal(structure_data.structure_chan,instruction.record,structure_data.structure_keynum)
+            Logger.VerboseLog(" - Key: " + keyValue)
+        end
+    end
+
+    try
+    begin
+        functionName = %atrim(instruction.structure_name) + "Insert"
+        status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,instruction.record(1,structure_data.structure_size),dberrtxt)
+    end
+    catch (ex, @SynException)
+    begin
+        ok = Logger.LogFunctionFail(functionName,ex.Errno,ex.Message)
+        return
+    end
+    endtry
+
+    using status select
+    (0),
+    begin
+        Logger.LogFunctionError(functionName,status,dberrtxt)
+    end
+    (1),
+    begin
+        Logger.VerboseLog(" - Row inserted")
+        Counters.Inserts += 1
+    end
+    (2),
+    begin
+        Logger.VerboseLog(" - Row exists, switching to UPDATE")
+        status = 1
+        if (switchDone) then
+        begin
+            Logger.ErrorLog(" - Too many INSERT/UPDATE mode switches!")
         end
         else
         begin
-            if (Settings.LogKeys)
-            begin
-                keyValue = %keyVal(structure_data.structure_chan,instruction.record,structure_data.structure_keynum)
-                Logger.VerboseLog(" - Key: " + keyValue)
-            end
+            switchMode = true
+            call DoUpdate
         end
-
-        try
-        begin
-            functionName = %atrim(instruction.structure_name) + "Insert"
-            status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,instruction.record(1,structure_data.structure_size),dberrtxt)
-        end
-        catch (ex, @SynException)
-        begin
-            ok = Logger.LogFunctionFail(functionName,ex.Errno,ex.Message)
-            return
-        end
-        endtry
-
-        using status select
-        (0),
-        begin
-            Logger.LogFunctionError(functionName,status,dberrtxt)
-        end
-        (1),
-        begin
-            Logger.VerboseLog(" - Row inserted")
-            Counters.Inserts += 1
-        end
-        (2),
-        begin
-            Logger.VerboseLog(" - Row exists, switching to UPDATE")
-            status = 1
-            if (switchDone) then
-            begin
-                Logger.ErrorLog(" - Too many INSERT/UPDATE mode switches!")
-            end
-            else
-            begin
-                switchMode = true
-                call DoUpdate
-            end
-        end
-        endusing
     end
+    endusing
 
     return
 
@@ -772,48 +802,104 @@ DoInsert,
 ;; Add a new row (RELATIVE)
 ;;
 DoInsertRelative,
+
+    if (switchMode) then
     begin
-        if (switchMode) then
+        Logger.VerboseLog(" - Insert row in table " + %atrim(instruction.structure_name))
+        switchMode = false
+    end
+    else
+    begin
+        if (Settings.LogKeys)
         begin
-            Logger.VerboseLog(" - Insert row in table " + %atrim(instruction.structure_name))
-            switchMode = false
+            data pos, i4, %instr(1,instruction.record,":")
+            recordNumber = instruction.record(1:pos-1)
+            instruction.record = instruction.record(pos+1:structure_data.structure_size)
+            Logger.VerboseLog(" - Record #: " + %string(recordNumber))
+        end
+    end
+
+    try
+    begin
+        functionName = %atrim(instruction.structure_name) + "Insert"
+        status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,recordNumber,instruction.record(1,structure_data.structure_size),dberrtxt)
+    end
+    catch (ex, @SynException)
+    begin
+        ok = Logger.LogFunctionFail(functionName,ex.Errno,ex.Message)
+        return
+    end
+    endtry
+
+    using status select
+    (0),
+    begin
+        Logger.LogFunctionError(functionName,status,dberrtxt)
+    end
+    (1),
+    begin
+        Logger.VerboseLog(" - Row inserted")
+        Counters.Inserts += 1
+    end
+    (2),
+    begin
+        Logger.VerboseLog(" - Row exists, switching to UPDATE")
+        status = 1
+        if (switchDone) then
+        begin
+            Logger.ErrorLog(" - Too many INSERT/UPDATE mode switches!")
         end
         else
         begin
-            if (Settings.LogKeys)
-            begin
-                data pos, i4, %instr(1,instruction.record,":")
-                recordNumber = instruction.record(1:pos-1)
-                instruction.record = instruction.record(pos+1:structure_data.structure_size)
-                Logger.VerboseLog(" - Record #: " + %string(recordNumber))
-            end
+            switchMode = true
+            call DoUpdateRelative
         end
+    end
+    endusing
 
-        try
-        begin
-            functionName = %atrim(instruction.structure_name) + "Insert"
-            status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,recordNumber,instruction.record(1,structure_data.structure_size),dberrtxt)
-        end
-        catch (ex, @SynException)
-        begin
-            ok = Logger.LogFunctionFail(functionName,ex.Errno,ex.Message)
-            return
-        end
-        endtry
+    return
 
-        using status select
-        (0),
+;;-----------------------------------------------------------------------------
+;; Update an existing row (ISAM)
+;;
+DoUpdate,
+    
+    if (switchMode) then
+    begin
+        Logger.VerboseLog(" - Update row in table " + %atrim(instruction.structure_name))
+        switchMode = false
+    end
+    else
+    begin
+        if (Settings.LogKeys)
         begin
-            Logger.LogFunctionError(functionName,status,dberrtxt)
+            keyValue = %keyVal(structure_data.structure_chan,instruction.record,structure_data.structure_keynum)
+            Logger.VerboseLog(" - Key: " + keyValue)
         end
-        (1),
+    end
+
+    try
+    begin
+        functionName = %atrim(instruction.structure_name) + "Update"
+        status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,instruction.record(1,structure_data.structure_size),rows,dberrtxt)
+    end
+    catch (ex, @SynException)
+    begin
+        ok = Logger.LogFunctionFail(functionName,ex.Errno,ex.Message)
+        return
+    end
+    endtry
+
+    if (status) then
+    begin
+        if (rows) then
         begin
-            Logger.VerboseLog(" - Row inserted")
-            Counters.Inserts += 1
+            Logger.VerboseLog(" - Row updated")
+            Counters.Updates += 1
         end
-        (2),
+        else
         begin
-            Logger.VerboseLog(" - Row exists, switching to UPDATE")
+            Logger.VerboseLog(" - Row not found, switching to INSERT")
             status = 1
             if (switchDone) then
             begin
@@ -822,71 +908,13 @@ DoInsertRelative,
             else
             begin
                 switchMode = true
-                call DoUpdateRelative
+                call DoInsert
             end
         end
-        endusing
     end
-
-    return
-
-;;-----------------------------------------------------------------------------
-;; Update an existing row (ISAM)
-;;
-DoUpdate,
+    else
     begin
-        if (switchMode) then
-        begin
-            Logger.VerboseLog(" - Update row in table " + %atrim(instruction.structure_name))
-            switchMode = false
-        end
-        else
-        begin
-            if (Settings.LogKeys)
-            begin
-                keyValue = %keyVal(structure_data.structure_chan,instruction.record,structure_data.structure_keynum)
-                Logger.VerboseLog(" - Key: " + keyValue)
-            end
-        end
-
-        try
-        begin
-            functionName = %atrim(instruction.structure_name) + "Update"
-            status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,instruction.record(1,structure_data.structure_size),rows,dberrtxt)
-        end
-        catch (ex, @SynException)
-        begin
-            ok = Logger.LogFunctionFail(functionName,ex.Errno,ex.Message)
-            return
-        end
-        endtry
-
-        if (status) then
-        begin
-            if (rows) then
-            begin
-                Logger.VerboseLog(" - Row updated")
-                Counters.Updates += 1
-            end
-            else
-            begin
-                Logger.VerboseLog(" - Row not found, switching to INSERT")
-                status = 1
-                if (switchDone) then
-                begin
-                    Logger.ErrorLog(" - Too many INSERT/UPDATE mode switches!")
-                end
-                else
-                begin
-                    switchMode = true
-                    call DoInsert
-                end
-            end
-        end
-        else
-        begin
-            Logger.LogFunctionError(functionName,status,dberrtxt)
-        end
+        Logger.LogFunctionError(functionName,status,dberrtxt)
     end
 
     return
@@ -895,61 +923,60 @@ DoUpdate,
 ;; Update an existing row (RELATIVE)
 ;;
 DoUpdateRelative,
+
+    if (switchMode) then
     begin
-        if (switchMode) then
+        Logger.VerboseLog(" - Update row in table " + %atrim(instruction.structure_name))
+        switchMode = false
+    end
+    else
+    begin
+        if (Settings.LogKeys)
         begin
-            Logger.VerboseLog(" - Update row in table " + %atrim(instruction.structure_name))
-            switchMode = false
+            data pos, i4, %instr(1,instruction.record,":")
+            recordNumber = instruction.record(1:pos-1)
+            instruction.record = instruction.record(pos+1:structure_data.structure_size)
+            Logger.VerboseLog(" - Record #: " + %string(recordNumber))
+        end
+    end
+
+    try
+    begin
+        functionName = %atrim(instruction.structure_name) + "Update"
+        status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,recordNumber,instruction.record(1,structure_data.structure_size),rows,dberrtxt)
+    end
+    catch (ex, @SynException)
+    begin
+        ok = Logger.LogFunctionFail(functionName,ex.Errno,ex.Message)
+        return
+    end
+    endtry
+
+    if (status) then
+    begin
+        if (rows) then
+        begin
+            Logger.VerboseLog(" - Row updated")
+            Counters.Updates += 1
         end
         else
         begin
-            if (Settings.LogKeys)
+            Logger.VerboseLog(" - Row not found, switching to INSERT")
+            status = 1
+            if (switchDone) then
             begin
-                data pos, i4, %instr(1,instruction.record,":")
-                recordNumber = instruction.record(1:pos-1)
-                instruction.record = instruction.record(pos+1:structure_data.structure_size)
-                Logger.VerboseLog(" - Record #: " + %string(recordNumber))
-            end
-        end
-
-        try
-        begin
-            functionName = %atrim(instruction.structure_name) + "Update"
-            status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,recordNumber,instruction.record(1,structure_data.structure_size),rows,dberrtxt)
-        end
-        catch (ex, @SynException)
-        begin
-            ok = Logger.LogFunctionFail(functionName,ex.Errno,ex.Message)
-            return
-        end
-        endtry
-
-        if (status) then
-        begin
-            if (rows) then
-            begin
-                Logger.VerboseLog(" - Row updated")
-                Counters.Updates += 1
+                Logger.ErrorLog(" - Too many INSERT/UPDATE mode switches!")
             end
             else
             begin
-                Logger.VerboseLog(" - Row not found, switching to INSERT")
-                status = 1
-                if (switchDone) then
-                begin
-                    Logger.ErrorLog(" - Too many INSERT/UPDATE mode switches!")
-                end
-                else
-                begin
-                    switchMode = true
-                    call DoInsertRelative
-                end
+                switchMode = true
+                call DoInsertRelative
             end
         end
-        else
-        begin
-            Logger.LogFunctionError(functionName,status,dberrtxt)
-        end
+    end
+    else
+    begin
+        Logger.LogFunctionError(functionName,status,dberrtxt)
     end
 
     return
@@ -958,33 +985,34 @@ DoUpdateRelative,
 ;; Delete a row
 ;;
 DoDelete,
+
+    keyValue = %keyval(structure_data.structure_chan,instruction.record,structure_data.structure_keynum)
+
+    if (Settings.LogKeys)
     begin
-        keyValue = %keyval(structure_data.structure_chan,instruction.record,structure_data.structure_keynum)
-
-        if (Settings.LogKeys)
-            Logger.VerboseLog(" - Key: " + keyValue)
-
-        try
-        begin
-            functionName = %atrim(instruction.structure_name) + "Delete"
-            status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,(a)keyValue,dberrtxt)
-            if (status) then
-            begin
-                Logger.VerboseLog(" - Row deleted")
-                Counters.Deletes += 1
-            end
-            else
-            begin
-                Logger.VerboseLog(" - " + dberrtxt)
-                Logger.LogFunctionError(functionName,status,dberrtxt)
-            end
-        end
-        catch (ex, @SynException)
-        begin
-            ok = Logger.LogFunctionFail(functionName,ex.Errno,ex.Message)
-        end
-        endtry
+        Logger.VerboseLog(" - Key: " + keyValue)
     end
+
+    try
+    begin
+        functionName = %atrim(instruction.structure_name) + "Delete"
+        status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,(a)keyValue,dberrtxt)
+        if (status) then
+        begin
+            Logger.VerboseLog(" - Row deleted")
+            Counters.Deletes += 1
+        end
+        else
+        begin
+            Logger.VerboseLog(" - " + dberrtxt)
+            Logger.LogFunctionError(functionName,status,dberrtxt)
+        end
+    end
+    catch (ex, @SynException)
+    begin
+        ok = Logger.LogFunctionFail(functionName,ex.Errno,ex.Message)
+    end
+    endtry
 
     return
 
@@ -992,99 +1020,46 @@ DoDelete,
 ;; Create a new table
 ;;
 DoCreateTable,
+
+    ;;Create a new table (only)
+    ;;If the table already exists, do nothing
+
+    Logger.VerboseLog(" - Checking if table exists")
+
+    try
     begin
-        ;;Create a new table (only)
-        ;;If the table already exists, do nothing
-
-        Logger.VerboseLog(" - Checking if table exists")
-
-        try
-        begin
-            functionName = %atrim(instruction.structure_name) + "Exists"
-            status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,dberrtxt)
-            using status select
-            (1),
-            begin
-                Logger.VerboseLog(" - Table exists!")
-            end
-            (0),
-            begin
-                Logger.VerboseLog(" - Creating table")
-
-                try
-                begin
-                    functionName = %atrim(instruction.structure_name) + "Create"
-                    status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,dberrtxt)
-                    if (status) then
-                    begin
-                        Logger.VerboseLog(" - Table created")
-
-                        if (Settings.CanSendEmail())
-                        begin
-                            xcall SendEmail("Replicator " + Settings.InstanceName + " created table " + %atrim(instruction.structure_name))
-                        end
-                    end
-                    else
-                        Logger.LogFunctionError(functionName,status,dberrtxt)
-                end
-                catch (ex, @SynException)
-                begin
-                    ok = Logger.LogFunctionFail(functionName,ex.Errno,ex.Message)
-                end
-                endtry
-            end
-            (<0),
-            begin
-                Logger.LogFunctionError(functionName,status,dberrtxt)
-            end
-            endusing
-        end
-        catch (ex, @SynException)
-        begin
-            ok = Logger.LogFunctionFail(functionName,ex.Errno,ex.Message)
-        end
-        endtry
-    end
-
-    return
-
-;;-----------------------------------------------------------------------------
-;; Load new data into existing table
-;;
-DoLoadTable,
-    begin
-        ;;Do a full load of an existing table with new data
-
-        Logger.VerboseLog(" - Checking if table exists")
-
-        try
-        begin
-            functionName = %atrim(instruction.structure_name) + "Exists"
-            status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,dberrtxt)
-        end
-        catch (ex, @SynException)
-        begin
-            ok = Logger.LogFunctionFail(functionName,ex.Errno,ex.Message)
-            return
-        end
-        endtry
-
+        functionName = %atrim(instruction.structure_name) + "Exists"
+        status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,dberrtxt)
         using status select
         (1),
         begin
-            Logger.VerboseLog(" - Table exists")
-
-            ;;Delete any and all existing data before loading new data
-            call DoDeleteAllRows
-
-            if (bulkLoad) then
-                call BulkLoadTable
-            else
-                call LoadTable
+            Logger.VerboseLog(" - Table exists!")
         end
         (0),
         begin
-            Logger.VerboseLog(" - Table does not exist!")
+            Logger.VerboseLog(" - Creating table")
+
+            try
+            begin
+                functionName = %atrim(instruction.structure_name) + "Create"
+                status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,dberrtxt)
+                if (status) then
+                begin
+                    Logger.VerboseLog(" - Table created")
+
+                    if (Settings.CanSendEmail())
+                    begin
+                        xcall SendEmail("Replicator " + Settings.InstanceName + " created table " + %atrim(instruction.structure_name))
+                    end
+                end
+                else
+                    Logger.LogFunctionError(functionName,status,dberrtxt)
+            end
+            catch (ex, @SynException)
+            begin
+                ok = Logger.LogFunctionFail(functionName,ex.Errno,ex.Message)
+            end
+            endtry
         end
         (<0),
         begin
@@ -1092,6 +1067,61 @@ DoLoadTable,
         end
         endusing
     end
+    catch (ex, @SynException)
+    begin
+        ok = Logger.LogFunctionFail(functionName,ex.Errno,ex.Message)
+    end
+    endtry
+
+    return
+
+;;-----------------------------------------------------------------------------
+;; Load new data into existing table
+;;
+DoLoadTable,
+
+    ;;Do a full load of an existing table with new data
+
+    Logger.VerboseLog(" - Checking if table exists")
+
+    try
+    begin
+        functionName = %atrim(instruction.structure_name) + "Exists"
+        status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,dberrtxt)
+    end
+    catch (ex, @SynException)
+    begin
+        ok = Logger.LogFunctionFail(functionName,ex.Errno,ex.Message)
+        return
+    end
+    endtry
+
+    using status select
+    (1),
+    begin
+        Logger.VerboseLog(" - Table exists")
+
+        ;;Delete any and all existing data before loading new data
+        call DoDeleteAllRows
+
+        if (bulkLoad) then
+        begin
+            call BulkLoadTable
+        end
+        else
+        begin
+            call LoadTable
+        end
+    end
+    (0),
+    begin
+        Logger.VerboseLog(" - Table does not exist!")
+    end
+    (<0),
+    begin
+        Logger.LogFunctionError(functionName,status,dberrtxt)
+    end
+    endusing
 
     return
 
@@ -1099,11 +1129,10 @@ DoLoadTable,
 ;; Create a new table and load new data into it
 ;;
 DoCreateAndLoadTable,
-    begin
-        ;;Create a new table, do nothing if the table already exists
-        ;;We create the table, then do a full load of data
-        call CheckTable
-    end
+    
+    ;;Create a new table, do nothing if the table already exists
+    ;;We create the table, then do a full load of data
+    call CheckTable
 
     return
 
@@ -1111,25 +1140,28 @@ DoCreateAndLoadTable,
 ;; Export ISAM file to CSV file
 ;;
 DoCreateCsv,
-    begin
-        Logger.Log(" - Export starting at " + %TimeNow)
 
-        try
+    Logger.Log(" - Export starting at " + %TimeNow)
+
+    try
+    begin
+        data csvFileSpec, a128, Settings.LocalExportPath
+        functionName = %atrim(instruction.structure_name) + "Csv"
+        status = %xsubr(functionName,csvFileSpec,dberrtxt)
+        if (status) then
         begin
-            data csvFileSpec, a128, Settings.LocalExportPath
-            functionName = %atrim(instruction.structure_name) + "Csv"
-            status = %xsubr(functionName,csvFileSpec,dberrtxt)
-            if (status) then
-                Logger.VerboseLog(" - Export complete at " + %TimeNow)
-            else
-                Logger.LogFunctionError(functionName,status,dberrtxt)
+            Logger.VerboseLog(" - Export complete at " + %TimeNow)
         end
-        catch (ex, @SynException)
+        else
         begin
-            ok = Logger.LogFunctionFail(functionName,ex.Errno,ex.Message)
+            Logger.LogFunctionError(functionName,status,dberrtxt)
         end
-        endtry
     end
+    catch (ex, @SynException)
+    begin
+        ok = Logger.LogFunctionFail(functionName,ex.Errno,ex.Message)
+    end
+    endtry
 
     return
 
@@ -1137,29 +1169,30 @@ DoCreateCsv,
 ;; Delete all rows from an existing table
 ;;
 DoDeleteAllRows,
-    begin
-        try
-        begin
-            functionName = %atrim(instruction.structure_name) + "Clear"
-            status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,dberrtxt)
-            if (status) then
-            begin
-                Logger.VerboseLog(" - Table truncated")
 
-                if (Settings.CanSendEmail())
-                begin
-                    xcall SendEmail("Replicator " + Settings.InstanceName + " truncated table " + %atrim(instruction.structure_name))
-                end
-            end
-            else
-                Logger.LogFunctionError(functionName,status,dberrtxt)
-        end
-        catch (ex, @SynException)
+    try
+    begin
+        functionName = %atrim(instruction.structure_name) + "Clear"
+        status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,dberrtxt)
+        if (status) then
         begin
-            ok = Logger.LogFunctionFail(functionName,ex.Errno,ex.Message)
+            Logger.VerboseLog(" - Table truncated")
+
+            if (Settings.CanSendEmail())
+            begin
+                xcall SendEmail("Replicator " + Settings.InstanceName + " truncated table " + %atrim(instruction.structure_name))
+            end
         end
-        endtry
+        else
+        begin
+            Logger.LogFunctionError(functionName,status,dberrtxt)
+        end
     end
+    catch (ex, @SynException)
+    begin
+        ok = Logger.LogFunctionFail(functionName,ex.Errno,ex.Message)
+    end
+    endtry
 
     return
 
@@ -1167,45 +1200,46 @@ DoDeleteAllRows,
 ;; Delete an existing table
 ;;
 DoDeleteTable,
+
+    ;;Is the file in the file table?
+    if (nsptr=%nspc_find(Settings.ChannelInfo,instruction.structure_name,structure_data))
     begin
-        ;;Is the file in the file table?
-        if (nsptr=%nspc_find(Settings.ChannelInfo,instruction.structure_name,structure_data))
+
+        ;Yes - close the file
+        if ((structure_data.structure_chan)&&%chopen(structure_data.structure_chan))
         begin
-
-            ;Yes - close the file
-            if ((structure_data.structure_chan)&&%chopen(structure_data.structure_chan))
-            begin
-                close structure_data.structure_chan
-                clear structure_data
-            end
-
-            ;And remove it from the file table
-            xcall nspc_delete(Settings.ChannelInfo,nsptr)
+            close structure_data.structure_chan
+            clear structure_data
         end
 
-        try
-        begin
-            functionName = %atrim(instruction.structure_name) + "Drop"
-            status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,dberrtxt)
-            if (status) then
-            begin
-                Logger.VerboseLog(" - Table deleted")
-
-                if (Settings.CanSendEmail())
-                begin
-                    xcall SendEmail("Replicator " + Settings.InstanceName + " deleted table " + %atrim(instruction.structure_name))
-                end
-            end
-            else
-                Logger.LogFunctionError(functionName,status,dberrtxt)
-        end
-        catch (ex, @SynException)
-        begin
-            ok = Logger.LogFunctionFail(functionName,ex.Errno,ex.Message)
-            return
-        end
-        endtry
+        ;And remove it from the file table
+        xcall nspc_delete(Settings.ChannelInfo,nsptr)
     end
+
+    try
+    begin
+        functionName = %atrim(instruction.structure_name) + "Drop"
+        status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,dberrtxt)
+        if (status) then
+        begin
+            Logger.VerboseLog(" - Table deleted")
+
+            if (Settings.CanSendEmail())
+            begin
+                xcall SendEmail("Replicator " + Settings.InstanceName + " deleted table " + %atrim(instruction.structure_name))
+            end
+        end
+        else
+        begin
+            Logger.LogFunctionError(functionName,status,dberrtxt)
+        end
+    end
+    catch (ex, @SynException)
+    begin
+        ok = Logger.LogFunctionFail(functionName,ex.Errno,ex.Message)
+        return
+    end
+    endtry
 
     return
 
@@ -1213,33 +1247,34 @@ DoDeleteTable,
 ;; Add alternate key indexes to a table (if they don't already exist)
 ;;
 DoAddIndexes,
+    
+    try
     begin
-        try
+        functionName = %atrim(instruction.structure_name) + "Index"
+        status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,Settings.DatabaseTimeout,Settings.BulkLoadTimeout,Settings.LogFileChannel,dberrtxt)
+        if (status) then
         begin
-            functionName = %atrim(instruction.structure_name) + "Index"
-            status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,Settings.DatabaseTimeout,Settings.BulkLoadTimeout,Settings.LogFileChannel,dberrtxt)
-            if (status) then
-            begin
-                Logger.VerboseLog(" - Indexes added")
+            Logger.VerboseLog(" - Indexes added")
 
-                if (Settings.CanSendEmail())
-                begin
-                    xcall SendEmail("Replicator " + Settings.InstanceName + " added indexes to table " + %atrim(instruction.structure_name))
-                end
+            if (Settings.CanSendEmail())
+            begin
+                xcall SendEmail("Replicator " + Settings.InstanceName + " added indexes to table " + %atrim(instruction.structure_name))
             end
-            else
-                Logger.LogFunctionError(functionName,status,dberrtxt)
         end
-        catch (ex, @RoutineNotFound)
+        else
         begin
-            Logger.VerboseLog(" - Addining indexes is not enabled for this table.")
+            Logger.LogFunctionError(functionName,status,dberrtxt)
         end
-        catch (ex, @SynException)
-        begin
-            ok = Logger.LogFunctionFail(functionName,ex.Errno,ex.Message)
-        end
-        endtry
     end
+    catch (ex, @RoutineNotFound)
+    begin
+        Logger.VerboseLog(" - Addining indexes is not enabled for this table.")
+    end
+    catch (ex, @SynException)
+    begin
+        ok = Logger.LogFunctionFail(functionName,ex.Errno,ex.Message)
+    end
+    endtry
 
     return
 
@@ -1247,62 +1282,34 @@ DoAddIndexes,
 ;; Delete alternate key indexes from a table
 ;;
 DoDeleteIndexes,
+
+    try
     begin
-        try
+        functionName = %atrim(instruction.structure_name) + "UnIndex"
+        status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,dberrtxt)
+        if (status) then
         begin
-            functionName = %atrim(instruction.structure_name) + "UnIndex"
-            status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,dberrtxt)
-            if (status) then
+            Logger.VerboseLog(" - Indexes removed")
+
+            if (Settings.CanSendEmail())
             begin
-                Logger.VerboseLog(" - Indexes removed")
-
-                if (Settings.CanSendEmail())
-                begin
-                    xcall SendEmail("Replicator " + Settings.InstanceName + " removed indexes from table " + %atrim(instruction.structure_name))
-                end
+                xcall SendEmail("Replicator " + Settings.InstanceName + " removed indexes from table " + %atrim(instruction.structure_name))
             end
-            else
-                Logger.LogFunctionError(functionName,status,dberrtxt)
         end
-        catch (ex, @RoutineNotFound)
+        else
         begin
-            Logger.VerboseLog(" - Removing indexes is not enabled for this table.")
+            Logger.LogFunctionError(functionName,status,dberrtxt)
         end
-        catch (ex, @SynException)
-        begin
-            ok = Logger.LogFunctionFail(functionName,ex.Errno,ex.Message)
-        end
-        endtry
     end
-
-    return
-
-;;-----------------------------------------------------------------------------
-;; Change the sleep seconds interval
-;;
-ChangeInterval,
+    catch (ex, @RoutineNotFound)
     begin
-        data save_time, i4, Settings.SleepTime
-        try
-        begin
-            Settings.SleepTime = %integer(%atrim(instruction.record))
-            if (Settings.SleepTime >= 1) then
-            begin
-                Logger.Log(" - Interval changed from " + %string(save_time) + " to " + %string(Settings.SleepTime) + " seconds")
-            end
-            else
-            begin
-                Logger.ErrorLog(" - Invalid interval of " + %string(Settings.SleepTime) + " seconds requested")
-                Settings.SleepTime = save_time
-            end
-        end
-        catch (ex)
-        begin
-            Logger.ErrorLog(" - Invalid interval " + %atrim(instruction.record) + " requested")
-            Settings.SleepTime = save_time
-        end
-        endtry
+        Logger.VerboseLog(" - Removing indexes is not enabled for this table.")
     end
+    catch (ex, @SynException)
+    begin
+        ok = Logger.LogFunctionFail(functionName,ex.Errno,ex.Message)
+    end
+    endtry
 
     return
 
