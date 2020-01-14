@@ -73,7 +73,7 @@ proc
     if (!error)
     begin
         if (%ssc_move(a_dbchn,cursor,1)==SSQL_NORMAL)
-                error = 1 ;; Table exists
+            error = 1 ;; Table exists
     end
 
     ;;Close the database cursor
@@ -783,7 +783,7 @@ proc
 
     if (ok && openAndBind)
     begin
-        if (%ssc_bind(a_dbchn,c1Employee,17,
+        if (%ssc_bind(a_dbchn,c1Employee,15,
         &    employee.emp_id,
         &    employee.emp_first_name,
         &    employee.emp_last_name,
@@ -1041,7 +1041,7 @@ proc
 
     if (ok && openAndBind)
     begin
-        if (%ssc_bind(a_dbchn,c2Employee,17,
+        if (%ssc_bind(a_dbchn,c2Employee,15,
         &    employee.emp_id,
         &    employee.emp_first_name,
         &    employee.emp_last_name,
@@ -1311,7 +1311,7 @@ proc
 
     if (ok && openAndBind)
     begin
-        if (%ssc_bind(a_dbchn,c3Employee,17,
+        if (%ssc_bind(a_dbchn,c3Employee,15,
         &    employee.emp_id,
         &    employee.emp_first_name,
         &    employee.emp_last_name,
@@ -1727,7 +1727,7 @@ proc
 
     ;;Close any open cursors
 
-    xcall EmployeeClose(a_dbchn,a_commit_mode)
+    xcall EmployeeClose(a_dbchn)
 
     ;;Start a database transaction
 
@@ -2478,9 +2478,7 @@ endfunction
 ;;; <param name="a_commit_mode">What commit mode are we using?</param>
 
 subroutine EmployeeClose
-
     required in  a_dbchn, i
-    required in  a_commit_mode, i
     endparams
 
     .include "CONNECTDIR:ssql.def"
@@ -2495,23 +2493,56 @@ proc
 
     if (c1Employee)
     begin
-        if (%ssc_close(a_dbchn,c1Employee))
+        try
+        begin
+            if (%ssc_close(a_dbchn,c1Employee))
+                nop
+        end
+        catch (ex, @Exception)
+        begin
             nop
-        clear c1Employee
+        end
+        finally
+        begin
+            clear c1Employee
+        end
+        endtry
     end
 
     if (c2Employee)
     begin
-        if (%ssc_close(a_dbchn,c2Employee))
+        try
+        begin
+            if (%ssc_close(a_dbchn,c2Employee))
+                nop
+        end
+        catch (ex, @Exception)
+        begin
             nop
-        clear c2Employee
+        end
+        finally
+        begin
+            clear c2Employee
+        end
+        endtry
     end
 
     if (c3Employee)
     begin
-        if (%ssc_close(a_dbchn,c3Employee))
+        try
+        begin
+            if (%ssc_close(a_dbchn,c3Employee))
+                nop
+        end
+        catch (ex, @Exception)
+        begin
             nop
-        clear c3Employee
+        end
+        finally
+        begin
+            clear c3Employee
+        end
+        endtry
     end
 
     xreturn
@@ -2538,6 +2569,12 @@ function EmployeeCsv, ^val
 
     .define EXCEPTION_BUFSZ 100
 
+	external function
+		MakeDateForCsv,     a
+		MakeDecimalForCsv,  a
+		MakeTimeForCsv,     a
+    endexternal
+
     stack record local_data
         ok,                 boolean     ;;Return status
         filechn,            int         ;;Data file channel
@@ -2547,12 +2584,6 @@ function EmployeeCsv, ^val
         records,            int         ;;Number of records exported
         errtxt,             a512        ;;Error message text
     endrecord
-
-    external function
-        MakeDateForCsv,     a
-        MakeDecimalForCsv,  a
-        MakeTimeForCsv,     a
-    endexternal
 proc
 
     init local_data

@@ -1,5 +1,5 @@
 <CODEGEN_FILENAME><StructureName>SqlIO.dbl</CODEGEN_FILENAME>
-<REQUIRES_CODEGEN_VERSION>5.3.14</REQUIRES_CODEGEN_VERSION>
+<REQUIRES_CODEGEN_VERSION>5.4.7</REQUIRES_CODEGEN_VERSION>
 ;//****************************************************************************
 ;//
 ;// Guard against REPLICATOR_EXCLUDE being used on key segments
@@ -131,7 +131,7 @@ proc
     if (!error)
     begin
         if (%ssc_move(a_dbchn,cursor,1)==SSQL_NORMAL)
-                error = 1 ;; Table exists
+            error = 1 ;; Table exists
     end
 
     ;;Close the database cursor
@@ -224,12 +224,29 @@ proc
 </IF STRUCTURE_RELATIVE>
 <FIELD_LOOP>
   <IF CUSTOM_NOT_REPLICATOR_EXCLUDE>
-    <IF STRUCTURE_RELATIVE>
+    <IF DEFINED_ASA_TIREMAX>
+      <IF STRUCTURE_RELATIVE>
+        <IF USER>
+        & + '"<FieldSqlName>" DATE<IF REQUIRED> NOT NULL</IF><,>'
+        <ELSE
         & + '"<FieldSqlName>" <FIELD_SQLTYPE><IF REQUIRED> NOT NULL</IF><,>'
-    </IF STRUCTURE_RELATIVE>
-    <IF STRUCTURE_ISAM>
+        </IF USER>
+      </IF STRUCTURE_RELATIVE>
+      <IF STRUCTURE_ISAM>
+        <IF USER>
+        & + '"<FieldSqlName>" DATE<IF REQUIRED> NOT NULL</IF><IF LAST><IF STRUCTURE_HAS_UNIQUE_PK>,</IF STRUCTURE_HAS_UNIQUE_PK><ELSE>,</IF LAST>'
+        <ELSE>
         & + '"<FieldSqlName>" <FIELD_SQLTYPE><IF REQUIRED> NOT NULL</IF><IF LAST><IF STRUCTURE_HAS_UNIQUE_PK>,</IF STRUCTURE_HAS_UNIQUE_PK><ELSE>,</IF LAST>'
-    </IF STRUCTURE_ISAM>
+        </IF USER>
+      </IF STRUCTURE_ISAM>
+    <ELSE>
+      <IF STRUCTURE_RELATIVE>
+        & + '"<FieldSqlName>" <FIELD_SQLTYPE><IF REQUIRED> NOT NULL</IF><,>'
+      </IF STRUCTURE_RELATIVE>
+      <IF STRUCTURE_ISAM>
+        & + '"<FieldSqlName>" <FIELD_SQLTYPE><IF REQUIRED> NOT NULL</IF><IF LAST><IF STRUCTURE_HAS_UNIQUE_PK>,</IF STRUCTURE_HAS_UNIQUE_PK><ELSE>,</IF LAST>'
+      </IF STRUCTURE_ISAM>
+    </IF DEFINED_ASA_TIREMAX>
   </IF CUSTOM_NOT_REPLICATOR_EXCLUDE>
 </FIELD_LOOP>
 ;//
@@ -725,6 +742,12 @@ function <StructureName>Insert, ^val
 
     .include "CONNECTDIR:ssql.def"
 
+<IF DEFINED_ASA_TIREMAX>
+    external function
+        TmJulianToYYYYMMDD, a
+    endexternal
+
+</IF DEFINED_ASA_TIREMAX>
     .align
     stack record local_data
         ok          ,boolean    ;;OK to continue
@@ -767,6 +790,11 @@ function <StructureName>Insert, ^val
       <IF TIME_HHMMSS>
         tmp<FieldSqlName>, a8      ;;Storage for HH:MM:SS time field
       </IF TIME_HHMMSS>
+      <IF DEFINED_ASA_TIREMAX>
+        <IF USER>
+        tmp<FieldSqlName>, a8      ;;Storage for user defined JJJJJJ date field
+        </IF USER>
+      </IF DEFINED_ASA_TIREMAX>
     </IF USERTIMESTAMP>
   </IF CUSTOM_NOT_REPLICATOR_EXCLUDE>
 </FIELD_LOOP>
@@ -836,7 +864,7 @@ proc
     <IF COUNTER_1_EQ_1>
     if (ok && openAndBind)
     begin
-        if (%ssc_bind(a_dbchn,c1<StructureName>,<REMAINING_INCLUSIVE_MAX_250>,
+        if (%ssc_bind(a_dbchn,c1<StructureName>,<REPLICATION_REMAINING_INCLUSIVE_MAX_250>,
     </IF COUNTER_1_EQ_1>
     <IF ALPHA>
         &    <structure_name>.<field_original_name_modified><IF NOMORE>)==SSQL_FAILURE)<ELSE><IF COUNTER_1_LT_250>,<ELSE>)==SSQL_FAILURE)</IF COUNTER_1_LT_250></IF NOMORE>
@@ -857,7 +885,11 @@ proc
       <IF USERTIMESTAMP>
         &    tmp<FieldSqlName><IF NOMORE>)==SSQL_FAILURE)<ELSE><IF COUNTER_1_LT_250>,<ELSE>)==SSQL_FAILURE)</IF COUNTER_1_LT_250></IF NOMORE>
       <ELSE>
+        <IF DEFINED_ASA_TIREMAX>
+        &    tmp<FieldSqlName><IF NOMORE>)==SSQL_FAILURE)<ELSE><IF COUNTER_1_LT_250>,<ELSE>)==SSQL_FAILURE)</IF COUNTER_1_LT_250></IF NOMORE>
+        <ELSE>
         &    <structure_name>.<field_original_name_modified><IF NOMORE>)==SSQL_FAILURE)<ELSE><IF COUNTER_1_LT_250>,<ELSE>)==SSQL_FAILURE)</IF COUNTER_1_LT_250></IF NOMORE>
+        </IF DEFINED_ASA_TIREMAX>
       </IF USERTIMESTAMP>
     </IF USER>
     <IF COUNTER_1_EQ_250>
@@ -962,6 +994,11 @@ proc
       <IF TIME_HHMMSS>
         tmp<FieldSqlName> = %string(<structure_name>.<field_original_name_modified>,"XX:XX:XX")
       </IF TIME_HHMMSS>
+      <IF DEFINED_ASA_TIREMAX>
+        <IF USER>
+        tmp<FieldSqlName> = %TmJulianToYYYYMMDD(<field_path>)
+        </IF USER>
+      </IF DEFINED_ASA_TIREMAX>
     </IF USERTIMESTAMP>
   </IF CUSTOM_NOT_REPLICATOR_EXCLUDE>
 </FIELD_LOOP>
@@ -1051,6 +1088,12 @@ function <StructureName>InsertRows, ^val
 
     .include "CONNECTDIR:ssql.def"
 
+<IF DEFINED_ASA_TIREMAX>
+    external function
+        TmJulianToYYYYMMDD, a
+    endexternal
+
+</IF DEFINED_ASA_TIREMAX>
     .define EXCEPTION_BUFSZ 100
 
     stack record local_data
@@ -1109,6 +1152,11 @@ function <StructureName>InsertRows, ^val
       <IF TIME_HHMMSS>
         tmp<FieldSqlName>, a8      ;;Storage for HH:MM:SS time field
       </IF TIME_HHMMSS>
+      <IF DEFINED_ASA_TIREMAX>
+        <IF USER>
+        tmp<FieldSqlName>, a8      ;;Storage for user defined JJJJJJ date field
+        </IF USER>
+      </IF DEFINED_ASA_TIREMAX>
     </IF USERTIMESTAMP>
   </IF CUSTOM_NOT_REPLICATOR_EXCLUDE>
 </FIELD_LOOP>
@@ -1193,7 +1241,7 @@ proc
     <IF COUNTER_1_EQ_1>
     if (ok && openAndBind)
     begin
-        if (%ssc_bind(a_dbchn,c2<StructureName>,<REMAINING_INCLUSIVE_MAX_250>,
+        if (%ssc_bind(a_dbchn,c2<StructureName>,<REPLICATION_REMAINING_INCLUSIVE_MAX_250>,
     </IF COUNTER_1_EQ_1>
     <IF ALPHA>
         &    <structure_name>.<field_original_name_modified><IF NOMORE>)==SSQL_FAILURE)<ELSE><IF COUNTER_1_LT_250>,<ELSE>)==SSQL_FAILURE)</IF COUNTER_1_LT_250></IF NOMORE>
@@ -1214,7 +1262,11 @@ proc
       <IF USERTIMESTAMP>
         &    tmp<FieldSqlName><IF NOMORE>)==SSQL_FAILURE)<ELSE><IF COUNTER_1_LT_250>,<ELSE>)==SSQL_FAILURE)</IF COUNTER_1_LT_250></IF NOMORE>
       <ELSE>
+        <IF DEFINED_ASA_TIREMAX>
+        &    tmp<FieldSqlName><IF NOMORE>)==SSQL_FAILURE)<ELSE><IF COUNTER_1_LT_250>,<ELSE>)==SSQL_FAILURE)</IF COUNTER_1_LT_250></IF NOMORE>
+        <ELSE>
         &    <structure_name>.<field_original_name_modified><IF NOMORE>)==SSQL_FAILURE)<ELSE><IF COUNTER_1_LT_250>,<ELSE>)==SSQL_FAILURE)</IF COUNTER_1_LT_250></IF NOMORE>
+        </IF DEFINED_ASA_TIREMAX>
       </IF USERTIMESTAMP>
     </IF USER>
     <IF COUNTER_1_EQ_250>
@@ -1328,6 +1380,11 @@ proc
       <IF TIME_HHMMSS>
             tmp<FieldSqlName> = %string(<structure_name>.<field_original_name_modified>,"XX:XX:XX")
       </IF TIME_HHMMSS>
+      <IF DEFINED_ASA_TIREMAX>
+        <IF USER>
+            tmp<FieldSqlName> = %TmJulianToYYYYMMDD(<field_path>)
+        </IF USER>
+      </IF DEFINED_ASA_TIREMAX>
     </IF USERTIMESTAMP>
   </IF CUSTOM_NOT_REPLICATOR_EXCLUDE>
 </FIELD_LOOP>
@@ -1454,6 +1511,12 @@ function <StructureName>Update, ^val
 
     .include "CONNECTDIR:ssql.def"
 
+<IF DEFINED_ASA_TIREMAX>
+    external function
+        TmJulianToYYYYMMDD, a
+    endexternal
+
+</IF DEFINED_ASA_TIREMAX>
     stack record local_data
         ok          ,boolean    ;;OK to continue
         openAndBind ,boolean    ;;Should we open the cursor and bind data this time?
@@ -1501,6 +1564,11 @@ function <StructureName>Update, ^val
       <IF TIME_HHMMSS>
         tmp<FieldSqlName>, a8      ;;Storage for HH:MM:SS time field
       </IF TIME_HHMMSS>
+      <IF DEFINED_ASA_TIREMAX>
+        <IF USER>
+        tmp<FieldSqlName>, a8      ;;Storage for user defined JJJJJJ date field
+        </IF USER>
+      </IF DEFINED_ASA_TIREMAX>
     </IF USERTIMESTAMP>
   </IF CUSTOM_NOT_REPLICATOR_EXCLUDE>
 </FIELD_LOOP>
@@ -1562,7 +1630,7 @@ proc
 
     if (ok && openAndBind)
     begin
-        if (%ssc_bind(a_dbchn,c3<StructureName>,<REMAINING_INCLUSIVE_MAX_250>,
+        if (%ssc_bind(a_dbchn,c3<StructureName>,<REPLICATION_REMAINING_INCLUSIVE_MAX_250>,
     </IF COUNTER_1_EQ_1>
     <IF ALPHA>
         &    <structure_name>.<field_original_name_modified><IF NOMORE>)==SSQL_FAILURE)<ELSE><IF COUNTER_1_LT_250>,<ELSE>)==SSQL_FAILURE)</IF COUNTER_1_LT_250></IF NOMORE>
@@ -1583,7 +1651,11 @@ proc
       <IF USERTIMESTAMP>
         &    tmp<FieldSqlName><IF NOMORE>)==SSQL_FAILURE)<ELSE><IF COUNTER_1_LT_250>,<ELSE>)==SSQL_FAILURE)</IF COUNTER_1_LT_250></IF NOMORE>
       <ELSE>
+          <IF DEFINED_ASA_TIREMAX>
+        &    tmp<FieldSqlName><IF NOMORE>)==SSQL_FAILURE)<ELSE><IF COUNTER_1_LT_250>,<ELSE>)==SSQL_FAILURE)</IF COUNTER_1_LT_250></IF NOMORE>
+          <ELSE>
         &    <structure_name>.<field_original_name_modified><IF NOMORE>)==SSQL_FAILURE)<ELSE><IF COUNTER_1_LT_250>,<ELSE>)==SSQL_FAILURE)</IF COUNTER_1_LT_250></IF NOMORE>
+          </IF DEFINED_ASA_TIREMAX>
       </IF USERTIMESTAMP>
     </IF USER>
     <IF COUNTER_1_EQ_250>
@@ -1693,6 +1765,11 @@ proc
         <IF TIME_HHMMSS>
         tmp<FieldSqlName> = %string(<structure_name>.<field_original_name_modified>,"XX:XX:XX")
         </IF TIME_HHMMSS>
+        <IF DEFINED_ASA_TIREMAX>
+          <IF USER>
+        tmp<FieldSqlName> = %TmJulianToYYYYMMDD(<field_path>)
+          </IF USER>
+        </IF DEFINED_ASA_TIREMAX>
       </IF USERTIMESTAMP>
     </IF CUSTOM_NOT_REPLICATOR_EXCLUDE>
   </FIELD_LOOP>
@@ -1769,6 +1846,9 @@ function <StructureName>Delete, ^val
 
     external function
         <StructureName>KeyToRecord, a
+<IF DEFINED_ASA_TIREMAX>
+        TmJulianToYYYYMMDD, a
+</IF DEFINED_ASA_TIREMAX>
     endexternal
 
     stack record local_data
@@ -1816,7 +1896,15 @@ proc
       <IF ALPHA>
         & + ' "<FieldSqlName>"=' + "'" + %atrim(<structureName>.<segment_name>) + "' <AND>"
       <ELSE>
+        <IF DEFINED_ASA_TIREMAX>
+          <IF USER>
+        & + " <SegmentName>='" + %TmJulianToYYYYMMDD(<structureName>.<segment_name>) + "' <AND>"
+          <ELSE>
         & + ' "<FieldSqlName>"=' + "'" + %string(<structureName>.<segment_name>) + "' <AND>"
+          </IF USER>
+        <ELSE>
+        & + ' "<FieldSqlName>"=' + "'" + %string(<structureName>.<segment_name>) + "' <AND>"
+        </IF DEFINED_ASA_TIREMAX>
       </IF ALPHA>
     </SEGMENT_LOOP>
   </UNIQUE_KEY>
@@ -2047,7 +2135,7 @@ proc
 
     ;;Close any open cursors
 
-    xcall <StructureName>Close(a_dbchn,a_commit_mode)
+    xcall <StructureName>Close(a_dbchn)
 
     ;;Start a database transaction
 
@@ -2840,8 +2928,13 @@ DeleteFiles,
         writelog("Deleting remote files")
 
         fsc.Delete(remoteCsvFile)
+<IF DEFINED_ASA_TIREMAX>
+;       fsc.Delete(remoteExceptionsFile)
+;       fsc.Delete(remoteExceptionsLog)
+<ELSE>
         fsc.Delete(remoteExceptionsFile)
         fsc.Delete(remoteExceptionsLog)
+</IF DEFINED_ASA_TIREMAX>
     end
 
     return
@@ -2856,9 +2949,7 @@ endfunction
 ;;; <param name="a_commit_mode">What commit mode are we using?</param>
 
 subroutine <StructureName>Close
-
     required in  a_dbchn, i
-    required in  a_commit_mode, i
     endparams
 
     .include "CONNECTDIR:ssql.def"
@@ -2876,24 +2967,57 @@ proc
 <IF STRUCTURE_ISAM>
     if (c1<StructureName>)
     begin
-        if (%ssc_close(a_dbchn,c1<StructureName>))
+        try
+        begin
+            if (%ssc_close(a_dbchn,c1<StructureName>))
+                nop
+        end
+        catch (ex, @Exception)
+        begin
             nop
-        clear c1<StructureName>
+        end
+        finally
+        begin
+            clear c1<StructureName>
+        end
+        endtry
     end
 
     if (c2<StructureName>)
     begin
-        if (%ssc_close(a_dbchn,c2<StructureName>))
+        try
+        begin
+            if (%ssc_close(a_dbchn,c2<StructureName>))
+                nop
+        end
+        catch (ex, @Exception)
+        begin
             nop
-        clear c2<StructureName>
+        end
+        finally
+        begin
+            clear c2<StructureName>
+        end
+        endtry
     end
 
 </IF STRUCTURE_ISAM>
     if (c3<StructureName>)
     begin
-        if (%ssc_close(a_dbchn,c3<StructureName>))
+        try
+        begin
+            if (%ssc_close(a_dbchn,c3<StructureName>))
+                nop
+        end
+        catch (ex, @Exception)
+        begin
             nop
-        clear c3<StructureName>
+        end
+        finally
+        begin
+            clear c3<StructureName>
+        end
+        endtry
     end
 
     xreturn
@@ -2924,6 +3048,10 @@ function <StructureName>Csv, ^val
 		MakeDateForCsv,     a
 		MakeDecimalForCsv,  a
 		MakeTimeForCsv,     a
+<IF DEFINED_ASA_TIREMAX>
+        TmJulianToYYYYMMDD, a
+        TmJulianToCsvDate,  a
+</IF DEFINED_ASA_TIREMAX>
     endexternal
 
     stack record local_data
@@ -2935,6 +3063,12 @@ function <StructureName>Csv, ^val
         records,            int         ;;Number of records exported
         errtxt,             a512        ;;Error message text
     endrecord
+<IF DEFINED_ASA_TIREMAX>
+
+record
+        pipe_point1,        d6
+        pipe_point2,        d6
+</IF DEFINED_ASA_TIREMAX>
 proc
 
     init local_data
@@ -2971,6 +3105,24 @@ proc
         ;;Read and add data file records
         foreach <structure_name> in new Select(new From(filechn,<structure_name>)<IF STRUCTURE_TAGS>,(Where)(<TAG_LOOP><TAGLOOP_CONNECTOR_C>(<structure_name>.<tagloop_field_name><TAGLOOP_OPERATOR_DBL><TAGLOOP_TAG_VALUE>)</TAG_LOOP>)</IF STRUCTURE_TAGS>)
         begin
+<IF DEFINED_ASA_TIREMAX>
+            ;;Make sure there are no | characters in the data
+            pipe_point1=1
+            pipe_point2=
+            repeat
+            begin
+                xcall instr(pipe_point1,<structure_name>,"|",pipe_point2)
+                if(pipe_point2) then
+                begin
+                    <structure_name>(pipe_point2,pipe_point2)=
+                    pipe_point1=pipe_point2+1
+                    pipe_point2=
+                end
+                else
+                    exitloop
+            end
+
+</IF DEFINED_ASA_TIREMAX>
             records += 1
             csvrec = ""
 <FIELD_LOOP>
@@ -3000,7 +3152,7 @@ proc
       <IF USERTIMESTAMP>
             &    + %string(^d(<structure_name>.<field_original_name_modified>),"XXXX-XX-XX XX:XX:XX.XXXXXX") + "<IF MORE>|</IF MORE>"
       <ELSE>
-            &    + %atrim(<structure_name>.<field_original_name_modified>) + "<IF MORE>|</IF MORE>"
+            &    + <IF DEFINED_ASA_TIREMAX>%TmJulianToCsvDate<ELSE>%atrim</IF DEFINED_ASA_TIREMAX>(<structure_name>.<field_original_name_modified>) + "<IF MORE>|</IF MORE>"
       </IF USERTIMESTAMP>
     </IF USER>
   </IF CUSTOM_NOT_REPLICATOR_EXCLUDE>

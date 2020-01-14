@@ -73,7 +73,7 @@ proc
     if (!error)
     begin
         if (%ssc_move(a_dbchn,cursor,1)==SSQL_NORMAL)
-                error = 1 ;; Table exists
+            error = 1 ;; Table exists
     end
 
     ;;Close the database cursor
@@ -1484,7 +1484,7 @@ proc
 
     ;;Close any open cursors
 
-    xcall DepartmentClose(a_dbchn,a_commit_mode)
+    xcall DepartmentClose(a_dbchn)
 
     ;;Start a database transaction
 
@@ -2235,9 +2235,7 @@ endfunction
 ;;; <param name="a_commit_mode">What commit mode are we using?</param>
 
 subroutine DepartmentClose
-
     required in  a_dbchn, i
-    required in  a_commit_mode, i
     endparams
 
     .include "CONNECTDIR:ssql.def"
@@ -2252,23 +2250,56 @@ proc
 
     if (c1Department)
     begin
-        if (%ssc_close(a_dbchn,c1Department))
+        try
+        begin
+            if (%ssc_close(a_dbchn,c1Department))
+                nop
+        end
+        catch (ex, @Exception)
+        begin
             nop
-        clear c1Department
+        end
+        finally
+        begin
+            clear c1Department
+        end
+        endtry
     end
 
     if (c2Department)
     begin
-        if (%ssc_close(a_dbchn,c2Department))
+        try
+        begin
+            if (%ssc_close(a_dbchn,c2Department))
+                nop
+        end
+        catch (ex, @Exception)
+        begin
             nop
-        clear c2Department
+        end
+        finally
+        begin
+            clear c2Department
+        end
+        endtry
     end
 
     if (c3Department)
     begin
-        if (%ssc_close(a_dbchn,c3Department))
+        try
+        begin
+            if (%ssc_close(a_dbchn,c3Department))
+                nop
+        end
+        catch (ex, @Exception)
+        begin
             nop
-        clear c3Department
+        end
+        finally
+        begin
+            clear c3Department
+        end
+        endtry
     end
 
     xreturn
@@ -2295,6 +2326,12 @@ function DepartmentCsv, ^val
 
     .define EXCEPTION_BUFSZ 100
 
+	external function
+		MakeDateForCsv,     a
+		MakeDecimalForCsv,  a
+		MakeTimeForCsv,     a
+    endexternal
+
     stack record local_data
         ok,                 boolean     ;;Return status
         filechn,            int         ;;Data file channel
@@ -2304,12 +2341,6 @@ function DepartmentCsv, ^val
         records,            int         ;;Number of records exported
         errtxt,             a512        ;;Error message text
     endrecord
-
-    external function
-        MakeDateForCsv,     a
-        MakeDecimalForCsv,  a
-        MakeTimeForCsv,     a
-    endexternal
 proc
 
     init local_data
