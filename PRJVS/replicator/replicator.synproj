@@ -89,9 +89,6 @@
     <Compile Include="..\..\SRC\REPLICATOR\DatabaseReconnect.dbl">
       <Link>DatabaseReconnect.dbl</Link>
     </Compile>
-    <Compile Include="..\..\SRC\REPLICATOR\Enums.dbl">
-      <Link>Enums.dbl</Link>
-    </Compile>
     <Compile Include="..\..\SRC\REPLICATOR\GetSettings.dbl">
       <Link>GetSettings.dbl</Link>
     </Compile>
@@ -112,9 +109,6 @@
     </Compile>
     <Compile Include="..\..\SRC\REPLICATOR\Settings.dbl">
       <Link>Settings.dbl</Link>
-    </Compile>
-    <Compile Include="..\..\SRC\REPLICATOR\Structures.dbl">
-      <Link>Structures.dbl</Link>
     </Compile>
     <Compile Include="..\..\SRC\REPLICATOR\TimeNow.dbl">
       <Link>TimeNow.dbl</Link>

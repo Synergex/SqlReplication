@@ -1,5 +1,20 @@
 namespace replicator
 
+	structure strStructureData
+		structure_name      ,a32    ;;Name of structure
+		structure_chan      ,i4     ;;ISAM channel being used
+		structure_size      ,i4     ;;Record length
+		structure_type      ,a10    ;;Type (DBL ISAM, RELATIVE)
+		structure_keynum    ,i4     ;;Key number of unique key being used
+	endstructure
+
+	;; Do not change these values, they are processed via their integer value in the SqlIO routines!
+	public enum DatabaseCommitMode
+		Automatic,  1
+		Batch,      2
+		Manual,     3
+	endenum
+
     ;;; <summary>
     ;;; Represents various settings used within the replicator application.
     ;;; </summary>

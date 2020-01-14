@@ -15,6 +15,11 @@ namespace replicator
 
     public class Counters
 
+        ;;Required for non-VS build!
+        static method Counters
+        proc
+        endmethod
+
         public static Inserts, int
 
         public static Updates, int

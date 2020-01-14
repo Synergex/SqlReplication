@@ -3,5 +3,6 @@
 	<Projects>
 		<Project File="PRJ/library.vpj"/>
 		<Project File="PRJ/replicator.vpj"/>
+		<Project File="PRJ/tools.vpj"/>
 	</Projects>
 </Workspace>

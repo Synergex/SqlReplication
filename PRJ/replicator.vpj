@@ -139,13 +139,13 @@
                 Value='dbl -X -T -d -qcheck -qalign -o OBJ: "%p%n%e"'/>
             <SynSetting
                 Name="linklibr_command_line"
-                Value="dblink -d -o REPLICATOR_EXE:%n.dbr OBJ:%n REPLICATOR_EXE:library.elb"/>
+                Value="dblink -d -o REPLICATOR_EXE:replicator.dbr OBJ:%n REPLICATOR_EXE:library.elb"/>
             <SynSetting
                 Name="proto_clear_dbh"
                 Value="1"/>
             <SynSetting
                 Name="build_prototype"
-                Value="0"/>
+                Value="1"/>
             <SynSetting
                 Name="proto_first_run"
                 Value="0"/>
@@ -175,7 +175,7 @@
                 Value="OBJ:"/>
             <SynSetting
                 Name="build_complink_single"
-                Value="1"/>
+                Value="0"/>
             <SynSetting
                 Name="qimpdir"
                 Value=""/>
@@ -185,15 +185,19 @@
         <Folder
             Name="Source Files"
             Filters="*.dbl;*.tpl;*.dbc">
-            <F N="../SRC/REPLICATOR/ChangeEveryEmployee.dbl"/>
-            <F N="../SRC/REPLICATOR/DepartmentMaintenance.dbl"/>
-            <F N="../SRC/REPLICATOR/EmployeeDataReport.dbl"/>
-            <F N="../SRC/REPLICATOR/EmployeeMaintenance.dbl"/>
-            <F N="../SRC/REPLICATOR/InstructionCount.dbl"/>
-            <F N="../SRC/REPLICATOR/QueueMonitor.dbl"/>
+            <F N="../SRC/REPLICATOR/ConfigureEnvironment.dbl"/>
+            <F N="../SRC/REPLICATOR/Counters.dbl"/>
+            <F N="../SRC/REPLICATOR/DatabaseConnect.dbl"/>
+            <F N="../SRC/REPLICATOR/DatabaseDisconnect.dbl"/>
+            <F N="../SRC/REPLICATOR/DatabaseReconnect.dbl"/>
+            <F N="../SRC/REPLICATOR/GetSettings.dbl"/>
+            <F N="../SRC/REPLICATOR/Logger.dbl"/>
+            <F N="../SRC/REPLICATOR/OpenQueueFile.dbl"/>
             <F N="../SRC/REPLICATOR/replicator.dbl"/>
-            <F N="../SRC/REPLICATOR/ReplicatorMenu.dbl"/>
-            <F N="../SRC/REPLICATOR/ReplicatorStop.dbl"/>
+            <F N="../SRC/REPLICATOR/ReplicatorShutdown.dbl"/>
+            <F N="../SRC/REPLICATOR/SendEmail.dbl"/>
+            <F N="../SRC/REPLICATOR/Settings.dbl"/>
+            <F N="../SRC/REPLICATOR/TimeNow.dbl"/>
         </Folder>
         <Folder
             Name="Header Files"
@@ -363,13 +367,13 @@
                 Value='dbl -X -T -d -qcheck -qalign -o OBJ: "%p%n%e"'/>
             <SynSetting
                 Name="linklibr_command_line"
-                Value="dblink -d -o REPLICATOR_EXE:%n.dbr OBJ:%n REPLICATOR_EXE:library.elb"/>
+                Value="dblink -d -o REPLICATOR_EXE:replicator.dbr OBJ:%n REPLICATOR_EXE:library.elb"/>
             <SynSetting
                 Name="proto_clear_dbh"
                 Value="1"/>
             <SynSetting
                 Name="build_prototype"
-                Value="0"/>
+                Value="1"/>
             <SynSetting
                 Name="proto_first_run"
                 Value="0"/>
@@ -399,7 +403,7 @@
                 Value="OBJ:"/>
             <SynSetting
                 Name="build_complink_single"
-                Value="1"/>
+                Value="0"/>
             <SynSetting
                 Name="qimpdir"
                 Value=""/>
@@ -541,13 +545,13 @@
                 Value='dbl -X -T -qstrict -qalign -o OBJ: "%p%n%e"'/>
             <SynSetting
                 Name="linklibr_command_line"
-                Value="dblink -o REPLICATOR_EXE:%n.dbr OBJ:%n REPLICATOR_EXE:library.elb"/>
+                Value="dblink -o REPLICATOR_EXE:replicator.dbr OBJ:%n REPLICATOR_EXE:library.elb"/>
             <SynSetting
                 Name="proto_clear_dbh"
                 Value="1"/>
             <SynSetting
                 Name="build_prototype"
-                Value="0"/>
+                Value="1"/>
             <SynSetting
                 Name="proto_first_run"
                 Value="0"/>
@@ -577,7 +581,7 @@
                 Value="OBJ:"/>
             <SynSetting
                 Name="build_complink_single"
-                Value="1"/>
+                Value="0"/>
             <SynSetting
                 Name="qimpdir"
                 Value=""/>
@@ -719,13 +723,13 @@
                 Value='dbl -X -T -qstrict -qalign -o OBJ: "%p%n%e"'/>
             <SynSetting
                 Name="linklibr_command_line"
-                Value="dblink -o REPLICATOR_EXE:%n.dbr OBJ:%n REPLICATOR_EXE:library.elb"/>
+                Value="dblink -o REPLICATOR_EXE:replicator.dbr OBJ:%n REPLICATOR_EXE:library.elb"/>
             <SynSetting
                 Name="proto_clear_dbh"
                 Value="1"/>
             <SynSetting
                 Name="build_prototype"
-                Value="0"/>
+                Value="1"/>
             <SynSetting
                 Name="proto_first_run"
                 Value="0"/>
@@ -755,7 +759,7 @@
                 Value="OBJ:"/>
             <SynSetting
                 Name="build_complink_single"
-                Value="1"/>
+                Value="0"/>
             <SynSetting
                 Name="qimpdir"
                 Value=""/>
