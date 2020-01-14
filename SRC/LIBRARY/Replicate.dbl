@@ -35,7 +35,7 @@
 ;;
 ;;*****************************************************************************
 
-import library
+import ReplicationLibrary
 
 .include "REPLICATION_INSTRUCTION" repository, enum, end
 
@@ -150,8 +150,33 @@ proc
         end
     end
 
+   (REPLICATION_INSTRUCTION.DELETE_FIRST_INSTRUCTION),
+	begin
+		;;Get the instance data
+		instanceData = (@InstanceInfo)(instances.Get(instanceName))
+
+		;Delete first pending instruction only
+		try
+		begin
+			read(instanceData.Channel,instruction,^FIRST)
+			delete(instanceData.Channel)
+		end
+		catch (ex, @EndOfFileException)
+		begin
+			nop
+		end
+		catch (ex, @Exception)
+		begin
+			sleep 0.0001
+		end
+		endtry
+	end
+
     (REPLICATION_INSTRUCTION.DELETE_ALL_INSTRUCTIONS),
     begin
+		;;Get the instance data
+		instanceData = (@InstanceInfo)(instances.Get(instanceName))
+
         ;Delete pending instructions
         try 
         begin
@@ -193,6 +218,9 @@ proc
 
     (),
     begin
+		;;Get the instance data
+		instanceData = (@InstanceInfo)(instances.Get(instanceName))
+
         ;;Configure the new instruction
 
         init instruction

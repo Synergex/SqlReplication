@@ -1,10 +1,11 @@
 ;;*****************************************************************************
 ;;
-;; File:        InstanceInfo.dbl
+;; File:        DatabaseComminicationException.dbl
 ;;
-;; Description: Information about a replicator instances queue file.
+;; Description: Thrown when there is a problem communicating with a previously
+;;              ;established database connection.
 ;;
-;; Author:      Steve Ives, Synergex Professional Services Group
+;; Author:      Steve Ives (Synergex Professional Services Group)
 ;;
 ;;*****************************************************************************
 ;;
@@ -37,25 +38,19 @@
 
 namespace ReplicationLibrary
 
-    ;;; <summary>
-    ;;; Information about a replicator instances queue file.
-    ;;; </summary>
-    public class InstanceInfo
+    public class DatabaseComminicationException extends Exception
 
-        ;;; <summary>
-        ;;; Queue file spec.
-        ;;; </summary>
-        public QueueFile, string
+        public method DatabaseComminicationException
+            required in aDatabaseErrorNumber, int
+            required in aDatabaseErrorMessage, string
+        proc
+            this.DatabaseErrorNumber = aDatabaseErrorNumber
+            this.DatabaseErrorMessage = aDatabaseErrorMessage
+        endmethod
 
-        ;;; <summary>
-        ;;; Channel to queue file.
-        ;;; </summary>
-        public Channel, int
+        public readwrite property DatabaseErrorNumber, int
 
-        ;;; <summary>
-        ;;; How many tables (files) are currently replicating via this queue file / channel.
-        ;;; </summary>
-        public ReferenceCount, int
+        public readwrite property DatabaseErrorMessage, string
 
     endclass
 

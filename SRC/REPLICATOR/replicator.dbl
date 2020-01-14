@@ -36,59 +36,45 @@
 ;;
 ;;*****************************************************************************
 
-import ReplicationLibrary
+import replicator
 import System.Collections
-import Tools
-
-structure strStructureData
-    structure_name      ,a32    ;;Name of structure
-    structure_chan      ,i4     ;;ISAM channel being used
-    structure_size      ,i4     ;;Record length
-    structure_type      ,a10    ;;Type (DBL ISAM, RELATIVE)
-    structure_keynum    ,i4     ;;Key number of unique key being used
-endstructure
 
 main replicator
 
     .include "CONNECTDIR:ssql.def"
     .include "REPLICATOR_INCLUDE:SmtpMail.def"
-    .ifdef D_VMS
+.ifdef D_VMS
     .include "REPLICATION_VMS" repository, record="instruction", end
-    .else
+.else
     .include "REPLICATION" repository, record="instruction", end
-    .endc
+.endc
 
-    .align
+.align
     record
-        ok,                 boolean            ;;Main status
-        noMoreInstructions, boolean            ;;End of instruction file
-        switchMode,         boolean            ;;Switched from INSERT to UPDATE or vice versa
-        switchDone,         boolean            ;;Have we tried to switch modes before?
-        bulkLoad,           boolean            ;;Use bulk load?
-        doCheckCommit,      boolean            ;;Do we need to check if it's time to commit?
-        doForceCommit,      boolean            ;;Do we need to force a commit?
-        errnum,             i4                 ;;Error number
-        nsptr,              i4                 ;;Namespace pointer
-        dberr,              i4                 ;;Database error
-        length,             i4                 ;;Length of buffer
-        status,             i4                 ;;General working status return
-        rows,               i4                 ;;Number of rows affected
-        functionName,       string             ;;External function to call
-        primaryKey,         string             ;;Primary key of current record
-        keyValue,           string             ;;Key value of the current ISAM record
-        recordNumber,       d28                ;;Record number of the current relative record
-        dberrtxt,           a1024
-        structure_data,     strStructureData
-        clValues,           @ArrayList         ;;Values of a command-line parameter
+        ok,                 boolean             ;;Main status
+        noMoreInstructions, boolean             ;;End of instruction file
+        switchMode,         boolean             ;;Switched from INSERT to UPDATE or vice versa
+        switchDone,         boolean             ;;Have we tried to switch modes before?
+        bulkLoad,           boolean             ;;Use bulk load?
+        doCheckCommit,      boolean             ;;Do we need to check if it's time to commit?
+        doForceCommit,      boolean             ;;Do we need to force a commit?
+        nsptr,              i4                  ;;Namespace pointer
+        status,             i4                  ;;General working status return
+        rows,               i4                  ;;Number of rows affected
+        functionName,       string              ;;External function to call
+        keyValue,           string              ;;Key value of the current ISAM record
+        recordNumber,       d28                 ;;Record number of the current relative record
+        dberrtxt,           a1024               ;;Error text from a failed database call
+        structure_data,     strStructureData    ;;Data stored for each structure
     endrecord
 
     external function
-        xsubr               ,^val
+        xsubr,              ^val
     endexternal
 
 proc
 
-    call ConfigureEnvironment
+    ok = %ConfigureEnvironment
 
     if (ok)
     begin
@@ -118,7 +104,7 @@ proc
                     write(Settings.InstructionChannel,instruction)
 
                     ;;And shutdown
-                    xcall log("Shutdown requested")
+                    Logger.Log("Shutdown requested")
                     xcall ReplicatorShutdown
                     stop
                 end
@@ -133,11 +119,11 @@ proc
                 ;;file and table checks to ensure we have the file open and the
                 ;;database table exists
                 if    ((instruction.action==(i)REPLICATION_INSTRUCTION.CREATE_ROW)
-                &   || (instruction.action==(i)REPLICATION_INSTRUCTION.UPDATE_ROW)
-                &   || (instruction.action==(i)REPLICATION_INSTRUCTION.DELETE_ROW)
-                &   || (instruction.action==(i)REPLICATION_INSTRUCTION.INSERT_RELATIVE)
-                &   || (instruction.action==(i)REPLICATION_INSTRUCTION.UPDATE_RELATIVE)
-                &   )
+                &    || (instruction.action==(i)REPLICATION_INSTRUCTION.UPDATE_ROW)
+                &    || (instruction.action==(i)REPLICATION_INSTRUCTION.DELETE_ROW)
+                &    || (instruction.action==(i)REPLICATION_INSTRUCTION.INSERT_RELATIVE)
+                &    || (instruction.action==(i)REPLICATION_INSTRUCTION.UPDATE_RELATIVE)
+                &    )
                 begin
                     ;;Check if we already have the file open
                     call CheckFileTable
@@ -145,7 +131,7 @@ proc
                     ;;If we don't have the file open by now then we probably have a configuration problem
                     if (!structure_data.structure_chan)
                     begin
-                        xcall errorlog("Abnormal replicator shutdown")
+                        Logger.ErrorLog("Abnormal replicator shutdown")
                         exitloop
                     end
                 end
@@ -158,35 +144,35 @@ proc
 
                 (REPLICATION_INSTRUCTION.CREATE_ROW),
                 begin
-                    xcall verboselog("Insert row in table " + %atrim(instruction.structure_name))
+                    Logger.VerboseLog("Insert row in table " + %atrim(instruction.structure_name))
                     call DoInsert
                     doCheckCommit = true
                 end
 
                 (REPLICATION_INSTRUCTION.UPDATE_ROW),
                 begin
-                    xcall verboselog("Update row in table " + %atrim(instruction.structure_name))
+                    Logger.VerboseLog("Update row in table " + %atrim(instruction.structure_name))
                     call DoUpdate
                     doCheckCommit = true
                 end
 
                 (REPLICATION_INSTRUCTION.DELETE_ROW),
                 begin
-                    xcall verboselog("Delete row from table " + %atrim(instruction.structure_name))
+                    Logger.VerboseLog("Delete row from table " + %atrim(instruction.structure_name))
                     call DoDelete
                     doCheckCommit = true
                 end
 
                 (REPLICATION_INSTRUCTION.INSERT_RELATIVE),
                 begin
-                    xcall verboselog("Insert row in table " + %atrim(instruction.structure_name))
+                    Logger.VerboseLog("Insert row in table " + %atrim(instruction.structure_name))
                     call DoInsertRelative
                     doCheckCommit = true
                 end
 
                 (REPLICATION_INSTRUCTION.UPDATE_RELATIVE),
                 begin
-                    xcall verboselog("Update row in table " + %atrim(instruction.structure_name))
+                    Logger.VerboseLog("Update row in table " + %atrim(instruction.structure_name))
                     call DoUpdateRelative
                     doCheckCommit = true
                 end
@@ -195,21 +181,21 @@ proc
 
                 (REPLICATION_INSTRUCTION.ADD_INDEXES),
                 begin
-                    xcall log("Add indexes to table " + %atrim(instruction.structure_name))
+                    Logger.Log("Add indexes to table " + %atrim(instruction.structure_name))
                     call DoAddIndexes
                     doForceCommit = true
                 end
 
                 (REPLICATION_INSTRUCTION.CREATE_TABLE),
                 begin
-                    xcall log("Create table " + %atrim(instruction.structure_name))
+                    Logger.Log("Create table " + %atrim(instruction.structure_name))
                     call DoCreateTable
                     doForceCommit = true
                 end
 
                 (REPLICATION_INSTRUCTION.LOAD_TABLE),
                 begin
-                    xcall log("Load table " + %atrim(instruction.structure_name))
+                    Logger.Log("Load table " + %atrim(instruction.structure_name))
                     bulkLoad = false
                     call DoLoadTable
                     doForceCommit = true
@@ -218,11 +204,11 @@ proc
                 (REPLICATION_INSTRUCTION.BULK_LOAD_TABLE),
                 begin
                     if (bulkLoad = Settings.CanBulkLoad()) then
-                        xcall log("Bulk load table " + %atrim(instruction.structure_name))
+                        Logger.Log("Bulk load table " + %atrim(instruction.structure_name))
                     else
                     begin
-                        xcall log("Bulk load requested but unavailable!")
-                        xcall log("Load table " + %atrim(instruction.structure_name))
+                        Logger.Log("Bulk load requested but unavailable!")
+                        Logger.Log("Load table " + %atrim(instruction.structure_name))
                     end
                     call DoLoadTable
                     doForceCommit = true
@@ -230,53 +216,53 @@ proc
 
                 (REPLICATION_INSTRUCTION.CREATE_AND_LOAD_TABLE),
                 begin
-                    xcall log("Create and load table " + %atrim(instruction.structure_name))
+                    Logger.Log("Create and load table " + %atrim(instruction.structure_name))
                     call DoCreateAndLoadTable
                     doForceCommit = true
                 end
 
                 (REPLICATION_INSTRUCTION.CREATE_CSV),
                 begin
-                    xcall log("Export table " + %atrim(instruction.structure_name) + " to delimited file")
+                    Logger.Log("Export table " + %atrim(instruction.structure_name) + " to delimited file")
                     call DoCreateCsv
                 end
 
                 (REPLICATION_INSTRUCTION.DELETE_ALL_ROWS),
                 begin
-                    xcall log("Truncate table " + %atrim(instruction.structure_name))
+                    Logger.Log("Truncate table " + %atrim(instruction.structure_name))
                     call DoDeleteAllRows
                     doForceCommit = true
                 end
 
                 (REPLICATION_INSTRUCTION.DELETE_INDEXES),
                 begin
-                    xcall log("Remove indexes from table " + %atrim(instruction.structure_name))
+                    Logger.Log("Remove indexes from table " + %atrim(instruction.structure_name))
                     call DoDeleteIndexes
                     doForceCommit = true
                 end
 
                 (REPLICATION_INSTRUCTION.DELETE_TABLE),
                 begin
-                    xcall log("Delete table " + %atrim(instruction.structure_name))
+                    Logger.Log("Delete table " + %atrim(instruction.structure_name))
                     call DoDeleteTable
                     doForceCommit = true
                 end
 
                 (REPLICATION_INSTRUCTION.CHANGE_INTERVAL),
                 begin
-                    xcall log("Change processing interval")
+                    Logger.Log("Change processing interval")
                     call ChangeInterval
                 end
 
                 (REPLICATION_INSTRUCTION.CYCLE_LOG),
                 begin
-                    xcall log("Cycle log file")
-                    xcall cycle_log
+                    Logger.Log("Cycle log file")
+                    Logger.CycleLog()
                 end
 
                 (REPLICATION_INSTRUCTION.SHUTDOWN),
                 begin
-                    xcall log("Shutdown requested")
+                    Logger.Log("Shutdown requested")
                     ;;Delete the shutdown instruction from the queue
                     delete(Settings.InstructionChannel)
 
@@ -314,8 +300,7 @@ proc
     end
 
     ;;Close the database
-    if (Settings.DatabaseChannel)
-        xcall ssc_release(Settings.DatabaseChannel)
+    xcall DatabaseDisconnect
 
     ;;Release the namespace
     if (Settings.ChannelInfo)
@@ -329,28 +314,14 @@ proc
     stop
 
 ;;-----------------------------------------------------------------------------
-;; Start a transaction (only used in batch transaction mode)
-;;
-StartTransaction,
-
-    xcall verboselog("Start transaction")
-    xcall ssc_commit(Settings.DatabaseChannel,SSQL_TXON)
-    Counters.BatchCounter = 0
-
-    return
-
-;;-----------------------------------------------------------------------------
 ;; Commit the current transaction and start a new one (only used in batch transaction mode)
 ;;
 CommitTransaction,
-
     begin
-        data message, string, "Commit transaction with " + %string(Counters.BatchCounter) + " change"
-        if (Counters.BatchCounter>1)
-            message = message + "s"
-        xcall verboselog(message)
-        xcall ssc_commit(Settings.DatabaseChannel,SSQL_TXON)
-        xcall verboselog("Start transaction")
+        data message, string, "Committing transaction with " + %string(Counters.BatchCounter) + " change(s)"
+        Logger.VerboseLog(message)
+        status = %ssc_commit(Settings.DatabaseChannel,SSQL_TXON)
+        Logger.VerboseLog("Start transaction")
         Counters.BatchCommits += 1
         Counters.BatchCounter = 0
     end
@@ -361,106 +332,133 @@ CommitTransaction,
 ;; Look for a pending instruction
 ;;
 GetInstruction,
-
-    repeat
     begin
-        try
+        repeat
         begin
-            reads(Settings.InstructionChannel,instruction,,LOCK:Q_AUTO_LOCK)
-            noMoreInstructions = false
-            exitloop
+            try
+            begin
+                reads(Settings.InstructionChannel,instruction,,LOCK:Q_AUTO_LOCK)
+                noMoreInstructions = false
+                exitloop
+            end
+            catch (ex, @EndOfFileException)
+            begin
+                noMoreInstructions = true
+                exitloop
+            end
+            catch (ex, @RecordLockedException)
+            begin
+                sleep Settings.ErrorSleepTime
+                nextloop
+            end
+            endtry
         end
-        catch (ex, @EndOfFileException)
-        begin
-            noMoreInstructions = true
-            exitloop
-        end
-        catch (ex, @RecordLockedException)
-        begin
-            sleep Settings.ErrorSleepTime
-            nextloop
-        end
-        endtry
     end
 
     return
 
 ;;-----------------------------------------------------------------------------
-
+;; Check if we have already opened this file in this process
+;;
 CheckFileTable,
-
-    ;;If there is already an entry for the file in our namespace then we're good to go
-
-    if (nsptr = %nspc_find(Settings.ChannelInfo,instruction.structure_name,structure_data))
     begin
-        return
-    end
+        ;;If there is an entry for the file in our namespace then we're good to go
 
-    xcall verboselog("First instruction checks for table " + %atrim(instruction.structure_name))
-
-    ;;No, open the file and make sure it worked
-
-    call OpenFile
-
-    ;;If we failed to open the file then we have a serious problem!
-
-    if (!structure_data.structure_chan)
-    begin
-        xcall errorlog("Failed to open ISAM file for structure " + %atrim(instruction.structure_name))
-        return
-    end
-
-    ;;Get the record size of the file
-
-    try
-    begin
-        functionName = %atrim(instruction.structure_name) + "Length"
-        structure_data.structure_size = %xsubr(functionName)
-    end
-    catch (ex, @SynException)
-    begin
-        ok = %LogFunctionFail(functionName,ex.Errno,ex.Message)
-        return
-    end
-    endtry
-
-    ;;Get the type of the file
-
-    try
-    begin
-        functionName = %atrim(instruction.structure_name) + "Type"
-        xcall xsubr(functionName,structure_data.structure_type)
-    end
-    catch (ex, @SynException)
-    begin
-        ok = %LogFunctionFail(functionName,ex.Errno,ex.Message)
-        return
-    end
-    endtry
-
-    using structure_data.structure_type select
-
-    ("DBL ISAM"),
-    begin
-        ;;Search for the first unique key. There should always be one, because without one the
-        ;;constructor in the I/O hooks class would not activate replication for the file.
-        data thisKey, i4
-        structure_data.structure_keynum = -1
-        for thisKey from 0 thru %isinfo(structure_data.structure_chan,"NUMKEYS") - 1
+        if (nsptr = %nspc_find(Settings.ChannelInfo,instruction.structure_name,structure_data))
         begin
-            if (!%isinfo(structure_data.structure_chan,"DUPS",thisKey))
+            return
+        end
+
+        Logger.VerboseLog("First instruction checks for table " + %atrim(instruction.structure_name))
+
+        ;;No, open the file and make sure it worked
+
+        call OpenFile
+
+        ;;If we failed to open the file then we have a serious problem!
+
+        if (!structure_data.structure_chan)
+        begin
+            Logger.ErrorLog("Failed to open ISAM file for structure " + %atrim(instruction.structure_name))
+            return
+        end
+
+        ;;Get the record size of the file
+
+        try
+        begin
+            functionName = %atrim(instruction.structure_name) + "Length"
+            structure_data.structure_size = %xsubr(functionName)
+        end
+        catch (ex, @SynException)
+        begin
+            ok = Logger.LogFunctionFail(functionName,ex.Errno,ex.Message)
+            return
+        end
+        endtry
+
+        ;;Get the type of the file
+
+        try
+        begin
+            functionName = %atrim(instruction.structure_name) + "Type"
+            xcall xsubr(functionName,structure_data.structure_type)
+        end
+        catch (ex, @SynException)
+        begin
+            ok = Logger.LogFunctionFail(functionName,ex.Errno,ex.Message)
+            return
+        end
+        endtry
+
+        using structure_data.structure_type select
+
+        ("DBL ISAM"),
+        begin
+            ;;Search for the first unique key. There should always be one, because without one the
+            ;;constructor in the I/O hooks class would not activate replication for the file.
+            data thisKey, i4
+            structure_data.structure_keynum = -1
+            for thisKey from 0 thru %isinfo(structure_data.structure_chan,"NUMKEYS") - 1
             begin
-                ;;Found it!
-                structure_data.structure_keynum = thisKey
-                exitloop
+                if (!%isinfo(structure_data.structure_chan,"DUPS",thisKey))
+                begin
+                    ;;Found it!
+                    structure_data.structure_keynum = thisKey
+                    exitloop
+                end
+            end
+
+            ;;Did we find a unique key?
+            if (structure_data.structure_keynum>=0) then
+            begin
+                ;;Report the key that will be used
+                Logger.VerboseLog(" - Key " + %string(structure_data.structure_keynum) + " will be used to synchronize data")
+
+                ;;And save the structure name
+                structure_data.structure_name = instruction.structure_name
+
+                ;;Record the new open file in the namespace
+                nsptr = %nspc_add(Settings.ChannelInfo,instruction.structure_name,structure_data)
+            end
+            else
+            begin
+                ;;In theory we should never get here because CodeGen should not be able to create the
+                ;;required code if no unique key is present.
+                ;;But just in case, this will cause the replicator to abort
+                close structure_data.structure_chan
+                clear structure_data.structure_chan
+                Logger.ErrorLog("File for structure " + %atrim(instruction.structure_name) + " has no unique key!")
             end
         end
 
-        ;;Did we find a unique key?
-        if (structure_data.structure_keynum>=0) then
+        ("RELATIVE"),
         begin
-            ;;Report the key that will be used
-            xcall verboselog(" - Key " + %string(structure_data.structure_keynum) + " will be used to synchronize data")
+            ;;Report that record numbers will be used
+            Logger.VerboseLog(" - Record numbers will be used to synchronize data")
+
+            ;;Set the key number to -1 to prevent it being used accidentally
+            structure_data.structure_keynum = -1
 
             ;;And save the structure name
             structure_data.structure_name = instruction.structure_name
@@ -468,33 +466,9 @@ CheckFileTable,
             ;;Record the new open file in the namespace
             nsptr = %nspc_add(Settings.ChannelInfo,instruction.structure_name,structure_data)
         end
-        else
-        begin
-            ;;In theory we should never get here because CodeGen should not be able to create the
-            ;;required code if no unique key is present.
-            ;;But just in case, this will cause the replicator to abort
-            close structure_data.structure_chan
-            clear structure_data.structure_chan
-            xcall errorlog("File for structure " + %atrim(instruction.structure_name) + " has no unique key!")
-        end
+
+        endusing
     end
-
-    ("RELATIVE"),
-    begin
-        ;;Report that record numbers will be used
-        xcall verboselog(" - Record numbers will be used to synchronize data")
-
-        ;;Set the key number to -1 to prevent it being used accidentally
-        structure_data.structure_keynum = -1
-
-        ;;And save the structure name
-        structure_data.structure_name = instruction.structure_name
-
-        ;;Record the new open file in the namespace
-        nsptr = %nspc_add(Settings.ChannelInfo,instruction.structure_name,structure_data)
-    end
-
-    endusing
 
     return
 
@@ -502,30 +476,31 @@ CheckFileTable,
 ;; Open a Synergy data file
 ;;
 OpenFile,
+    begin
+        Logger.VerboseLog(" - Opening associated data file")
 
-    xcall verboselog(" - Opening associated data file")
+        try
+        begin
+            functionName = %atrim(instruction.structure_name) + "OpenInput"
+            structure_data.structure_chan = %xsubr(functionName,dberrtxt)
+        end
+        catch (ex, @SynException)
+        begin
+            ok = Logger.LogFunctionFail(functionName,ex.Errno,ex.Message)
+            return
+        end
+        endtry
 
-    try
-    begin
-        functionName = %atrim(instruction.structure_name) + "OpenInput"
-        structure_data.structure_chan = %xsubr(functionName,dberrtxt)
-    end
-    catch (ex, @SynException)
-    begin
-        ok = %LogFunctionFail(functionName,ex.Errno,ex.Message)
-        return
-    end
-    endtry
-
-    if (structure_data.structure_chan) then
-    begin
-        xcall verboselog(" - File opened")
-        call CheckTable
-    end
-    else
-    begin
-        xcall verboselog(" - Failed to open file!")
-        xcall LogFunctionError(functionName,status,dberrtxt)
+        if (structure_data.structure_chan) then
+        begin
+            Logger.VerboseLog(" - File opened")
+            call CheckTable
+        end
+        else
+        begin
+            Logger.VerboseLog(" - Failed to open file!")
+            Logger.LogFunctionError(functionName,status,dberrtxt)
+        end
     end
 
     return
@@ -534,32 +509,33 @@ OpenFile,
 ;; Find out if a table exists in the SQL database. If not create and load it.
 ;;
 CheckTable,
-
-    xcall verboselog(" - Checking if table exists")
-
-    try
     begin
-        functionName = %atrim(instruction.structure_name) + "Exists"
-        status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,dberrtxt)
-    end
-    catch (ex, @SynException)
-    begin
-        ok = %LogFunctionFail(functionName,ex.Errno,ex.Message)
-        return
-    end
-    endtry
+        Logger.VerboseLog(" - Checking if table exists")
 
-    using status select
-    (1),
-        xcall verboselog(" - Table exists")
-    (0),
-    begin
-        xcall verboselog(" - Table not found!")
-        call CreateTable
+        try
+        begin
+            functionName = %atrim(instruction.structure_name) + "Exists"
+            status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,dberrtxt)
+        end
+        catch (ex, @SynException)
+        begin
+            ok = Logger.LogFunctionFail(functionName,ex.Errno,ex.Message)
+            return
+        end
+        endtry
+
+        using status select
+        (1),
+            Logger.VerboseLog(" - Table exists")
+        (0),
+        begin
+            Logger.VerboseLog(" - Table not found!")
+            call CreateTable
+        end
+        (<0),;Error
+            Logger.LogFunctionError(functionName,status,dberrtxt)
+        endusing
     end
-    (<0),;Error
-        xcall LogFunctionError(functionName,status,dberrtxt)
-    endusing
 
     return
 
@@ -570,33 +546,34 @@ CheckTable,
 ;; handled by DoCreateTable.
 ;;
 CreateTable,
-
-    xcall log(" - Creating table")
-
-    try
     begin
-        functionName = %atrim(instruction.structure_name) + "Create"
-        status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,dberrtxt)
-    end
-    catch (ex, @SynException)
-    begin
-        ok = %LogFunctionFail(functionName,ex.Errno,ex.Message)
-        return
-    end
-    endtry
+        Logger.Log(" - Creating table")
 
-    if (status) then
-    begin
-        xcall verboselog(" - Table created")
-        ;;Now do an initial load of the data
-        if (Settings.CanBulkLoad()) then
-            call BulkLoadTable
+        try
+        begin
+            functionName = %atrim(instruction.structure_name) + "Create"
+            status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,dberrtxt)
+        end
+        catch (ex, @SynException)
+        begin
+            ok = Logger.LogFunctionFail(functionName,ex.Errno,ex.Message)
+            return
+        end
+        endtry
+
+        if (status) then
+        begin
+            Logger.VerboseLog(" - Table created")
+            ;;Now do an initial load of the data
+            if (Settings.CanBulkLoad()) then
+                call BulkLoadTable
+            else
+                call LoadTable
+        end
         else
-            call LoadTable
-    end
-    else
-    begin
-        xcall LogFunctionError(functionName,status,dberrtxt)
+        begin
+            Logger.LogFunctionError(functionName,status,dberrtxt)
+        end
     end
 
     return
@@ -605,45 +582,46 @@ CreateTable,
 ;; Perform an initial load of a new table in the SQL database
 ;;
 LoadTable,
-
-    xcall log(" - Load starting at " + %TimeNow)
-
-    clear status
-
-    try
     begin
-        data successCount, int, 0
-        data failCount, int, 0
+        Logger.Log(" - Load starting at " + %TimeNow)
 
-        functionName = %atrim(instruction.structure_name) + "Load"
+        clear status
 
-        if (Settings.RunningOnTerminal) then
-            status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,dberrtxt,Settings.LogLoadExceptions,Settings.TerminalChannel,successCount,failCount,Settings.BulkLoadProgressReporting)
-        else
-            status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,dberrtxt,Settings.LogLoadExceptions,,successCount,failCount)
-
-        if (status) then
+        try
         begin
-            xcall log(" - Load complete at " + %TimeNow)
-            xcall log(" - " + %string(successCount) + " rows inserted, " + %string(failCount) + " rows failed.")
-            Counters.Inserts += successCount
-            Counters.Errors  += failCount
-        end
-        else
-        begin
-            xcall LogFunctionError(functionName,status,dberrtxt)
-        end
-    end
-    catch (ex, @SynException)
-    begin
-        ok = %LogFunctionFail(functionName,ex.Errno,ex.Message)
-    end
-    endtry
+            data successCount, int, 0
+            data failCount, int, 0
 
-    ;;Now add alternate key indexes
-    if (ok && status)
-    begin
-        call DoAddIndexes
+            functionName = %atrim(instruction.structure_name) + "Load"
+
+            if (Settings.RunningOnTerminal) then
+                status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,dberrtxt,Settings.LogLoadExceptions,Settings.TerminalChannel,successCount,failCount,Settings.BulkLoadProgressReporting)
+            else
+                status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,dberrtxt,Settings.LogLoadExceptions,,successCount,failCount)
+
+            if (status) then
+            begin
+                Logger.Log(" - Load complete at " + %TimeNow)
+                Logger.Log(" - " + %string(successCount) + " rows inserted, " + %string(failCount) + " rows failed.")
+                Counters.Inserts += successCount
+                Counters.Errors  += failCount
+            end
+            else
+            begin
+                Logger.LogFunctionError(functionName,status,dberrtxt)
+            end
+        end
+        catch (ex, @SynException)
+        begin
+            ok = Logger.LogFunctionFail(functionName,ex.Errno,ex.Message)
+        end
+        endtry
+
+        ;;Now add alternate key indexes
+        if (ok && status)
+        begin
+            call DoAddIndexes
+        end
     end
 
     return
@@ -652,41 +630,42 @@ LoadTable,
 ;; Perform a bulk load of a table from a delimited text file.
 ;;
 BulkLoadTable,
-
-    xcall log(" - Bulk load starting at " + %TimeNow)
-
-    clear status
-
-    try
     begin
-        data totalRows, int
-        data failRows, int
+        Logger.Log(" - Bulk load starting at " + %TimeNow)
 
-        functionName = %atrim(instruction.structure_name) + "BulkLoad"
-        status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,Settings.LocalExportPath,Settings.FileServiceHost,Settings.FileServicePort,Settings.DatabaseTimeout,Settings.BulkLoadTimeout,Settings.LogFileChannel,totalRows,failRows,dberrtxt)
+        clear status
 
-        if (status) then
+        try
         begin
-            xcall log(" - Bulk load complete at " + %TimeNow)
-            xcall log("   - " + %string(totalRows) + " records processed, " + %string(failRows) + " failed.")
-            Counters.Inserts += totalRows - failRows
-            Counters.Errors  += failRows
-        end
-        else
-        begin
-            xcall LogFunctionError(functionName,status,dberrtxt)
-        end
-    end
-    catch (ex, @SynException)
-    begin
-        ok = %LogFunctionFail(functionName,ex.Errno,ex.Message)
-    end
-    endtry
+            data totalRows, int
+            data failRows, int
 
-    ;;Now add alternate key indexes
-    if (ok && status)
-    begin
-        call DoAddIndexes
+            functionName = %atrim(instruction.structure_name) + "BulkLoad"
+            status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,Settings.LocalExportPath,Settings.FileServiceHost,Settings.FileServicePort,Settings.DatabaseTimeout,Settings.BulkLoadTimeout,Settings.LogFileChannel,totalRows,failRows,dberrtxt)
+
+            if (status) then
+            begin
+                Logger.Log(" - Bulk load complete at " + %TimeNow)
+                Logger.Log("   - " + %string(totalRows) + " records processed, " + %string(failRows) + " failed.")
+                Counters.Inserts += totalRows - failRows
+                Counters.Errors  += failRows
+            end
+            else
+            begin
+                Logger.LogFunctionError(functionName,status,dberrtxt)
+            end
+        end
+        catch (ex, @SynException)
+        begin
+            ok = Logger.LogFunctionFail(functionName,ex.Errno,ex.Message)
+        end
+        endtry
+
+        ;;Now add alternate key indexes
+        if (ok && status)
+        begin
+            call DoAddIndexes
+        end
     end
 
     return
@@ -695,58 +674,59 @@ BulkLoadTable,
 ;; Add a new row (ISAM)
 ;;
 DoInsert,
-
-    if (switchMode) then
     begin
-        xcall verboselog(" - Insert row in table " + %atrim(instruction.structure_name))
-        switchMode = false
-    end
-    else
-    begin
-        if (Settings.LogKeys)
+        if (switchMode) then
         begin
-            keyValue = %keyVal(structure_data.structure_chan,instruction.record,structure_data.structure_keynum)
-            xcall verboselog(" - Key: " + keyValue)
-        end
-    end
-
-    try
-    begin
-        functionName = %atrim(instruction.structure_name) + 'Insert'
-        status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,instruction.record(1,structure_data.structure_size),dberrtxt)
-    end
-    catch (ex, @SynException)
-    begin
-        ok = %LogFunctionFail(functionName,ex.Errno,ex.Message)
-        return
-    end
-    endtry
-
-    using status select
-    (0),
-    begin
-        xcall LogFunctionError(functionName,status,dberrtxt)
-    end
-    (1),
-    begin
-        xcall verboselog(" - Row inserted")
-        Counters.Inserts += 1
-    end
-    (2),
-    begin
-        xcall verboselog(" - Row exists, switching to UPDATE")
-        status = 1
-        if (switchDone) then
-        begin
-            xcall errorlog(" - Too many INSERT/UPDATE mode switches!")
+            Logger.VerboseLog(" - Insert row in table " + %atrim(instruction.structure_name))
+            switchMode = false
         end
         else
         begin
-            switchMode = true
-            call DoUpdate
+            if (Settings.LogKeys)
+            begin
+                keyValue = %keyVal(structure_data.structure_chan,instruction.record,structure_data.structure_keynum)
+                Logger.VerboseLog(" - Key: " + keyValue)
+            end
         end
+
+        try
+        begin
+            functionName = %atrim(instruction.structure_name) + "Insert"
+            status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,instruction.record(1,structure_data.structure_size),dberrtxt)
+        end
+        catch (ex, @SynException)
+        begin
+            ok = Logger.LogFunctionFail(functionName,ex.Errno,ex.Message)
+            return
+        end
+        endtry
+
+        using status select
+        (0),
+        begin
+            Logger.LogFunctionError(functionName,status,dberrtxt)
+        end
+        (1),
+        begin
+            Logger.VerboseLog(" - Row inserted")
+            Counters.Inserts += 1
+        end
+        (2),
+        begin
+            Logger.VerboseLog(" - Row exists, switching to UPDATE")
+            status = 1
+            if (switchDone) then
+            begin
+                Logger.ErrorLog(" - Too many INSERT/UPDATE mode switches!")
+            end
+            else
+            begin
+                switchMode = true
+                call DoUpdate
+            end
+        end
+        endusing
     end
-    endusing
 
     return
 
@@ -754,60 +734,61 @@ DoInsert,
 ;; Add a new row (RELATIVE)
 ;;
 DoInsertRelative,
-
-    if (switchMode) then
     begin
-        xcall verboselog(" - Insert row in table " + %atrim(instruction.structure_name))
-        switchMode = false
-    end
-    else
-    begin
-        if (Settings.LogKeys)
+        if (switchMode) then
         begin
-            data pos, i4, %instr(1,instruction.record,":")
-            recordNumber = instruction.record(1:pos-1)
-            instruction.record = instruction.record(pos+1:structure_data.structure_size)
-            xcall verboselog(" - Record #: " + %string(recordNumber))
-        end
-    end
-
-    try
-    begin
-        functionName = %atrim(instruction.structure_name) + 'Insert'
-        status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,recordNumber,instruction.record(1,structure_data.structure_size),dberrtxt)
-    end
-    catch (ex, @SynException)
-    begin
-        ok = %LogFunctionFail(functionName,ex.Errno,ex.Message)
-        return
-    end
-    endtry
-
-    using status select
-    (0),
-    begin
-        xcall LogFunctionError(functionName,status,dberrtxt)
-    end
-    (1),
-    begin
-        xcall verboselog(" - Row inserted")
-        Counters.Inserts += 1
-    end
-    (2),
-    begin
-        xcall verboselog(" - Row exists, switching to UPDATE")
-        status = 1
-        if (switchDone) then
-        begin
-            xcall errorlog(" - Too many INSERT/UPDATE mode switches!")
+            Logger.VerboseLog(" - Insert row in table " + %atrim(instruction.structure_name))
+            switchMode = false
         end
         else
         begin
-            switchMode = true
-            call DoUpdateRelative
+            if (Settings.LogKeys)
+            begin
+                data pos, i4, %instr(1,instruction.record,":")
+                recordNumber = instruction.record(1:pos-1)
+                instruction.record = instruction.record(pos+1:structure_data.structure_size)
+                Logger.VerboseLog(" - Record #: " + %string(recordNumber))
+            end
         end
+
+        try
+        begin
+            functionName = %atrim(instruction.structure_name) + "Insert"
+            status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,recordNumber,instruction.record(1,structure_data.structure_size),dberrtxt)
+        end
+        catch (ex, @SynException)
+        begin
+            ok = Logger.LogFunctionFail(functionName,ex.Errno,ex.Message)
+            return
+        end
+        endtry
+
+        using status select
+        (0),
+        begin
+            Logger.LogFunctionError(functionName,status,dberrtxt)
+        end
+        (1),
+        begin
+            Logger.VerboseLog(" - Row inserted")
+            Counters.Inserts += 1
+        end
+        (2),
+        begin
+            Logger.VerboseLog(" - Row exists, switching to UPDATE")
+            status = 1
+            if (switchDone) then
+            begin
+                Logger.ErrorLog(" - Too many INSERT/UPDATE mode switches!")
+            end
+            else
+            begin
+                switchMode = true
+                call DoUpdateRelative
+            end
+        end
+        endusing
     end
-    endusing
 
     return
 
@@ -815,58 +796,59 @@ DoInsertRelative,
 ;; Update an existing row (ISAM)
 ;;
 DoUpdate,
-
-    if (switchMode) then
     begin
-        xcall verboselog(" - Update row in table " + %atrim(instruction.structure_name))
-        switchMode = false
-    end
-    else
-    begin
-        if (Settings.LogKeys)
+        if (switchMode) then
         begin
-            keyValue = %keyVal(structure_data.structure_chan,instruction.record,structure_data.structure_keynum)
-            xcall verboselog(" - Key: " + keyValue)
-        end
-    end
-
-    try
-    begin
-        functionName = %atrim(instruction.structure_name) + 'Update'
-        status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,instruction.record(1,structure_data.structure_size),rows,dberrtxt)
-    end
-    catch (ex, @SynException)
-    begin
-        ok = %LogFunctionFail(functionName,ex.Errno,ex.Message)
-        return
-    end
-    endtry
-
-    if (status) then
-    begin
-        if (rows) then
-        begin
-            xcall verboselog(" - Row updated")
-            Counters.Updates += 1
+            Logger.VerboseLog(" - Update row in table " + %atrim(instruction.structure_name))
+            switchMode = false
         end
         else
         begin
-            xcall verboselog(" - Row not found, switching to INSERT")
-            status = 1
-            if (switchDone) then
+            if (Settings.LogKeys)
             begin
-                xcall errorlog(" - Too many INSERT/UPDATE mode switches!")
+                keyValue = %keyVal(structure_data.structure_chan,instruction.record,structure_data.structure_keynum)
+                Logger.VerboseLog(" - Key: " + keyValue)
+            end
+        end
+
+        try
+        begin
+            functionName = %atrim(instruction.structure_name) + "Update"
+            status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,instruction.record(1,structure_data.structure_size),rows,dberrtxt)
+        end
+        catch (ex, @SynException)
+        begin
+            ok = Logger.LogFunctionFail(functionName,ex.Errno,ex.Message)
+            return
+        end
+        endtry
+
+        if (status) then
+        begin
+            if (rows) then
+            begin
+                Logger.VerboseLog(" - Row updated")
+                Counters.Updates += 1
             end
             else
             begin
-                switchMode = true
-                call DoInsert
+                Logger.VerboseLog(" - Row not found, switching to INSERT")
+                status = 1
+                if (switchDone) then
+                begin
+                    Logger.ErrorLog(" - Too many INSERT/UPDATE mode switches!")
+                end
+                else
+                begin
+                    switchMode = true
+                    call DoInsert
+                end
             end
         end
-    end
-    else
-    begin
-        xcall LogFunctionError(functionName,status,dberrtxt)
+        else
+        begin
+            Logger.LogFunctionError(functionName,status,dberrtxt)
+        end
     end
 
     return
@@ -875,60 +857,61 @@ DoUpdate,
 ;; Update an existing row (RELATIVE)
 ;;
 DoUpdateRelative,
-
-    if (switchMode) then
     begin
-        xcall verboselog(" - Update row in table " + %atrim(instruction.structure_name))
-        switchMode = false
-    end
-    else
-    begin
-        if (Settings.LogKeys)
+        if (switchMode) then
         begin
-            data pos, i4, %instr(1,instruction.record,":")
-            recordNumber = instruction.record(1:pos-1)
-            instruction.record = instruction.record(pos+1:structure_data.structure_size)
-            xcall verboselog(" - Record #: " + %string(recordNumber))
-        end
-    end
-
-    try
-    begin
-        functionName = %atrim(instruction.structure_name) + 'Update'
-        status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,recordNumber,instruction.record(1,structure_data.structure_size),rows,dberrtxt)
-    end
-    catch (ex, @SynException)
-    begin
-        ok = %LogFunctionFail(functionName,ex.Errno,ex.Message)
-        return
-    end
-    endtry
-
-    if (status) then
-    begin
-        if (rows) then
-        begin
-            xcall verboselog(" - Row updated")
-            Counters.Updates += 1
+            Logger.VerboseLog(" - Update row in table " + %atrim(instruction.structure_name))
+            switchMode = false
         end
         else
         begin
-            xcall verboselog(" - Row not found, switching to INSERT")
-            status = 1
-            if (switchDone) then
+            if (Settings.LogKeys)
             begin
-                xcall errorlog(" - Too many INSERT/UPDATE mode switches!")
+                data pos, i4, %instr(1,instruction.record,":")
+                recordNumber = instruction.record(1:pos-1)
+                instruction.record = instruction.record(pos+1:structure_data.structure_size)
+                Logger.VerboseLog(" - Record #: " + %string(recordNumber))
+            end
+        end
+
+        try
+        begin
+            functionName = %atrim(instruction.structure_name) + "Update"
+            status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,recordNumber,instruction.record(1,structure_data.structure_size),rows,dberrtxt)
+        end
+        catch (ex, @SynException)
+        begin
+            ok = Logger.LogFunctionFail(functionName,ex.Errno,ex.Message)
+            return
+        end
+        endtry
+
+        if (status) then
+        begin
+            if (rows) then
+            begin
+                Logger.VerboseLog(" - Row updated")
+                Counters.Updates += 1
             end
             else
             begin
-                switchMode = true
-                call DoInsertRelative
+                Logger.VerboseLog(" - Row not found, switching to INSERT")
+                status = 1
+                if (switchDone) then
+                begin
+                    Logger.ErrorLog(" - Too many INSERT/UPDATE mode switches!")
+                end
+                else
+                begin
+                    switchMode = true
+                    call DoInsertRelative
+                end
             end
         end
-    end
-    else
-    begin
-        xcall LogFunctionError(functionName,status,dberrtxt)
+        else
+        begin
+            Logger.LogFunctionError(functionName,status,dberrtxt)
+        end
     end
 
     return
@@ -937,32 +920,33 @@ DoUpdateRelative,
 ;; Delete a row
 ;;
 DoDelete,
-
-    keyValue = %keyval(structure_data.structure_chan,instruction.record,structure_data.structure_keynum)
-
-    if (Settings.LogKeys)
-        xcall verboselog(" - Key: " + keyValue)
-
-    try
     begin
-        functionName = %atrim(instruction.structure_name) + 'Delete'
-        status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,(a)keyValue,dberrtxt)
-        if (status) then
+        keyValue = %keyval(structure_data.structure_chan,instruction.record,structure_data.structure_keynum)
+
+        if (Settings.LogKeys)
+            Logger.VerboseLog(" - Key: " + keyValue)
+
+        try
         begin
-            xcall verboselog(" - Row deleted")
-            Counters.Deletes += 1
+            functionName = %atrim(instruction.structure_name) + "Delete"
+            status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,(a)keyValue,dberrtxt)
+            if (status) then
+            begin
+                Logger.VerboseLog(" - Row deleted")
+                Counters.Deletes += 1
+            end
+            else
+            begin
+                Logger.VerboseLog(" - " + dberrtxt)
+                Logger.LogFunctionError(functionName,status,dberrtxt)
+            end
         end
-        else
+        catch (ex, @SynException)
         begin
-            xcall verboselog(" - " + dberrtxt)
-            xcall LogFunctionError(functionName,status,dberrtxt)
+            ok = Logger.LogFunctionFail(functionName,ex.Errno,ex.Message)
         end
+        endtry
     end
-    catch (ex, @SynException)
-    begin
-        ok = %LogFunctionFail(functionName,ex.Errno,ex.Message)
-    end
-    endtry
 
     return
 
@@ -970,60 +954,61 @@ DoDelete,
 ;; Create a new table
 ;;
 DoCreateTable,
-
-    ;;Create a new table (only)
-    ;;If the table already exists, do nothing
-
-    xcall verboselog(" - Checking if table exists")
-
-    try
     begin
-        functionName = %atrim(instruction.structure_name) + "Exists"
-        status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,dberrtxt)
-        using status select
-        (1),
-        begin
-            xcall verboselog(" - Table exists!")
-        end
-        (0),
-        begin
-            xcall verboselog(" - Creating table")
+        ;;Create a new table (only)
+        ;;If the table already exists, do nothing
 
-            try
+        Logger.VerboseLog(" - Checking if table exists")
+
+        try
+        begin
+            functionName = %atrim(instruction.structure_name) + "Exists"
+            status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,dberrtxt)
+            using status select
+            (1),
             begin
-                functionName = %atrim(instruction.structure_name) + "Create"
-                status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,dberrtxt)
-                if (status) then
+                Logger.VerboseLog(" - Table exists!")
+            end
+            (0),
+            begin
+                Logger.VerboseLog(" - Creating table")
+
+                try
                 begin
-                    xcall verboselog(" - Table created")
-
-                    if (Settings.CanSendEmail())
+                    functionName = %atrim(instruction.structure_name) + "Create"
+                    status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,dberrtxt)
+                    if (status) then
                     begin
-                        data subject, string, "created table " + %atrim(instruction.structure_name)
-                        data body = new string[#] { "A new table was created in the database." }
-                        xcall SendEmail(subject,body)
+                        Logger.VerboseLog(" - Table created")
+
+                        if (Settings.CanSendEmail())
+                        begin
+                            data subject, string, "created table " + %atrim(instruction.structure_name)
+                            data body = new string[#] { "A new table was created in the database." }
+                            xcall SendEmail(subject,body)
+                        end
                     end
+                    else
+                        Logger.LogFunctionError(functionName,status,dberrtxt)
                 end
-                else
-                    xcall LogFunctionError(functionName,status,dberrtxt)
+                catch (ex, @SynException)
+                begin
+                    ok = Logger.LogFunctionFail(functionName,ex.Errno,ex.Message)
+                end
+                endtry
             end
-            catch (ex, @SynException)
+            (<0),
             begin
-                ok = %LogFunctionFail(functionName,ex.Errno,ex.Message)
+                Logger.LogFunctionError(functionName,status,dberrtxt)
             end
-            endtry
+            endusing
         end
-        (<0),
+        catch (ex, @SynException)
         begin
-            xcall LogFunctionError(functionName,status,dberrtxt)
+            ok = Logger.LogFunctionFail(functionName,ex.Errno,ex.Message)
         end
-        endusing
+        endtry
     end
-    catch (ex, @SynException)
-    begin
-        ok = %LogFunctionFail(functionName,ex.Errno,ex.Message)
-    end
-    endtry
 
     return
 
@@ -1031,45 +1016,46 @@ DoCreateTable,
 ;; Load new data into existing table
 ;;
 DoLoadTable,
-
-    ;;Do a full load of an existing table with new data
-
-    xcall verboselog(" - Checking if table exists")
-
-    try
     begin
-        functionName = %atrim(instruction.structure_name) + "Exists"
-        status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,dberrtxt)
-    end
-    catch (ex, @SynException)
-    begin
-        ok = %LogFunctionFail(functionName,ex.Errno,ex.Message)
-        return
-    end
-    endtry
+        ;;Do a full load of an existing table with new data
 
-    using status select
-    (1),
-    begin
-        xcall verboselog(" - Table exists")
+        Logger.VerboseLog(" - Checking if table exists")
 
-        ;;Delete any and all existing data before loading new data
-        call DoDeleteAllRows
+        try
+        begin
+            functionName = %atrim(instruction.structure_name) + "Exists"
+            status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,dberrtxt)
+        end
+        catch (ex, @SynException)
+        begin
+            ok = Logger.LogFunctionFail(functionName,ex.Errno,ex.Message)
+            return
+        end
+        endtry
 
-        if (bulkLoad) then
-            call BulkLoadTable
-        else
-            call LoadTable
+        using status select
+        (1),
+        begin
+            Logger.VerboseLog(" - Table exists")
+
+            ;;Delete any and all existing data before loading new data
+            call DoDeleteAllRows
+
+            if (bulkLoad) then
+                call BulkLoadTable
+            else
+                call LoadTable
+        end
+        (0),
+        begin
+            Logger.VerboseLog(" - Table does not exist!")
+        end
+        (<0),
+        begin
+            Logger.LogFunctionError(functionName,status,dberrtxt)
+        end
+        endusing
     end
-    (0),
-    begin
-        xcall verboselog(" - Table does not exist!")
-    end
-    (<0),
-    begin
-        xcall LogFunctionError(functionName,status,dberrtxt)
-    end
-    endusing
 
     return
 
@@ -1077,11 +1063,11 @@ DoLoadTable,
 ;; Create a new table and load new data into it
 ;;
 DoCreateAndLoadTable,
-
-    ;;Create a new table, do nothing if the table already exists
-    ;;We create the table, then do a full load of data
-
-    call CheckTable
+    begin
+        ;;Create a new table, do nothing if the table already exists
+        ;;We create the table, then do a full load of data
+        call CheckTable
+    end
 
     return
 
@@ -1089,24 +1075,25 @@ DoCreateAndLoadTable,
 ;; Export ISAM file to CSV file
 ;;
 DoCreateCsv,
-
-    xcall log(" - Export starting at " + %TimeNow)
-
-    try
     begin
-        data csvFileSpec, a128, Settings.LocalExportPath
-        functionName = %atrim(instruction.structure_name) + "Csv"
-        status = %xsubr(functionName,csvFileSpec,dberrtxt)
-        if (status) then
-            xcall verboselog(" - Export complete at " + %TimeNow)
-        else
-            xcall LogFunctionError(functionName,status,dberrtxt)
+        Logger.Log(" - Export starting at " + %TimeNow)
+
+        try
+        begin
+            data csvFileSpec, a128, Settings.LocalExportPath
+            functionName = %atrim(instruction.structure_name) + "Csv"
+            status = %xsubr(functionName,csvFileSpec,dberrtxt)
+            if (status) then
+                Logger.VerboseLog(" - Export complete at " + %TimeNow)
+            else
+                Logger.LogFunctionError(functionName,status,dberrtxt)
+        end
+        catch (ex, @SynException)
+        begin
+            ok = Logger.LogFunctionFail(functionName,ex.Errno,ex.Message)
+        end
+        endtry
     end
-    catch (ex, @SynException)
-    begin
-        ok = %LogFunctionFail(functionName,ex.Errno,ex.Message)
-    end
-    endtry
 
     return
 
@@ -1114,30 +1101,31 @@ DoCreateCsv,
 ;; Delete all rows from an existing table
 ;;
 DoDeleteAllRows,
-
-    try
     begin
-        functionName = %atrim(instruction.structure_name) + "Clear"
-        status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,dberrtxt)
-        if (status) then
+        try
         begin
-            xcall verboselog(" - Table truncated")
-
-            if (Settings.CanSendEmail())
+            functionName = %atrim(instruction.structure_name) + "Clear"
+            status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,dberrtxt)
+            if (status) then
             begin
-                data subject, string, "truncated table " + %atrim(instruction.structure_name)
-                data body = new string[#] { "All rows were deleted from the table." }
-                xcall SendEmail(subject, body)
+                Logger.VerboseLog(" - Table truncated")
+
+                if (Settings.CanSendEmail())
+                begin
+                    data subject, string, "truncated table " + %atrim(instruction.structure_name)
+                    data body = new string[#] { "All rows were deleted from the table." }
+                    xcall SendEmail(subject, body)
+                end
             end
+            else
+                Logger.LogFunctionError(functionName,status,dberrtxt)
         end
-        else
-            xcall LogFunctionError(functionName,status,dberrtxt)
+        catch (ex, @SynException)
+        begin
+            ok = Logger.LogFunctionFail(functionName,ex.Errno,ex.Message)
+        end
+        endtry
     end
-    catch (ex, @SynException)
-    begin
-        ok = %LogFunctionFail(functionName,ex.Errno,ex.Message)
-    end
-    endtry
 
     return
 
@@ -1145,46 +1133,47 @@ DoDeleteAllRows,
 ;; Delete an existing table
 ;;
 DoDeleteTable,
-
-    ;;Is the file in the file table?
-    if (nsptr=%nspc_find(Settings.ChannelInfo,instruction.structure_name,structure_data))
     begin
-
-        ;Yes - close the file
-        if ((structure_data.structure_chan)&&%chopen(structure_data.structure_chan))
+        ;;Is the file in the file table?
+        if (nsptr=%nspc_find(Settings.ChannelInfo,instruction.structure_name,structure_data))
         begin
-            close structure_data.structure_chan
-            clear structure_data
-        end
 
-        ;And remove it from the file table
-        xcall nspc_delete(Settings.ChannelInfo,nsptr)
-    end
-
-    try
-    begin
-        functionName = %atrim(instruction.structure_name) + "Drop"
-        status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,dberrtxt)
-        if (status) then
-        begin
-            xcall verboselog(" - Table deleted")
-
-            if (Settings.CanSendEmail())
+            ;Yes - close the file
+            if ((structure_data.structure_chan)&&%chopen(structure_data.structure_chan))
             begin
-                data subject, string, "deleted table " + %atrim(instruction.structure_name)
-                data body = new string[#] { "The table was deleted from the database." }
-                xcall SendEmail(subject, body)
+                close structure_data.structure_chan
+                clear structure_data
             end
+
+            ;And remove it from the file table
+            xcall nspc_delete(Settings.ChannelInfo,nsptr)
         end
-        else
-            xcall LogFunctionError(functionName,status,dberrtxt)
+
+        try
+        begin
+            functionName = %atrim(instruction.structure_name) + "Drop"
+            status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,dberrtxt)
+            if (status) then
+            begin
+                Logger.VerboseLog(" - Table deleted")
+
+                if (Settings.CanSendEmail())
+                begin
+                    data subject, string, "deleted table " + %atrim(instruction.structure_name)
+                    data body = new string[#] { "The table was deleted from the database." }
+                    xcall SendEmail(subject, body)
+                end
+            end
+            else
+                Logger.LogFunctionError(functionName,status,dberrtxt)
+        end
+        catch (ex, @SynException)
+        begin
+            ok = Logger.LogFunctionFail(functionName,ex.Errno,ex.Message)
+            return
+        end
+        endtry
     end
-    catch (ex, @SynException)
-    begin
-        ok = %LogFunctionFail(functionName,ex.Errno,ex.Message)
-        return
-    end
-    endtry
 
     return
 
@@ -1192,34 +1181,35 @@ DoDeleteTable,
 ;; Add alternate key indexes to a table (if they don't already exist)
 ;;
 DoAddIndexes,
-
-    try
     begin
-        functionName = %atrim(instruction.structure_name) + "Index"
-        status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,Settings.DatabaseTimeout,Settings.BulkLoadTimeout,Settings.LogFileChannel,dberrtxt)
-        if (status) then
+        try
         begin
-            xcall verboselog(" - Indexes added")
-
-            if (Settings.CanSendEmail())
+            functionName = %atrim(instruction.structure_name) + "Index"
+            status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,Settings.DatabaseTimeout,Settings.BulkLoadTimeout,Settings.LogFileChannel,dberrtxt)
+            if (status) then
             begin
-                data subject, string, "added indexes to table " + %atrim(instruction.structure_name)
-                data body = new string[#] { "Alternate key indexes were added to the table." }
-                xcall SendEmail(subject, body)
+                Logger.VerboseLog(" - Indexes added")
+
+                if (Settings.CanSendEmail())
+                begin
+                    data subject, string, "added indexes to table " + %atrim(instruction.structure_name)
+                    data body = new string[#] { "Alternate key indexes were added to the table." }
+                    xcall SendEmail(subject, body)
+                end
             end
+            else
+                Logger.LogFunctionError(functionName,status,dberrtxt)
         end
-        else
-            xcall LogFunctionError(functionName,status,dberrtxt)
+        catch (ex, @RoutineNotFound)
+        begin
+            Logger.VerboseLog(" - Addining indexes is not enabled for this table.")
+        end
+        catch (ex, @SynException)
+        begin
+            ok = Logger.LogFunctionFail(functionName,ex.Errno,ex.Message)
+        end
+        endtry
     end
-    catch (ex, @RoutineNotFound)
-    begin
-        xcall verboselog(" - Addining indexes is not enabled for this table.")
-    end
-    catch (ex, @SynException)
-    begin
-        ok = %LogFunctionFail(functionName,ex.Errno,ex.Message)
-    end
-    endtry
 
     return
 
@@ -1227,42 +1217,42 @@ DoAddIndexes,
 ;; Delete alternate key indexes from a table
 ;;
 DoDeleteIndexes,
-
-    try
     begin
-        functionName = %atrim(instruction.structure_name) + "UnIndex"
-        status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,dberrtxt)
-        if (status) then
+        try
         begin
-            xcall verboselog(" - Indexes removed")
-
-            if (Settings.CanSendEmail())
+            functionName = %atrim(instruction.structure_name) + "UnIndex"
+            status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,dberrtxt)
+            if (status) then
             begin
-                data subject, string, "removed indexes from table " + %atrim(instruction.structure_name)
-                data body = new string[#] { "Alternate key indexes were removed from the table." }
-                xcall SendEmail(subject, body)
+                Logger.VerboseLog(" - Indexes removed")
+
+                if (Settings.CanSendEmail())
+                begin
+                    data subject, string, "removed indexes from table " + %atrim(instruction.structure_name)
+                    data body = new string[#] { "Alternate key indexes were removed from the table." }
+                    xcall SendEmail(subject, body)
+                end
             end
+            else
+                Logger.LogFunctionError(functionName,status,dberrtxt)
         end
-        else
-            xcall LogFunctionError(functionName,status,dberrtxt)
+        catch (ex, @RoutineNotFound)
+        begin
+            Logger.VerboseLog(" - Removing indexes is not enabled for this table.")
+        end
+        catch (ex, @SynException)
+        begin
+            ok = Logger.LogFunctionFail(functionName,ex.Errno,ex.Message)
+        end
+        endtry
     end
-    catch (ex, @RoutineNotFound)
-    begin
-        xcall verboselog(" - Removing indexes is not enabled for this table.")
-    end
-    catch (ex, @SynException)
-    begin
-        ok = %LogFunctionFail(functionName,ex.Errno,ex.Message)
-    end
-    endtry
 
     return
 
 ;;-----------------------------------------------------------------------------
 ;; Change the sleep seconds interval
-
+;;
 ChangeInterval,
-
     begin
         data save_time, i4, Settings.SleepTime
         try
@@ -1270,17 +1260,17 @@ ChangeInterval,
             Settings.SleepTime = %integer(%atrim(instruction.record))
             if (Settings.SleepTime >= 1) then
             begin
-                xcall log(" - Interval changed from " + %string(save_time) + " to " + %string(Settings.SleepTime) + " seconds")
+                Logger.Log(" - Interval changed from " + %string(save_time) + " to " + %string(Settings.SleepTime) + " seconds")
             end
             else
             begin
-                xcall errorlog(" - Invalid interval of " + %string(Settings.SleepTime) + " seconds requested")
+                Logger.ErrorLog(" - Invalid interval of " + %string(Settings.SleepTime) + " seconds requested")
                 Settings.SleepTime = save_time
             end
         end
         catch (ex)
         begin
-            xcall errorlog(" - Invalid interval " + %atrim(instruction.record) + " requested")
+            Logger.ErrorLog(" - Invalid interval " + %atrim(instruction.record) + " requested")
             Settings.SleepTime = save_time
         end
         endtry
@@ -1288,1753 +1278,4 @@ ChangeInterval,
 
     return
 
-;;-----------------------------------------------------------------------------
-;; Called first to set everything up
-
-ConfigureEnvironment,
-
-    .ifdef D_VMS
-    xcall openelb("REPLICATOR_SH")
-    .endc
-
-    ok = true
-    xcall flags(7004020,1)
-
-    ;;Configure defaults
-
-    Settings.Initialize()
-
-    ;;Running on terminal?
-
-    if (Settings.RunningOnTerminal)
-    begin
-        data tmpchn, i4, 0
-        open(tmpchn,o,"tt:")
-        Settings.TerminalChannel = tmpchn
-        display(Settings.TerminalChannel,$scr_pos(1,1),$scr_clr(SCREEN))
-        writes(Settings.TerminalChannel,"SQL Replicator Log")
-    end
-
-    ;;System log
-
-    if (CommandLineParser.Parse("syslog")) then
-    begin
-        Settings.SystemLog = true
-    end
-    else
-    begin
-        ;;Environment variable?
-        data tmpval, a3
-        xcall getlog("REPLICATOR_SYSTEM_LOG",tmpval,length)
-        Settings.SystemLog = ((length>0)&&(tmpval.eq."YES"))
-    end
-
-    ;;Log file location
-
-    if (CommandLineParser.Parse("logdir",clValues))
-    begin
-        using clValues.Count select
-        (1),
-        begin
-            data sts, i4
-            xcall setlog("REPLICATOR_LOGDIR",(string)clValues[0],sts)
-        end
-        endusing
-    end
-
-    ;;Instance name
-
-    if (ok)
-    begin
-        ;;Command line?
-        if (CommandLineParser.Parse("instance",clValues)) then
-        begin
-            using clValues.Count select
-            (1),
-            begin
-                data now, a20, %datetime
-                Settings.InstanceName = (string)clValues[0]
-                Settings.LogFileName = "REPLICATOR_LOGDIR:REPLICATOR_" + Settings.InstanceName + "_" + now(1:8) + "_" + now(9:6) + ".LOG"
-                Settings.TransactionFile = "REPLICATOR_DATA:REPLICATION_" + Settings.InstanceName + ".ISM"
-            end
-            (0),
-            begin
-                xcall errorlog("Missing value after the -instance option")
-                ok = false
-            end
-            (),
-            begin
-                xcall errorlog("Only one value may follow the -instance option")
-                ok = false
-            end
-            endusing
-        end
-        else
-        begin
-            ;;Environment variable?
-            data tmpval, a80
-            xcall getlog("REPLICATOR_INSTANCE",tmpval,length)
-            if (length)
-            begin
-                data now, a20, %datetime
-                Settings.InstanceName = tmpval(1:length)
-                Settings.LogFileName = "REPLICATOR_LOGDIR:REPLICATOR_" + Settings.InstanceName + "_" + now(1:8) + "_" + now(9:6) + ".LOG"
-                Settings.TransactionFile = "REPLICATOR_DATA:REPLICATION_" + Settings.InstanceName + ".ISM"
-            end
-        end
-
-        ;;Report the instance name
-        xcall log("Instance name " + Settings.InstanceName)
-    end
-
-    ;;Open log file
-
-    ok = %open_log
-
-    ;;Local export directory
-
-    if (ok)
-    begin
-        ;;Command line?
-        if (CommandLineParser.Parse("localexport",clValues)) then
-        begin
-            using clValues.Count select
-            (1),
-                Settings.LocalExportPath = (string)clValues[0]
-            (0),
-            begin
-                xcall errorlog("Missing value after the -localexport option")
-                ok = false
-            end
-            (),
-            begin
-                xcall errorlog("Only one value may follow the -localexport option")
-                ok = false
-            end
-            endusing
-        end
-        else
-        begin
-            ;;Environment variable?
-            data tmpval, a80
-            xcall getlog("REPLICATOR_EXPORT_LOCAL",tmpval,length)
-            if (length)
-                Settings.LocalExportPath = tmpval(1:length)
-        end
-    end
-
-    ;;Remote export host
-
-    if (ok)
-    begin
-        ;;Command line?
-        if (CommandLineParser.Parse("fileservicehost",clValues)) then
-        begin
-            using clValues.Count select
-            (1),
-                Settings.FileServiceHost = (string)clValues[0]
-            (0),
-            begin
-                xcall errorlog("Missing value after the -fileservicehost option")
-                ok = false
-            end
-            (),
-            begin
-                xcall errorlog("Only one value may follow the -fileservicehost option")
-                ok = false
-            end
-            endusing
-        end
-        else
-        begin
-            ;;Environment variable?
-            data tmpval, a80
-            xcall getlog("REPLICATOR_FILESERVICE_HOST",tmpval,length)
-            if (length)
-                Settings.FileServiceHost = tmpval(1:length)
-        end
-    end
-
-    ;;Remote export port
-
-    if (ok)
-    begin
-        ;;Command line?
-        if (CommandLineParser.Parse("fileserviceport",clValues)) then
-        begin
-            using clValues.Count select
-            (1),
-                Settings.FileServicePort = (string)clValues[0]
-            (0),
-            begin
-                xcall errorlog("Missing value after the -fileserviceport option")
-                ok = false
-            end
-            (),
-            begin
-                xcall errorlog("Only one value may follow the -fileserviceport option")
-                ok = false
-            end
-            endusing
-        end
-        else
-        begin
-            ;;Environment variable?
-            data tmpval, a80
-            xcall getlog("REPLICATOR_FILESERVICE_PORT",tmpval,length)
-            if (length)
-                Settings.FileServicePort = tmpval(1:length)
-        end
-    end
-
-    ;;Sleep interval
-
-    if (ok)
-    begin
-        ;;Command line?
-        if (CommandLineParser.Parse("interval",clValues)) then
-        begin
-            using clValues.Count select
-            (1),
-            begin
-                try
-                begin
-                    Settings.SleepTime = %integer((string)clValues[0])
-                end
-                catch (e, @Exception)
-                begin
-                    xcall errorlog("Invalid value after the -interval option")
-                    ok = false
-                end
-                endtry
-            end
-            (0),
-            begin
-                xcall errorlog("Missing value after the -interval option")
-                ok = false
-            end
-            (),
-            begin
-                xcall errorlog("Only one value may follow the -interval option")
-                ok = false
-            end
-            endusing
-        end
-        else
-        begin
-            ;;Environment variable?
-            data tmpval, a10
-            xcall getlog("REPLICATOR_INTERVAL",tmpval,length)
-            if (length>0)
-                Settings.SleepTime = %integer(tmpval(1:length))
-        end
-        xcall log("Processing interval is " + %string(Settings.SleepTime) + " seconds.")
-    end
-
-    ;;Load progress reporting
-
-    if (ok)
-    begin
-        ;;Command line?
-        if (CommandLineParser.Parse("progress")) then
-        begin
-            Settings.BulkLoadProgressReporting = true
-        end
-        else
-        begin
-            ;;Environment variable?
-            data tmpval, a10
-            xcall getlog("REPLICATOR_LOAD_PROGRESS",tmpval,length)
-            Settings.BulkLoadProgressReporting = ((length>0)&&(tmpval.eq."YES"))
-        end
-    end
-
-    ;;Verbose logging
-
-    if (ok)
-    begin
-        ;;Command line?
-        if (CommandLineParser.Parse("verbose")) then
-        begin
-            Settings.FullLogging = true
-        end
-        else
-        begin
-            ;;Environment variable?
-            data tmpval, a3
-            xcall getlog("REPLICATOR_FULL_LOG",tmpval,length)
-            Settings.FullLogging = ((length>0)&&(tmpval.eq."YES"))
-        end
-    end
-
-    ;;Key value logging
-
-    if (ok)
-    begin
-        ;;Command line?
-        if (CommandLineParser.Parse("keyvalues")) then
-        begin
-            Settings.LogKeys = true
-        end
-        else
-        begin
-            ;;Environment variable?
-            data tmpval, a3
-            xcall getlog("REPLICATOR_LOG_KEYS",tmpval,length)
-            Settings.LogKeys = ((length>0)&&(tmpval.eq."YES"))
-        end
-    end
-
-    ;;Bulk load exception logging
-
-    if (ok)
-    begin
-        ;;Command line?
-        if (CommandLineParser.Parse("loaderrors")) then
-        begin
-            Settings.LogLoadExceptions = true
-        end
-        else
-        begin
-            ;;Environment variable?
-            data tmpval, a3
-            xcall getlog("REPLICATOR_LOG_BULK_LOAD_EXCEPTIONS",tmpval,length)
-            Settings.LogLoadExceptions = ((length>0)&&(tmpval.eq."YES"))
-        end
-    end
-
-    ;;Email notifications
-
-    if (ok)
-    begin
-        ;;Command line?
-        if (CommandLineParser.Parse("erroremail",clValues)) then
-        begin
-            using clValues.Count select
-            (1),
-            begin
-                Settings.ErrorEmail = (string)clValues[0]
-            end
-            (0),
-            begin
-                xcall errorlog("Missing value after the -erroremail option")
-                ok = false
-            end
-            (),
-            begin
-                xcall errorlog("Only one value may follow the -erroremail option")
-                ok = false
-            end
-            endusing
-        end
-        else
-        begin
-            ;;Environment variable?
-            data tmpval, a1024
-            xcall getlog("REPLICATOR_ERROR_EMAIL",tmpval,length)
-            if (length>0)
-                Settings.ErrorEmail = tmpval(1:length)
-        end
-    end
-
-    ;;Email server DNS name or IP address
-
-    if (ok)
-    begin
-        ;;Command line?
-        if (CommandLineParser.Parse("mailserver",clValues)) then
-        begin
-            using clValues.Count select
-            (1),
-            begin
-                Settings.EmailServer = (string)clValues[0]
-            end
-            (0),
-            begin
-                xcall errorlog("Missing value after the -mailserver option")
-                ok = false
-            end
-            (),
-            begin
-                xcall errorlog("Only one value may follow the -mailserver option")
-                ok = false
-            end
-            endusing
-        end
-        else
-        begin
-            ;;Environment variable?
-            data tmpval, a128
-            xcall getlog("REPLICATOR_SMTP_SERVER",tmpval,length)
-            if (length>0)
-                Settings.EmailServer = tmpval(1:length)
-        end
-    end
-
-    ;;Email sender address
-
-    if (ok)
-    begin
-        ;;Command line?
-        if (CommandLineParser.Parse("mailfrom",clValues)) then
-        begin
-            using clValues.Count select
-            (1),
-            begin
-                Settings.EmailSender = (string)clValues[0]
-            end
-            (0),
-            begin
-                xcall errorlog("Missing value after the -mailfrom option")
-                ok = false
-            end
-            (),
-            begin
-                xcall errorlog("Only one value may follow the -mailfrom option")
-                ok = false
-            end
-            endusing
-        end
-        else
-        begin
-            ;;Environment variable?
-            data tmpval, a128
-            xcall getlog("REPLICATOR_EMAIL_SENDER",tmpval,length)
-            if (length>0)
-                Settings.EmailSender = tmpval(1:length)
-        end
-    end
-
-    ;;Stop on error
-
-    if (ok)
-    begin
-        ;;Command line?
-        if (CommandLineParser.Parse("stoponerror")) then
-        begin
-            Settings.StopOnError = true
-        end
-        else
-        begin
-            ;;Environment variable?
-            data tmpval, a3
-            xcall getlog("REPLICATOR_ERROR_STOP",tmpval,length)
-            Settings.StopOnError = ((length>0)&&(tmpval.eq."YES"))
-        end
-    end
-
-    ;;Max columns
-
-    if (ok)
-    begin
-        ;;Command line?
-        if (CommandLineParser.Parse("maxcols",clValues)) then
-        begin
-            using clValues.Count select
-            (1),
-            begin
-                try
-                begin
-                    Settings.MaxColumns = %integer((string)clValues[0])
-                end
-                catch (e, @Exception)
-                begin
-                    xcall errorlog("Invalid value after the -maxcols option")
-                    ok = false
-                end
-                endtry
-            end
-            (0),
-            begin
-                xcall errorlog("Missing value after the -maxcols option")
-                ok = false
-            end
-            (),
-            begin
-                xcall errorlog("Only one value may follow the -maxcols option")
-                ok = false
-            end
-            endusing
-        end
-        else
-        begin
-            ;;Environment variable?
-            data tmpval, a10
-            xcall getlog("REPLICATOR_MAX_COLS",tmpval,length)
-            if (length>0)
-                Settings.MaxColumns = %integer(tmpval(1:length))
-        end
-    end
-
-    ;;Max cursors
-
-    if (ok)
-    begin
-        ;;Command line?
-        if (CommandLineParser.Parse("maxcursors",clValues)) then
-        begin
-            using clValues.Count select
-            (1),
-            begin
-                try
-                begin
-                    Settings.MaxCursors = %integer((string)clValues[0])
-                end
-                catch (e, @Exception)
-                begin
-                    xcall errorlog("Invalid value after the -maxcursors option")
-                    ok = false
-                end
-                endtry
-            end
-            (0),
-            begin
-                xcall errorlog("Missing value after the -maxcursors option")
-                ok = false
-            end
-            (),
-            begin
-                xcall errorlog("Only one value may follow the -maxcursors option")
-                ok = false
-            end
-            endusing
-        end
-        else
-        begin
-            ;;Environment variable?
-            data tmpval, a10
-            xcall getlog("REPLICATOR_MAX_CURSORS",tmpval,length)
-            if (length>0)
-                Settings.MaxCursors = %integer(tmpval(1:length))
-        end
-    end
-
-    ;;Transaction queue file location
-
-    if (ok)
-    begin
-        ;;Command line?
-        if (CommandLineParser.Parse("datadir",clValues))
-        begin
-            using clValues.Count select
-            (1),
-            begin
-                data sts, i4
-                xcall setlog("REPLICATOR_DATA",(string)clValues[0],sts)
-            end
-            (0),
-            begin
-                xcall errorlog("Missing value after the -datadir option")
-                ok = false
-            end
-            (),
-            begin
-                xcall errorlog("Only one value may follow the -datadir option")
-                ok = false
-            end
-            endusing
-        end
-    end
-
-    ;;Does the instruction queue file exist?
-
-    if (ok)
-    begin
-        ;;Is it there?
-        try
-        begin
-            data tmpchn, i4, 0
-            open(tmpchn,I:I,Settings.TransactionFile)
-            close tmpchn
-        end
-        catch (e, @Synergex.SynergyDE.NoFileFoundException)
-        begin
-            ;;No, create it
-            try
-            begin
-                .ifdef D_VMS
-                xcall isamc(Settings.TransactionFile + ", FIXED", 32042, 1, "START=1, LENGTH=8, TYPE=SEQUENCE, NAME=TRANSACTION_ID, DENSITY=100")
-                .else
-                xcall isamc(Settings.TransactionFile + ", FIXED, COMPRESS, PAGE=1024, TBYTE", 65042, 1, "START=1, LENGTH=8, TYPE=SEQUENCE, NAME=TRANSACTION_ID, DENSITY=100")
-                .endc
-            end
-            catch (ex, @Exception)
-            begin
-                ;;It's not there and we can't create it!
-                xcall errorlog("Failed to create transaction log file " + Settings.TransactionFile + " - Error was: " + e.Message)
-                ok = false
-            end
-            endtry
-        end
-        catch (e, @Exception)
-        begin
-            ;;It's there, but we can't open it!
-            xcall errorlog("Failed to open transaction log file " + Settings.TransactionFile + " - Error was: " + e.Message)
-            ok = false
-        end
-        endtry
-    end
-
-    ;;Open the instruction queue file
-
-    if (ok)
-    begin
-        try
-        begin
-            data tmpchn, i4, 0
-            open(tmpchn,U:I,Settings.TransactionFile)
-            Settings.InstructionChannel = tmpchn
-        end
-        catch (ex)
-        begin
-            xcall errorlog("Failed to open transaction log file " + Settings.TransactionFile)
-            ok = false
-        end
-        endtry
-    end
-
-    ;;Database connect string
-
-    if (ok)
-    begin
-        ;;Command line?
-        if (CommandLineParser.Parse("database",clValues)) then
-        begin
-            using clValues.Count select
-            (1),
-            begin
-                Settings.DatabaseConnectString = (string)clValues[0]
-            end
-            (0),
-            begin
-                xcall errorlog("Missing value after the -database option")
-                ok = false
-            end
-            (),
-            begin
-                xcall errorlog("Only one value may follow the -database option")
-                ok = false
-            end
-            endusing
-        end
-        else
-        begin
-            ;;Environment variable?
-            data tmpval, a256
-            xcall getlog("REPLICATOR_DATABASE",tmpval,length)
-            if (length) then
-                Settings.DatabaseConnectString = tmpval(1:length)
-            else
-            begin
-                ;;We don't have a database connect string so we can't continue!
-                xcall errorlog("No database connect string was found. Use command line option -database or define environment variable REPLICATOR_DATABASE.")
-                ok = false
-            end
-        end
-    end
-
-    ;;Commit mode
-
-    if (ok)
-    begin
-        ;;Command line?
-        if (CommandLineParser.Parse("commitmode",clValues)) then
-        begin
-            using clValues.Count select
-            (1),
-            begin
-                using ((string)clValues[0]).ToUpper() select
-                ("AUTOMATIC"),
-                    Settings.CommitMode = DatabaseCommitMode.Automatic
-                ("BATCH"),
-                    Settings.CommitMode = DatabaseCommitMode.Batch
-                ("MANUAL"),
-                    Settings.CommitMode = DatabaseCommitMode.Manual
-                (),
-                begin
-                    xcall errorlog("Invalid option value following the -commitmode option. Specify AUTOMATIC, BATCH (default) or MANUAL.")
-                    ok = false
-                end
-                endusing
-            end
-            (0),
-            begin
-                xcall errorlog("Missing value after the -commitmode option")
-                ok = false
-            end
-            (),
-            begin
-                xcall errorlog("Only one value may follow the -commitmode option")
-                ok = false
-            end
-            endusing
-        end
-        else
-        begin
-            ;;Environment variable?
-            data tmpval, a32
-            xcall getlog("REPLICATOR_COMMIT_MODE",tmpval,length)
-            if (length)
-            begin
-                using ((String)tmpval(1:length)).ToUpper() select
-                ("AUTOMATIC"),
-                    Settings.CommitMode = DatabaseCommitMode.Automatic
-                ("BATCH"),
-                    Settings.CommitMode = DatabaseCommitMode.Batch
-                ("MANUAL"),
-                    Settings.CommitMode = DatabaseCommitMode.Manual
-                (),
-                begin
-                    xcall errorlog("Invalid value specified for option REPLICATOR_AUTO_COMMIT. Specify YES or NO.")
-                    ok = false
-                end
-                endusing
-            end
-        end
-    end
-
-    ;;Commit batch size
-
-    if (ok)
-    begin
-        ;;Command line?
-        if (CommandLineParser.Parse("commitbatch",clValues)) then
-        begin
-            using clValues.Count select
-            (1),
-            begin
-                try
-                begin
-                    Settings.CommitBatchRows = %integer((string)clValues[0])
-
-                    if (Settings.CommitBatchRows<2)
-                    begin
-                        xcall errorlog("Invalid option value following the -commitbatch option. Specify an integer greater than 1.")
-                        ok = false
-                    end
-
-                end
-                catch (e, @Exception)
-                begin
-                    xcall errorlog("Invalid option value following the -commitbatch option. Specify an integer greater than 1.")
-                    ok = false
-                end
-                endtry
-            end
-            (0),
-            begin
-                xcall errorlog("Missing value after the -commitbatch option")
-                ok = false
-            end
-            (),
-            begin
-                xcall errorlog("Only one value may follow the -commitbatch option")
-                ok = false
-            end
-            endusing
-        end
-        else
-        begin
-            ;;Environment variable?
-            data tmpval, a32
-            xcall getlog("REPLICATOR_COMMIT_BATCH",tmpval,length)
-            if (length)
-            begin
-                try
-                begin
-                    Settings.CommitBatchRows = %integer(%atrim(tmpval))
-
-                    if (Settings.CommitBatchRows<2)
-                    begin
-                        xcall errorlog("Invalid option value for REPLICATOR_COMMIT_BATCH. Specify an integer greater than 1.")
-                        ok = false
-                    end
-
-                end
-                catch (e, @Exception)
-                begin
-                    xcall errorlog("Invalid option value for REPLICATOR_COMMIT_BATCH. Specify an integer greater than 1.")
-                    ok = false
-                end
-                endtry
-            end
-        end
-    end
-
-    ;;Database execution timeout
-
-    if (ok)
-    begin
-        ;;Command line?
-        if (CommandLineParser.Parse("timeout",clValues)) then
-        begin
-            using clValues.Count select
-            (1),
-            begin
-                try
-                begin
-                    Settings.DatabaseTimeout = %integer((string)clValues[0])
-                end
-                catch (e, @Exception)
-                begin
-                    xcall errorlog("Invalid option value following the -timeout option. Specify an integer greater than 1.")
-                    ok = false
-                end
-                endtry
-            end
-            (0),
-            begin
-                xcall errorlog("Missing value after the -timeout option")
-                ok = false
-            end
-            (),
-            begin
-                xcall errorlog("Only one value may follow the -timeout option")
-                ok = false
-            end
-            endusing
-        end
-        else
-        begin
-            ;;Environment variable?
-            data tmpval, a32
-            xcall getlog("REPLICATOR_DATABASE_TIMEOUT",tmpval,length)
-            if (length)
-            begin
-                try
-                begin
-                    Settings.DatabaseTimeout = %integer(%atrim(tmpval))
-                end
-                catch (e, @Exception)
-                begin
-                    xcall errorlog("Invalid option value for REPLICATOR_DATABASE_TIMEOUT. Specify an integer greater than 1.")
-                    ok = false
-                end
-                endtry
-            end
-        end
-    end
-
-    ;;Bulk load and indexing timeout
-
-    if (ok)
-    begin
-        ;;Command line?
-        if (CommandLineParser.Parse("bulkloadtimeout",clValues)) then
-        begin
-            using clValues.Count select
-            (1),
-            begin
-                try
-                begin
-                    Settings.BulkLoadTimeout = %integer((string)clValues[0])
-                end
-                catch (e, @Exception)
-                begin
-                    xcall errorlog("Invalid option value following the -bulkloadtimeout option. Specify an integer greater than 1.")
-                    ok = false
-                end
-                endtry
-            end
-            (0),
-            begin
-                xcall errorlog("Missing value after the -bulkloadtimeout option")
-                ok = false
-            end
-            (),
-            begin
-                xcall errorlog("Only one value may follow the -bulkloadtimeout option")
-                ok = false
-            end
-            endusing
-        end
-        else
-        begin
-            ;;Environment variable?
-            data tmpval, a32
-            xcall getlog("REPLICATOR_BULKLOAD_TIMEOUT",tmpval,length)
-            if (length)
-            begin
-                try
-                begin
-                    Settings.BulkLoadTimeout = %integer(%atrim(tmpval))
-                end
-                catch (e, @Exception)
-                begin
-                    xcall errorlog("Invalid option value for REPLICATOR_BULKLOAD_TIMEOUT. Specify an integer greater than 1.")
-                    ok = false
-                end
-                endtry
-            end
-        end
-    end
-
-    ;;Enable the "Improve SQL statement caching for SQL Server" feature (Synergy V11)
-
-    if (ok)
-    begin
-        ;;The SQLPERFORMANCESQL environment variable causes SQL Connection to use SQLDescribeParam internally
-        ;;to improve performance for SQL statements with I/O parameters when accessing SQL Server.
-        ;;
-        ;;This is the equivalent of using %SSC_CMD(chn,,SSQL_PERFORMANCE_SQL)
-        ;;
-        ;;Setting this environment variable will have no effect on pre V11 systems, but will enable the
-        ;;enhanced performance feature under V11 and later versions.
-        ;;
-        xcall setlog("SQLPERFORMANCESQL","YES",length)
-    end
-
-    ;;Enable and Initialize SQL Connection
-
-    if (ok)
-    begin
-        .ifdef OS_VMS
-        xcall init_ssql
-        .else
-        status = %option(48,1)
-        .endc
-        Settings.DatabaseChannel = 1
-        if (%ssc_init(Settings.DatabaseChannel,Settings.MaxCursors,Settings.MaxColumns)==SSQL_FAILURE)
-        begin
-            xcall errorlog("Failed to initialize SQL Connection")
-            ok = false
-        end
-    end
-
-    ;;Connect to the database
-
-    if (ok)
-    begin
-        xcall log("Connecting to database...")
-        if (%ssc_connect(Settings.DatabaseChannel,Settings.DatabaseConnectString)==SSQL_NORMAL) then
-            xcall log("Connected")
-        else
-        begin
-            ;;Failed to connect
-            xcall ssc_getemsg(Settings.DatabaseChannel,dberrtxt,length)
-            xcall errorlog("Failed to connect to database!")
-            xcall log("Connect string was: " + Settings.DatabaseConnectString)
-            xcall log("Error message was : " + dberrtxt(1,length))
-            ok = false
-
-            ;;If we're sending emails then let's record the connect failure
-            if (Settings.CanSendEmail())
-            begin
-                data body = new string[3]
-                body[1] = "ERROR: Failed to connect to database!"
-                body[2] = "Connect string was: " + Settings.DatabaseConnectString
-                body[3] = "Error message was :  " + dberrtxt(1,length)
-                xcall SendEmail("ERROR",body)
-            end
-        end
-    end
-
-    ;;Enable SQL Server Auto-Commit mode?
-
-    if (ok)
-    begin
-        using Settings.CommitMode select
-
-        (DatabaseCommitMode.Automatic),
-        begin
-            xcall log("Commit mode: AUTOMATIC")
-            if (%ssc_cmd(Settings.DatabaseChannel,,SSQL_ODBC_AUTOCOMMIT,"yes")!=SSQL_NORMAL)
-            begin
-                xcall ssc_getemsg(Settings.DatabaseChannel,dberrtxt,length)
-                xcall errorlog("Failed to enable auto-commit!")
-                xcall log("Error message was : " + dberrtxt(1,length))
-                ok = false
-            end
-        end
-
-        (DatabaseCommitMode.Batch),
-        begin
-            xcall log("Commit mode: BATCH")
-            call StartTransaction
-        end
-
-        (DatabaseCommitMode.Manual),
-        begin
-            xcall log("Commit mode: MANUAL")
-        end
-
-        endusing
-    end
-
-    ;;Set the SQL statement execution timeout
-
-    if (ok)
-    begin
-        xcall log("Setting database execution timeout to " + %string(Settings.DatabaseTimeout) + " seconds")
-        if (%ssc_cmd(Settings.DatabaseChannel,,SSQL_TIMEOUT,%string(Settings.DatabaseTimeout))!=SSQL_NORMAL)
-        begin
-            xcall ssc_getemsg(Settings.DatabaseChannel,dberrtxt,length)
-            xcall errorlog("Failed to set database execution timeout!")
-            xcall log("Error message was : " + dberrtxt(1,length))
-            ok = false
-        end
-    end
-
-    ;;Register a shutdown handler
-
-    if (ok && !Settings.RunningOnTerminal)
-        xcall syn_atexit(%xaddr("ReplicatorShutdown"))
-
-    ;;If there has been a failure and we're running on the terminal, pause so error messages may be read
-
-    .ifdef d_GUI
-    if (!ok && Settings.RunningOnTerminal)
-    begin
-        data tmpchr, a1
-        display(Settings.TerminalChannel,13,10,"Replicator will stop - press a key: ")
-        accept(Settings.TerminalChannel,tmpchr)
-    end
-    .endc
-
-    if (ok)
-    begin
-        ;;Create the process ID file
-        call RecordProcessID
-
-        ;;Create a namespace to record information about Synergy data files that we have opened.
-        Settings.ChannelInfo = %nspc_open(,%size(structure_data))
-
-        xcall log("Maximum cursors: "+%string(Settings.MaxCursors))
-        xcall log("Maximum columns: "+%string(Settings.MaxColumns))
-
-        xcall log("--- Processing instructions ----------------------")
-
-        ;;If we're sending emails then let's record the server startup
-        if (Settings.CanSendEmail())
-        begin
-            data body = new string[#] {"The SQL replicator process was started."}
-            xcall SendEmail("STARTED",body)
-        end
-
-        ;;If were writing to the system log, record the startup
-        if (Settings.SystemLog)
-        begin
-            data tmpmsg, string, "Startup of replicator instance " + Settings.InstanceName + %char(13) + %char(10)
-            tmpmsg += "Database connect string is " + Settings.DatabaseConnectString + %char(13) + %char(10)
-            tmpmsg += "Transaction file is " + Settings.TransactionFile + %char(13) + %char(10)
-            tmpmsg += "Log file is " + Settings.LogFileName + %char(13) + %char(10)
-            tmpmsg += "Sleep interval is " + %string(Settings.SleepTime) + " seconds. " + %char(13) + %char(10)
-            if (Settings.StopOnError) then
-                tmpmsg += "Replicator will stop if any error is encountered" + %char(13) + %char(10)
-            else
-                tmpmsg += "Replicator will attempt to continue if errors are encountered" + %char(13) + %char(10)
-            if (Settings.CanSendEmail()) then
-            begin
-                tmpmsg += "Replicator is configured to send email messages to " + Settings.ErrorEmail + %char(13) + %char(10)
-                tmpmsg += "Emails will be sent from " + Settings.EmailSender + %char(13) + %char(10)
-                tmpmsg += "Email server is " + Settings.EmailServer + %char(13) + %char(10)
-            end
-            else
-                tmpmsg += "Replicator is NOT configured to send email messages" + %char(13) + %char(10)
-
-            xcall syn_reportevent(D_EVENTLOG_INFORMATION_TYPE,tmpmsg)
-        end
-    end
-
-    return
-
-;;-----------------------------------------------------------------------------
-;; Record the process ID of the running instance
-
-RecordProcessId,
-
-    if (!Settings.RunningOnTerminal)
-    begin
-        data pidFileSpec, string, "REPLICATOR_LOGDIR:REPLICATOR_" + Settings.InstanceName + ".PID"
-        data pidFileChannel, int
-
-        ;;Open the PID file
-        try
-        begin
-            xcall delet(pidFileSpec)
-            open(pidFileChannel=0,o:s,pidFileSpec)
-            .ifdef D_VMS
-            writes(pidFileChannel,%hex(%jbno,4))
-            .else
-            writes(pidFileChannel,%string(%jbno))
-            .endc
-        end
-        catch (ex)
-        begin
-            xcall errorlog("Failed to create or write PID file! Error was " + ex.Message)
-        end
-        finally
-        begin
-            if (pidFileChannel && %chopen(pidFileChannel))
-                close pidFileChannel
-        end
-        endtry
-    end
-
-    return
-
 endmain
-
-;;*****************************************************************************
-;;
-;; Routine:     ReplicatorShutdown
-;;
-;; Description: This routine is an event handler which is called when the
-;;              replicator service is being stopped by the Windows operating
-;;              system, or because a shutdown message was received via the
-;;              instructions file.
-;;
-;; Author:      Steve Ives, Synergex Professional Services Group
-;;
-;; Created:     10th April 2008
-;;
-;;*****************************************************************************
-;;
-;; This code is supplied as seen and without warranty or support, and is used
-;; at your own risk. Neither the author or Synergex accept any responsability
-;; for any loss or damage which may result from the use of this code. This text
-;; must remain unaltered in this file at all times. Possession or use of this
-;; code, or any modified version of this code, indicates your acceptance of
-;; these conditions.
-;;
-;;*****************************************************************************
-;;
-subroutine ReplicatorShutdown
-
-    endparams
-
-    .include "CONNECTDIR:ssql.def"
-    .include "DBLDIR:namspc.def"
-    .include "REPLICATOR_INCLUDE:SmtpMail.def"
-
-    stack record
-        idx                 ,i4                 ;;Loop counter
-        access_code         ,i4                 ;;Namespace access code
-        status              ,i4                 ;;Function return status
-        functionName        ,string             ;;External function name to call
-        structure_data      ,strStructureData
-        message             ,string
-    endrecord
-
-proc
-
-    ;;If we are in batch commit mode, commit any final changes
-
-    if (Settings.CommitMode == DatabaseCommitMode.Batch && Counters.BatchCounter > 0)
-    begin
-        message = "Commit transaction with " + %string(Counters.BatchCounter) + " change"
-        if (Counters.BatchCounter>1)
-            message = message + "s"
-        xcall verboselog(message)
-        xcall ssc_commit(Settings.DatabaseChannel,SSQL_TXON)
-        Counters.BatchCommits += 1
-        Counters.BatchCounter = 0
-    end
-
-    ;;Report the counters
-
-    message = "--------------------------------------------------" + %char(13) + %char(10)
-    message += "Shutdown of replicator instance " + Settings.InstanceName + %char(13) + %char(10)
-    message += "INSERTS: " + %string(Counters.Inserts,"ZZZ,ZZZ,ZZZ,ZZX") + %char(13) + %char(10)
-    message += "UPDATES: " + %string(Counters.Updates,"ZZZ,ZZZ,ZZZ,ZZX") + %char(13) + %char(10)
-    message += "DELETES: " + %string(Counters.Deletes,"ZZZ,ZZZ,ZZZ,ZZX") + %char(13) + %char(10)
-    if (Settings.CommitMode == DatabaseCommitMode.Batch)
-        message += "COMMITS: " + %string(Counters.BatchCommits,"ZZZ,ZZZ,ZZZ,ZZX") + %char(13) + %char(10)
-    message += "ERRORS:  " + %string(Counters.Errors, "ZZZ,ZZZ,ZZZ,ZZX") + %char(13) + %char(10)
-    message += "--------------------------------------------------"
-
-    if (Settings.LogFileChannel != 0)
-        writes(Settings.LogFileChannel,message)
-
-    if (Settings.RunningOnTerminal)
-        writes(Settings.TerminalChannel,message)
-
-    ;;If were writing to the system log, record the counters there too
-
-    if (Settings.SystemLog)
-        xcall syn_reportevent(D_EVENTLOG_INFORMATION_TYPE,message)
-
-    ;;If we're sending emails then send a shutting down message
-
-    if (Settings.CanSendEmail())
-    begin
-        data body = new string[10]
-        body[01] = "<html>"
-        body[02] = "<head><title>Replicator Activity Summary</title></head>"
-        body[03] = "<body>"
-        body[04] = "<p>Summary of activity:</p>"
-        body[05] = "<pre>INSERTS: " + %string(Counters.Inserts,"ZZZ,ZZZ,ZZZ,ZZX")
-        body[06] =      "UPDATES: " + %string(Counters.Updates,"ZZZ,ZZZ,ZZZ,ZZX")
-        body[07] =      "DELETES: " + %string(Counters.Deletes,"ZZZ,ZZZ,ZZZ,ZZX")
-        body[08] =      "ERRORS:  " + %string(Counters.Errors, "ZZZ,ZZZ,ZZZ,ZZX") + "</pre>"
-        body[09] = "</body>"
-        body[10] = "</html>"
-        xcall SendEmail("STOPPED",body,true)
-    end
-
-    ;;Clean up any database cursors and data files that we have open
-
-    if (Settings.ChannelInfo)
-    begin
-        for idx from 1 thru %nspc_stoa(Settings.ChannelInfo,9999)
-        begin
-            ;;Get the item data from the namespace
-            access_code = %nspc_stoa(Settings.ChannelInfo,idx)
-            xcall nspc_getdata(Settings.ChannelInfo,access_code,structure_data)
-
-            ;;Hard close any soft-closed database cursors
-            try
-            begin
-                functionName = %atrim(structure_data.structure_name) + "Close"
-                xcall xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode)
-            end
-            catch (ex)
-            begin
-                nop
-            end
-            endtry
-
-            ;;Close the channel
-            if ((structure_data.structure_chan)&&%chopen(structure_data.structure_chan))
-                close structure_data.structure_chan
-        end
-
-        xcall nspc_close(Settings.ChannelInfo)
-        Settings.ChannelInfo = 0
-
-    end
-
-    ;;Disconnect from the database
-
-    if (Settings.DatabaseChannel)
-    begin
-        xcall ssc_release(Settings.DatabaseChannel)
-        Settings.DatabaseChannel = 0
-    end
-
-    ;;Close the instruction queue file
-
-    if (Settings.InstructionChannel)
-    begin
-        close Settings.InstructionChannel
-        Settings.InstructionChannel = 0
-    end
-
-    ;;Delete the PID file
-
-    if (!Settings.RunningOnTerminal)
-    begin
-        data pidFileSpec, string, "REPLICATOR_LOGDIR:REPLICATOR_" + Settings.InstanceName + ".PID"
-        xcall delet(pidFileSpec)
-    end
-
-    ;;Make sure that the keyboard input buffer is empty
-
-    if (Settings.RunningOnTerminal)
-    begin
-        data tmpvar, a1
-        while (%ttsts)
-            accept(Settings.TerminalChannel,tmpvar)
-    end
-
-    ;;On Windows, give the user the chance to read the final messages
-
-    .ifdef D_GUI
-    if (Settings.RunningOnTerminal)
-    begin
-        xcall log("Replicator will stop in 2 seconds")
-        sleep 2
-    end
-    .endc
-
-    xreturn
-
-endsubroutine
-
-;;; <summary>
-;;; Open the log file
-;;; </summary>
-;;; <returns>Returns true if the log file was opened.</returns>
-function open_log, boolean
-    stack record
-        ok, boolean
-    endrecord
-proc
-
-    if (Settings.LogFileChannel==0)
-    begin
-        try
-        begin
-            data tmpchn, int
-            open(tmpchn=0,a:s,Settings.LogFileName)
-            Settings.LogFileChannel = tmpchn
-            ok = true
-        end
-        catch (ex)
-        begin
-            data tmpmsg, string, "Replicator failed to open log file " + Settings.LogFileName + ". Error number " + %string(%ernum)
-            if (Settings.RunningOnTerminal) then
-                writes(Settings.TerminalChannel,tmpmsg)
-            else
-                xcall syn_reportevent(D_EVENTLOG_ERROR_TYPE,tmpmsg)
-            Settings.LogFileChannel = 0
-            ok = false
-        end
-        endtry
-    end
-
-    freturn ok
-
-endfunction
-
-;;*****************************************************************************
-;;
-subroutine log
-    required in message, string
-proc
-
-    ;;Log the message
-
-    if (Settings.LogFileChannel!=0)
-        writes(Settings.LogFileChannel,%TimeNow + message)
-
-    ;;If running on the terminal, also display the message
-    if (Settings.RunningOnTerminal)
-        writes(Settings.TerminalChannel,message)
-
-    xreturn
-
-endsubroutine
-
-;;*****************************************************************************
-;;
-subroutine cycle_log
-proc
-    ;;Open the log file
-    if (Settings.LogFileChannel!=0)
-    begin
-        data now, a20, %datetime
-        Settings.LogFileName = "REPLICATOR_LOGDIR:REPLICATOR_" + Settings.InstanceName + "_" + now(1:8) + "_" + now(9:6) + ".LOG"
-
-        xcall log("New log file is " + Settings.LogFileName)
-
-        close Settings.LogFileChannel
-        Settings.LogFileChannel = 0
-
-        open(Settings.LogFileChannel,a:s,Settings.LogFileName)
-
-    end
-
-    xreturn
-
-endsubroutine
-
-;;*****************************************************************************
-;;
-subroutine errorlog
-    required in message, string
-proc
-
-    xcall log("ERROR: " + message)
-    ;;Are we also logging to the system log?
-    if (Settings.SystemLog)
-        xcall syn_reportevent(D_EVENTLOG_ERROR_TYPE,"ERROR: " + message)
-
-    xreturn
-
-endsubroutine
-
-;;*****************************************************************************
-;;
-subroutine verboselog
-    required in message, string
-proc
-    if (Settings.FullLogging)
-        xcall log(message)
-    xreturn
-endsubroutine
-
-;;*****************************************************************************
-;;
-subroutine LogFunctionError
-    required in functionName, string
-    required in errorNumber, int
-    required in errorMessage, string
-    endparams
-    .include "REPLICATOR_INCLUDE:SmtpMail.def"
-    stack record
-        errorText           ,string
-    endrecord
-proc
-
-    errorText = "Function " + functionName + " returned error " + %string(errorNumber) + ": " + %atrim(errorMessage)
-
-    ;;Log the error
-    xcall errorlog(errorText)
-
-    ;;Email the error?
-    if (Settings.CanSendEmail())
-    begin
-        data body = new string[3]
-        if (Settings.StopOnError) then
-            body[1] = "The SQL Replicator encountered the following error and will STOP processing:"
-        else
-            body[1] = "The SQL Replicator encountered the following error and will CONTINUE processing:"
-        body[2] = ""
-        body[3] = errorText
-        xcall SendEmail("ERROR",body)
-    end
-
-    ;;Stop processing?
-    if (Settings.StopOnError)
-    begin
-        xcall ReplicatorShutdown
-        stop
-    end
-
-    xreturn
-
-endsubroutine
-
-;;*****************************************************************************
-;;
-subroutine SendEmail
-    required in subject, string
-    required in body, [#]string
-    optional in bodyhtml, boolean
-    optional in recipientEmail, string
-    .include "REPLICATOR_INCLUDE:SmtpMail.def"
-    stack record
-        emailStatus, i4
-        subjectLine, string
-        recipientAddress, string
-        html, boolean
-    endrecord
-proc
-    emailStatus = 0
-    subjectLine = "Replicator " + Settings.InstanceName + " " + subject
-    html = ^passed(bodyhtml) && bodyhtml
-    if (^passed(recipientEmail) && recipientEmail.Length>0) then
-        recipientAddress = recipientEmail
-    else
-        recipientAddress = Settings.ErrorEmail
-    if ((emailStatus=%SmtpMail(Settings.EmailServer,Settings.EmailSender,"SQL Replicator",,recipientAddress,,subjectLine,body,,html)) != SMERR_SUCCESS)
-        xcall errorlog("Failed to send error email. Error was " + %atrim(SmtpErrorText[emailStatus]))
-    xreturn
-endsubroutine
-
-;;*****************************************************************************
-;;
-function LogFunctionFail, boolean
-    required in functionName, string
-    required in errorNumber, int
-    required in errorMessage, string
-    endparams
-    .include "REPLICATOR_INCLUDE:SmtpMail.def"
-    stack record
-        errorText           ,string
-    endrecord
-proc
-
-    errorText = "Function " + functionName + " failed with error " + %string(errorNumber) + ": " + %atrim(errorMessage)
-
-    ;;Log the error
-    xcall errorlog(errorText)
-
-    ;;Email the error?
-    if (Settings.CanSendEmail())
-    begin
-        data body = new string[3]
-        if (Settings.StopOnError) then
-            body[1] = "The SQL Replicator encountered the following error and will STOP processing:"
-        else
-            body[1] = "The SQL Replicator encountered the following error and will CONTINUE processing:"
-        body[2] = ""
-        body[3] = errorText
-        xcall SendEmail("ERROR",body)
-    end
-
-    ;;Stop processing?
-    if (Settings.StopOnError)
-    begin
-        xcall ReplicatorShutdown
-        stop
-    end
-
-    freturn false
-
-endfunction
-
-;;*****************************************************************************
-;;
-function TimeNow, string
-    record
-        now, d20
-    endrecord
-proc
-    now = %datetime
-    freturn %string(now(1:14),"XXXX-XX-XX XX:XX:XX ")
-endfunction
-
-;;*****************************************************************************
-
-namespace Tools
-
-    public class Counters
-
-        public static Inserts, int
-
-        public static Updates, int
-
-        public static Deletes, int
-
-        public static Errors, int
-
-        public static BatchCommits, int
-
-        public static BatchCounter, int
-
-    endclass
-
-    ;; Do not change these values, they are processed via their integer value in the SqlIO routines!
-    public enum DatabaseCommitMode
-        Automatic,  1
-        Batch,      2
-        Manual,     3
-    endenum
-
-    ;;; <summary>
-    ;;; Represents various settings used within the replicator application.
-    ;;; </summary>
-    .ifdef D_VMS
-    public class Settings
-    .else
-    public static class Settings
-        .endc
-
-        ;;; <summary>
-        ;;; Configure default settings
-        ;;; Can't use a static constructor because VMS doesn't support them
-        ;;; </summary>
-        public static method Initialize, void
-            record
-                now, a20
-            endrecord
-        proc
-            now = %datetime
-            CommitBatchRows    = 1000
-            CommitMode         = DatabaseCommitMode.Batch
-            ErrorSleepTime     = 0.01
-            LocalExportPath    = ^null
-            FileServiceHost    = ^null
-            FileServicePort    = "8080"
-            InstanceName       = "DEFAULT"
-            LogFileChannel     = 0
-            LogFileName        = "REPLICATOR_LOGDIR:REPLICATOR_" + InstanceName + "_" + now(1:8) + "_" + now(9:6) + ".LOG"
-            MaxCursors         = 128
-            MaxColumns         = 254
-            RunningOnTerminal  = (%tnmbr >= 0)
-            SleepTime          = 60
-            SystemLog          = false
-            TransactionFile    = "REPLICATOR_DATA:REPLICATION_" + InstanceName + ".ISM"
-            DatabaseTimeout    = 60
-            BulkLoadTimeout    = 900
-        endmethod
-
-        ;;; <summary>
-        ;;; A synergy namespace used to store information about SDMS channels that the replicator currently has open
-        ;;; </summary>
-        public static readwrite property ChannelInfo, i4
-
-        ;;; <summary>
-        ;;; The SQL Connection database channel that represents our connection to the database.
-        ;;; </summary>
-        public static readwrite property DatabaseChannel, int
-
-        ;;; <summary>
-        ;;; Database connection string.
-        ;;; </summary>
-        public static readwrite property DatabaseConnectString, string
-
-        private static mInstanceName, string
-
-        ;;; <summary>
-        ;;; The name of the replicator instance. The default instance name is DEFAULT. The instance name is used to
-        ;;; discriminate between multiple instances of the replicator that might be active, each processing different
-        ;;; data sets.
-        ;;; </summary>
-        public static property InstanceName, string
-            method get
-            proc
-                mreturn mInstanceName
-            endmethod
-            method set
-            proc
-                mInstanceName = value.ToUpper()
-            endmethod
-        endproperty
-
-        ;;; <summary>
-        ;;; The channel number of the replication instruction file.
-        ;;; </summary>
-        public static readwrite property InstructionChannel, int
-
-        ;;; <summary>
-        ;;; The email address or addresses to send status messages to.
-        ;;; One or more email addresses seperated by commas.
-        ;;; </summary>
-        public static readwrite property ErrorEmail, string
-
-        ;;; <summary>
-        ;;; The DNS name or IP address of the SMTP server to use to send email messages.
-        ;;; The SMTP server must be configured to accept messages from unauthenticated sources.
-        ;;; </summary>
-        public static readwrite property EmailServer, string
-
-        ;;; <summary>
-        ;;; The email address to be used as the sender of status messages.
-        ;;; </summary>
-        public static readwrite property EmailSender, string
-
-        ;;; <summary>
-        ;;; How many seconds should we sleep after processing an error?
-        ;;; </summary>
-        public static readwrite property ErrorSleepTime, decimal
-
-        ;;; <summary>
-        ;;; Where should export files be created locally?
-        ;;; </summary>
-        public static readwrite property LocalExportPath, string
-
-        ;;; <summary>
-        ;;; The name or IP address of the system running FileService
-        ;;; </summary>
-        public static readwrite property FileServiceHost, string
-
-        ;;; <summary>
-        ;;; The name or IP address of the system running FileService
-        ;;; </summary>
-        public static readwrite property FileServicePort, string
-
-        ;;; <summary>
-        ;;; Are we doing full logging?
-        ;;; </summary>
-        public static readwrite property FullLogging, boolean
-
-        ;;; <summary>
-        ;;; The channel that the replicator log file is open on.
-        ;;; </summary>
-        public static readwrite property LogFileChannel, int
-
-        ;;; <summary>
-        ;;; The name of the replicator log file.
-        ;;; If running in interactive mode this will be TT:
-        ;;; </summary>
-        public static readwrite property LogFileName, string
-
-        ;;; <summary>
-        ;;; Include key data in debug logs?
-        ;;; </summary>
-        public static readwrite property LogKeys, boolean
-
-        ;;; <summary>
-        ;;; Log bulk load exceptions to a log file?
-        ;;; </summary>
-        public static readwrite property LogLoadExceptions, boolean
-
-        ;;; <summary>
-        ;;; Maximum number of database cursors
-        ;;; </summary>
-        public static readwrite property MaxCursors, int
-
-        ;;; <summary>
-        ;;; Maximum number of columns in a database table
-        ;;; </summary>
-        public static readwrite property MaxColumns, int
-
-        ;;; <summary>
-        ;;; Should we report progress when bulk loading tables?
-        ;;; </summary>
-        public static readwrite property BulkLoadProgressReporting, boolean
-
-        ;;; <summary>
-        ;;; Are we attached to a terminal?
-        ;;; </summary>
-        public static readwrite property RunningOnTerminal, boolean
-
-        ;;; <summary>
-        ;;; How many seconds should we sleep when we run out of instructions to process?
-        ;;; </summary>
-        public static readwrite property SleepTime, int
-
-        ;;; <summary>
-        ;;; Should we stop processing and close if we encounter an error?
-        ;;; </summary>
-        public static readwrite property StopOnError, boolean
-
-        ;;; <summary>
-        ;;; Should we also log to the system log?
-        ;;; </summary>
-        public static readwrite property SystemLog, boolean
-
-        ;;; <summary>
-        ;;; If running interactively, the channel number of the terminal.
-        ;;; </summary>
-        public static readwrite property TerminalChannel, int
-
-        ;;; <summary>
-        ;;; The name of the replication transation log file.
-        ;;; </summary>
-        public static readwrite property TransactionFile, string
-
-        ;;; <summary>
-        ;;; Are we able to use bulk load?
-        ;;; </summary>
-        ;;; <returns>Returns true if we have all the data, but does not guarantee that bulk upload will work!</returns>
-        public static method CanBulkLoad, boolean
-        proc
-            .ifdef OS_VMS
-            mreturn (FileServiceHost!=^null && FileServiceHost.Length>1)
-            .endc
-            .ifdef OS_UNIX
-            mreturn (FileServiceHost!=^null && FileServiceHost.Length>1)
-            .endc
-            .ifdef OS_WINDOWS7
-            ;TODO: On windows we can also bulk load IF the database is on the same server as the replicator
-            mreturn (!DatabaseConnectString.ToLower().StartsWith("net:") || (FileServiceHost!=^null))
-            .endc
-        endmethod
-
-        ;;; <summary>
-        ;;; Are we able to send email messages. In order for this to return true we must have values
-        ;;; for EmailError, EmailServer, EmailSender and EmailDomain.
-        ;;; </summary>
-        ;;; <returns>Returns true if we have all the data, but does not guarantee that email can be sent!</returns>
-        public static method CanSendEmail, boolean
-        proc
-            mreturn (ErrorEmail != ^null && ErrorEmail.Length>0 && EmailServer != ^null && EmailServer.Length>0 && EmailSender != ^null && EmailSender.Length>0)
-        endmethod
-
-        ;;; <summary>
-        ;;; Database commit mode (Automatic, Manual or Batch).
-        ;;; </summary>
-        public static readwrite property CommitMode, DatabaseCommitMode
-
-        ;;; <summary>
-        ;;; If the replicator is in batch commit mode, how many rows constitute a batch?
-        ;;; </summary>
-        public static readwrite property CommitBatchRows, int
-
-        ;;; <summary>
-        ;;; Database statement execution timeout in seconds. The default is 60 seconds.
-        ;;; </summary>
-        public static readwrite property DatabaseTimeout, int
-
-        ;;; <summary>
-        ;;; Database statement execution timeout for bulk load and indexing operations in seconds. The default value is 900 seconds (15 minutes).
-        ;;; </summary>
-        public static readwrite property BulkLoadTimeout, int
-
-    endclass
-
-endnamespace

@@ -1,0 +1,40 @@
+;;*****************************************************************************
+;;
+
+import replicator
+
+subroutine SendEmail
+    required in subject, string
+    required in body, [#]string
+    optional in bodyhtml, boolean
+    optional in recipientEmail, string
+
+    .include "REPLICATOR_INCLUDE:SmtpMail.def"
+
+    stack record
+        emailStatus, i4
+        subjectLine, string
+        recipientAddress, string
+        html, boolean
+    endrecord
+proc
+    emailStatus = 0
+    subjectLine = "Replicator " + Settings.InstanceName + " " + subject
+    html = ^passed(bodyhtml) && bodyhtml
+
+    if (^passed(recipientEmail) && recipientEmail.Length>0) then
+    begin
+        recipientAddress = recipientEmail
+    end
+    else
+    begin
+        recipientAddress = Settings.ErrorEmail
+    end
+
+    if ((emailStatus=%SmtpMail(Settings.EmailServer,Settings.EmailSender,"SQL Replicator",,recipientAddress,,subjectLine,body,,html)) != SMERR_SUCCESS)
+        Logger.ErrorLog("Failed to send error email. Error was " + %atrim(SmtpErrorText[emailStatus]))
+
+    xreturn
+
+endsubroutine
+

@@ -1,0 +1,96 @@
+﻿<Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(SolutionDir)Common.props" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Configuration)' == '' ">x86</Platform>
+    <Name>tools</Name>
+    <StartupObject>Program1.dbl</StartupObject>
+    <OutputName>$(StartupObject)</OutputName>
+    <ProjectGuid>{123f18a8-db24-4ed3-91bf-ed7917bef4c1}</ProjectGuid>
+    <ProjectTypeGuids>{7B8CF543-378A-4EC1-BB1B-98E4DC6E6820};{BBD0F5D1-1CC4-42fd-BA4C-A96779C64378}</ProjectTypeGuids>
+    <OutputType>mainline</OutputType>
+    <DBL_SingleCompilationUnit>false</DBL_SingleCompilationUnit>
+    <DBL_qTrim>True</DBL_qTrim>
+    <DBL_qAlign>True</DBL_qAlign>
+    <EnableCommonProperties>True</EnableCommonProperties>
+    <CommonPropertiesFileLocation>$(SolutionDir)Common.props</CommonPropertiesFileLocation>
+    <RootNamespace>tools</RootNamespace>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|x86' ">
+    <IncludeDebugInformation>true</IncludeDebugInformation>
+    <OutputPath>$(SolutionDir)\$(Configuration)\$(Platform)</OutputPath>
+    <UnevaluatedOutputPath>EXE:</UnevaluatedOutputPath>
+    <PlatformTarget>x86</PlatformTarget>
+    <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
+    <DebugOptimize>Debug</DebugOptimize>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|x64' ">
+    <IncludeDebugInformation>true</IncludeDebugInformation>
+    <OutputPath>$(SolutionDir)\$(Configuration)\$(Platform)</OutputPath>
+    <UnevaluatedOutputPath>EXE:</UnevaluatedOutputPath>
+    <PlatformTarget>x64</PlatformTarget>
+    <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
+    <DebugOptimize>Debug</DebugOptimize>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|x86' ">
+    <IncludeDebugInformation>true</IncludeDebugInformation>
+    <OutputPath>$(SolutionDir)\$(Configuration)\$(Platform)</OutputPath>
+    <UnevaluatedOutputPath>EXE:</UnevaluatedOutputPath>
+    <PlatformTarget>x86</PlatformTarget>
+    <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
+    <DebugOptimize>Optimize</DebugOptimize>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|x64' ">
+    <IncludeDebugInformation>true</IncludeDebugInformation>
+    <OutputPath>$(SolutionDir)\$(Configuration)\$(Platform)</OutputPath>
+    <UnevaluatedOutputPath>EXE:</UnevaluatedOutputPath>
+    <PlatformTarget>x64</PlatformTarget>
+    <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
+    <DebugOptimize>Optimize</DebugOptimize>
+  </PropertyGroup>
+  <Import Project="$(MSBuildExtensionsPath)\Synergex\dbl\Synergex.SynergyDE.Traditional.targets" />
+  <PropertyGroup>
+    <PreBuildEvent>
+    </PreBuildEvent>
+    <PostBuildEvent>
+    </PostBuildEvent>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="..\..\SRC\TOOLS\ChangeEveryEmployee.dbl">
+      <Link>ChangeEveryEmployee.dbl</Link>
+    </Compile>
+    <Compile Include="..\..\SRC\TOOLS\DepartmentMaintenance.dbl">
+      <Link>DepartmentMaintenance.dbl</Link>
+    </Compile>
+    <Compile Include="..\..\SRC\TOOLS\EmployeeDataReport.dbl">
+      <Link>EmployeeDataReport.dbl</Link>
+    </Compile>
+    <Compile Include="..\..\SRC\TOOLS\EmployeeMaintenance.dbl">
+      <Link>EmployeeMaintenance.dbl</Link>
+    </Compile>
+    <Compile Include="..\..\SRC\TOOLS\InstructionCount.dbl">
+      <Link>InstructionCount.dbl</Link>
+    </Compile>
+    <Compile Include="..\..\SRC\TOOLS\QueueMonitor.dbl">
+      <Link>QueueMonitor.dbl</Link>
+    </Compile>
+    <Compile Include="..\..\SRC\TOOLS\ReplicatorMenu.dbl">
+      <Link>ReplicatorMenu.dbl</Link>
+    </Compile>
+    <Compile Include="..\..\SRC\TOOLS\ReplicatorStop.dbl">
+      <Link>ReplicatorStop.dbl</Link>
+    </Compile>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\library\library.synproj">
+      <Name>library</Name>
+      <Project>{3abdc463-1713-445b-87c9-7a1786931be2}</Project>
+      <Private>False</Private>
+    </ProjectReference>
+    <ProjectReference Include="..\repository\repository.synproj">
+      <Name>repository</Name>
+      <Project>{16ff74c0-7fea-4d0e-92a8-74300d18cd66}</Project>
+      <Private>True</Private>
+    </ProjectReference>
+  </ItemGroup>
+</Project>

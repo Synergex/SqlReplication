@@ -1,0 +1,10 @@
+;;*****************************************************************************
+;;
+function TimeNow, string
+    record
+        now, d20
+    endrecord
+proc
+    now = %datetime
+    freturn %string(now(1:14),"XXXX-XX-XX XX:XX:XX ")
+endfunction

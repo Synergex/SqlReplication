@@ -39,7 +39,7 @@ import System.Collections
 
 .include 'DBLDIR:namspc.def'
 
-namespace library
+namespace ReplicationLibrary
 
     public class StringDictionary
 

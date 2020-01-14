@@ -1,0 +1,33 @@
+;;*****************************************************************************
+;;
+;; Routine:     DatabaseDisconnect
+;;
+;; Description: Disconnect from the database
+;;
+;; Author:      Steve Ives, Synergex Professional Services Group
+;;
+;; Created:     30th December 2019
+;;
+;;*****************************************************************************
+;;
+
+import replicator
+
+subroutine DatabaseDisconnect
+proc
+    try
+    begin
+        data dbstatus, int
+        Logger.Log(" - Attempting to close database channel")
+        dbstatus = %ssc_release(Settings.DatabaseChannel)
+    end
+    catch (e, @Exception)
+    begin
+        nop
+    end
+    endtry
+
+    xreturn
+
+endsubroutine
+

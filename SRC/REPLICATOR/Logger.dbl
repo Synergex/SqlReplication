@@ -1,0 +1,194 @@
+
+import replicator
+
+namespace replicator
+
+    public class Logger
+
+        ;;; <summary>
+        ;;; Open the log file, creating it if it does not exist.
+        ;;; </summary>
+        ;;; <returns></returns>
+        public static method OpenLog, boolean
+            stack record
+                ok, boolean
+            endrecord
+        proc
+            if (Settings.LogFileChannel==0)
+            begin
+                try
+                begin
+                    data tmpchn, int
+                    open(tmpchn=0,a:s,Settings.LogFileName)
+                    Settings.LogFileChannel = tmpchn
+                    ok = true
+                end
+                catch (ex)
+                begin
+                    data tmpmsg, string, "Replicator failed to open log file " + Settings.LogFileName + ". Error number " + %string(%ernum)
+                    if (Settings.RunningOnTerminal) then
+                        writes(Settings.TerminalChannel,tmpmsg)
+                    else
+                        xcall syn_reportevent(D_EVENTLOG_ERROR_TYPE,tmpmsg)
+                    Settings.LogFileChannel = 0
+                    ok = false
+                end
+                endtry
+            end
+
+            mreturn ok
+
+        endmethod
+
+        ;;; <summary>
+        ;;; Close and re-open the log file
+        ;;; </summary>
+        public static method CycleLog, void
+        proc
+            ;;Open the log file
+            if (Settings.LogFileChannel!=0)
+            begin
+                data now, a20, %datetime
+                Settings.LogFileName = "REPLICATOR_LOGDIR:REPLICATOR_" + Settings.InstanceName + "_" + now(1:8) + "_" + now(9:6) + ".LOG"
+
+                Logger.Log("New log file is " + Settings.LogFileName)
+
+                close Settings.LogFileChannel
+                Settings.LogFileChannel = 0
+
+                open(Settings.LogFileChannel,a:s,Settings.LogFileName)
+            end
+        endmethod
+
+        ;;; <summary>
+        ;;; Write a message to the log.
+        ;;; </summary>
+        ;;; <param name="message">Message to write</param>
+        public static method Log, void
+            required in message, string
+        proc
+            ;;Log the message
+            if (Settings.LogFileChannel!=0)
+                writes(Settings.LogFileChannel,%TimeNow + message)
+            ;;If running on the terminal, also display the message
+            if (Settings.RunningOnTerminal)
+                writes(Settings.TerminalChannel,message)
+        endmethod
+
+        ;;; <summary>
+        ;;; Write an error message to the log.
+        ;;; </summary>
+        ;;; <param name="message">Error message to write</param>
+        public static method ErrorLog, void
+            required in message, string
+        proc
+            Logger.Log("ERROR: " + message)
+            ;;Are we also logging to the system log?
+            if (Settings.SystemLog)
+                xcall syn_reportevent(D_EVENTLOG_ERROR_TYPE,"ERROR: " + message)
+        endmethod
+
+        ;;; <summary>
+        ;;; Write a message to the log only if verbose logging is enabled.
+        ;;; </summary>
+        ;;; <param name="message">Message to write</param>
+        public static method VerboseLog, void
+            required in message, string
+        proc
+            if (Settings.FullLogging)
+                Logger.Log(message)
+        endmethod
+
+        ;;; <summary>
+        ;;; Log an error from a database function.
+        ;;; </summary>
+        ;;; <param name="functionName">Name of failing function</param>
+        ;;; <param name="errorNumber">Database error number</param>
+        ;;; <param name="errorMessage">Database error message</param>
+        public static method LogFunctionError, void
+            required in functionName, 	string
+            required in errorNumber, 	int
+            required in errorMessage, 	string
+            endparams
+            .include "REPLICATOR_INCLUDE:SmtpMail.def"
+            stack record
+                errorText, string
+            endrecord
+        proc
+            errorText = "Function " + functionName + " returned error " + %string(errorNumber) + ": " + %atrim(errorMessage)
+
+            ;;Log the error
+            Logger.ErrorLog(errorText)
+
+            ;;Email the error?
+            if (Settings.CanSendEmail())
+            begin
+                data body = new string[3]
+                if (Settings.StopOnError) then
+                    body[1] = "The SQL Replicator encountered the following error and will STOP processing:"
+                else
+                    body[1] = "The SQL Replicator encountered the following error and will CONTINUE processing:"
+                body[2] = ""
+                body[3] = errorText
+                xcall SendEmail("ERROR",body)
+            end
+
+            ;;Stop processing?
+            if (Settings.StopOnError)
+            begin
+                xcall ReplicatorShutdown
+                stop
+            end
+
+        endmethod
+
+        ;;; <summary>
+        ;;; Log the failure of a database function
+        ;;; </summary>
+        ;;; <param name="functionName">Nam of failing function</param>
+        ;;; <param name="errorNumber">Database error number</param>
+        ;;; <param name="errorMessage">Database error message</param>
+        ;;; <returns></returns>
+        public static method LogFunctionFail, boolean
+            required in functionName,	string
+            required in errorNumber,	int
+            required in errorMessage,	string
+            endparams
+            .include "REPLICATOR_INCLUDE:SmtpMail.def"
+            stack record
+                errorText, string
+            endrecord
+        proc
+
+            errorText = "Function " + functionName + " failed with error " + %string(errorNumber) + ": " + %atrim(errorMessage)
+
+            ;;Log the error
+            Logger.ErrorLog(errorText)
+
+            ;;Email the error?
+            if (Settings.CanSendEmail())
+            begin
+                data body = new string[3]
+                if (Settings.StopOnError) then
+                    body[1] = "The SQL Replicator encountered the following error and will STOP processing:"
+                else
+                    body[1] = "The SQL Replicator encountered the following error and will CONTINUE processing:"
+                body[2] = ""
+                body[3] = errorText
+                xcall SendEmail("ERROR",body)
+            end
+
+            ;;Stop processing?
+            if (Settings.StopOnError)
+            begin
+                xcall ReplicatorShutdown
+                stop
+            end
+
+            mreturn false
+
+        endmethod
+
+    endclass
+
+endnamespace

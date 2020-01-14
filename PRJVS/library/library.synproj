@@ -20,7 +20,7 @@
     <DBL_qAlign>True</DBL_qAlign>
     <EnableCommonProperties>True</EnableCommonProperties>
     <CommonPropertiesFileLocation>$(SolutionDir)Common.props</CommonPropertiesFileLocation>
-    <RootNamespace>library</RootNamespace>
+    <RootNamespace>ReplicationLibrary</RootNamespace>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|x86' ">
     <IncludeDebugInformation>true</IncludeDebugInformation>
@@ -79,6 +79,9 @@
     </Compile>
     <Compile Include="..\..\SRC\LIBRARY\ConfigureReplication.dbl">
       <Link>ConfigureReplication.dbl</Link>
+    </Compile>
+    <Compile Include="..\..\SRC\LIBRARY\DatabaseCommunicationException.dbl">
+      <Link>DatabaseCommunicationException.dbl</Link>
     </Compile>
     <Compile Include="..\..\SRC\LIBRARY\DepartmentSqlIO.dbl">
       <Link>DepartmentSqlIO.dbl</Link>

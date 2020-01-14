@@ -1,0 +1,60 @@
+;;*****************************************************************************
+;;
+;; Routine:     OpenQueueFile
+;;
+;; Description: Open the queue file, creating it if it does not exist.
+;;
+;; Author:      Steve Ives, Synergex Professional Services Group
+;;
+;; Created:     30th December 2019
+;;
+;;*****************************************************************************
+;;
+
+import replicator
+
+function OpenQueueFile, boolean
+proc
+    ;;Does the instruction queue file exist?
+
+    repeat
+    begin
+        try
+        begin
+            ;;Open the instruction queue file
+            data tmpchn, i4, 0
+            open(tmpchn,U:I,Settings.TransactionFile)
+            Settings.InstructionChannel = tmpchn
+            freturn true
+        end
+        catch (e, @Synergex.SynergyDE.NoFileFoundException)
+        begin
+            ;;The queue file does not exist so we'll try to create it
+            try
+            begin
+.ifdef D_VMS
+                xcall isamc(Settings.TransactionFile + ", FIXED", 32042, 1, "START=1, LENGTH=8, TYPE=SEQUENCE, NAME=TRANSACTION_ID, DENSITY=100")
+.else
+                xcall isamc(Settings.TransactionFile + ", FIXED, COMPRESS, PAGE=1024, TBYTE", 65042, 1, "START=1, LENGTH=8, TYPE=SEQUENCE, NAME=TRANSACTION_ID, DENSITY=100")
+.endc
+                nextloop
+            end
+            catch (ex, @Exception)
+            begin
+                ;;We can't create the file, we're dead!
+                Logger.ErrorLog("Failed to create transaction log file " + Settings.TransactionFile + " - Error was: " + e.Message)
+                freturn false
+            end
+            endtry
+        end
+        catch (e, @Exception)
+        begin
+            ;;The file is present but we can't open it. We're dead!
+            Logger.ErrorLog("Failed to open transaction log file " + Settings.TransactionFile + " - Error was: " + e.Message)
+            freturn false
+        end
+        endtry
+    end
+
+endfunction
+

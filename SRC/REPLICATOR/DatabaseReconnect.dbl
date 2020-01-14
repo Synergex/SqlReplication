@@ -1,0 +1,91 @@
+;;*****************************************************************************
+;;
+;; Routine:     DatabaseReconnect
+;;
+;; Description: Attempt to reconnect to the database following an earlier failure.
+;;
+;; Author:      Steve Ives, Synergex Professional Services Group
+;;
+;; Created:     30th December 2019
+;;
+;;*****************************************************************************
+;;
+
+import replicator
+import System.Collections
+
+function DatabaseReconnect, boolean
+
+    .include "CONNECTDIR:ssql.def"
+    .include "DBLDIR:namspc.def"
+    .include "REPLICATOR_INCLUDE:SmtpMail.def"
+
+    stack record
+        reconnected,        boolean
+        replicatedTables,   @ArrayList
+        tableName,          string
+        dberrtxt,           a512
+        length,             int
+        dbstatus,           int
+        connectionAttempt,  int
+    endrecord
+
+proc
+    reconnected = false
+
+    Logger.Log("Cleaning up after failed database connection...")
+
+    ;;Get a list of all replicated tables
+
+    xcall GetReplicatedTables(replicatedTables)
+
+    ;;Attempt to close any open cursors - no errors will be generated regardless of what happens
+
+    Logger.Log(" - Attempting to close cursors")
+
+    foreach tableName in replicatedTables
+    begin
+        xcall xsubr(tableName + "Close",Settings.DatabaseChannel)
+    end
+
+    ;;Attempt to disconnect from the database - no errors will be generated regardless of what happens
+
+    xcall DatabaseDisconnect
+
+    ;;Attempt to re-connect to the database
+
+    if (Settings.RetryMaxAttempts < 1)
+    begin
+        ;;Re-connect has been disabled!
+        Logger.Log("Database re-connect has been disabled!")
+        freturn false
+    end
+
+    Logger.Log("Attempting database reconnect (max " + %string(Settings.RetryMaxAttempts) + " attempts with a " + %string(Settings.RetryDelaySeconds) + " second interval)")
+
+    for connectionAttempt from 1 thru Settings.RetryMaxAttempts
+    begin
+        if (Settings.RetryDelaySeconds)
+        begin
+            sleep Settings.RetryDelaySeconds
+        end
+            
+        Logger.Log(" - Attempt " + %string(connectionAttempt) + "...")
+
+        if (reconnected = %DatabaseConnect)
+        begin
+            Logger.Log(" - Reconnected")
+            exitloop
+        end
+    end
+
+    if (!reconnected)
+    begin
+        Logger.ErrorLog("Failed to reconnect to database!")
+        freturn false
+    end
+
+    freturn true
+
+endfunction
+

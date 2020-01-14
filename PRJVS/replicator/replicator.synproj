@@ -6,14 +6,14 @@
     <Platform Condition=" '$(Configuration)' == '' ">x86</Platform>
     <Name>replicator</Name>
     <StartupObject>replicator.dbl</StartupObject>
-    <OutputName>$(StartupObject)</OutputName>
+    <OutputName>replicator</OutputName>
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>e6523f1c-7f09-4d5b-ad35-5351d9ae4d44</ProjectGuid>
     <ProjectTypeGuids>{7B8CF543-378A-4EC1-BB1B-98E4DC6E6820};{BBD0F5D1-1CC4-42fd-BA4C-A96779C64378}</ProjectTypeGuids>
-    <OutputType>mainline</OutputType>
+    <OutputType>application</OutputType>
     <ResolveAssemblyWarnOrErrorOnTargetArchitectureMismatch>None</ResolveAssemblyWarnOrErrorOnTargetArchitectureMismatch>
     <PrototypeExpDirectory>proto</PrototypeExpDirectory>
-    <DBL_SingleCompilationUnit>false</DBL_SingleCompilationUnit>
+    <DBL_SingleCompilationUnit>true</DBL_SingleCompilationUnit>
     <DBL_qTrim>True</DBL_qTrim>
     <DBL_qDebug>True</DBL_qDebug>
     <DBL_qCheck>True</DBL_qCheck>
@@ -74,32 +74,50 @@
     </PostBuildEvent>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="..\..\SRC\REPLICATOR\ChangeEveryEmployee.dbl">
-      <Link>ChangeEveryEmployee.dbl</Link>
+    <Compile Include="..\..\SRC\REPLICATOR\ConfigureEnvironment.dbl">
+      <Link>ConfigureEnvironment.dbl</Link>
     </Compile>
-    <Compile Include="..\..\SRC\REPLICATOR\DepartmentMaintenance.dbl">
-      <Link>DepartmentMaintenance.dbl</Link>
+    <Compile Include="..\..\SRC\REPLICATOR\Counters.dbl">
+      <Link>Counters.dbl</Link>
     </Compile>
-    <Compile Include="..\..\SRC\REPLICATOR\EmployeeDataReport.dbl">
-      <Link>EmployeeDataReport.dbl</Link>
+    <Compile Include="..\..\SRC\REPLICATOR\DatabaseConnect.dbl">
+      <Link>DatabaseConnect.dbl</Link>
     </Compile>
-    <Compile Include="..\..\SRC\REPLICATOR\EmployeeMaintenance.dbl">
-      <Link>EmployeeMaintenance.dbl</Link>
+    <Compile Include="..\..\SRC\REPLICATOR\DatabaseDisconnect.dbl">
+      <Link>DatabaseDisconnect.dbl</Link>
     </Compile>
-    <Compile Include="..\..\SRC\REPLICATOR\InstructionCount.dbl">
-      <Link>InstructionCount.dbl</Link>
+    <Compile Include="..\..\SRC\REPLICATOR\DatabaseReconnect.dbl">
+      <Link>DatabaseReconnect.dbl</Link>
     </Compile>
-    <Compile Include="..\..\SRC\REPLICATOR\QueueMonitor.dbl">
-      <Link>QueueMonitor.dbl</Link>
+    <Compile Include="..\..\SRC\REPLICATOR\Enums.dbl">
+      <Link>Enums.dbl</Link>
+    </Compile>
+    <Compile Include="..\..\SRC\REPLICATOR\GetSettings.dbl">
+      <Link>GetSettings.dbl</Link>
+    </Compile>
+    <Compile Include="..\..\SRC\REPLICATOR\Logger.dbl">
+      <Link>Logger.dbl</Link>
+    </Compile>
+    <Compile Include="..\..\SRC\REPLICATOR\OpenQueueFile.dbl">
+      <Link>OpenQueueFile.dbl</Link>
     </Compile>
     <Compile Include="..\..\SRC\REPLICATOR\replicator.dbl">
       <Link>replicator.dbl</Link>
     </Compile>
-    <Compile Include="..\..\SRC\REPLICATOR\ReplicatorMenu.dbl">
-      <Link>ReplicatorMenu.dbl</Link>
+    <Compile Include="..\..\SRC\REPLICATOR\ReplicatorShutdown.dbl">
+      <Link>ReplicatorShutdown.dbl</Link>
     </Compile>
-    <Compile Include="..\..\SRC\REPLICATOR\ReplicatorStop.dbl">
-      <Link>ReplicatorStop.dbl</Link>
+    <Compile Include="..\..\SRC\REPLICATOR\SendEmail.dbl">
+      <Link>SendEmail.dbl</Link>
+    </Compile>
+    <Compile Include="..\..\SRC\REPLICATOR\Settings.dbl">
+      <Link>Settings.dbl</Link>
+    </Compile>
+    <Compile Include="..\..\SRC\REPLICATOR\Structures.dbl">
+      <Link>Structures.dbl</Link>
+    </Compile>
+    <Compile Include="..\..\SRC\REPLICATOR\TimeNow.dbl">
+      <Link>TimeNow.dbl</Link>
     </Compile>
   </ItemGroup>
   <ItemGroup>

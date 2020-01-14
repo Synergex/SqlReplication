@@ -1,0 +1,180 @@
+;;*****************************************************************************
+;;
+;; Routine:     ConfigureEnvironment
+;;
+;; Description: Configure the SQL Replication operating environment.
+;;
+;; Author:      Steve Ives, Synergex Professional Services Group
+;;
+;; Created:     30th December 2019
+;;
+;;*****************************************************************************
+;;
+
+import replicator
+
+function ConfigureEnvironment, boolean
+
+    .include "CONNECTDIR:ssql.def"
+
+    stack record
+        ok,         boolean
+        length,     int
+        status,     int
+    endrecord
+proc
+
+.ifdef D_VMS
+    xcall openelb("REPLICATOR_SH")
+.endc
+
+    xcall flags(7004020,1)
+
+    ;;Initialize the settings to default values
+
+    Settings.Initialize()
+
+    ;;Running on terminal?
+
+    if (Settings.RunningOnTerminal)
+    begin
+        data tmpchn, i4, 0
+        open(tmpchn,o,"tt:")
+        Settings.TerminalChannel = tmpchn
+        display(Settings.TerminalChannel,$scr_pos(1,1),$scr_clr(SCREEN))
+        writes(Settings.TerminalChannel,"SQL Replicator Log")
+    end
+
+    ;;Get settings from environment
+
+    ok = %GetSettings
+
+    ;;Open the queue file, crating it if it does not exist
+
+    if (ok)
+    begin
+        ok = %OpenQueueFile
+    end
+
+    ;;Enable and Initialize SQL Connection
+
+    if (ok)
+    begin
+        ;;Enable the "Improve SQL statement caching for SQL Server" feature (Synergy V11)
+        ;;
+        ;;The SQLPERFORMANCESQL environment variable causes SQL Connection to use SQLDescribeParam internally
+        ;;to improve performance for SQL statements with I/O parameters when accessing SQL Server.
+        ;;
+        ;;This is the equivalent of using %SSC_CMD(chn,,SSQL_PERFORMANCE_SQL)
+        ;;
+        ;;Setting this environment variable will have no effect on pre V11 systems, but will enable the
+        ;;enhanced performance feature under V11 and later versions.
+        ;;
+        xcall setlog("SQLPERFORMANCESQL","YES",length)
+
+.ifdef OS_VMS
+        xcall init_ssql
+.else
+        status = %option(48,1)
+.endc
+        if (%ssc_init(Settings.DatabaseChannel,Settings.MaxCursors,Settings.MaxColumns)==SSQL_NORMAL) then
+        begin
+            ;;Connect to the database and configure the database environment
+            ok = %DatabaseConnect
+        end
+        else
+        begin
+            Logger.ErrorLog("Failed to initialize SQL Connection")
+            ok = false
+        end
+    end
+
+    ;;Register a shutdown handler
+    if (ok && !Settings.RunningOnTerminal)
+        xcall syn_atexit(%xaddr("ReplicatorShutdown"))
+
+.ifdef d_GUI
+    ;;If anything has gone wrong so far and we're running on the terminal, pause so that
+    ;;the user can read any error messages before the application window is removed.
+    if (!ok && Settings.RunningOnTerminal)
+    begin
+        data tmpchr, a1
+        display(Settings.TerminalChannel,13,10,"Replicator will stop - press a key: ")
+        accept(Settings.TerminalChannel,tmpchr)
+    end
+.endc
+
+    if (ok)
+    begin
+        ;; Record the process ID of the running instance
+        if (!Settings.RunningOnTerminal)
+        begin
+            data pidFileSpec, string, "REPLICATOR_LOGDIR:REPLICATOR_" + Settings.InstanceName + ".PID"
+            data pidFileChannel, int
+
+            ;;Open the PID file
+            try
+            begin
+                xcall delet(pidFileSpec)
+                open(pidFileChannel=0,o:s,pidFileSpec)
+.ifdef D_VMS
+                writes(pidFileChannel,%hex(%jbno,4))
+.else
+                writes(pidFileChannel,%string(%jbno))
+.endc
+            end
+            catch (ex)
+            begin
+                Logger.ErrorLog("Failed to create or write PID file! Error was " + ex.Message)
+            end
+            finally
+            begin
+                if (pidFileChannel && %chopen(pidFileChannel))
+                    close pidFileChannel
+            end
+            endtry
+        end
+
+        ;;Create a namespace to record information about Synergy data files that we have opened.
+        Settings.ChannelInfo = %nspc_open(,^size(strStructureData))
+
+        Logger.Log("Maximum cursors: "+%string(Settings.MaxCursors))
+        Logger.Log("Maximum columns: "+%string(Settings.MaxColumns))
+
+        Logger.Log("--- Processing instructions ----------------------")
+
+        ;;If we're sending emails then let's record the server startup
+        if (Settings.CanSendEmail())
+        begin
+            data body = new string[#] {"The SQL replicator instance was started."}
+            xcall SendEmail("Replicator instance " + Settings.InstanceName  + " started",body)
+        end
+
+        ;;If were writing to the system log, record the startup
+        if (Settings.SystemLog)
+        begin
+            data tmpmsg, string, "Replicator instance " + Settings.InstanceName + " started" + %char(13) + %char(10)
+            tmpmsg += "Database connect string is " + Settings.DatabaseConnectString + %char(13) + %char(10)
+            tmpmsg += "Transaction file is " + Settings.TransactionFile + %char(13) + %char(10)
+            tmpmsg += "Log file is " + Settings.LogFileName + %char(13) + %char(10)
+            tmpmsg += "Sleep interval is " + %string(Settings.SleepTime) + " seconds. " + %char(13) + %char(10)
+            if (Settings.StopOnError) then
+                tmpmsg += "Replicator will stop if any error is encountered" + %char(13) + %char(10)
+            else
+                tmpmsg += "Replicator will attempt to continue if errors are encountered" + %char(13) + %char(10)
+            if (Settings.CanSendEmail()) then
+            begin
+                tmpmsg += "Replicator is configured to send email messages to " + Settings.ErrorEmail + %char(13) + %char(10)
+                tmpmsg += "Emails will be sent from " + Settings.EmailSender + %char(13) + %char(10)
+                tmpmsg += "Email server is " + Settings.EmailServer + %char(13) + %char(10)
+            end
+            else
+                tmpmsg += "Replicator is NOT configured to send email messages" + %char(13) + %char(10)
+
+            xcall syn_reportevent(D_EVENTLOG_INFORMATION_TYPE,tmpmsg)
+        end
+    end
+
+    freturn ok
+
+endfunction

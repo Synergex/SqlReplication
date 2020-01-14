@@ -1,0 +1,952 @@
+;;*****************************************************************************
+;;
+;; Routine:     GetSettings
+;;
+;; Description: Get settings from enmvironment variables and command line options.
+;;
+;; Author:      Steve Ives, Synergex Professional Services Group
+;;
+;; Created:     30th December 2019
+;;
+;;*****************************************************************************
+;;
+
+import replicator
+import ReplicationLibrary
+import System.Collections
+
+function GetSettings, boolean
+    stack record
+        ok,         boolean
+        clValues,   @ArrayList
+        length,     int
+    endrecord
+proc
+    ;;Configure defaults
+    ok = true
+    Settings.Initialize()
+
+    ;;System log
+
+    if (CommandLineParser.Parse("syslog")) then
+    begin
+        Settings.SystemLog = true
+    end
+    else
+    begin
+        ;;Environment variable?
+        data tmpval, a3
+        xcall getlog("REPLICATOR_SYSTEM_LOG",tmpval,length)
+        Settings.SystemLog = ((length>0)&&(tmpval.eq."YES"))
+    end
+
+    ;;Log file location
+
+    if (CommandLineParser.Parse("logdir",clValues))
+    begin
+        using clValues.Count select
+        (1),
+        begin
+            data sts, i4
+            xcall setlog("REPLICATOR_LOGDIR",(string)clValues[0],sts)
+        end
+        endusing
+    end
+
+    ;;Instance name
+
+    if (ok)
+    begin
+        ;;Command line?
+        if (CommandLineParser.Parse("instance",clValues)) then
+        begin
+            using clValues.Count select
+            (1),
+            begin
+                data now, a20, %datetime
+                Settings.InstanceName = (string)clValues[0]
+                Settings.LogFileName = "REPLICATOR_LOGDIR:REPLICATOR_" + Settings.InstanceName + "_" + now(1:8) + "_" + now(9:6) + ".LOG"
+                Settings.TransactionFile = "REPLICATOR_DATA:REPLICATION_" + Settings.InstanceName + ".ISM"
+            end
+            (0),
+            begin
+                Logger.ErrorLog("Missing value after the -instance option")
+                ok = false
+            end
+            (),
+            begin
+                Logger.ErrorLog("Only one value may follow the -instance option")
+                ok = false
+            end
+            endusing
+        end
+        else
+        begin
+            ;;Environment variable?
+            data tmpval, a80
+            xcall getlog("REPLICATOR_INSTANCE",tmpval,length)
+            if (length)
+            begin
+                data now, a20, %datetime
+                Settings.InstanceName = tmpval(1:length)
+                Settings.LogFileName = "REPLICATOR_LOGDIR:REPLICATOR_" + Settings.InstanceName + "_" + now(1:8) + "_" + now(9:6) + ".LOG"
+                Settings.TransactionFile = "REPLICATOR_DATA:REPLICATION_" + Settings.InstanceName + ".ISM"
+            end
+        end
+
+        ;;Report the instance name
+        Logger.Log("Instance name " + Settings.InstanceName)
+    end
+
+    ;;Open log file
+
+    ok = Logger.OpenLog()
+
+    ;;Local export directory
+
+    if (ok)
+    begin
+        ;;Command line?
+        if (CommandLineParser.Parse("localexport",clValues)) then
+        begin
+            using clValues.Count select
+            (1),
+                Settings.LocalExportPath = (string)clValues[0]
+            (0),
+            begin
+                Logger.ErrorLog("Missing value after the -localexport option")
+                ok = false
+            end
+            (),
+            begin
+                Logger.ErrorLog("Only one value may follow the -localexport option")
+                ok = false
+            end
+            endusing
+        end
+        else
+        begin
+            ;;Environment variable?
+            data tmpval, a80
+            xcall getlog("REPLICATOR_EXPORT_LOCAL",tmpval,length)
+            if (length)
+                Settings.LocalExportPath = tmpval(1:length)
+        end
+    end
+
+    ;;Remote export host
+
+    if (ok)
+    begin
+        ;;Command line?
+        if (CommandLineParser.Parse("fileservicehost",clValues)) then
+        begin
+            using clValues.Count select
+            (1),
+                Settings.FileServiceHost = (string)clValues[0]
+            (0),
+            begin
+                Logger.ErrorLog("Missing value after the -fileservicehost option")
+                ok = false
+            end
+            (),
+            begin
+                Logger.ErrorLog("Only one value may follow the -fileservicehost option")
+                ok = false
+            end
+            endusing
+        end
+        else
+        begin
+            ;;Environment variable?
+            data tmpval, a80
+            xcall getlog("REPLICATOR_FILESERVICE_HOST",tmpval,length)
+            if (length)
+                Settings.FileServiceHost = tmpval(1:length)
+        end
+    end
+
+    ;;Remote export port
+
+    if (ok)
+    begin
+        ;;Command line?
+        if (CommandLineParser.Parse("fileserviceport",clValues)) then
+        begin
+            using clValues.Count select
+            (1),
+                Settings.FileServicePort = (string)clValues[0]
+            (0),
+            begin
+                Logger.ErrorLog("Missing value after the -fileserviceport option")
+                ok = false
+            end
+            (),
+            begin
+                Logger.ErrorLog("Only one value may follow the -fileserviceport option")
+                ok = false
+            end
+            endusing
+        end
+        else
+        begin
+            ;;Environment variable?
+            data tmpval, a80
+            xcall getlog("REPLICATOR_FILESERVICE_PORT",tmpval,length)
+            if (length)
+                Settings.FileServicePort = tmpval(1:length)
+        end
+    end
+
+    ;;Sleep interval
+
+    if (ok)
+    begin
+        ;;Command line?
+        if (CommandLineParser.Parse("interval",clValues)) then
+        begin
+            using clValues.Count select
+            (1),
+            begin
+                try
+                begin
+                    Settings.SleepTime = %integer((string)clValues[0])
+                end
+                catch (e, @Exception)
+                begin
+                    Logger.ErrorLog("Invalid value after the -interval option")
+                    ok = false
+                end
+                endtry
+            end
+            (0),
+            begin
+                Logger.ErrorLog("Missing value after the -interval option")
+                ok = false
+            end
+            (),
+            begin
+                Logger.ErrorLog("Only one value may follow the -interval option")
+                ok = false
+            end
+            endusing
+        end
+        else
+        begin
+            ;;Environment variable?
+            data tmpval, a10
+            xcall getlog("REPLICATOR_INTERVAL",tmpval,length)
+            if (length>0)
+                Settings.SleepTime = %integer(tmpval(1:length))
+        end
+        Logger.Log("Processing interval is " + %string(Settings.SleepTime) + " seconds.")
+    end
+
+    ;;Load progress reporting
+
+    if (ok)
+    begin
+        ;;Command line?
+        if (CommandLineParser.Parse("progress")) then
+        begin
+            Settings.BulkLoadProgressReporting = true
+        end
+        else
+        begin
+            ;;Environment variable?
+            data tmpval, a10
+            xcall getlog("REPLICATOR_LOAD_PROGRESS",tmpval,length)
+            Settings.BulkLoadProgressReporting = ((length>0)&&(tmpval.eq."YES"))
+        end
+    end
+
+    ;;Verbose logging
+
+    if (ok)
+    begin
+        ;;Command line?
+        if (CommandLineParser.Parse("verbose")) then
+        begin
+            Settings.FullLogging = true
+        end
+        else
+        begin
+            ;;Environment variable?
+            data tmpval, a3
+            xcall getlog("REPLICATOR_FULL_LOG",tmpval,length)
+            Settings.FullLogging = ((length>0)&&(tmpval.eq."YES"))
+        end
+    end
+
+    ;;Key value logging
+
+    if (ok)
+    begin
+        ;;Command line?
+        if (CommandLineParser.Parse("keyvalues")) then
+        begin
+            Settings.LogKeys = true
+        end
+        else
+        begin
+            ;;Environment variable?
+            data tmpval, a3
+            xcall getlog("REPLICATOR_LOG_KEYS",tmpval,length)
+            Settings.LogKeys = ((length>0)&&(tmpval.eq."YES"))
+        end
+    end
+
+    ;;Bulk load exception logging
+
+    if (ok)
+    begin
+        ;;Command line?
+        if (CommandLineParser.Parse("loaderrors")) then
+        begin
+            Settings.LogLoadExceptions = true
+        end
+        else
+        begin
+            ;;Environment variable?
+            data tmpval, a3
+            xcall getlog("REPLICATOR_LOG_BULK_LOAD_EXCEPTIONS",tmpval,length)
+            Settings.LogLoadExceptions = ((length>0)&&(tmpval.eq."YES"))
+        end
+    end
+
+    ;;Email notifications
+
+    if (ok)
+    begin
+        ;;Command line?
+        if (CommandLineParser.Parse("erroremail",clValues)) then
+        begin
+            using clValues.Count select
+            (1),
+            begin
+                Settings.ErrorEmail = (string)clValues[0]
+            end
+            (0),
+            begin
+                Logger.ErrorLog("Missing value after the -erroremail option")
+                ok = false
+            end
+            (),
+            begin
+                Logger.ErrorLog("Only one value may follow the -erroremail option")
+                ok = false
+            end
+            endusing
+        end
+        else
+        begin
+            ;;Environment variable?
+            data tmpval, a1024
+            xcall getlog("REPLICATOR_ERROR_EMAIL",tmpval,length)
+            if (length>0)
+                Settings.ErrorEmail = tmpval(1:length)
+        end
+    end
+
+    ;;Email server DNS name or IP address
+
+    if (ok)
+    begin
+        ;;Command line?
+        if (CommandLineParser.Parse("mailserver",clValues)) then
+        begin
+            using clValues.Count select
+            (1),
+            begin
+                Settings.EmailServer = (string)clValues[0]
+            end
+            (0),
+            begin
+                Logger.ErrorLog("Missing value after the -mailserver option")
+                ok = false
+            end
+            (),
+            begin
+                Logger.ErrorLog("Only one value may follow the -mailserver option")
+                ok = false
+            end
+            endusing
+        end
+        else
+        begin
+            ;;Environment variable?
+            data tmpval, a128
+            xcall getlog("REPLICATOR_SMTP_SERVER",tmpval,length)
+            if (length>0)
+                Settings.EmailServer = tmpval(1:length)
+        end
+    end
+
+    ;;Email sender address
+
+    if (ok)
+    begin
+        ;;Command line?
+        if (CommandLineParser.Parse("mailfrom",clValues)) then
+        begin
+            using clValues.Count select
+            (1),
+            begin
+                Settings.EmailSender = (string)clValues[0]
+            end
+            (0),
+            begin
+                Logger.ErrorLog("Missing value after the -mailfrom option")
+                ok = false
+            end
+            (),
+            begin
+                Logger.ErrorLog("Only one value may follow the -mailfrom option")
+                ok = false
+            end
+            endusing
+        end
+        else
+        begin
+            ;;Environment variable?
+            data tmpval, a128
+            xcall getlog("REPLICATOR_EMAIL_SENDER",tmpval,length)
+            if (length>0)
+                Settings.EmailSender = tmpval(1:length)
+        end
+    end
+
+    ;;Stop on error
+
+    if (ok)
+    begin
+        ;;Command line?
+        if (CommandLineParser.Parse("stoponerror")) then
+        begin
+            Settings.StopOnError = true
+        end
+        else
+        begin
+            ;;Environment variable?
+            data tmpval, a3
+            xcall getlog("REPLICATOR_ERROR_STOP",tmpval,length)
+            Settings.StopOnError = ((length>0)&&(tmpval.eq."YES"))
+        end
+    end
+
+    ;;Max columns
+
+    if (ok)
+    begin
+        ;;Command line?
+        if (CommandLineParser.Parse("maxcols",clValues)) then
+        begin
+            using clValues.Count select
+            (1),
+            begin
+                try
+                begin
+                    Settings.MaxColumns = %integer((string)clValues[0])
+                end
+                catch (e, @Exception)
+                begin
+                    Logger.ErrorLog("Invalid value after the -maxcols option")
+                    ok = false
+                end
+                endtry
+            end
+            (0),
+            begin
+                Logger.ErrorLog("Missing value after the -maxcols option")
+                ok = false
+            end
+            (),
+            begin
+                Logger.ErrorLog("Only one value may follow the -maxcols option")
+                ok = false
+            end
+            endusing
+        end
+        else
+        begin
+            ;;Environment variable?
+            data tmpval, a10
+            xcall getlog("REPLICATOR_MAX_COLS",tmpval,length)
+            if (length>0)
+                Settings.MaxColumns = %integer(tmpval(1:length))
+        end
+    end
+
+    ;;Max cursors
+
+    if (ok)
+    begin
+        ;;Command line?
+        if (CommandLineParser.Parse("maxcursors",clValues)) then
+        begin
+            using clValues.Count select
+            (1),
+            begin
+                try
+                begin
+                    Settings.MaxCursors = %integer((string)clValues[0])
+                end
+                catch (e, @Exception)
+                begin
+                    Logger.ErrorLog("Invalid value after the -maxcursors option")
+                    ok = false
+                end
+                endtry
+            end
+            (0),
+            begin
+                Logger.ErrorLog("Missing value after the -maxcursors option")
+                ok = false
+            end
+            (),
+            begin
+                Logger.ErrorLog("Only one value may follow the -maxcursors option")
+                ok = false
+            end
+            endusing
+        end
+        else
+        begin
+            ;;Environment variable?
+            data tmpval, a10
+            xcall getlog("REPLICATOR_MAX_CURSORS",tmpval,length)
+            if (length>0)
+                Settings.MaxCursors = %integer(tmpval(1:length))
+        end
+    end
+
+    ;;Transaction queue file location
+
+    if (ok)
+    begin
+        ;;Command line?
+        if (CommandLineParser.Parse("datadir",clValues))
+        begin
+            using clValues.Count select
+            (1),
+            begin
+                data sts, i4
+                xcall setlog("REPLICATOR_DATA",(string)clValues[0],sts)
+            end
+            (0),
+            begin
+                Logger.ErrorLog("Missing value after the -datadir option")
+                ok = false
+            end
+            (),
+            begin
+                Logger.ErrorLog("Only one value may follow the -datadir option")
+                ok = false
+            end
+            endusing
+        end
+    end
+
+    ;;Database connect string
+
+    if (ok)
+    begin
+        ;;Command line?
+        if (CommandLineParser.Parse("database",clValues)) then
+        begin
+            using clValues.Count select
+            (1),
+            begin
+                Settings.DatabaseConnectString = (string)clValues[0]
+            end
+            (0),
+            begin
+                Logger.ErrorLog("Missing value after the -database option")
+                ok = false
+            end
+            (),
+            begin
+                Logger.ErrorLog("Only one value may follow the -database option")
+                ok = false
+            end
+            endusing
+        end
+        else
+        begin
+            ;;Environment variable?
+            data tmpval, a256
+            xcall getlog("REPLICATOR_DATABASE",tmpval,length)
+            if (length) then
+                Settings.DatabaseConnectString = tmpval(1:length)
+            else
+            begin
+                ;;We don't have a database connect string so we can't continue!
+                Logger.ErrorLog("No database connect string was found. Use command line option -database or define environment variable REPLICATOR_DATABASE.")
+                ok = false
+            end
+        end
+    end
+
+    ;;Commit mode
+
+    if (ok)
+    begin
+        ;;Command line?
+        if (CommandLineParser.Parse("commitmode",clValues)) then
+        begin
+            using clValues.Count select
+            (1),
+            begin
+                using ((string)clValues[0]).ToUpper() select
+                ("AUTOMATIC"),
+                    Settings.CommitMode = DatabaseCommitMode.Automatic
+                ("BATCH"),
+                    Settings.CommitMode = DatabaseCommitMode.Batch
+                ("MANUAL"),
+                    Settings.CommitMode = DatabaseCommitMode.Manual
+                (),
+                begin
+                    Logger.ErrorLog("Invalid option value following the -commitmode option. Specify AUTOMATIC, BATCH (default) or MANUAL.")
+                    ok = false
+                end
+                endusing
+            end
+            (0),
+            begin
+                Logger.ErrorLog("Missing value after the -commitmode option")
+                ok = false
+            end
+            (),
+            begin
+                Logger.ErrorLog("Only one value may follow the -commitmode option")
+                ok = false
+            end
+            endusing
+        end
+        else
+        begin
+            ;;Environment variable?
+            data tmpval, a32
+            xcall getlog("REPLICATOR_COMMIT_MODE",tmpval,length)
+            if (length)
+            begin
+                using ((String)tmpval(1:length)).ToUpper() select
+                ("AUTOMATIC"),
+                    Settings.CommitMode = DatabaseCommitMode.Automatic
+                ("BATCH"),
+                    Settings.CommitMode = DatabaseCommitMode.Batch
+                ("MANUAL"),
+                    Settings.CommitMode = DatabaseCommitMode.Manual
+                (),
+                begin
+                    Logger.ErrorLog("Invalid value specified for option REPLICATOR_AUTO_COMMIT. Specify YES or NO.")
+                    ok = false
+                end
+                endusing
+            end
+        end
+    end
+
+    ;;Commit batch size
+
+    if (ok)
+    begin
+        ;;Command line?
+        if (CommandLineParser.Parse("commitbatch",clValues)) then
+        begin
+            using clValues.Count select
+            (1),
+            begin
+                try
+                begin
+                    Settings.CommitBatchRows = %integer((string)clValues[0])
+
+                    if (Settings.CommitBatchRows<2)
+                    begin
+                        Logger.ErrorLog("Invalid option value following the -commitbatch option. Specify an integer greater than 1.")
+                        ok = false
+                    end
+
+                end
+                catch (e, @Exception)
+                begin
+                    Logger.ErrorLog("Invalid option value following the -commitbatch option. Specify an integer greater than 1.")
+                    ok = false
+                end
+                endtry
+            end
+            (0),
+            begin
+                Logger.ErrorLog("Missing value after the -commitbatch option")
+                ok = false
+            end
+            (),
+            begin
+                Logger.ErrorLog("Only one value may follow the -commitbatch option")
+                ok = false
+            end
+            endusing
+        end
+        else
+        begin
+            ;;Environment variable?
+            data tmpval, a32
+            xcall getlog("REPLICATOR_COMMIT_BATCH",tmpval,length)
+            if (length)
+            begin
+                try
+                begin
+                    Settings.CommitBatchRows = %integer(%atrim(tmpval))
+
+                    if (Settings.CommitBatchRows<2)
+                    begin
+                        Logger.ErrorLog("Invalid option value for REPLICATOR_COMMIT_BATCH. Specify an integer greater than 1.")
+                        ok = false
+                    end
+
+                end
+                catch (e, @Exception)
+                begin
+                    Logger.ErrorLog("Invalid option value for REPLICATOR_COMMIT_BATCH. Specify an integer greater than 1.")
+                    ok = false
+                end
+                endtry
+            end
+        end
+    end
+
+    ;;Database execution timeout
+
+    if (ok)
+    begin
+        ;;Command line?
+        if (CommandLineParser.Parse("timeout",clValues)) then
+        begin
+            using clValues.Count select
+            (1),
+            begin
+                try
+                begin
+                    Settings.DatabaseTimeout = %integer((string)clValues[0])
+                end
+                catch (e, @Exception)
+                begin
+                    Logger.ErrorLog("Invalid option value following the -timeout option. Specify an integer greater than 1.")
+                    ok = false
+                end
+                endtry
+            end
+            (0),
+            begin
+                Logger.ErrorLog("Missing value after the -timeout option")
+                ok = false
+            end
+            (),
+            begin
+                Logger.ErrorLog("Only one value may follow the -timeout option")
+                ok = false
+            end
+            endusing
+        end
+        else
+        begin
+            ;;Environment variable?
+            data tmpval, a32
+            xcall getlog("REPLICATOR_DATABASE_TIMEOUT",tmpval,length)
+            if (length)
+            begin
+                try
+                begin
+                    Settings.DatabaseTimeout = %integer(%atrim(tmpval))
+                end
+                catch (e, @Exception)
+                begin
+                    Logger.ErrorLog("Invalid option value for REPLICATOR_DATABASE_TIMEOUT. Specify an integer greater than 1.")
+                    ok = false
+                end
+                endtry
+            end
+        end
+    end
+
+    ;;Bulk load and indexing timeout
+
+    if (ok)
+    begin
+        ;;Command line?
+        if (CommandLineParser.Parse("bulkloadtimeout",clValues)) then
+        begin
+            using clValues.Count select
+            (1),
+            begin
+                try
+                begin
+                    Settings.BulkLoadTimeout = %integer((string)clValues[0])
+                end
+                catch (e, @Exception)
+                begin
+                    Logger.ErrorLog("Invalid option value following the -bulkloadtimeout option. Specify an integer greater than 1.")
+                    ok = false
+                end
+                endtry
+            end
+            (0),
+            begin
+                Logger.ErrorLog("Missing value after the -bulkloadtimeout option")
+                ok = false
+            end
+            (),
+            begin
+                Logger.ErrorLog("Only one value may follow the -bulkloadtimeout option")
+                ok = false
+            end
+            endusing
+        end
+        else
+        begin
+            ;;Environment variable?
+            data tmpval, a32
+            xcall getlog("REPLICATOR_BULKLOAD_TIMEOUT",tmpval,length)
+            if (length)
+            begin
+                try
+                begin
+                    Settings.BulkLoadTimeout = %integer(%atrim(tmpval))
+                end
+                catch (e, @Exception)
+                begin
+                    Logger.ErrorLog("Invalid option value for REPLICATOR_BULKLOAD_TIMEOUT. Specify an integer greater than 1.")
+                    ok = false
+                end
+                endtry
+            end
+        end
+    end
+
+    if (ok)
+    begin
+        ;;Command line?
+        if (CommandLineParser.Parse("reconnectattempts",clValues)) then
+        begin
+            using clValues.Count select
+            (1),
+            begin
+                try
+                begin
+                    Settings.RetryMaxAttempts = %integer((string)clValues[0])
+                    if (Settings.RetryMaxAttempts < 0)
+                    begin
+                        Logger.ErrorLog("Invalid option value for -reconnectattempts. Value must be >= 0.")
+                        ok = false
+                    end
+                end
+                catch (e, @Exception)
+                begin
+                    Logger.ErrorLog("Invalid option value following the -reconnectattempts option. Specify an integer greater than 0.")
+                    ok = false
+                end
+                endtry
+            end
+            (0),
+            begin
+                Logger.ErrorLog("Missing value after the -reconnectattempts option")
+                ok = false
+            end
+            (),
+            begin
+                Logger.ErrorLog("Only one value may follow the -reconnectattempts option")
+                ok = false
+            end
+            endusing
+        end
+        else
+        begin
+            ;;Environment variable?
+            data tmpval, a32
+            xcall getlog("REPLICATOR_RECONNECT_ATTEMPTS",tmpval,length)
+            if (length)
+            begin
+                try
+                begin
+                    Settings.RetryMaxAttempts = %integer(%atrim(tmpval))
+                    if (Settings.RetryMaxAttempts < 0)
+                    begin
+                        Logger.ErrorLog("Invalid option value for REPLICATOR_RECONNECT_ATTEMPTS. Value must be >= 0.")
+                        ok = false
+                    end
+                end
+                catch (e, @Exception)
+                begin
+                    Logger.ErrorLog("Invalid option value for REPLICATOR_RECONNECT_ATTEMPTS. Specify an integer value.")
+                    ok = false
+                end
+                endtry
+            end
+        end
+    end
+
+    if (ok)
+    begin
+        ;;Command line?
+        if (CommandLineParser.Parse("reconnectdelay",clValues)) then
+        begin
+            using clValues.Count select
+            (1),
+            begin
+                try
+                begin
+                    Settings.RetryDelaySeconds = %integer((string)clValues[0])
+                    if (Settings.RetryDelaySeconds < 1)
+                    begin
+                        Logger.ErrorLog("Invalid option value for -reconnectdelay. Value must be 1 or greater.")
+                        ok = false
+                    end
+                end
+                catch (e, @Exception)
+                begin
+                    Logger.ErrorLog("Invalid option value following the -reconnectdelay option. Specify an integer value.")
+                    ok = false
+                end
+                endtry
+            end
+            (0),
+            begin
+                Logger.ErrorLog("Missing value after the -reconnectdelay option")
+                ok = false
+            end
+            (),
+            begin
+                Logger.ErrorLog("Only one value may follow the -reconnectdelay option")
+                ok = false
+            end
+            endusing
+        end
+        else
+        begin
+            ;;Environment variable?
+            data tmpval, a32
+            xcall getlog("REPLICATOR_RECONNECT_DELAY",tmpval,length)
+            if (length)
+            begin
+                try
+                begin
+                    Settings.RetryDelaySeconds = %integer(%atrim(tmpval))
+                    if (Settings.RetryDelaySeconds < 1)
+                    begin
+                        Logger.ErrorLog("Invalid option value for REPLICATOR_RECONNECT_DELAY. Value must be 1 or greater.")
+                        ok = false
+                    end
+                end
+                catch (e, @Exception)
+                begin
+                    Logger.ErrorLog("Invalid option value for REPLICATOR_RECONNECT_DELAY. Specify an integer value.")
+                    ok = false
+                end
+                endtry
+            end
+        end
+    end
+
+    freturn ok
+
+endfunction

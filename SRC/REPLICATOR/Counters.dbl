@@ -1,0 +1,32 @@
+;;*****************************************************************************
+;;
+;; Class:       Counters
+;;
+;; Description: Various counters used to record replicator activity
+;;
+;; Author:      Steve Ives, Synergex Professional Services Group
+;;
+;; Created:     30th December 2019
+;;
+;;*****************************************************************************
+;;
+
+namespace replicator
+
+    public class Counters
+
+        public static Inserts, int
+
+        public static Updates, int
+
+        public static Deletes, int
+
+        public static Errors, int
+
+        public static BatchCommits, int
+
+        public static BatchCounter, int
+
+    endclass
+
+endnamespace

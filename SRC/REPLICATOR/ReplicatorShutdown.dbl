@@ -1,0 +1,175 @@
+;;*****************************************************************************
+;;
+;; Routine:     ReplicatorShutdown
+;;
+;; Description: This routine is an event handler which is called when the
+;;              replicator service is being stopped by the Windows operating
+;;              system, or because a shutdown message was received via the
+;;              instructions file.
+;;
+;; Author:      Steve Ives, Synergex Professional Services Group
+;;
+;; Created:     10th April 2008
+;;
+;;*****************************************************************************
+;;
+;; This code is supplied as seen and without warranty or support, and is used
+;; at your own risk. Neither the author or Synergex accept any responsability
+;; for any loss or damage which may result from the use of this code. This text
+;; must remain unaltered in this file at all times. Possession or use of this
+;; code, or any modified version of this code, indicates your acceptance of
+;; these conditions.
+;;
+;;*****************************************************************************
+;;
+
+import replicator
+
+subroutine ReplicatorShutdown
+
+    endparams
+
+    .include "CONNECTDIR:ssql.def"
+    .include "DBLDIR:namspc.def"
+    .include "REPLICATOR_INCLUDE:SmtpMail.def"
+
+    stack record
+        idx,                i4                  ;;Loop counter
+        access_code,        i4                  ;;Namespace access code
+        status,             i4                  ;;Function return status
+        dbstatus,           i4					;;Status of a database call
+        functionName,       string              ;;External function name to call
+        structure_data,     strStructureData
+        message,            string
+    endrecord
+
+proc
+
+    ;;If we are in batch commit mode, commit any final changes
+
+    if (Settings.CommitMode == DatabaseCommitMode.Batch && Counters.BatchCounter > 0)
+    begin
+        message = "Commit transaction with " + %string(Counters.BatchCounter) + " change"
+        if (Counters.BatchCounter>1)
+            message = message + "s"
+        Logger.VerboseLog(message)
+        dbstatus = %ssc_commit(Settings.DatabaseChannel,SSQL_TXON)
+        Counters.BatchCommits += 1
+        Counters.BatchCounter = 0
+    end
+
+    ;;Report the counters
+
+    message = "--------------------------------------------------" + %char(13) + %char(10)
+    message += "Shutdown of replicator instance " + Settings.InstanceName + %char(13) + %char(10)
+    message += "INSERTS: " + %string(Counters.Inserts,"ZZZ,ZZZ,ZZZ,ZZX") + %char(13) + %char(10)
+    message += "UPDATES: " + %string(Counters.Updates,"ZZZ,ZZZ,ZZZ,ZZX") + %char(13) + %char(10)
+    message += "DELETES: " + %string(Counters.Deletes,"ZZZ,ZZZ,ZZZ,ZZX") + %char(13) + %char(10)
+    if (Settings.CommitMode == DatabaseCommitMode.Batch)
+        message += "COMMITS: " + %string(Counters.BatchCommits,"ZZZ,ZZZ,ZZZ,ZZX") + %char(13) + %char(10)
+    message += "ERRORS:  " + %string(Counters.Errors, "ZZZ,ZZZ,ZZZ,ZZX") + %char(13) + %char(10)
+    message += "--------------------------------------------------"
+
+    if (Settings.LogFileChannel != 0)
+        writes(Settings.LogFileChannel,message)
+
+    if (Settings.RunningOnTerminal)
+        writes(Settings.TerminalChannel,message)
+
+    ;;If were writing to the system log, record the counters there too
+
+    if (Settings.SystemLog)
+        xcall syn_reportevent(D_EVENTLOG_INFORMATION_TYPE,message)
+
+    ;;If we're sending emails then send a shutting down message
+
+    if (Settings.CanSendEmail())
+    begin
+        data body = new string[10]
+        body[01] = "<html>"
+        body[02] = "<head><title>Replicator Activity Summary</title></head>"
+        body[03] = "<body>"
+        body[04] = "<p>Summary of activity:</p>"
+        body[05] = "<pre>INSERTS: " + %string(Counters.Inserts,"ZZZ,ZZZ,ZZZ,ZZX")
+        body[06] =      "UPDATES: " + %string(Counters.Updates,"ZZZ,ZZZ,ZZZ,ZZX")
+        body[07] =      "DELETES: " + %string(Counters.Deletes,"ZZZ,ZZZ,ZZZ,ZZX")
+        body[08] =      "ERRORS:  " + %string(Counters.Errors, "ZZZ,ZZZ,ZZZ,ZZX") + "</pre>"
+        body[09] = "</body>"
+        body[10] = "</html>"
+        xcall SendEmail("STOPPED",body,true)
+    end
+
+    ;;Clean up any database cursors and data files that we have open
+
+    if (Settings.ChannelInfo)
+    begin
+        for idx from 1 thru %nspc_stoa(Settings.ChannelInfo,9999)
+        begin
+            ;;Get the item data from the namespace
+            access_code = %nspc_stoa(Settings.ChannelInfo,idx)
+            xcall nspc_getdata(Settings.ChannelInfo,access_code,structure_data)
+
+            ;;Hard close any soft-closed database cursors
+            try
+            begin
+                functionName = %atrim(structure_data.structure_name) + "Close"
+                xcall xsubr(functionName,Settings.DatabaseChannel)
+            end
+            catch (ex)
+            begin
+                nop
+            end
+            endtry
+
+            ;;Close the channel
+            if ((structure_data.structure_chan)&&%chopen(structure_data.structure_chan))
+                close structure_data.structure_chan
+        end
+
+        xcall nspc_close(Settings.ChannelInfo)
+        Settings.ChannelInfo = 0
+
+    end
+
+    ;;Disconnect from the database
+
+    xcall DatabaseDisconnect
+
+    ;;Close the instruction queue file
+
+    if (Settings.InstructionChannel)
+    begin
+        close Settings.InstructionChannel
+        Settings.InstructionChannel = 0
+    end
+
+    ;;Delete the PID file
+
+    if (!Settings.RunningOnTerminal)
+    begin
+        data pidFileSpec, string, "REPLICATOR_LOGDIR:REPLICATOR_" + Settings.InstanceName + ".PID"
+        xcall delet(pidFileSpec)
+    end
+
+    ;;Make sure that the keyboard input buffer is empty
+
+    if (Settings.RunningOnTerminal)
+    begin
+        data tmpvar, a1
+        while (%ttsts)
+            accept(Settings.TerminalChannel,tmpvar)
+    end
+
+    ;;On Windows, give the user the chance to read the final messages
+
+.ifdef D_GUI
+    if (Settings.RunningOnTerminal)
+    begin
+        Logger.Log("Replicator will stop in 2 seconds")
+        sleep 2
+    end
+.endc
+
+    xreturn
+
+endsubroutine
