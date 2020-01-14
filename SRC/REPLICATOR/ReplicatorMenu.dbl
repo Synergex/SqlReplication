@@ -102,9 +102,9 @@ proc
 
     xcall GetReplicatedTables(validTables)
 
-    ;;Display and process the menu
+    ;;Clear screen and display title and instance name
 
-    display(tt,$SCR_POS(1,1),$SCR_CLR(SCREEN),"Replicator Control")
+    display(tt,$SCR_POS(1,1),$SCR_CLR(SCREEN),"Replicator Menu")
 
     ;;Get the instance name, default to "DEFAULT"
     xcall getlog("REPLICATOR_INSTANCE",tmpInstanceName,status)
@@ -123,6 +123,7 @@ proc
     queueFileName = "REPLICATOR_DATA:REPLICATION_" + instanceName + ".ISM"
 
     display(tt,$SCR_POS(1,25), "Instance: " + instanceName)
+
     display(tt,$SCR_POS(1,50),"Table: <none>")
 
     repeat
@@ -146,18 +147,19 @@ proc
 
         display(tt,$SCR_POS(8,2), "V.  View instructions")
         display(tt,$SCR_POS(9,2), "P.  Purge instructions")
+		display(tt,$SCR_POS(10,2),"PF. Purge first instruction")
 .ifndef D_VMS
-        display(tt,$SCR_POS(10,2),"Q.  Queue length")
+        display(tt,$SCR_POS(12,2),"Q.  Queue length")
 .endc
 .ifdef D_GUI
-        display(tt,$SCR_POS(11,2),"QM. Start Queue Monitor")
+        display(tt,$SCR_POS(12,2),"QM. Start Queue Monitor")
 .endc
-        display(tt,$SCR_POS(13,2),"I.  Change interval")
-        display(tt,$SCR_POS(14,2),"N.  Change instance name")
-        display(tt,$SCR_POS(15,2),"R.  Restart log file")
+        display(tt,$SCR_POS(14,2),"I.  Change interval")
+        display(tt,$SCR_POS(15,2),"N.  Change instance name")
+        display(tt,$SCR_POS(16,2),"R.  Restart log file")
 
-        display(tt,$SCR_POS(17,2),"A.  Available tables")
-        display(tt,$SCR_POS(18,2),"T.  Set current table")
+        display(tt,$SCR_POS(18,2),"A.  Available tables")
+        display(tt,$SCR_POS(19,2),"T.  Set current table")
 
         display(tt,$SCR_POS(21,2),"E.  Exit")
 
@@ -221,9 +223,12 @@ proc
                 data pipechn, int, 0
                 data instanceCount, int, 0
                 data buffer, a256
+                 if (instanceName) then
+                    open(pipechn,i,'|ps ax | grep "REPLICATOR_EXE:replicator " | grep $REPLICATOR_INSTANCE')
+                 else
                 open(pipechn,i,'|ps ax | grep "REPLICATOR_EXE:replicator " | grep -v grep')
 
-                display(tt,$SCR_POS(6,2),$SCR_CLR(EOS))
+                display(tt,$SCR_POS(3,1),$SCR_CLR(EOS))
 
                 repeat
                 begin
@@ -231,7 +236,8 @@ proc
                     writes(tt,%atrim(buffer))
                     instanceCount+=1
                 end
-            EndOfPipe,      close pipechn
+            EndOfPipe,
+                close pipechn
 
                 if (!instanceCount)
                     display(tt,"No replicator instances found!")
@@ -244,7 +250,7 @@ proc
                         accept(tt,tmpvar)
                 end
 
-                display(tt,$scr_pos(6,1),$scr_clr(EOS))
+                display(tt,$scr_pos(3,1),$scr_clr(EOS))
 
             end
         end
@@ -259,7 +265,8 @@ proc
             ;;If there is no first record then queue a shutdown
             data chn, i4
             open(chn=0,"U:I",queueFileName)
-        again,      sleep 0.01
+        again,
+            sleep 0.01
             read(chn,instruction,^FIRST) [$ERR_LOCKED=again,$ERR_EOF=norec]
             ;;The queue is not empty, schedule a shutdown via the first item in the queue
             instruction.action = -instruction.action
@@ -267,7 +274,8 @@ proc
             close chn
             exit
             ;;The queue is empty, schedule a shutdown via a specific instruction
-        norec,      close chn
+        norec,
+            close chn
             xcall Replicate(instanceName,REPLICATION_INSTRUCTION.SHUTDOWN)
             display(tt,$scr_pos(24,2),$SCR_CLR(EOL),"Command queued")
         end
@@ -351,24 +359,27 @@ proc
                     display(tt,$scr_pos(row,1),outbuf)
                 end
 
-                display(tt,$SCR_POS(24,1),"Press M for more or ENTER for menu: ")
+                display(tt,$SCR_POS(24,1),"Press ENTER for more or M for menu: ")
 
-                if (tmpvar=="M") then
                 begin
                     accept(tt,tmpvar)
                     while (%ttsts)
                         accept(tt,tmpvar)
                 end
-                else
+
+                if (tmpvar=="M") then
                 begin
                     exitloop
                 end
-
-                display(tt,$scr_pos(3,1),$scr_clr(EOS))
-
+                else
+                begin
+                    display(tt,$scr_pos(3,1),$scr_clr(EOS))
+                    nextloop
+                end
             end
 
-        eof,        close chn
+        eof,
+            close chn
 
             if (tmpvar!="M")
             begin
@@ -387,6 +398,12 @@ proc
             xcall Replicate(instanceName,REPLICATION_INSTRUCTION.DELETE_ALL_INSTRUCTIONS)
             display(tt,$scr_pos(24,2),$SCR_CLR(EOL),"Command executed")
         end
+
+		("PF"),
+		begin
+			xcall Replicate(instanceName,REPLICATION_INSTRUCTION.DELETE_FIRST_INSTRUCTION)
+			display(tt,$scr_pos(24,2),$SCR_CLR(EOL),"Command executed")
+		end
 
 .ifndef D_VMS
         ("Q "),
