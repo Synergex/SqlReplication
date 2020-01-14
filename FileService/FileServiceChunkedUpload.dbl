@@ -9,81 +9,81 @@ import System.Collections.Generic
 
 namespace FileService
 
-	public partial class FileServiceController
-	
-		{Route("chunked/start/{fileName}")}
-		public async method PostStartChunkedUpload, @Task<HttpResponseMessage>
-			required in fileName, string
-			stack record
-				fileSpec, string
-			endrecord
-		proc
-			fileSpec = Path.Combine(getStorageFolder(), fileName)
-			if (File.Exists(fileSpec))
-				mreturn Request.CreateResponse(HttpStatusCode.Forbidden)
-			
-			;TODO: BUG: 2/15/18 The BEGIN/END should not be necessary but it appears that there is a compiler bug that causes disposable data items not to be disposed at method end.
-			begin
-				data requestStream, @Stream, await Request.Content.ReadAsStreamAsync()
-				disposable data fs, @FileStream, File.Create(fileSpec)
-				await requestStream.CopyToAsync(fs)
-			end
+    public partial class FileServiceController
 
-			mreturn Request.CreateResponse(HttpStatusCode.NoContent)
+        {Route("chunked/start/{fileName}")}
+        public async method PostStartChunkedUpload, @Task<HttpResponseMessage>
+            required in fileName, string
+            stack record
+                fileSpec, string
+            endrecord
+        proc
+            fileSpec = Path.Combine(getStorageFolder(), fileName)
+            if (File.Exists(fileSpec))
+                mreturn Request.CreateResponse(HttpStatusCode.Forbidden)
 
-		endmethod
+            ;;BUG: 2/15/18 The BEGIN/END should not be necessary but it appears that there is a compiler bug that causes disposable data items not to be disposed at method end.
+            begin
+                data requestStream, @Stream, await Request.Content.ReadAsStreamAsync()
+                disposable data fs, @FileStream, File.Create(fileSpec)
+                await requestStream.CopyToAsync(fs)
+            end
 
-		{Route("chunked/continue/{fileName}")}
-		public async method PostContinueChunkedUpload, @Task<HttpResponseMessage>
-			required in fileName, string
-			stack record
-				fileSpec, string
-			endrecord
-		proc
-			fileSpec = Path.Combine(getStorageFolder(), fileName)			
-			if (!File.Exists(fileSpec))
-				mreturn Request.CreateResponse(HttpStatusCode.BadRequest)
+            mreturn Request.CreateResponse(HttpStatusCode.NoContent)
 
-			;TODO: BUG: 2/15/18 The BEGIN/END should not be necessary but it appears that there is a compiler bug that causes disposable data items not to be disposed at method end.
-			begin
-				data requestStream, @Stream, await Request.Content.ReadAsStreamAsync()
-				disposable data sw, @StreamWriter, File.AppendText(fileSpec)
-				await requestStream.CopyToAsync(sw.BaseStream)
-			end
+        endmethod
 
-			mreturn Request.CreateResponse(HttpStatusCode.NoContent)
+        {Route("chunked/continue/{fileName}")}
+        public async method PostContinueChunkedUpload, @Task<HttpResponseMessage>
+            required in fileName, string
+            stack record
+                fileSpec, string
+            endrecord
+        proc
+            fileSpec = Path.Combine(getStorageFolder(), fileName)			
+            if (!File.Exists(fileSpec))
+                mreturn Request.CreateResponse(HttpStatusCode.BadRequest)
 
-		endmethod
+            ;;BUG: 2/15/18 The BEGIN/END should not be necessary but it appears that there is a compiler bug that causes disposable data items not to be disposed at method end.
+            begin
+                data requestStream, @Stream, await Request.Content.ReadAsStreamAsync()
+                disposable data sw, @StreamWriter, File.AppendText(fileSpec)
+                await requestStream.CopyToAsync(sw.BaseStream)
+            end
 
-		{Route("chunked/finish/{fileName}")}
-		public async method PostFinishChunkedUpload, @Task<HttpResponseMessage>
-			required in fileName, string
-			stack record
-				fileSpec, string
-			endrecord
-		proc
-			fileSpec = Path.Combine(getStorageFolder(), fileName)			
-			if (!File.Exists(fileSpec))
-				mreturn Request.CreateResponse(HttpStatusCode.BadRequest)
+            mreturn Request.CreateResponse(HttpStatusCode.NoContent)
 
-			if (Request.Content.Headers.ContentLength == ^null)
-				mreturn Request.CreateResponse(HttpStatusCode.BadRequest)
+        endmethod
 
-			if (Request.Content.Headers.ContentLength > 0)
-			begin
-				data requestStream, @Stream, await Request.Content.ReadAsStreamAsync()
-				disposable data sw, @StreamWriter, File.AppendText(fileSpec)
-				await requestStream.CopyToAsync(sw.BaseStream)
-			end
+        {Route("chunked/finish/{fileName}")}
+        public async method PostFinishChunkedUpload, @Task<HttpResponseMessage>
+            required in fileName, string
+            stack record
+                fileSpec, string
+            endrecord
+        proc
+            fileSpec = Path.Combine(getStorageFolder(), fileName)			
+            if (!File.Exists(fileSpec))
+                mreturn Request.CreateResponse(HttpStatusCode.BadRequest)
 
-			data response, @HttpResponseMessage, Request.CreateResponse(HttpStatusCode.Created)
-			response.Headers.Location = new Uri(Request.RequestUri.AbsoluteUri.ToLower().Replace("chunked/finish/",""))
-			response.Headers.Add("ServerFileSpec",fileSpec)
+            if (Request.Content.Headers.ContentLength == ^null)
+                mreturn Request.CreateResponse(HttpStatusCode.BadRequest)
 
-			mreturn response
-				
-		endmethod
+            if (Request.Content.Headers.ContentLength > 0)
+            begin
+                data requestStream, @Stream, await Request.Content.ReadAsStreamAsync()
+                disposable data sw, @StreamWriter, File.AppendText(fileSpec)
+                await requestStream.CopyToAsync(sw.BaseStream)
+            end
 
-	endclass
+            data response, @HttpResponseMessage, Request.CreateResponse(HttpStatusCode.Created)
+            response.Headers.Location = new Uri(Request.RequestUri.AbsoluteUri.ToLower().Replace("chunked/finish/",""))
+            response.Headers.Add("ServerFileSpec",fileSpec)
+
+            mreturn response
+
+        endmethod
+
+    endclass
 
 endnamespace

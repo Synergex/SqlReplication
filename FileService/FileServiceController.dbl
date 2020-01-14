@@ -12,152 +12,149 @@ import System.Web.Http
 
 namespace FileService
 
-	;;; <summary>
-	;;; 
-	;;; </summary>
-	{RoutePrefix("FileService")}
-	public partial class FileServiceController extends ApiController
-        
-		public method FileServiceController
-			endparams
-		proc
-			data folder = getStorageFolder()
-			if (!Directory.Exists(folder))
-				Directory.CreateDirectory(folder)
-		endmethod
+    ;;; <summary>
+    ;;; 
+    ;;; </summary>
+    {RoutePrefix("FileService")}
+    public partial class FileServiceController extends ApiController
 
-		;;; <summary>
-		;;; Ping the server to verify operation.
-		;;; </summary>
-		;;; <returns>A successful ping is indicated by an HTTP 200 (OK) response.</returns>
-		{Route("ping")}
-		public method GetPing, @HttpResponseMessage
-		proc
-			mreturn Request.CreateResponse(HttpStatusCode.OK,"FileService Ping Response")
-		endmethod
-        
-		;;; <summary>
-		;;; Get a list of all files on the server
-		;;; </summary>
-		;;; <returns></returns>
-		{Route("")}
-		public method GetListFiles, @HttpResponseMessage
-		proc
-			data files = new DirectoryInfo(getStorageFolder()).GetFiles().Where(lambda (f) { !f.Attributes.HasFlag(FileAttributes.System) && !f.Attributes.HasFlag(FileAttributes.Hidden) }).Select(lambda (f) { f.Name }).ToArray()
-			mreturn Request.CreateResponse(HttpStatusCode.OK, files)
-		endmethod
-        
-		;;; <summary>
-		;;; Determine if a file exists
-		;;; </summary>
-		;;; <param name="fileName">File name</param>
-		;;; <returns></returns>
-		{Route("exists/{fileName}")}
-		public method GetFileExists, @HttpResponseMessage
-			fileName, string 
-		proc
-			data statusCode = File.Exists(Path.Combine(getStorageFolder(), fileName)) ? HttpStatusCode.NoContent : HttpStatusCode.NotFound
-			mreturn Request.CreateResponse(statusCode)
-		endmethod
-        
-		;;; <summary>
-		;;; Download a file from the server
-		;;; </summary>
-		;;; <param name="fileName">File name</param>
-		;;; <returns></returns>
-		{Route("text/{fileName}")}
-		public method GetTextFile, @HttpResponseMessage
-			fileName, string 
-		proc
-			data file = Path.Combine(getStorageFolder(), fileName)
-			if (!File.Exists(file))
-				mreturn Request.CreateResponse(HttpStatusCode.NotFound)
+        public method FileServiceController
+            endparams
+        proc
+            data folder = getStorageFolder()
+            if (!Directory.Exists(folder))
+                Directory.CreateDirectory(folder)
+        endmethod
 
-			mreturn Request.CreateResponse(HttpStatusCode.OK, File.ReadAllLines(file))
+        ;;; <summary>
+        ;;; Ping the server to verify operation.
+        ;;; </summary>
+        ;;; <returns>A successful ping is indicated by an HTTP 200 (OK) response.</returns>
+        {Route("ping")}
+        public method GetPing, @HttpResponseMessage
+        proc
+            mreturn Request.CreateResponse(HttpStatusCode.OK,"FileService Ping Response")
+        endmethod
 
-		endmethod
-        
-		;;;  <summary>
-		;;;  Upload a file to the server. The file may not already exist.
-		;;;  If it does then the return status will be 403 (forbidden).
-		;;;  </summary>
-		;;;  <param name="fileName"></param>
-		{Route("{fileName}")}
-		public async method PostCreateFile, @Task<HttpResponseMessage>
-			fileName, string 
-		proc
-			data fileSpec, string, Path.Combine(getStorageFolder(), fileName)
-			if (File.Exists(fileSpec))
-				mreturn Request.CreateResponse(HttpStatusCode.Forbidden)
-			
-			;TODO: BUG: 2/15/18 The BEGIN/END should not be necessary but it appears that there is a compiler bug that causes disposable data items not to be disposed at methoid end.
-			begin
-				disposable data requestStream, @Stream, await Request.Content.ReadAsStreamAsync()
-				disposable data fs, @FileStream, File.Create(fileSpec)
-				await requestStream.CopyToAsync(fs)
-			end
+        ;;; <summary>
+        ;;; Get a list of all files on the server
+        ;;; </summary>
+        ;;; <returns></returns>
+        {Route("")}
+        public method GetListFiles, @HttpResponseMessage
+        proc
+            data files = new DirectoryInfo(getStorageFolder()).GetFiles().Where(lambda (f) { !f.Attributes.HasFlag(FileAttributes.System) && !f.Attributes.HasFlag(FileAttributes.Hidden) }).Select(lambda (f) { f.Name }).ToArray()
+            mreturn Request.CreateResponse(HttpStatusCode.OK, files)
+        endmethod
 
-			data response, @HttpResponseMessage, Request.CreateResponse(HttpStatusCode.Created)
-			response.Headers.Location = new Uri(Request.RequestUri.AbsoluteUri)
-			response.Headers.Add("ServerFileSpec",fileSpec)
+        ;;; <summary>
+        ;;; Determine if a file exists
+        ;;; </summary>
+        ;;; <param name="fileName">File name</param>
+        ;;; <returns></returns>
+        {Route("exists/{fileName}")}
+        public method GetFileExists, @HttpResponseMessage
+            fileName, string 
+        proc
+            data statusCode = File.Exists(Path.Combine(getStorageFolder(), fileName)) ? HttpStatusCode.NoContent : HttpStatusCode.NotFound
+            mreturn Request.CreateResponse(statusCode)
+        endmethod
 
-			mreturn response
-		endmethod
-        
-		;;; <summary>
-		;;; Upload a file to the server. If the file already exists it will be replaced.
-		;;; </summary>
-		;;; <param name="fileName"></param>
-		{Route("{fileName}")}
-		public async method PutUpdateFile, @Task<HttpResponseMessage>
-			fileName, string 
-		proc
-			data fileSpec, string, Path.Combine(getStorageFolder(), fileName)
-			if (File.Exists(fileSpec))
-				File.Delete(fileSpec)
+        ;;; <summary>
+        ;;; Download a file from the server
+        ;;; </summary>
+        ;;; <param name="fileName">File name</param>
+        ;;; <returns></returns>
+        {Route("text/{fileName}")}
+        public method GetTextFile, @HttpResponseMessage
+            fileName, string 
+        proc
+            data file = Path.Combine(getStorageFolder(), fileName)
+            if (!File.Exists(file))
+                mreturn Request.CreateResponse(HttpStatusCode.NotFound)
+            mreturn Request.CreateResponse(HttpStatusCode.OK, File.ReadAllLines(file))
+        endmethod
 
-			;TODO: BUG: 2/15/18 The BEGIN/END should not be necessary but it appears that there is a compiler bug that causes disposable data items not to be disposed at methoid end.
-			begin
-				disposable data requestStream, @Stream, await Request.Content.ReadAsStreamAsync()
-				disposable data fs, @FileStream, File.Create(fileSpec)
-				await requestStream.CopyToAsync(fs)
-			end
+        ;;;  <summary>
+        ;;;  Upload a file to the server. The file may not already exist.
+        ;;;  If it does then the return status will be 403 (forbidden).
+        ;;;  </summary>
+        ;;;  <param name="fileName"></param>
+        {Route("{fileName}")}
+        public async method PostCreateFile, @Task<HttpResponseMessage>
+            fileName, string 
+        proc
+            data fileSpec, string, Path.Combine(getStorageFolder(), fileName)
+            if (File.Exists(fileSpec))
+                mreturn Request.CreateResponse(HttpStatusCode.Forbidden)
+            ;;BUG: 2/15/18 The BEGIN/END should not be necessary but it appears that there is a compiler bug that causes disposable data items not to be disposed at methoid end.
+            begin
+                disposable data requestStream, @Stream, await Request.Content.ReadAsStreamAsync()
+                disposable data fs, @FileStream, File.Create(fileSpec)
+                await requestStream.CopyToAsync(fs)
+            end
 
-			mreturn Request.CreateResponse(HttpStatusCode.OK)
+            data response, @HttpResponseMessage, Request.CreateResponse(HttpStatusCode.Created)
+            response.Headers.Location = new Uri(Request.RequestUri.AbsoluteUri)
+            response.Headers.Add("ServerFileSpec",fileSpec)
 
-		endmethod
-        
-		;;; <summary>
-		;;; Upload a file to the server. If the file already exists it will be replaced.
-		;;; </summary>
-		;;; <param name="fileName"></param>
-		{Route("{fileName}")}
-		public method Delete, @HttpResponseMessage
-			fileName, string 
-		proc
-			data file = Path.Combine(getStorageFolder(), fileName)
-			if (!File.Exists(file))
-				mreturn Request.CreateResponse(HttpStatusCode.NotFound)
+            mreturn response
+        endmethod
 
-			File.Delete(file)
+        ;;; <summary>
+        ;;; Upload a file to the server. If the file already exists it will be replaced.
+        ;;; </summary>
+        ;;; <param name="fileName"></param>
+        {Route("{fileName}")}
+        public async method PutUpdateFile, @Task<HttpResponseMessage>
+            fileName, string 
+        proc
+            data fileSpec, string, Path.Combine(getStorageFolder(), fileName)
+            if (File.Exists(fileSpec))
+                File.Delete(fileSpec)
 
-			mreturn Request.CreateResponse(HttpStatusCode.NoContent)
+            ;BUG: 2/15/18 The BEGIN/END should not be necessary but it appears that there is a compiler bug that causes disposable data items not to be disposed at methoid end.
+            begin
+                disposable data requestStream, @Stream, await Request.Content.ReadAsStreamAsync()
+                disposable data fs, @FileStream, File.Create(fileSpec)
+                await requestStream.CopyToAsync(fs)
+            end
 
-		endmethod
-        
-		private static method getStorageFolder, string
-		proc
-			;; Try to use the folder defined in App.config
-			data folder = Properties.Settings.Default.StorageFolder
+            mreturn Request.CreateResponse(HttpStatusCode.OK)
 
-			;; If there isn't one, or if it does not exist, use the public documents folder
-			if (String.IsNullOrWhiteSpace(folder) || !Directory.Exists(folder))
-				folder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonDocuments),"FileService")
+        endmethod
 
-			mreturn folder
+        ;;; <summary>
+        ;;; Upload a file to the server. If the file already exists it will be replaced.
+        ;;; </summary>
+        ;;; <param name="fileName"></param>
+        {Route("{fileName}")}
+        public method Delete, @HttpResponseMessage
+            fileName, string 
+        proc
+            data file = Path.Combine(getStorageFolder(), fileName)
+            if (!File.Exists(file))
+                mreturn Request.CreateResponse(HttpStatusCode.NotFound)
 
-		endmethod
+            File.Delete(file)
 
-	endclass
+            mreturn Request.CreateResponse(HttpStatusCode.NoContent)
+
+        endmethod
+
+        private static method getStorageFolder, string
+        proc
+            ;; Try to use the folder defined in App.config
+            data folder = Properties.Settings.Default.StorageFolder
+
+            ;; If there isn't one, or if it does not exist, use the public documents folder
+            if (String.IsNullOrWhiteSpace(folder) || !Directory.Exists(folder))
+                folder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonDocuments),"FileService")
+
+            mreturn folder
+
+        endmethod
+
+    endclass
 
 endnamespace
