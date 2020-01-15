@@ -1,15 +1,16 @@
 ;;*****************************************************************************
 ;;
-;; File:        DatabaseCommunicationException.dbl
+;; File:        ThrowOnCommunicationError.dbl
 ;;
-;; Description: Thrown when there is a problem communicating with a previously
-;;              ;established database connection.
+;; Description: Throw a DatabaseCommunicationException when one of a set of
+;;              recognized exceptions is en countered. This will in turn cause
+;;              replicator to initiate re-connect processing.
 ;;
 ;; Author:      Steve Ives (Synergex Professional Services Group)
 ;;
 ;;*****************************************************************************
 ;;
-;; Copyright (c) 2019, Synergex International, Inc.
+;; Copyright (c) 2020, Synergex International, Inc.
 ;; All rights reserved.
 ;;
 ;; Redistribution and use in source and binary forms, with or without
@@ -36,22 +37,33 @@
 ;;
 ;;*****************************************************************************
 
-namespace ReplicationLibrary
+import ReplicationLibrary
 
-    public class DatabaseCommunicationException extends Exception
+subroutine ThrowOnCommunicationError
+    required in dberror, int
+    required in errtxt, a
+proc
 
-        public method DatabaseCommunicationException
-            required in aDatabaseErrorNumber, int
-            required in aDatabaseErrorMessage, string
-        proc
-            this.DatabaseErrorNumber = aDatabaseErrorNumber
-            this.DatabaseErrorMessage = aDatabaseErrorMessage
-        endmethod
+    ;Turn off network adapter on server
+    ;dberror    -1
+    ;errtxt     Network connection lost (recv): errno: 10060
 
-        public readwrite property DatabaseErrorNumber, int
+    ;Take SQL Server database off-line
+    ;dberror    -233
+    ;errtxt     [Microsoft][ODBC Driver 17 for SQL Server]Shared Memory Provider: No process is on the other end of the pipe.\r\n\0[Microsoft][ODBC Driver 17 for SQL Server]Communication link failure
 
-        public readwrite property DatabaseErrorMessage, string
+    ;Stop SQL Server process
+    ;dberror    -233
+    ;errtxt     "[Microsoft][ODBC Driver 17 for SQL Server]Shared Memory Provider: No process is on the other end of the pipe.\r\n\0[Microsoft][ODBC Driver 17 for SQL Server]Communication link failure
 
-    endclass
+    if (
+    &    (dberror==-1 && errtxt=="Network connection lost (recv): errno: 10060")
+    &    || (dberror==-233 && %instr(1,errtxt,"Shared Memory Provider: No process is on the other end of the pipe"))
+    &    )
+    begin
+        throw new DatabaseCommunicationException(dberror,%atrimtostring(errtxt))
+    end
 
-endnamespace
+    xreturn
+
+endsubroutine

@@ -167,6 +167,9 @@
     <Compile Include="..\..\SRC\LIBRARY\StringTools.dbl">
       <Link>StringTools.dbl</Link>
     </Compile>
+    <Compile Include="..\..\SRC\LIBRARY\ThrowOnCommunicationError.dbl">
+      <Link>ThrowOnCommunicationError.dbl</Link>
+    </Compile>
   </ItemGroup>
   <ItemGroup>
     <Content Include="..\..\SRC\LIBRARY\SmtpMail.def">

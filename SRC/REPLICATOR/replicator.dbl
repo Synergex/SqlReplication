@@ -37,6 +37,7 @@
 ;;*****************************************************************************
 
 import replicator
+import ReplicationLibrary
 import System.Collections
 
 main replicator
@@ -573,17 +574,34 @@ CheckTable,
 
     Logger.VerboseLog(" - Checking if table exists")
 
-    try
+    repeat
     begin
-        functionName = %atrim(instruction.structure_name) + "Exists"
-        status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,dberrtxt)
+        try
+        begin
+            functionName = %atrim(instruction.structure_name) + "Exists"
+            status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,dberrtxt)
+            exitloop
+        end
+        catch (ex, @DatabaseCommunicationException)
+        begin
+            ;;Attempt to disconnect from and re-connect to the database
+            if (%DatabaseReconnect) then
+            begin
+                ;;Re-connected, retry the previous operation
+                nextloop
+            end
+            else
+            begin
+                xcall ReplicatorShutdown
+            end
+        end
+        catch (ex, @SynException)
+        begin
+            ok = Logger.LogFunctionFail(functionName,ex.Errno,ex.Message)
+            return
+        end
+        endtry
     end
-    catch (ex, @SynException)
-    begin
-        ok = Logger.LogFunctionFail(functionName,ex.Errno,ex.Message)
-        return
-    end
-    endtry
 
     using status select
     (1),
@@ -613,17 +631,34 @@ CreateTable,
 
     Logger.Log(" - Creating table")
 
-    try
+    repeat
     begin
-        functionName = %atrim(instruction.structure_name) + "Create"
-        status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,dberrtxt)
+        try
+        begin
+            functionName = %atrim(instruction.structure_name) + "Create"
+            status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,dberrtxt)
+            exitloop
+        end
+        catch (ex, @DatabaseCommunicationException)
+        begin
+            ;;Attempt to disconnect from and re-connect to the database
+            if (%DatabaseReconnect) then
+            begin
+                ;;Re-connected, retry the previous operation
+                nextloop
+            end
+            else
+            begin
+                xcall ReplicatorShutdown
+            end
+        end
+        catch (ex, @SynException)
+        begin
+            ok = Logger.LogFunctionFail(functionName,ex.Errno,ex.Message)
+            return
+        end
+        endtry
     end
-    catch (ex, @SynException)
-    begin
-        ok = Logger.LogFunctionFail(functionName,ex.Errno,ex.Message)
-        return
-    end
-    endtry
 
     if (status) then
     begin
@@ -652,41 +687,59 @@ LoadTable,
 
     Logger.Log(" - Load starting at " + %TimeNow)
 
-    clear status
-
-    try
+    repeat
     begin
-        data successCount, int, 0
-        data failCount, int, 0
+        clear status
 
-        functionName = %atrim(instruction.structure_name) + "Load"
+        try
+        begin
+            data successCount, int, 0
+            data failCount, int, 0
 
-        if (Settings.RunningOnTerminal) then
-        begin
-            status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,dberrtxt,Settings.LogLoadExceptions,Settings.TerminalChannel,successCount,failCount,Settings.BulkLoadProgressReporting)
-        end
-        else
-        begin
-            status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,dberrtxt,Settings.LogLoadExceptions,,successCount,failCount)
-        end
+            functionName = %atrim(instruction.structure_name) + "Load"
 
-        if (status) then
-        begin
-            Logger.Log(" - Load complete at " + %TimeNow)
-            Logger.Log(" - " + %string(successCount) + " rows inserted, " + %string(failCount) + " rows failed.")
-            Counters.Inserts += successCount
-            Counters.Errors  += failCount
+            if (Settings.RunningOnTerminal) then
+            begin
+                status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,dberrtxt,Settings.LogLoadExceptions,Settings.TerminalChannel,successCount,failCount,Settings.BulkLoadProgressReporting)
+            end
+            else
+            begin
+                status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,dberrtxt,Settings.LogLoadExceptions,,successCount,failCount)
+            end
+
+            if (status) then
+            begin
+                Logger.Log(" - Load complete at " + %TimeNow)
+                Logger.Log(" - " + %string(successCount) + " rows inserted, " + %string(failCount) + " rows failed.")
+                Counters.Inserts += successCount
+                Counters.Errors  += failCount
+            end
+            else
+            begin
+                Logger.LogFunctionError(functionName,status,dberrtxt)
+            end
+            exitloop
         end
-        else
+        catch (ex, @DatabaseCommunicationException)
         begin
-            Logger.LogFunctionError(functionName,status,dberrtxt)
+            ;;Attempt to disconnect from and re-connect to the database
+            if (%DatabaseReconnect) then
+            begin
+                ;;Re-connected, retry the previous operation
+                nextloop
+            end
+            else
+            begin
+                xcall ReplicatorShutdown
+            end
         end
+        catch (ex, @SynException)
+        begin
+            ok = Logger.LogFunctionFail(functionName,ex.Errno,ex.Message)
+            exitloop
+        end
+        endtry
     end
-    catch (ex, @SynException)
-    begin
-        ok = Logger.LogFunctionFail(functionName,ex.Errno,ex.Message)
-    end
-    endtry
 
     ;;Now add alternate key indexes
     if (ok && status)
@@ -703,33 +756,51 @@ BulkLoadTable,
 
     Logger.Log(" - Bulk load starting at " + %TimeNow)
 
-    clear status
-
-    try
+    repeat
     begin
-        data totalRows, int
-        data failRows, int
+        clear status
 
-        functionName = %atrim(instruction.structure_name) + "BulkLoad"
-        status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,Settings.LocalExportPath,Settings.FileServiceHost,Settings.FileServicePort,Settings.DatabaseTimeout,Settings.BulkLoadTimeout,Settings.LogFileChannel,totalRows,failRows,dberrtxt)
+        try
+        begin
+            data totalRows, int
+            data failRows, int
 
-        if (status) then
-        begin
-            Logger.Log(" - Bulk load complete at " + %TimeNow)
-            Logger.Log("   - " + %string(totalRows) + " records processed, " + %string(failRows) + " failed.")
-            Counters.Inserts += totalRows - failRows
-            Counters.Errors  += failRows
+            functionName = %atrim(instruction.structure_name) + "BulkLoad"
+            status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,Settings.LocalExportPath,Settings.FileServiceHost,Settings.FileServicePort,Settings.DatabaseTimeout,Settings.BulkLoadTimeout,Settings.LogFileChannel,totalRows,failRows,dberrtxt)
+
+            if (status) then
+            begin
+                Logger.Log(" - Bulk load complete at " + %TimeNow)
+                Logger.Log("   - " + %string(totalRows) + " records processed, " + %string(failRows) + " failed.")
+                Counters.Inserts += totalRows - failRows
+                Counters.Errors  += failRows
+            end
+            else
+            begin
+                Logger.LogFunctionError(functionName,status,dberrtxt)
+            end
+            exitloop
         end
-        else
+        catch (ex, @DatabaseCommunicationException)
         begin
-            Logger.LogFunctionError(functionName,status,dberrtxt)
+            ;;Attempt to disconnect from and re-connect to the database
+            if (%DatabaseReconnect) then
+            begin
+                ;;Re-connected, retry the previous operation
+                nextloop
+            end
+            else
+            begin
+                xcall ReplicatorShutdown
+            end
         end
+        catch (ex, @SynException)
+        begin
+            ok = Logger.LogFunctionFail(functionName,ex.Errno,ex.Message)
+            exitloop
+        end
+        endtry
     end
-    catch (ex, @SynException)
-    begin
-        ok = Logger.LogFunctionFail(functionName,ex.Errno,ex.Message)
-    end
-    endtry
 
     ;;Now add alternate key indexes
     if (ok && status)
@@ -758,17 +829,34 @@ DoInsert,
         end
     end
 
-    try
+    repeat
     begin
-        functionName = %atrim(instruction.structure_name) + "Insert"
-        status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,instruction.record(1,structure_data.structure_size),dberrtxt)
+        try
+        begin
+            functionName = %atrim(instruction.structure_name) + "Insert"
+            status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,instruction.record(1,structure_data.structure_size),dberrtxt)
+            exitloop
+        end
+        catch (ex, @DatabaseCommunicationException)
+        begin
+            ;;Attempt to disconnect from and re-connect to the database
+            if (%DatabaseReconnect) then
+            begin
+                ;;Re-connected, retry the previous operation
+                nextloop
+            end
+            else
+            begin
+                xcall ReplicatorShutdown
+            end
+        end
+        catch (ex, @SynException)
+        begin
+            ok = Logger.LogFunctionFail(functionName,ex.Errno,ex.Message)
+            return
+        end
+        endtry
     end
-    catch (ex, @SynException)
-    begin
-        ok = Logger.LogFunctionFail(functionName,ex.Errno,ex.Message)
-        return
-    end
-    endtry
 
     using status select
     (0),
@@ -819,17 +907,34 @@ DoInsertRelative,
         end
     end
 
-    try
+    repeat
     begin
-        functionName = %atrim(instruction.structure_name) + "Insert"
-        status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,recordNumber,instruction.record(1,structure_data.structure_size),dberrtxt)
+        try
+        begin
+            functionName = %atrim(instruction.structure_name) + "Insert"
+            status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,recordNumber,instruction.record(1,structure_data.structure_size),dberrtxt)
+            exitloop
+        end
+        catch (ex, @DatabaseCommunicationException)
+        begin
+            ;;Attempt to disconnect from and re-connect to the database
+            if (%DatabaseReconnect) then
+            begin
+                ;;Re-connected, retry the previous operation
+                nextloop
+            end
+            else
+            begin
+                xcall ReplicatorShutdown
+            end
+        end
+        catch (ex, @SynException)
+        begin
+            ok = Logger.LogFunctionFail(functionName,ex.Errno,ex.Message)
+            return
+        end
+        endtry
     end
-    catch (ex, @SynException)
-    begin
-        ok = Logger.LogFunctionFail(functionName,ex.Errno,ex.Message)
-        return
-    end
-    endtry
 
     using status select
     (0),
@@ -878,17 +983,34 @@ DoUpdate,
         end
     end
 
-    try
+    repeat
     begin
-        functionName = %atrim(instruction.structure_name) + "Update"
-        status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,instruction.record(1,structure_data.structure_size),rows,dberrtxt)
+        try
+        begin
+            functionName = %atrim(instruction.structure_name) + "Update"
+            status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,instruction.record(1,structure_data.structure_size),rows,dberrtxt)
+            exitloop
+        end
+        catch (ex, @DatabaseCommunicationException)
+        begin
+            ;;Attempt to disconnect from and re-connect to the database
+            if (%DatabaseReconnect) then
+            begin
+                ;;Re-connected, retry the previous operation
+                nextloop
+            end
+            else
+            begin
+                xcall ReplicatorShutdown
+            end
+        end
+        catch (ex, @SynException)
+        begin
+            ok = Logger.LogFunctionFail(functionName,ex.Errno,ex.Message)
+            return
+        end
+        endtry
     end
-    catch (ex, @SynException)
-    begin
-        ok = Logger.LogFunctionFail(functionName,ex.Errno,ex.Message)
-        return
-    end
-    endtry
 
     if (status) then
     begin
@@ -940,17 +1062,34 @@ DoUpdateRelative,
         end
     end
 
-    try
+    repeat
     begin
-        functionName = %atrim(instruction.structure_name) + "Update"
-        status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,recordNumber,instruction.record(1,structure_data.structure_size),rows,dberrtxt)
+        try
+        begin
+            functionName = %atrim(instruction.structure_name) + "Update"
+            status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,recordNumber,instruction.record(1,structure_data.structure_size),rows,dberrtxt)
+            exitloop
+        end
+        catch (ex, @DatabaseCommunicationException)
+        begin
+            ;;Attempt to disconnect from and re-connect to the database
+            if (%DatabaseReconnect) then
+            begin
+                ;;Re-connected, retry the previous operation
+                nextloop
+            end
+            else
+            begin
+                xcall ReplicatorShutdown
+            end
+        end
+        catch (ex, @SynException)
+        begin
+            ok = Logger.LogFunctionFail(functionName,ex.Errno,ex.Message)
+            return
+        end
+        endtry
     end
-    catch (ex, @SynException)
-    begin
-        ok = Logger.LogFunctionFail(functionName,ex.Errno,ex.Message)
-        return
-    end
-    endtry
 
     if (status) then
     begin
@@ -993,26 +1132,44 @@ DoDelete,
         Logger.VerboseLog(" - Key: " + keyValue)
     end
 
-    try
+    repeat
     begin
-        functionName = %atrim(instruction.structure_name) + "Delete"
-        status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,(a)keyValue,dberrtxt)
-        if (status) then
+        try
         begin
-            Logger.VerboseLog(" - Row deleted")
-            Counters.Deletes += 1
+            functionName = %atrim(instruction.structure_name) + "Delete"
+            status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,(a)keyValue,dberrtxt)
+            if (status) then
+            begin
+                Logger.VerboseLog(" - Row deleted")
+                Counters.Deletes += 1
+            end
+            else
+            begin
+                Logger.VerboseLog(" - " + dberrtxt)
+                Logger.LogFunctionError(functionName,status,dberrtxt)
+            end
+            exitloop
         end
-        else
+        catch (ex, @DatabaseCommunicationException)
         begin
-            Logger.VerboseLog(" - " + dberrtxt)
-            Logger.LogFunctionError(functionName,status,dberrtxt)
+            ;;Attempt to disconnect from and re-connect to the database
+            if (%DatabaseReconnect) then
+            begin
+                ;;Re-connected, retry the previous operation
+                nextloop
+            end
+            else
+            begin
+                xcall ReplicatorShutdown
+            end
         end
+        catch (ex, @SynException)
+        begin
+            ok = Logger.LogFunctionFail(functionName,ex.Errno,ex.Message)
+            exitloop
+        end
+        endtry
     end
-    catch (ex, @SynException)
-    begin
-        ok = Logger.LogFunctionFail(functionName,ex.Errno,ex.Message)
-    end
-    endtry
 
     return
 
@@ -1026,52 +1183,91 @@ DoCreateTable,
 
     Logger.VerboseLog(" - Checking if table exists")
 
-    try
+    repeat
     begin
-        functionName = %atrim(instruction.structure_name) + "Exists"
-        status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,dberrtxt)
-        using status select
-        (1),
+        try
         begin
-            Logger.VerboseLog(" - Table exists!")
-        end
-        (0),
-        begin
-            Logger.VerboseLog(" - Creating table")
-
-            try
+            functionName = %atrim(instruction.structure_name) + "Exists"
+            status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,dberrtxt)
+            using status select
+            (1),
             begin
-                functionName = %atrim(instruction.structure_name) + "Create"
-                status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,dberrtxt)
-                if (status) then
+                Logger.VerboseLog(" - Table exists!")
+                exitloop
+            end
+            (0),
+            begin
+                Logger.VerboseLog(" - Creating table")
+
+                repeat
                 begin
-                    Logger.VerboseLog(" - Table created")
-
-                    if (Settings.CanSendEmail())
+                    try
                     begin
-                        xcall SendEmail("Replicator " + Settings.InstanceName + " created table " + %atrim(instruction.structure_name))
+                        functionName = %atrim(instruction.structure_name) + "Create"
+                        status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,dberrtxt)
+                        if (status) then
+                        begin
+                            Logger.VerboseLog(" - Table created")
+
+                            if (Settings.CanSendEmail())
+                            begin
+                                xcall SendEmail("Replicator " + Settings.InstanceName + " created table " + %atrim(instruction.structure_name))
+                            end
+                        end
+                        else
+                        begin
+                            Logger.LogFunctionError(functionName,status,dberrtxt)
+                        end
                     end
+                    catch (ex, @DatabaseCommunicationException)
+                    begin
+                        ;;Attempt to disconnect from and re-connect to the database
+                        if (%DatabaseReconnect) then
+                        begin
+                            ;;Re-connected, retry the previous operation
+                            nextloop
+                        end
+                        else
+                        begin
+                            xcall ReplicatorShutdown
+                        end
+                    end
+                    catch (ex, @SynException)
+                    begin
+                        ok = Logger.LogFunctionFail(functionName,ex.Errno,ex.Message)
+                    end
+                    endtry
+                    exitloop
                 end
-                else
-                    Logger.LogFunctionError(functionName,status,dberrtxt)
+                exitloop
             end
-            catch (ex, @SynException)
+            (<0),
             begin
-                ok = Logger.LogFunctionFail(functionName,ex.Errno,ex.Message)
+                Logger.LogFunctionError(functionName,status,dberrtxt)
+                exitloop
             end
-            endtry
+            endusing
         end
-        (<0),
+        catch (ex, @DatabaseCommunicationException)
         begin
-            Logger.LogFunctionError(functionName,status,dberrtxt)
+            ;;Attempt to disconnect from and re-connect to the database
+            if (%DatabaseReconnect) then
+            begin
+                ;;Re-connected, retry the previous operation
+                nextloop
+            end
+            else
+            begin
+                xcall ReplicatorShutdown
+            end
         end
-        endusing
+        catch (ex, @SynException)
+        begin
+            ok = Logger.LogFunctionFail(functionName,ex.Errno,ex.Message)
+            exitloop
+        end
+        endtry
     end
-    catch (ex, @SynException)
-    begin
-        ok = Logger.LogFunctionFail(functionName,ex.Errno,ex.Message)
-    end
-    endtry
 
     return
 
@@ -1084,17 +1280,34 @@ DoLoadTable,
 
     Logger.VerboseLog(" - Checking if table exists")
 
-    try
+    repeat
     begin
-        functionName = %atrim(instruction.structure_name) + "Exists"
-        status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,dberrtxt)
+        try
+        begin
+            functionName = %atrim(instruction.structure_name) + "Exists"
+            status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,dberrtxt)
+            exitloop
+        end
+        catch (ex, @DatabaseCommunicationException)
+        begin
+            ;;Attempt to disconnect from and re-connect to the database
+            if (%DatabaseReconnect) then
+            begin
+                ;;Re-connected, retry the previous operation
+                nextloop
+            end
+            else
+            begin
+                xcall ReplicatorShutdown
+            end
+        end
+        catch (ex, @SynException)
+        begin
+            ok = Logger.LogFunctionFail(functionName,ex.Errno,ex.Message)
+            return
+        end
+        endtry
     end
-    catch (ex, @SynException)
-    begin
-        ok = Logger.LogFunctionFail(functionName,ex.Errno,ex.Message)
-        return
-    end
-    endtry
 
     using status select
     (1),
@@ -1170,29 +1383,47 @@ DoCreateCsv,
 ;;
 DoDeleteAllRows,
 
-    try
+    repeat
     begin
-        functionName = %atrim(instruction.structure_name) + "Clear"
-        status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,dberrtxt)
-        if (status) then
+        try
         begin
-            Logger.VerboseLog(" - Table truncated")
-
-            if (Settings.CanSendEmail())
+            functionName = %atrim(instruction.structure_name) + "Clear"
+            status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,dberrtxt)
+            if (status) then
             begin
-                xcall SendEmail("Replicator " + Settings.InstanceName + " truncated table " + %atrim(instruction.structure_name))
+                Logger.VerboseLog(" - Table truncated")
+
+                if (Settings.CanSendEmail())
+                begin
+                    xcall SendEmail("Replicator " + Settings.InstanceName + " truncated table " + %atrim(instruction.structure_name))
+                end
+            end
+            else
+            begin
+                Logger.LogFunctionError(functionName,status,dberrtxt)
+            end
+            exitloop
+        end
+        catch (ex, @DatabaseCommunicationException)
+        begin
+            ;;Attempt to disconnect from and re-connect to the database
+            if (%DatabaseReconnect) then
+            begin
+                ;;Re-connected, retry the previous operation
+                nextloop
+            end
+            else
+            begin
+                xcall ReplicatorShutdown
             end
         end
-        else
+        catch (ex, @SynException)
         begin
-            Logger.LogFunctionError(functionName,status,dberrtxt)
+            ok = Logger.LogFunctionFail(functionName,ex.Errno,ex.Message)
+            exitloop
         end
+        endtry
     end
-    catch (ex, @SynException)
-    begin
-        ok = Logger.LogFunctionFail(functionName,ex.Errno,ex.Message)
-    end
-    endtry
 
     return
 
@@ -1216,30 +1447,47 @@ DoDeleteTable,
         xcall nspc_delete(Settings.ChannelInfo,nsptr)
     end
 
-    try
+    repeat
     begin
-        functionName = %atrim(instruction.structure_name) + "Drop"
-        status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,dberrtxt)
-        if (status) then
+        try
         begin
-            Logger.VerboseLog(" - Table deleted")
-
-            if (Settings.CanSendEmail())
+            functionName = %atrim(instruction.structure_name) + "Drop"
+            status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,dberrtxt)
+            if (status) then
             begin
-                xcall SendEmail("Replicator " + Settings.InstanceName + " deleted table " + %atrim(instruction.structure_name))
+                Logger.VerboseLog(" - Table deleted")
+
+                if (Settings.CanSendEmail())
+                begin
+                    xcall SendEmail("Replicator " + Settings.InstanceName + " deleted table " + %atrim(instruction.structure_name))
+                end
+            end
+            else
+            begin
+                Logger.LogFunctionError(functionName,status,dberrtxt)
+            end
+            exitloop
+        end
+        catch (ex, @DatabaseCommunicationException)
+        begin
+            ;;Attempt to disconnect from and re-connect to the database
+            if (%DatabaseReconnect) then
+            begin
+                ;;Re-connected, retry the previous operation
+                nextloop
+            end
+            else
+            begin
+                xcall ReplicatorShutdown
             end
         end
-        else
+        catch (ex, @SynException)
         begin
-            Logger.LogFunctionError(functionName,status,dberrtxt)
+            ok = Logger.LogFunctionFail(functionName,ex.Errno,ex.Message)
+            return
         end
+        endtry
     end
-    catch (ex, @SynException)
-    begin
-        ok = Logger.LogFunctionFail(functionName,ex.Errno,ex.Message)
-        return
-    end
-    endtry
 
     return
 
@@ -1247,34 +1495,53 @@ DoDeleteTable,
 ;; Add alternate key indexes to a table (if they don't already exist)
 ;;
 DoAddIndexes,
-    
-    try
-    begin
-        functionName = %atrim(instruction.structure_name) + "Index"
-        status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,Settings.DatabaseTimeout,Settings.BulkLoadTimeout,Settings.LogFileChannel,dberrtxt)
-        if (status) then
-        begin
-            Logger.VerboseLog(" - Indexes added")
 
-            if (Settings.CanSendEmail())
+    repeat
+    begin
+        try
+        begin
+            functionName = %atrim(instruction.structure_name) + "Index"
+            status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,Settings.DatabaseTimeout,Settings.BulkLoadTimeout,Settings.LogFileChannel,dberrtxt)
+            if (status) then
             begin
-                xcall SendEmail("Replicator " + Settings.InstanceName + " added indexes to table " + %atrim(instruction.structure_name))
+                Logger.VerboseLog(" - Indexes added")
+
+                if (Settings.CanSendEmail())
+                begin
+                    xcall SendEmail("Replicator " + Settings.InstanceName + " added indexes to table " + %atrim(instruction.structure_name))
+                end
+            end
+            else
+            begin
+                Logger.LogFunctionError(functionName,status,dberrtxt)
+            end
+            exitloop
+        end
+        catch (ex, @DatabaseCommunicationException)
+        begin
+            ;;Attempt to disconnect from and re-connect to the database
+            if (%DatabaseReconnect) then
+            begin
+                ;;Re-connected, retry the previous operation
+                nextloop
+            end
+            else
+            begin
+                xcall ReplicatorShutdown
             end
         end
-        else
+        catch (ex, @RoutineNotFound)
         begin
-            Logger.LogFunctionError(functionName,status,dberrtxt)
+            Logger.VerboseLog(" - Addining indexes is not enabled for this table.")
+            exitloop
         end
+        catch (ex, @SynException)
+        begin
+            ok = Logger.LogFunctionFail(functionName,ex.Errno,ex.Message)
+            exitloop
+        end
+        endtry
     end
-    catch (ex, @RoutineNotFound)
-    begin
-        Logger.VerboseLog(" - Addining indexes is not enabled for this table.")
-    end
-    catch (ex, @SynException)
-    begin
-        ok = Logger.LogFunctionFail(functionName,ex.Errno,ex.Message)
-    end
-    endtry
 
     return
 
@@ -1283,33 +1550,52 @@ DoAddIndexes,
 ;;
 DoDeleteIndexes,
 
-    try
+    repeat
     begin
-        functionName = %atrim(instruction.structure_name) + "UnIndex"
-        status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,dberrtxt)
-        if (status) then
+        try
         begin
-            Logger.VerboseLog(" - Indexes removed")
-
-            if (Settings.CanSendEmail())
+            functionName = %atrim(instruction.structure_name) + "UnIndex"
+            status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,dberrtxt)
+            if (status) then
             begin
-                xcall SendEmail("Replicator " + Settings.InstanceName + " removed indexes from table " + %atrim(instruction.structure_name))
+                Logger.VerboseLog(" - Indexes removed")
+
+                if (Settings.CanSendEmail())
+                begin
+                    xcall SendEmail("Replicator " + Settings.InstanceName + " removed indexes from table " + %atrim(instruction.structure_name))
+                end
+            end
+            else
+            begin
+                Logger.LogFunctionError(functionName,status,dberrtxt)
+            end
+            exitloop
+        end
+        catch (ex, @DatabaseCommunicationException)
+        begin
+            ;;Attempt to disconnect from and re-connect to the database
+            if (%DatabaseReconnect) then
+            begin
+                ;;Re-connected, retry the previous operation
+                nextloop
+            end
+            else
+            begin
+                xcall ReplicatorShutdown
             end
         end
-        else
+        catch (ex, @RoutineNotFound)
         begin
-            Logger.LogFunctionError(functionName,status,dberrtxt)
+            Logger.VerboseLog(" - Removing indexes is not enabled for this table.")
+            exitloop
         end
+        catch (ex, @SynException)
+        begin
+            ok = Logger.LogFunctionFail(functionName,ex.Errno,ex.Message)
+            exitloop
+        end
+        endtry
     end
-    catch (ex, @RoutineNotFound)
-    begin
-        Logger.VerboseLog(" - Removing indexes is not enabled for this table.")
-    end
-    catch (ex, @SynException)
-    begin
-        ok = Logger.LogFunctionFail(functionName,ex.Errno,ex.Message)
-    end
-    endtry
 
     return
 

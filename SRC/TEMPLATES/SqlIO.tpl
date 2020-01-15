@@ -130,8 +130,18 @@ proc
 
     if (!error)
     begin
-        if (%ssc_move(a_dbchn,cursor,1)==SSQL_NORMAL)
+        if (%ssc_move(a_dbchn,cursor,1)==SSQL_NORMAL) then
+        begin
             error = 1 ;; Table exists
+        end
+        else
+        begin
+            if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+            begin
+                errtxt="Failed to execute SQL Statement"
+            end
+            xcall ThrowOnCommunicationError(dberror,errtxt)
+        end
     end
 
     ;;Close the database cursor
@@ -208,6 +218,7 @@ proc
             ok = false
             if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
                 errtxt="Failed to start transaction"
+            xcall ThrowOnCommunicationError(dberror,errtxt)
         end
     end
 
@@ -298,12 +309,19 @@ proc
                 ok = false
                 if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
                     errtxt="Failed to commit transaction"
+                xcall ThrowOnCommunicationError(dberror,errtxt)
             end
         end
         else
         begin
             ;;There was an error, rollback the transaction
-            xcall ssc_rollback(a_dbchn,SSQL_TXOFF)
+            if (%ssc_rollback(a_dbchn,SSQL_TXOFF) == SSQL_FAILURE)
+            begin
+                ok = false
+                if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+                    errtxt="Failed to rollback transaction"
+                xcall ThrowOnCommunicationError(dberror,errtxt)
+            end
         end
     end
 
@@ -337,6 +355,7 @@ execute_cursor,
         ok = false
         if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
             errtxt="Failed to execute SQL statement"
+        xcall ThrowOnCommunicationError(dberror,errtxt)
     end
 
     return
@@ -416,6 +435,7 @@ proc
             ok = false
             if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
                 errtxt="Failed to start transaction"
+            xcall ThrowOnCommunicationError(dberror,errtxt)
         end
     end
 
@@ -487,12 +507,19 @@ proc
                 ok = false
                 if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
                     errtxt="Failed to commit transaction"
+                xcall ThrowOnCommunicationError(dberror,errtxt)
             end
         end
         else
         begin
             ;;There was an error, rollback the transaction
-            xcall ssc_rollback(a_dbchn,SSQL_TXOFF)
+            if (%ssc_rollback(a_dbchn,SSQL_TXOFF) == SSQL_FAILURE)
+            begin
+                ok = false
+                if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+                    errtxt="Failed to rollback transaction"
+                xcall ThrowOnCommunicationError(dberror,errtxt)
+            end
         end
     end
 
@@ -533,6 +560,7 @@ execute_cursor,
         ok = false
         if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
             errtxt="Failed to execute SQL statement"
+        xcall ThrowOnCommunicationError(dberror,errtxt)
     end
 
     return
@@ -602,6 +630,7 @@ proc
             ok = false
             if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
                 errtxt="Failed to start transaction"
+            xcall ThrowOnCommunicationError(dberror,errtxt)
         end
     end
 
@@ -652,12 +681,19 @@ proc
                 ok = false
                 if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
                     errtxt="Failed to commit transaction"
+                xcall ThrowOnCommunicationError(dberror,errtxt)
             end
         end
         else
         begin
             ;;There was an error, rollback the transaction
-            xcall ssc_rollback(a_dbchn,SSQL_TXOFF)
+            if (%ssc_rollback(a_dbchn,SSQL_TXOFF) == SSQL_FAILURE)
+            begin
+                ok = false
+                if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+                    errtxt="Failed to rollback transaction"
+                xcall ThrowOnCommunicationError(dberror,errtxt)
+            end
         end
     end
 
@@ -691,6 +727,7 @@ execute_cursor,
         ok = false
         if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
             errtxt="Failed to execute SQL statement"
+        xcall ThrowOnCommunicationError(dberror,errtxt)
     end
 
     return
@@ -826,6 +863,7 @@ proc
             sts = 0
             if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
                 errtxt="Failed to start transaction"
+            xcall ThrowOnCommunicationError(dberror,errtxt)
         end
     end
 
@@ -1020,11 +1058,16 @@ proc
                     sts = 2
                 end
                 (),
+                begin
                     nop
+                end
                 endusing
             end
             else
+            begin
                 errtxt="Failed to execute SQL statement"
+            end
+            xcall ThrowOnCommunicationError(dberror,errtxt)
         end
     end
 
@@ -1041,12 +1084,19 @@ proc
                 sts = 0
                 if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
                     errtxt="Failed to commit transaction"
+                xcall ThrowOnCommunicationError(dberror,errtxt)
             end
         end
         else
         begin
             ;;There was an error, rollback the transaction
-            xcall ssc_rollback(a_dbchn,SSQL_TXOFF)
+            if (%ssc_rollback(a_dbchn,SSQL_TXOFF) == SSQL_FAILURE)
+            begin
+                ok = false
+                if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+                    errtxt="Failed to rollback transaction"
+                xcall ThrowOnCommunicationError(dberror,errtxt)
+            end
         end
     end
 
@@ -1205,6 +1255,7 @@ proc
             ok = false
             if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
                 errtxt="Failed to start transaction"
+            xcall ThrowOnCommunicationError(dberror,errtxt)
         end
     end
 
@@ -1396,6 +1447,8 @@ proc
                 if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
                     errtxt="Failed to execute SQL statement"
 
+                xcall ThrowOnCommunicationError(dberror,errtxt)
+
                 clear continue
 
                 ;;Are we logging errors?
@@ -1442,12 +1495,19 @@ proc
                 ok = false
                 if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
                     errtxt="Failed to commit transaction"
+                xcall ThrowOnCommunicationError(dberror,errtxt)
             end
         end
         else
         begin
             ;;There was an error, rollback the transaction
-            xcall ssc_rollback(a_dbchn,SSQL_TXOFF)
+            if (%ssc_rollback(a_dbchn,SSQL_TXOFF) == SSQL_FAILURE)
+            begin
+                ok = false
+                if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+                    errtxt="Failed to rollback transaction"
+                xcall ThrowOnCommunicationError(dberror,errtxt)
+            end
         end
     end
 
@@ -1606,6 +1666,7 @@ proc
             ok = false
             if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
                 errtxt="Failed to start transaction"
+            xcall ThrowOnCommunicationError(dberror,errtxt)
         end
     end
 
@@ -1784,6 +1845,7 @@ proc
             ok = false
             if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
                 errtxt="Failed to execute SQL statement"
+            xcall ThrowOnCommunicationError(dberror,errtxt)
         end
     end
 
@@ -1799,12 +1861,19 @@ proc
                 ok = false
                 if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
                     errtxt="Failed to commit transaction"
+                xcall ThrowOnCommunicationError(dberror,errtxt)
             end
         end
         else
         begin
             ;;There was an error, rollback the transaction
-            xcall ssc_rollback(a_dbchn,SSQL_TXOFF)
+            if (%ssc_rollback(a_dbchn,SSQL_TXOFF) == SSQL_FAILURE)
+            begin
+                ok = false
+                if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+                    errtxt="Failed to rollback transaction"
+                xcall ThrowOnCommunicationError(dberror,errtxt)
+            end
         end
     end
 
@@ -1881,6 +1950,7 @@ proc
             ok = false
             if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
                 errtxt="Failed to start transaction"
+            xcall ThrowOnCommunicationError(dberror,errtxt)
         end
     end
 
@@ -1923,6 +1993,7 @@ proc
             ok = false
             if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
                 errtxt="Failed to execute SQL statement"
+            xcall ThrowOnCommunicationError(dberror,errtxt)
         end
     end
 
@@ -1953,16 +2024,23 @@ proc
                 ok = false
                 if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
                     errtxt="Failed to commit transaction"
+                xcall ThrowOnCommunicationError(dberror,errtxt)
             end
         end
         else
         begin
             ;;There was an error, rollback the transaction
-            xcall ssc_rollback(a_dbchn,SSQL_TXOFF)
+            if (%ssc_rollback(a_dbchn,SSQL_TXOFF) == SSQL_FAILURE)
+            begin
+                ok = false
+                if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+                    errtxt="Failed to rollback transaction"
+                xcall ThrowOnCommunicationError(dberror,errtxt)
+            end
         end
     end
 
-   ;;If there was an error message, return it to the calling routine
+    ;;If there was an error message, return it to the calling routine
 
     if (^passed(a_errtxt))
     begin
@@ -2021,6 +2099,7 @@ proc
             ok = false
             if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
                 errtxt="Failed to start transaction"
+            xcall ThrowOnCommunicationError(dberror,errtxt)
         end
     end
 
@@ -2046,6 +2125,7 @@ proc
             ok = false
             if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
                 errtxt="Failed to execute SQL statement"
+            xcall ThrowOnCommunicationError(dberror,errtxt)
         end
     end
 
@@ -2076,12 +2156,19 @@ proc
                 ok = false
                 if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
                     errtxt="Failed to commit transaction"
+                xcall ThrowOnCommunicationError(dberror,errtxt)
             end
         end
         else
         begin
             ;;There was an error, rollback the transaction
-            xcall ssc_rollback(a_dbchn,SSQL_TXOFF)
+            if (%ssc_rollback(a_dbchn,SSQL_TXOFF) == SSQL_FAILURE)
+            begin
+                ok = false
+                if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+                    errtxt="Failed to rollback transaction"
+                xcall ThrowOnCommunicationError(dberror,errtxt)
+            end
         end
     end
 
@@ -2146,6 +2233,7 @@ proc
             ok = false
             if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
                 errtxt="Failed to start transaction"
+            xcall ThrowOnCommunicationError(dberror,errtxt)
         end
     end
 
@@ -2180,6 +2268,7 @@ proc
                 errtxt="Failed to execute SQL statement"
                 ok = false
             end
+            xcall ThrowOnCommunicationError(dberror,errtxt)
         end
     end
 
@@ -2210,12 +2299,19 @@ proc
                 ok = false
                 if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
                     errtxt="Failed to commit transaction"
+                xcall ThrowOnCommunicationError(dberror,errtxt)
             end
         end
         else
         begin
             ;;There was an error, rollback the transaction
-            xcall ssc_rollback(a_dbchn,SSQL_TXOFF)
+            if (%ssc_rollback(a_dbchn,SSQL_TXOFF) == SSQL_FAILURE)
+            begin
+                ok = false
+                if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+                    errtxt="Failed to rollback transaction"
+                xcall ThrowOnCommunicationError(dberror,errtxt)
+            end
         end
     end
 
@@ -2641,6 +2737,7 @@ proc
                 ok = false
                 if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
                     errtxt="Failed to start transaction"
+                xcall ThrowOnCommunicationError(dberror,errtxt)
             end
         end
 
@@ -2689,6 +2786,8 @@ proc
             begin
                 if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_NORMAL) then
                 begin
+                    xcall ThrowOnCommunicationError(dberror,errtxt)
+
                     now = %datetime
                     writelog("Bulk insert error")
                     using dberror select
@@ -2731,6 +2830,7 @@ proc
                     if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
                         errtxt="Failed to commit transaction"
                     ok = false
+                    xcall ThrowOnCommunicationError(dberror,errtxt)
                 end
             end
             else
@@ -2738,7 +2838,13 @@ proc
                 ;;There was an error, rollback the transaction
                 now = %datetime
                 writelog("ROLLBACK")
-                xcall ssc_rollback(a_dbchn,SSQL_TXOFF)
+                if (%ssc_rollback(a_dbchn,SSQL_TXOFF) == SSQL_FAILURE)
+                begin
+                    ok = false
+                    if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+                        errtxt="Failed to rollback transaction"
+                    xcall ThrowOnCommunicationError(dberror,errtxt)
+                end
             end
         end
 
