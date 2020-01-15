@@ -39,22 +39,40 @@
 
 import ReplicationLibrary
 
+;;; <summary>
+;;; This routine should be called after a SQL Connection error has been encountered.
+;;; It looks for specific errors that indicate the SQL Server is no longer accessible
+;;; for some reason, and in those cases throws a DatabaseCommunicationException.
+;;; The replicator process has specific code that traps this exception and causes it
+;;; to attempt to disconnect and reconnect to the database. If the database error is
+;;; anything other than the specific errors processed by this routine then the error
+;;; will continue to "bubble up" back into the replicator code, and will cause an error
+;;; message to be logged. Replicator will then either ignore the error and continue,
+;;; or terminate processing, based on its configuration settings.
+;;; </summary>
+;;; <param name="dberror">Database error number from %SSC_GETEMSG</param>
+;;; <param name="errtxt">Database error text from %SSC_GETEMSG</param>
 subroutine ThrowOnCommunicationError
     required in dberror, int
     required in errtxt, a
 proc
 
     ;Turn off network adapter on server
-    ;dberror    -1
-    ;errtxt     Network connection lost (recv): errno: 10060
+    ;   dberror    -1
+    ;   errtxt     Network connection lost (recv): errno: 10060
 
     ;Take SQL Server database off-line
-    ;dberror    -233
-    ;errtxt     [Microsoft][ODBC Driver 17 for SQL Server]Shared Memory Provider: No process is on the other end of the pipe.\r\n\0[Microsoft][ODBC Driver 17 for SQL Server]Communication link failure
-
     ;Stop SQL Server process
-    ;dberror    -233
-    ;errtxt     "[Microsoft][ODBC Driver 17 for SQL Server]Shared Memory Provider: No process is on the other end of the pipe.\r\n\0[Microsoft][ODBC Driver 17 for SQL Server]Communication link failure
+    ;   dberror    -233
+    ;   errtxt     [Microsoft][ODBC Driver 17 for SQL Server]Shared Memory Provider: No process is on the other end of the pipe.\r\n\0[Microsoft][ODBC Driver 17 for SQL Server]Communication link failure
+
+    ;Stop OpenNet server
+    ;   dberror    ???
+    ;   errtxt     ???
+
+    ;Shut down SQL Server host
+    ;   dberror    ???
+    ;   errtxt     ???
 
     if (
     &    (dberror==-1 && errtxt=="Network connection lost (recv): errno: 10060")
