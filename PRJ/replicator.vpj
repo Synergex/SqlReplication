@@ -133,7 +133,7 @@
                 Value="0"/>
             <SynSetting
                 Name="proto_command_line"
-                Value="dblproto -platform=x86 %p%n%e"/>
+                Value="dblproto -out=%rn -platform=x86 %p%n%e"/>
             <SynSetting
                 Name="compile_command_line"
                 Value='dbl -X -T -d -qcheck -qalign -o OBJ: "%p%n%e"'/>
@@ -361,7 +361,7 @@
                 Value="1"/>
             <SynSetting
                 Name="proto_command_line"
-                Value="dblproto -platform=x64 %p%n%e"/>
+                Value="dblproto -out=%rn -platform=x64 %p%n%e"/>
             <SynSetting
                 Name="compile_command_line"
                 Value='dbl -X -T -d -qcheck -qalign -o OBJ: "%p%n%e"'/>
@@ -539,7 +539,7 @@
                 Value="0"/>
             <SynSetting
                 Name="proto_command_line"
-                Value="dblproto -platform=x86 %p%n%e"/>
+                Value="dblproto -out=%rn -platform=x86 %p%n%e"/>
             <SynSetting
                 Name="compile_command_line"
                 Value='dbl -X -T -qstrict -qalign -o OBJ: "%p%n%e"'/>
@@ -717,7 +717,7 @@
                 Value="1"/>
             <SynSetting
                 Name="proto_command_line"
-                Value="dblproto -platform=x64 %p%n%e"/>
+                Value="dblproto -out=%rn -platform=x64 %p%n%e"/>
             <SynSetting
                 Name="compile_command_line"
                 Value='dbl -X -T -qstrict -qalign -o OBJ: "%p%n%e"'/>

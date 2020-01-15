@@ -185,6 +185,7 @@
             Filters="*.dbl;*.tpl;*.dbc">
             <F N="../SRC/LIBRARY/CommandLineParser.dbl"/>
             <F N="../SRC/LIBRARY/ConfigureReplication.dbl"/>
+            <F N="../SRC/LIBRARY/DatabaseCommunicationException.dbl"/>
             <F N="../SRC/LIBRARY/DepartmentSqlIO.dbl"/>
             <F N="../SRC/LIBRARY/EmployeeSqlIO.dbl"/>
             <F N="../SRC/LIBRARY/File.dbl"/>
@@ -213,6 +214,7 @@
             <F N="../SRC/LIBRARY/SmtpMail.dbl"/>
             <F N="../SRC/LIBRARY/StringDictionary.dbl"/>
             <F N="../SRC/LIBRARY/StringTools.dbl"/>
+            <F N="../SRC/LIBRARY/ThrowOnCommunicationError.dbl"/>
         </Folder>
         <Folder
             Name="Header Files"
