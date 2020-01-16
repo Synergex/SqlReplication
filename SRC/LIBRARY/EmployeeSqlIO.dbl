@@ -420,24 +420,6 @@ proc
         end
     end
 
-    ;;Create index 4 (Zip code)
-
-    if (ok && !%IndexExists(a_dbchn,"IX_Employee_ZipCode",errtxt))
-    begin
-        now = %datetime
-        writelog("  - Adding index IX_Employee_ZipCode")
-
-        sql = 'CREATE  INDEX IX_Employee_ZipCode ON "Employee"("EmpAddressZip" ASC)'
-
-        call open_cursor
-
-        if (ok)
-        begin
-            call execute_cursor
-            call close_cursor
-        end
-    end
-
 
     ;;Commit or rollback the transaction
 
@@ -613,21 +595,6 @@ proc
     if (ok)
     begin
         sql = 'DROP INDEX IF EXISTS IX_Employee_StateCode ON "Employee"'
-
-        call open_cursor
-
-        if (ok)
-        begin
-            call execute_cursor
-            call close_cursor
-        end
-    end
-
-    ;;Drop index 4 (Zip code)
-
-    if (ok)
-    begin
-        sql = 'DROP INDEX IF EXISTS IX_Employee_ZipCode ON "Employee"'
 
         call open_cursor
 

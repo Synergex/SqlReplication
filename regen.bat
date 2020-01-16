@@ -15,10 +15,7 @@ rem ---------------------------------------------------------------------------
 rem Configure the CodeGen environment
 
 set ROOT=%~dp0
-set CODEGEN_TPLDIR=%ROOT%\SRC\TEMPLATES
-set CODEGEN_OUTDIR=%ROOT%\SRC\LIBRARY
-
-set STDOPTS=-e -r -lf %USE_STRUCTURE_ALIASES% %USE_ALTERNATE_FIELD_NAMES% %ENABLE_CLEAN_DATA%
+set STDOPTS=-i %ROOT%SRC\TEMPLATES -o %ROOT%SRC\LIBRARY -rps %RPSMFIL% %RPSTFIL% -e -r -lf %USE_STRUCTURE_ALIASES% %USE_ALTERNATE_FIELD_NAMES% %ENABLE_CLEAN_DATA% -rpsoverride ExcludeKeyTest.json
 
 rem ---------------------------------------------------------------------------
 rem Generate code

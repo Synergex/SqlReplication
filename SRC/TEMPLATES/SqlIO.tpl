@@ -1,5 +1,5 @@
 <CODEGEN_FILENAME><StructureName>SqlIO.dbl</CODEGEN_FILENAME>
-<REQUIRES_CODEGEN_VERSION>5.4.7</REQUIRES_CODEGEN_VERSION>
+<REQUIRES_CODEGEN_VERSION>5.4.8</REQUIRES_CODEGEN_VERSION>
 ;//****************************************************************************
 ;//
 ;// Guard against REPLICATOR_EXCLUDE being used on key segments
@@ -3148,10 +3148,10 @@ function <StructureName>Csv, ^val
 
     .define EXCEPTION_BUFSZ 100
 
-	external function
-		MakeDateForCsv,     a
-		MakeDecimalForCsv,  a
-		MakeTimeForCsv,     a
+    external function
+        MakeDateForCsv,     a
+        MakeDecimalForCsv,  a
+        MakeTimeForCsv,     a
 <IF DEFINED_ASA_TIREMAX>
         TmJulianToYYYYMMDD, a
         TmJulianToCsvDate,  a

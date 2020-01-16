@@ -1,0 +1,11 @@
+{
+  "Structures": 
+  [
+    {
+      "Name": "EMPLOYEE",
+      "ExcludeKeys": [
+        "ZIP_CODE"
+      ]
+    }
+  ]
+}
