@@ -3183,7 +3183,7 @@ endsubroutine
 ;;; <returns>Returns true on success, otherwise false.</returns>
 
 function <StructureName>Csv, ^val
-    required in  fileSpec, string
+    required in  fileSpec, a
     optional out recordCount, n
     optional out errorMessage, a
     endparams
