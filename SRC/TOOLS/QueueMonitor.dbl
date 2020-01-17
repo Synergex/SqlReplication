@@ -37,20 +37,35 @@
 
 main QueueMonitor
     record
-        tt, int
-        qfile, int
+        tt,             int
+        qfile,          int
+        tmpInstance,    a40
+        instanceName,   string
+        status,         i4
     endrecord
 proc
+    ;;Get the instance name, default to "DEFAULT"
+    xcall getlog("REPLICATOR_INSTANCE",tmpInstance,status)
+
+    if (tmpInstance) then
+    begin
+        upcase tmpInstance
+        instanceName = %atrimtostring(tmpInstance)
+    end
+    else
+    begin
+        instanceName = "DEFAULT"
+    end
 
     xcall flags(7004000,1)
-	
+
     open(tt=0,i,"tt:")
     display(tt,$scr_clr(SCREEN),"Replicator Queue Monitor")
 
 
     repeat
     begin
-        open(qfile=0,"I:I","REPLICATOR_DATA:REPLICATION_DEFAULT.ISM")
+        open(qfile=0,"I:I","REPLICATOR_DATA:REPLICATION_" + instanceName + ".ISM")
         display(tt,$scr_pos(3,1),$scr_clr(EOL),"Queue length: " + %string(%isinfo(qfile,"NUMRECS")))
         close qfile
         sleep 1

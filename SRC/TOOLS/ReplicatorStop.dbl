@@ -36,28 +36,28 @@
 ;;*****************************************************************************
 
 main ReplicatorStop
-	record 
-		tmpInstance,	a40
-		instanceName,	string
-		status, 		i4
-	endrecord
+    record 
+        tmpInstance,    a40
+        instanceName,   string
+        status,         i4
+    endrecord
 proc
-	;;Get the instance name, default to "DEFAULT"
-	xcall getlog("REPLICATOR_INSTANCE",tmpInstance,status)
+    ;;Get the instance name, default to "DEFAULT"
+    xcall getlog("REPLICATOR_INSTANCE",tmpInstance,status)
 
-	if (tmpInstance) then
-	begin
-		upcase tmpInstance
-		instanceName = %atrimtostring(tmpInstance)
-	end
-	else
-	begin
-		instanceName = "DEFAULT"
-	end
+    if (tmpInstance) then
+    begin
+        upcase tmpInstance
+        instanceName = %atrimtostring(tmpInstance)
+    end
+    else
+    begin
+        instanceName = "DEFAULT"
+    end
 
-	xcall flags(7000000,1)
-	xcall Replicate(instanceName,REPLICATION_INSTRUCTION.SHUTDOWN)
+    xcall flags(7000000,1)
+    xcall Replicate(instanceName,REPLICATION_INSTRUCTION.SHUTDOWN)
 
-	stop
+    stop
 
 endmain
