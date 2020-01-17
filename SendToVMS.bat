@@ -34,6 +34,7 @@ echo mkdir [.LOGS] >> ftp.tmp
 echo mkdir [.REPOSITORY] >> ftp.tmp
 echo mkdir [.SRC.LIBRARY] >> ftp.tmp
 echo mkdir [.SRC.REPLICATOR] >> ftp.tmp
+echo mkdir [.SRC.TOOLS] >> ftp.tmp
 echo mkdir [.VMS] >> ftp.tmp
 echo cd [.DATA] >> ftp.tmp
 echo mput DAT\*.SEQ >> ftp.tmp
@@ -46,6 +47,8 @@ echo mput SRC\LIBRARY\*.dbl >> ftp.tmp
 echo mput SRC\LIBRARY\*.def >> ftp.tmp
 echo cd [-.REPLICATOR] >> ftp.tmp
 echo mput SRC\REPLICATOR\*.dbl >> ftp.tmp
+echo cd [-.TOOLS] >> ftp.tmp
+echo mput SRC\TOOLS\*.dbl >> ftp.tmp
 echo cd [-.-.VMS] >> ftp.tmp
 echo mput VMS\*.COM >> ftp.tmp
 echo put VMS\MAKESHARE.DBL >> ftp.tmp

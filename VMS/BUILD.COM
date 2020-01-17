@@ -20,11 +20,14 @@ $ WRITE SYS$OUTPUT "Compiling library routines..."
 $ DIB/OPT/VECTORS=VECTORS/OBJ=OBJ:LIBRARY.OBJ -
    LIBSRC:CommandLineParser.dbl -
  + LIBSRC:ConfigureReplication.dbl -
+ + LIBSRC:DatabaseCommunicationException.dbl -
+ + LIBSRC:DataConversionTools.dbl
  + LIBSRC:DepartmentSqlIO.dbl -
  + LIBSRC:EmployeeSqlIO.dbl -
  + LIBSRC:File.dbl -
  + LIBSRC:FileChunkReader.dbl -
  + LIBSRC:FileServiceClient.dbl -
+ + LIBSRC:GetDateTimeString.dbl -
  + LIBSRC:GetReplicatedTables.dbl -
  + LIBSRC:IndexExists.dbl -
  + LIBSRC:InstanceInfo.dbl -
@@ -44,7 +47,8 @@ $ DIB/OPT/VECTORS=VECTORS/OBJ=OBJ:LIBRARY.OBJ -
  + LIBSRC:Replicate.dbl -
  + LIBSRC:SmtpMail.dbl -
  + LIBSRC:StringDictionary.dbl -
- + LIBSRC:StringTools.dbl
+ + LIBSRC:StringTools.dbl -
+ + LIBSRC:ThrowOnCommunicationError.dbl
 $ !
 $ WRITE SYS$OUTPUT "Creating object library LIBRARY.OLB..."
 $ LIB/CREATE OBJ:LIBRARY.OLB OBJ:LIBRARY.OBJ
@@ -58,16 +62,30 @@ $ WRITE SYS$OUTPUT "Compiling replicator and utilities..."
 $ !
 $ OPTIONS_FILE="''HERE'REPLICATOR.OPT/OPT"
 $ !
-$ DIB/OPT/OBJ=OBJ: REPSRC:REPLICATOR.DBL
+$ DIB/OPT/OBJ=OBJ:REPLICATOR.OBJ -
+ + REPSRC:replicator -
+ + REPSRC:ConfigureEnvironment.dbl -
+ + REPSRC:Counters.dbl -
+ + REPSRC:DatabaseConnect.dbl -
+ + REPSRC:DatabaseDisconnect.dbl -
+ + REPSRC:DatabaseReconnect.dbl -
+ + REPSRC:GetSettings.dbl -
+ + REPSRC:Logger.dbl -
+ + REPSRC:OpenQueueFile.dbl -
+ + REPSRC:ReplicatorShutdown.dbl -
+ + REPSRC:SendEmail.dbl -
+ + REPSRC:Settings.dbl -
+ + REPSRC:TimeNow.dbl
+$!
 $ LINK/EXE=REPLICATOR_EXE:REPLICATOR.EXE OBJ:REPLICATOR.OBJ,'OPTIONS_FILE
 $ !
-$ DIB/OPT/OBJ=OBJ: REPSRC:ReplicatorMenu.dbl
+$ DIB/OPT/OBJ=OBJ: TOOLSRC:ReplicatorMenu.dbl
 $ LINK/EXE=REPLICATOR_EXE:ReplicatorMenu.exe OBJ:ReplicatorMenu.obj,'OPTIONS_FILE
 $ !
-$ DIB/OPT/OBJ=OBJ: REPSRC:DEPARTMENTEMAINTENANCE.DBL
+$ DIB/OPT/OBJ=OBJ: TOOLSRC:DEPARTMENTEMAINTENANCE.DBL
 $ LINK/EXE=REPLICATOR_EXE:DEPARTMENTMAINTENANCE.EXE OBJ:DEPARTMENTMAINTENANCE.OBJ,'OPTIONS_FILE
 $ !
-$ DIB/OPT/OBJ=OBJ: REPSRC:EMPLOYEEMAINTENANCE.DBL
+$ DIB/OPT/OBJ=OBJ: TOOLSRC:EMPLOYEEMAINTENANCE.DBL
 $ LINK/EXE=REPLICATOR_EXE:EMPLOYEEMAINTENANCE.EXE OBJ:EMPLOYEEMAINTENANCE.OBJ,'OPTIONS_FILE
 $ !
 $ !------------------------------------------------------------------------------------
@@ -77,6 +95,7 @@ $ PURGE/KEEP=3/NOCONFIRM/NOLOG RPSMFIL
 $ PURGE/KEEP=3/NOCONFIRM/NOLOG RPSTFIL
 $ PURGE/KEEP=3/NOCONFIRM/NOLOG LIBSRC:
 $ PURGE/KEEP=3/NOCONFIRM/NOLOG REPSRC:
+$ PURGE/KEEP=3/NOCONFIRM/NOLOG TOOLSRC:
 $ PURGE/NOCONFIRM/NOLOG [-.REPOSITORY]*.SCH
 $ PURGE/NOCONFIRM/NOLOG LIBRARY.COM
 $ PURGE/NOCONFIRM/NOLOG VECTORS.VEC
