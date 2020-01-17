@@ -186,6 +186,7 @@
             <F N="../SRC/LIBRARY/CommandLineParser.dbl"/>
             <F N="../SRC/LIBRARY/ConfigureReplication.dbl"/>
             <F N="../SRC/LIBRARY/DatabaseCommunicationException.dbl"/>
+            <F N="../SRC/LIBRARY/DatConversionTools.dbl"/>
             <F N="../SRC/LIBRARY/DepartmentSqlIO.dbl"/>
             <F N="../SRC/LIBRARY/EmployeeSqlIO.dbl"/>
             <F N="../SRC/LIBRARY/File.dbl"/>

@@ -240,22 +240,22 @@ proc
         <IF USER>
         & + '"<FieldSqlName>" DATE<IF REQUIRED> NOT NULL</IF><,>'
         <ELSE
-        & + '"<FieldSqlName>" <FIELD_SQLTYPE><IF REQUIRED> NOT NULL</IF><,>'
+        & + '"<FieldSqlName>" <FIELD_CUSTOM_SQL_TYPE><IF REQUIRED> NOT NULL</IF><,>'
         </IF USER>
       </IF STRUCTURE_RELATIVE>
       <IF STRUCTURE_ISAM>
         <IF USER>
         & + '"<FieldSqlName>" DATE<IF REQUIRED> NOT NULL</IF><IF LAST><IF STRUCTURE_HAS_UNIQUE_PK>,</IF STRUCTURE_HAS_UNIQUE_PK><ELSE>,</IF LAST>'
         <ELSE>
-        & + '"<FieldSqlName>" <FIELD_SQLTYPE><IF REQUIRED> NOT NULL</IF><IF LAST><IF STRUCTURE_HAS_UNIQUE_PK>,</IF STRUCTURE_HAS_UNIQUE_PK><ELSE>,</IF LAST>'
+        & + '"<FieldSqlName>" <FIELD_CUSTOM_SQL_TYPE><IF REQUIRED> NOT NULL</IF><IF LAST><IF STRUCTURE_HAS_UNIQUE_PK>,</IF STRUCTURE_HAS_UNIQUE_PK><ELSE>,</IF LAST>'
         </IF USER>
       </IF STRUCTURE_ISAM>
     <ELSE>
       <IF STRUCTURE_RELATIVE>
-        & + '"<FieldSqlName>" <FIELD_SQLTYPE><IF REQUIRED> NOT NULL</IF><,>'
+        & + '"<FieldSqlName>" <FIELD_CUSTOM_SQL_TYPE><IF REQUIRED> NOT NULL</IF><,>'
       </IF STRUCTURE_RELATIVE>
       <IF STRUCTURE_ISAM>
-        & + '"<FieldSqlName>" <FIELD_SQLTYPE><IF REQUIRED> NOT NULL</IF><IF LAST><IF STRUCTURE_HAS_UNIQUE_PK>,</IF STRUCTURE_HAS_UNIQUE_PK><ELSE>,</IF LAST>'
+        & + '"<FieldSqlName>" <FIELD_CUSTOM_SQL_TYPE><IF REQUIRED> NOT NULL</IF><IF LAST><IF STRUCTURE_HAS_UNIQUE_PK>,</IF STRUCTURE_HAS_UNIQUE_PK><ELSE>,</IF LAST>'
       </IF STRUCTURE_ISAM>
     </IF DEFINED_ASA_TIREMAX>
   </IF CUSTOM_NOT_REPLICATOR_EXCLUDE>
@@ -832,6 +832,9 @@ function <StructureName>Insert, ^val
         tmp<FieldSqlName>, a8      ;;Storage for user defined JJJJJJ date field
         </IF USER>
       </IF DEFINED_ASA_TIREMAX>
+      <IF CUSTOM_DBL_TYPE>
+        tmp<FieldSqlName>, <FIELD_CUSTOM_DBL_TYPE>
+      </IF CUSTOM_DBL_TYPE>
     </IF USERTIMESTAMP>
   </IF CUSTOM_NOT_REPLICATOR_EXCLUDE>
 </FIELD_LOOP>
@@ -904,32 +907,36 @@ proc
     begin
         if (%ssc_bind(a_dbchn,c1<StructureName>,<REPLICATION_REMAINING_INCLUSIVE_MAX_250>,
     </IF COUNTER_1_EQ_1>
-    <IF ALPHA>
+    <IF CUSTOM_DBL_TYPE>
+        &    tmp<FieldSqlName><IF NOMORE>)==SSQL_FAILURE)<ELSE><IF COUNTER_1_LT_250>,<ELSE>)==SSQL_FAILURE)</IF COUNTER_1_LT_250></IF NOMORE>
+    <ELSE>
+      <IF ALPHA>
         &    <structure_name>.<field_original_name_modified><IF NOMORE>)==SSQL_FAILURE)<ELSE><IF COUNTER_1_LT_250>,<ELSE>)==SSQL_FAILURE)</IF COUNTER_1_LT_250></IF NOMORE>
-    </IF ALPHA>
-    <IF DECIMAL>
+      </IF ALPHA>
+      <IF DECIMAL>
         &    <structure_name>.<field_original_name_modified><IF NOMORE>)==SSQL_FAILURE)<ELSE><IF COUNTER_1_LT_250>,<ELSE>)==SSQL_FAILURE)</IF COUNTER_1_LT_250></IF NOMORE>
-    </IF DECIMAL>
-    <IF INTEGER>
+      </IF DECIMAL>
+      <IF INTEGER>
         &    <structure_name>.<field_original_name_modified><IF NOMORE>)==SSQL_FAILURE)<ELSE><IF COUNTER_1_LT_250>,<ELSE>)==SSQL_FAILURE)</IF COUNTER_1_LT_250></IF NOMORE>
-    </IF INTEGER>
-    <IF DATE>
+      </IF INTEGER>
+      <IF DATE>
         &    ^a(<structure_name>.<field_original_name_modified>)<IF NOMORE>)==SSQL_FAILURE)<ELSE><IF COUNTER_1_LT_250>,<ELSE>)==SSQL_FAILURE)</IF COUNTER_1_LT_250></IF NOMORE>
-    </IF DATE>
-    <IF TIME>
+      </IF DATE>
+      <IF TIME>
         &    tmp<FieldSqlName><IF NOMORE>)==SSQL_FAILURE)<ELSE><IF COUNTER_1_LT_250>,<ELSE>)==SSQL_FAILURE)</IF COUNTER_1_LT_250></IF NOMORE>
-    </IF TIME>
-    <IF USER>
-      <IF USERTIMESTAMP>
-        &    tmp<FieldSqlName><IF NOMORE>)==SSQL_FAILURE)<ELSE><IF COUNTER_1_LT_250>,<ELSE>)==SSQL_FAILURE)</IF COUNTER_1_LT_250></IF NOMORE>
-      <ELSE>
-        <IF DEFINED_ASA_TIREMAX>
+      </IF TIME>
+      <IF USER>
+        <IF USERTIMESTAMP>
         &    tmp<FieldSqlName><IF NOMORE>)==SSQL_FAILURE)<ELSE><IF COUNTER_1_LT_250>,<ELSE>)==SSQL_FAILURE)</IF COUNTER_1_LT_250></IF NOMORE>
         <ELSE>
+          <IF DEFINED_ASA_TIREMAX>
+        &    tmp<FieldSqlName><IF NOMORE>)==SSQL_FAILURE)<ELSE><IF COUNTER_1_LT_250>,<ELSE>)==SSQL_FAILURE)</IF COUNTER_1_LT_250></IF NOMORE>
+          <ELSE>
         &    <structure_name>.<field_original_name_modified><IF NOMORE>)==SSQL_FAILURE)<ELSE><IF COUNTER_1_LT_250>,<ELSE>)==SSQL_FAILURE)</IF COUNTER_1_LT_250></IF NOMORE>
-        </IF DEFINED_ASA_TIREMAX>
-      </IF USERTIMESTAMP>
-    </IF USER>
+          </IF DEFINED_ASA_TIREMAX>
+        </IF USERTIMESTAMP>
+      </IF USER>
+    </IF CUSTOM_DBL_TYPE>
     <IF COUNTER_1_EQ_250>
         begin
             ok = false
@@ -1039,6 +1046,14 @@ proc
       </IF DEFINED_ASA_TIREMAX>
     </IF USERTIMESTAMP>
   </IF CUSTOM_NOT_REPLICATOR_EXCLUDE>
+</FIELD_LOOP>
+
+        ;;Assign values to temp fields for any fields with custom data types
+
+<FIELD_LOOP>
+  <IF CUSTOM_DBL_TYPE>
+        tmp<FieldSqlName> = %<FIELD_CUSTOM_CONVERT_FUNCTION>(<field_path>)
+  </IF CUSTOM_DBL_TYPE>
 </FIELD_LOOP>
 
         ;;Execute the INSERT statement
@@ -1207,6 +1222,9 @@ function <StructureName>InsertRows, ^val
         tmp<FieldSqlName>, a8      ;;Storage for user defined JJJJJJ date field
         </IF USER>
       </IF DEFINED_ASA_TIREMAX>
+      <IF CUSTOM_DBL_TYPE>
+        tmp<FieldSqlName>, <FIELD_CUSTOM_DBL_TYPE>
+      </IF CUSTOM_DBL_TYPE>
     </IF USERTIMESTAMP>
   </IF CUSTOM_NOT_REPLICATOR_EXCLUDE>
 </FIELD_LOOP>
@@ -1294,32 +1312,36 @@ proc
     begin
         if (%ssc_bind(a_dbchn,c2<StructureName>,<REPLICATION_REMAINING_INCLUSIVE_MAX_250>,
     </IF COUNTER_1_EQ_1>
-    <IF ALPHA>
+    <IF CUSTOM_DBL_TYPE>
+        &    tmp<FieldSqlName><IF NOMORE>)==SSQL_FAILURE)<ELSE><IF COUNTER_1_LT_250>,<ELSE>)==SSQL_FAILURE)</IF COUNTER_1_LT_250></IF NOMORE>
+    <ELSE>
+      <IF ALPHA>
         &    <structure_name>.<field_original_name_modified><IF NOMORE>)==SSQL_FAILURE)<ELSE><IF COUNTER_1_LT_250>,<ELSE>)==SSQL_FAILURE)</IF COUNTER_1_LT_250></IF NOMORE>
-    </IF ALPHA>
-    <IF DECIMAL>
+      </IF ALPHA>
+      <IF DECIMAL>
         &    <structure_name>.<field_original_name_modified><IF NOMORE>)==SSQL_FAILURE)<ELSE><IF COUNTER_1_LT_250>,<ELSE>)==SSQL_FAILURE)</IF COUNTER_1_LT_250></IF NOMORE>
-    </IF DECIMAL>
-    <IF INTEGER>
+      </IF DECIMAL>
+      <IF INTEGER>
         &    <structure_name>.<field_original_name_modified><IF NOMORE>)==SSQL_FAILURE)<ELSE><IF COUNTER_1_LT_250>,<ELSE>)==SSQL_FAILURE)</IF COUNTER_1_LT_250></IF NOMORE>
-    </IF INTEGER>
-    <IF DATE>
+      </IF INTEGER>
+      <IF DATE>
         &    ^a(<structure_name>.<field_original_name_modified>)<IF NOMORE>)==SSQL_FAILURE)<ELSE><IF COUNTER_1_LT_250>,<ELSE>)==SSQL_FAILURE)</IF COUNTER_1_LT_250></IF NOMORE>
-    </IF DATE>
-    <IF TIME>
+      </IF DATE>
+      <IF TIME>
         &    tmp<FieldSqlName><IF NOMORE>)==SSQL_FAILURE)<ELSE><IF COUNTER_1_LT_250>,<ELSE>)==SSQL_FAILURE)</IF COUNTER_1_LT_250></IF NOMORE>
-    </IF TIME>
-    <IF USER>
-      <IF USERTIMESTAMP>
-        &    tmp<FieldSqlName><IF NOMORE>)==SSQL_FAILURE)<ELSE><IF COUNTER_1_LT_250>,<ELSE>)==SSQL_FAILURE)</IF COUNTER_1_LT_250></IF NOMORE>
-      <ELSE>
-        <IF DEFINED_ASA_TIREMAX>
+      </IF TIME>
+      <IF USER>
+        <IF USERTIMESTAMP>
         &    tmp<FieldSqlName><IF NOMORE>)==SSQL_FAILURE)<ELSE><IF COUNTER_1_LT_250>,<ELSE>)==SSQL_FAILURE)</IF COUNTER_1_LT_250></IF NOMORE>
         <ELSE>
+          <IF DEFINED_ASA_TIREMAX>
+        &    tmp<FieldSqlName><IF NOMORE>)==SSQL_FAILURE)<ELSE><IF COUNTER_1_LT_250>,<ELSE>)==SSQL_FAILURE)</IF COUNTER_1_LT_250></IF NOMORE>
+          <ELSE>
         &    <structure_name>.<field_original_name_modified><IF NOMORE>)==SSQL_FAILURE)<ELSE><IF COUNTER_1_LT_250>,<ELSE>)==SSQL_FAILURE)</IF COUNTER_1_LT_250></IF NOMORE>
-        </IF DEFINED_ASA_TIREMAX>
-      </IF USERTIMESTAMP>
-    </IF USER>
+          </IF DEFINED_ASA_TIREMAX>
+        </IF USERTIMESTAMP>
+      </IF USER>
+    </IF CUSTOM_DBL_TYPE>
     <IF COUNTER_1_EQ_250>
         begin
             ok = false
@@ -1438,6 +1460,14 @@ proc
       </IF DEFINED_ASA_TIREMAX>
     </IF USERTIMESTAMP>
   </IF CUSTOM_NOT_REPLICATOR_EXCLUDE>
+</FIELD_LOOP>
+
+        ;;Assign values to temp fields for any fields with custom data types
+
+<FIELD_LOOP>
+  <IF CUSTOM_DBL_TYPE>
+            tmp<FieldSqlName> = %<FIELD_CUSTOM_CONVERT_FUNCTION>(<field_path>)
+  </IF CUSTOM_DBL_TYPE>
 </FIELD_LOOP>
 
             ;;Execute the statement
@@ -1629,6 +1659,9 @@ function <StructureName>Update, ^val
         tmp<FieldSqlName>, a8      ;;Storage for user defined JJJJJJ date field
         </IF USER>
       </IF DEFINED_ASA_TIREMAX>
+      <IF CUSTOM_DBL_TYPE>
+        tmp<FieldSqlName>, <FIELD_CUSTOM_DBL_TYPE>
+      </IF CUSTOM_DBL_TYPE>
     </IF USERTIMESTAMP>
   </IF CUSTOM_NOT_REPLICATOR_EXCLUDE>
 </FIELD_LOOP>
@@ -1693,32 +1726,36 @@ proc
     begin
         if (%ssc_bind(a_dbchn,c3<StructureName>,<REPLICATION_REMAINING_INCLUSIVE_MAX_250>,
     </IF COUNTER_1_EQ_1>
-    <IF ALPHA>
+    <IF CUSTOM_DBL_TYPE>
+        &    tmp<FieldSqlName><IF NOMORE>)==SSQL_FAILURE)<ELSE><IF COUNTER_1_LT_250>,<ELSE>)==SSQL_FAILURE)</IF COUNTER_1_LT_250></IF NOMORE>
+    <ELSE>
+      <IF ALPHA>
         &    <structure_name>.<field_original_name_modified><IF NOMORE>)==SSQL_FAILURE)<ELSE><IF COUNTER_1_LT_250>,<ELSE>)==SSQL_FAILURE)</IF COUNTER_1_LT_250></IF NOMORE>
-    </IF ALPHA>
-    <IF DECIMAL>
+      </IF ALPHA>
+      <IF DECIMAL>
         &    <structure_name>.<field_original_name_modified><IF NOMORE>)==SSQL_FAILURE)<ELSE><IF COUNTER_1_LT_250>,<ELSE>)==SSQL_FAILURE)</IF COUNTER_1_LT_250></IF NOMORE>
-    </IF DECIMAL>
-    <IF INTEGER>
+      </IF DECIMAL>
+      <IF INTEGER>
         &    <structure_name>.<field_original_name_modified><IF NOMORE>)==SSQL_FAILURE)<ELSE><IF COUNTER_1_LT_250>,<ELSE>)==SSQL_FAILURE)</IF COUNTER_1_LT_250></IF NOMORE>
-    </IF INTEGER>
-    <IF DATE>
+      </IF INTEGER>
+      <IF DATE>
         &    ^a(<structure_name>.<field_original_name_modified>)<IF NOMORE>)==SSQL_FAILURE)<ELSE><IF COUNTER_1_LT_250>,<ELSE>)==SSQL_FAILURE)</IF COUNTER_1_LT_250></IF NOMORE>
-    </IF DATE>
-    <IF TIME>
+      </IF DATE>
+      <IF TIME>
         &    tmp<FieldSqlName><IF NOMORE>)==SSQL_FAILURE)<ELSE><IF COUNTER_1_LT_250>,<ELSE>)==SSQL_FAILURE)</IF COUNTER_1_LT_250></IF NOMORE>
-    </IF TIME>
-    <IF USER>
-      <IF USERTIMESTAMP>
+      </IF TIME>
+      <IF USER>
+        <IF USERTIMESTAMP>
         &    tmp<FieldSqlName><IF NOMORE>)==SSQL_FAILURE)<ELSE><IF COUNTER_1_LT_250>,<ELSE>)==SSQL_FAILURE)</IF COUNTER_1_LT_250></IF NOMORE>
-      <ELSE>
-          <IF DEFINED_ASA_TIREMAX>
+        <ELSE>
+            <IF DEFINED_ASA_TIREMAX>
         &    tmp<FieldSqlName><IF NOMORE>)==SSQL_FAILURE)<ELSE><IF COUNTER_1_LT_250>,<ELSE>)==SSQL_FAILURE)</IF COUNTER_1_LT_250></IF NOMORE>
-          <ELSE>
+            <ELSE>
         &    <structure_name>.<field_original_name_modified><IF NOMORE>)==SSQL_FAILURE)<ELSE><IF COUNTER_1_LT_250>,<ELSE>)==SSQL_FAILURE)</IF COUNTER_1_LT_250></IF NOMORE>
-          </IF DEFINED_ASA_TIREMAX>
-      </IF USERTIMESTAMP>
-    </IF USER>
+            </IF DEFINED_ASA_TIREMAX>
+        </IF USERTIMESTAMP>
+      </IF USER>
+    </IF CUSTOM_DBL_TYPE>
     <IF COUNTER_1_EQ_250>
         begin
             ok = false
@@ -1815,25 +1852,33 @@ proc
 </IF DEFINED_CLEAN_DATA>
         ;;Assign any time and user-defined timestamp fields
 
-  <FIELD_LOOP>
-    <IF CUSTOM_NOT_REPLICATOR_EXCLUDE>
-      <IF USERTIMESTAMP>
+<FIELD_LOOP>
+  <IF CUSTOM_NOT_REPLICATOR_EXCLUDE>
+    <IF USERTIMESTAMP>
         tmp<FieldSqlName> = %string(^d(<structure_name>.<field_original_name_modified>),"XXXX-XX-XX XX:XX:XX.XXXXXX")
-      <ELSE>
-        <IF TIME_HHMM>
+    <ELSE>
+      <IF TIME_HHMM>
         tmp<FieldSqlName> = %string(<structure_name>.<field_original_name_modified>,"XX:XX")
-        </IF TIME_HHMM>
-        <IF TIME_HHMMSS>
+      </IF TIME_HHMM>
+      <IF TIME_HHMMSS>
         tmp<FieldSqlName> = %string(<structure_name>.<field_original_name_modified>,"XX:XX:XX")
-        </IF TIME_HHMMSS>
-        <IF DEFINED_ASA_TIREMAX>
-          <IF USER>
+      </IF TIME_HHMMSS>
+      <IF DEFINED_ASA_TIREMAX>
+        <IF USER>
         tmp<FieldSqlName> = %TmJulianToYYYYMMDD(<field_path>)
-          </IF USER>
-        </IF DEFINED_ASA_TIREMAX>
-      </IF USERTIMESTAMP>
-    </IF CUSTOM_NOT_REPLICATOR_EXCLUDE>
-  </FIELD_LOOP>
+        </IF USER>
+      </IF DEFINED_ASA_TIREMAX>
+    </IF USERTIMESTAMP>
+  </IF CUSTOM_NOT_REPLICATOR_EXCLUDE>
+</FIELD_LOOP>
+
+        ;;Assign values to temp fields for any fields with custom data types
+
+<FIELD_LOOP>
+  <IF CUSTOM_DBL_TYPE>
+        tmp<FieldSqlName> = %<FIELD_CUSTOM_CONVERT_FUNCTION>(<field_path>)
+  </IF CUSTOM_DBL_TYPE>
+</FIELD_LOOP>
 
         if (%ssc_execute(a_dbchn,c3<StructureName>,SSQL_STANDARD,,rows)==SSQL_NORMAL) then
         begin
@@ -3234,31 +3279,35 @@ proc
     <IF STRUCTURE_RELATIVE>
             &   + %string(records) + "|"
     </IF STRUCTURE_RELATIVE>
-    <IF ALPHA>
+    <IF CUSTOM_DBL_TYPE>
+            &    + %<FIELD_CUSTOM_STRING_FUNCTION>(<structure_name>.<field_original_name_modified>) + "<IF MORE>|</IF MORE>"
+    <ELSE>
+      <IF ALPHA>
             &    + %atrim(<structure_name>.<field_original_name_modified>) + "<IF MORE>|</IF MORE>"
-    </IF ALPHA>
-    <IF DECIMAL>
+      </IF ALPHA>
+      <IF DECIMAL>
             &    + %MakeDecimalForCsv(<structure_name>.<field_original_name_modified>) + "<IF MORE>|</IF MORE>"
-    </IF DECIMAL>
-    <IF DATE>
+      </IF DECIMAL>
+      <IF DATE>
             &    + %MakeDateForCsv(<structure_name>.<field_original_name_modified>) + "<IF MORE>|</IF MORE>"
-    </IF DATE>
-    <IF DATE_YYMMDD>
+      </IF DATE>
+      <IF DATE_YYMMDD>
             &    + %atrim(^a(<structure_name>.<field_original_name_modified>)) + "<IF MORE>|</IF MORE>"
-    </IF DATE_YYMMDD>
-    <IF TIME_HHMM>
+      </IF DATE_YYMMDD>
+      <IF TIME_HHMM>
             &    + %MakeTimeForCsv(<structure_name>.<field_original_name_modified>) + "<IF MORE>|</IF MORE>"
-    </IF TIME_HHMM>
-    <IF TIME_HHMMSS>
+      </IF TIME_HHMM>
+      <IF TIME_HHMMSS>
             &    + %MakeTimeForCsv(<structure_name>.<field_original_name_modified>) + "<IF MORE>|</IF MORE>"
-    </IF TIME_HHMMSS>
-    <IF USER>
-      <IF USERTIMESTAMP>
+      </IF TIME_HHMMSS>
+      <IF USER>
+        <IF USERTIMESTAMP>
             &    + %string(^d(<structure_name>.<field_original_name_modified>),"XXXX-XX-XX XX:XX:XX.XXXXXX") + "<IF MORE>|</IF MORE>"
-      <ELSE>
+        <ELSE>
             &    + <IF DEFINED_ASA_TIREMAX>%TmJulianToCsvDate<ELSE>%atrim</IF DEFINED_ASA_TIREMAX>(<structure_name>.<field_original_name_modified>) + "<IF MORE>|</IF MORE>"
-      </IF USERTIMESTAMP>
-    </IF USER>
+        </IF USERTIMESTAMP>
+      </IF USER>
+    </IF CUSTOM_CONVERT_FUNCTION>
   </IF CUSTOM_NOT_REPLICATOR_EXCLUDE>
 </FIELD_LOOP>
 

@@ -83,6 +83,9 @@
     <Compile Include="..\..\SRC\LIBRARY\DatabaseCommunicationException.dbl">
       <Link>DatabaseCommunicationException.dbl</Link>
     </Compile>
+    <Compile Include="..\..\SRC\LIBRARY\DataConversionTools.dbl">
+      <Link>DataConversionTools.dbl</Link>
+    </Compile>
     <Compile Include="..\..\SRC\LIBRARY\DepartmentSqlIO.dbl">
       <Link>DepartmentSqlIO.dbl</Link>
     </Compile>

@@ -420,6 +420,24 @@ proc
         end
     end
 
+    ;;Create index 4 (Zip code)
+
+    if (ok && !%IndexExists(a_dbchn,"IX_Employee_ZipCode",errtxt))
+    begin
+        now = %datetime
+        writelog("  - Adding index IX_Employee_ZipCode")
+
+        sql = 'CREATE  INDEX IX_Employee_ZipCode ON "Employee"("EmpAddressZip" ASC)'
+
+        call open_cursor
+
+        if (ok)
+        begin
+            call execute_cursor
+            call close_cursor
+        end
+    end
+
 
     ;;Commit or rollback the transaction
 
@@ -595,6 +613,21 @@ proc
     if (ok)
     begin
         sql = 'DROP INDEX IF EXISTS IX_Employee_StateCode ON "Employee"'
+
+        call open_cursor
+
+        if (ok)
+        begin
+            call execute_cursor
+            call close_cursor
+        end
+    end
+
+    ;;Drop index 4 (Zip code)
+
+    if (ok)
+    begin
+        sql = 'DROP INDEX IF EXISTS IX_Employee_ZipCode ON "Employee"'
 
         call open_cursor
 
@@ -856,6 +889,9 @@ proc
         ;;Assign data to any temporary time or user-defined timestamp fields
 
         tmpEmpHireTime = %string(employee.emp_hire_time,"XX:XX")
+
+        ;;Assign values to temp fields for any fields with custom data types
+
 
         ;;Execute the INSERT statement
 
@@ -1129,6 +1165,9 @@ proc
             ;;Assign any time or user-defined timestamp fields
 
             tmpEmpHireTime = %string(employee.emp_hire_time,"XX:XX")
+
+        ;;Assign values to temp fields for any fields with custom data types
+
 
             ;;Execute the statement
 
@@ -1414,6 +1453,9 @@ proc
         ;;Assign any time and user-defined timestamp fields
 
         tmpEmpHireTime = %string(employee.emp_hire_time,"XX:XX")
+
+        ;;Assign values to temp fields for any fields with custom data types
+
 
         if (%ssc_execute(a_dbchn,c3Employee,SSQL_STANDARD,,rows)==SSQL_NORMAL) then
         begin
@@ -2640,10 +2682,10 @@ function EmployeeCsv, ^val
 
     .define EXCEPTION_BUFSZ 100
 
-	external function
-		MakeDateForCsv,     a
-		MakeDecimalForCsv,  a
-		MakeTimeForCsv,     a
+    external function
+        MakeDateForCsv,     a
+        MakeDecimalForCsv,  a
+        MakeTimeForCsv,     a
     endexternal
 
     stack record local_data

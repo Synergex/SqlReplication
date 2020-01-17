@@ -735,6 +735,9 @@ proc
         ;;Assign data to any temporary time or user-defined timestamp fields
 
 
+        ;;Assign values to temp fields for any fields with custom data types
+
+
         ;;Execute the INSERT statement
 
         if (%ssc_execute(a_dbchn,c1Department,SSQL_STANDARD)==SSQL_FAILURE)
@@ -962,6 +965,9 @@ proc
 
 
             ;;Assign any time or user-defined timestamp fields
+
+
+        ;;Assign values to temp fields for any fields with custom data types
 
 
             ;;Execute the statement
@@ -1203,6 +1209,9 @@ proc
 
 
         ;;Assign any time and user-defined timestamp fields
+
+
+        ;;Assign values to temp fields for any fields with custom data types
 
 
         if (%ssc_execute(a_dbchn,c3Department,SSQL_STANDARD,,rows)==SSQL_NORMAL) then
@@ -2430,10 +2439,10 @@ function DepartmentCsv, ^val
 
     .define EXCEPTION_BUFSZ 100
 
-	external function
-		MakeDateForCsv,     a
-		MakeDecimalForCsv,  a
-		MakeTimeForCsv,     a
+    external function
+        MakeDateForCsv,     a
+        MakeDecimalForCsv,  a
+        MakeTimeForCsv,     a
     endexternal
 
     stack record local_data
