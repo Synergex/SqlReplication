@@ -8,6 +8,7 @@
 export TERM=vt100
 export LIBSRC=../src/library
 export REPSRC=../src/replicator
+export TOOLSRC=../src/tools
 export REPLICATOR_INCLUDE=../src/library
 export SYNEXPDIR=../proto
 export SYNIMPDIR=../proto

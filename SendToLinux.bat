@@ -35,6 +35,7 @@ echo mkdir repository>> ftp.tmp
 echo mkdir src>> ftp.tmp
 echo mkdir src/library>> ftp.tmp
 echo mkdir src/replicator>> ftp.tmp
+echo mkdir src/tools>> ftp.tmp
 echo mkdir linux>> ftp.tmp
 echo cd data>> ftp.tmp
 echo mput DAT\*.SEQ>> ftp.tmp
@@ -47,6 +48,8 @@ echo mput SRC\LIBRARY\*.dbl>> ftp.tmp
 echo mput SRC\LIBRARY\*.def>> ftp.tmp
 echo cd ../replicator>> ftp.tmp
 echo mput SRC\REPLICATOR\*.dbl>> ftp.tmp
+echo cd ../tools>> ftp.tmp
+echo mput SRC\TOOLS\*.dbl>> ftp.tmp
 echo cd ../../linux>> ftp.tmp
 echo put LINUX\build>> ftp.tmp
 echo put LINUX\replicator_count>> ftp.tmp

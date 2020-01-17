@@ -37,19 +37,59 @@
 #
 #*****************************************************************************
 
-export REPLICATOR_EXE=../exe
+#
+# Main configuration parameters
+#
+
+export REPLICATOR_COMMIT_MODE=BATCH
 export REPLICATOR_DATA=../data
-export REPLICATOR_DATABASE=net:SqlReplicationUser/SqlReplicationPassword/SqlReplication/SIVES///@1958:192.168.93.1!VTX12_SQLNATIVE
-export REPLICATOR_FULL_LOG=YES
-export REPLICATOR_INSTANCE=INSTANCE1
-export REPLICATOR_INTERVAL=2
-export REPLICATOR_LOGDIR=../logs
-export REPLICATOR_LOG_KEYS=YES
-export REPLICATOR_LOG_BULK_LOAD_EXCEPTIONS=YES
-export REPLICATOR_EXPORT_LOCAL=../data
-export REPLICATOR_FILESERVICE_HOST=192.168.93.1
-export REPLICATOR_FILESERVICE_PORT=8080
+export REPLICATOR_DATABASE=net:SqlReplicationUser/SqlReplicationPassword/SqlReplication/SISQL2019///@1958:192.168.93.14!VTX12_SQLNATIVE
+export REPLICATOR_DATABASE_TIMEOUT=60
 export REPLICATOR_ERROR_STOP=YES
+export REPLICATOR_EXE=../exe
+export REPLICATOR_INSTANCE=DEFAULT
+export REPLICATOR_INTERVAL=2
+
+#
+# Database reconnect settings
+#
+
+export REPLICATOR_RECONNECT_ATTEMPTS=5
+export REPLICATOR_RECONNECT_DELAY=60
+
+#
+# Replicator capabilities
+#
+
+export REPLICATOR_MAX_COLS=254
+export REPLICATOR_MAX_CURSORS=128
+
+#
+# Bulk load configuration
+#
+
+export REPLICATOR_EXPORT_LOCAL=../data
+export REPLICATOR_FILESERVICE_HOST=192.168.93.14
+export REPLICATOR_FILESERVICE_PORT=8080
+export REPLICATOR_LOG_BULK_LOAD_EXCEPTIONS=YES
+export REPLICATOR_BULKLOAD_TIMEOUT=900
+
+#
+# Logging configuration
+#
+
+export REPLICATOR_LOGDIR=../logs
+export REPLICATOR_FULL_LOG=YES
+export REPLICATOR_LOG_KEYS=YES
+export REPLICATOR_SYSTEM_LOG=NO
+
+#
+# Email notification settings
+#
+
+#export REPLICATOR_ERROR_EMAIL=person.to.notify@someorg.com
+#export REPLICATOR_EMAIL_SENDER=replicator@someorg.com
+#export REPLICATOR_SMTP_SERVER=mail.someorg.com
 
 if [ ! -d "$REPLICATOR_EXE" ]; then
   mkdir $REPLICATOR_EXE

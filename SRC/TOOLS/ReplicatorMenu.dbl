@@ -122,14 +122,9 @@ proc
     ;;Set the queue file name for the instance
     queueFileName = "REPLICATOR_DATA:REPLICATION_" + instanceName + ".ISM"
 
-    display(tt,$SCR_POS(1,25), "Instance: " + instanceName)
-
-    display(tt,$SCR_POS(1,50),"Table: <none>")
-
     repeat
     begin
-
-        display(tt,$SCR_POS(3,1),$SCR_CLR(EOS))
+        display(tt,$SCR_CLR(SCREEN),"SQL Replicator Menu",$SCR_POS(1,25),"Instance: "+instanceName,$SCR_POS(1,50),"Table: <none>")
 
         if (windows) then
         begin
@@ -147,7 +142,7 @@ proc
 
         display(tt,$SCR_POS(8,2), "V.  View instructions")
         display(tt,$SCR_POS(9,2), "P.  Purge instructions")
-		display(tt,$SCR_POS(10,2),"PF. Purge first instruction")
+        display(tt,$SCR_POS(10,2),"PF. Purge first instruction")
 .ifndef D_VMS
         display(tt,$SCR_POS(12,2),"Q.  Queue length")
 .endc
@@ -179,7 +174,7 @@ proc
                 display(tt,$SCR_POS(13,40),"M.  Maintainance")
         end
 
-        display(tt,$SCR_POS(24,2),$SCR_CLR(EOS),"Select an option: ")
+        display(tt,$SCR_POS(23,2),$SCR_CLR(EOS),"Select an option: ")
         reads(tt,option)
 
         using option select
@@ -223,12 +218,12 @@ proc
                 data pipechn, int, 0
                 data instanceCount, int, 0
                 data buffer, a256
-                 if (instanceName) then
+                if (instanceName) then
                     open(pipechn,i,'|ps ax | grep "REPLICATOR_EXE:replicator " | grep $REPLICATOR_INSTANCE')
-                 else
-                open(pipechn,i,'|ps ax | grep "REPLICATOR_EXE:replicator " | grep -v grep')
+                else
+                    open(pipechn,i,'|ps ax | grep "REPLICATOR_EXE:replicator " | grep -v grep')
 
-                display(tt,$SCR_POS(3,1),$SCR_CLR(EOS))
+                display(tt,$SCR_CLR(SCREEN),"Replicator status ...",$SCR_POS(3,1))
 
                 repeat
                 begin
@@ -242,7 +237,7 @@ proc
                 if (!instanceCount)
                     display(tt,"No replicator instances found!")
 
-                display(tt,$SCR_POS(24,2),"Press a key to continue: ")
+                display(tt,$SCR_POS(23,2),"Press a key to continue: ")
                 begin
                     data tmpvar, a1
                     accept(tt,tmpvar)
@@ -250,14 +245,16 @@ proc
                         accept(tt,tmpvar)
                 end
 
-                display(tt,$scr_pos(3,1),$scr_clr(EOS))
-
             end
         end
 
         ("SD"),
+        begin
             if (windows)
+            begin
                 xcall spawn("dbr -d REPLICATOR_EXE:replicator.dbr",D_NOWINDOW|D_NOWAIT)
+            end
+        end
 
         ("SN"),
         begin
@@ -277,13 +274,13 @@ proc
         norec,
             close chn
             xcall Replicate(instanceName,REPLICATION_INSTRUCTION.SHUTDOWN)
-            display(tt,$scr_pos(24,2),$SCR_CLR(EOL),"Command queued")
+            display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Command queued")
         end
 
         ("SQ"),
         begin
             xcall Replicate(instanceName,REPLICATION_INSTRUCTION.SHUTDOWN)
-            display(tt,$scr_pos(24,2),$SCR_CLR(EOL),"Command queued")
+            display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Command queued")
         end
 
         ("V "),
@@ -294,8 +291,9 @@ proc
             data stopping, boolean
             open(chn=0,"I:I",queueFileName)
 
-            display(tt,$SCR_POS(3,1),$SCR_CLR(EOS), "Operation             Table                           Affected Record",
-            &    $SCR_POS(4,1),               "--------------------  ------------------------------  ------------------------")
+            display(tt,$SCR_CLR(SCREEN),"View Instruction Queue",
+            &    $SCR_POS(3,1),"Operation             Table                           Affected Record",
+            &    $SCR_POS(4,1),"--------------------  ------------------------------  ------------------------")
 
             find(chn,,^FIRST) [EOF=eof]
 
@@ -359,7 +357,7 @@ proc
                     display(tt,$scr_pos(row,1),outbuf)
                 end
 
-                display(tt,$SCR_POS(24,1),"Press ENTER for more or M for menu: ")
+                display(tt,$SCR_POS(23,1),"Press ENTER for more or M for menu: ")
 
                 begin
                     accept(tt,tmpvar)
@@ -373,7 +371,7 @@ proc
                 end
                 else
                 begin
-                    display(tt,$scr_pos(3,1),$scr_clr(EOS))
+                    display(tt,$scr_pos(5,1),$scr_clr(EOS))
                     nextloop
                 end
             end
@@ -383,7 +381,7 @@ proc
 
             if (tmpvar!="M")
             begin
-                display(tt,$SCR_POS(24,1),$SCR_CLR(EOS),"No more instructions. Press a key: ")
+                display(tt,$SCR_POS(23,1),$SCR_CLR(EOS),"No more instructions. Press a key: ")
                 begin
                     accept(tt,tmpvar)
                     while (%ttsts)
@@ -396,21 +394,21 @@ proc
         ("P "),
         begin
             xcall Replicate(instanceName,REPLICATION_INSTRUCTION.DELETE_ALL_INSTRUCTIONS)
-            display(tt,$scr_pos(24,2),$SCR_CLR(EOL),"Command executed")
+            display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Command executed")
         end
 
-		("PF"),
-		begin
-			xcall Replicate(instanceName,REPLICATION_INSTRUCTION.DELETE_FIRST_INSTRUCTION)
-			display(tt,$scr_pos(24,2),$SCR_CLR(EOL),"Command executed")
-		end
+        ("PF"),
+        begin
+            xcall Replicate(instanceName,REPLICATION_INSTRUCTION.DELETE_FIRST_INSTRUCTION)
+            display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Command executed")
+        end
 
 .ifndef D_VMS
         ("Q "),
         begin
             data chn, i4
             open(chn=0,"I:I",queueFileName)
-            display(tt,$scr_pos(24,2),$scr_clr(EOL),"Queue length: " + %string(%isinfo(chn,"NUMRECS")))
+            display(tt,$scr_pos(23,2),$scr_clr(EOL),"Queue length: " + %string(%isinfo(chn,"NUMRECS")))
             close chn
             accept(tt,chn)
             while (%ttsts)
@@ -429,7 +427,7 @@ proc
         ("I "),
         begin
             data interval, a5
-            display(tt,$SCR_POS(24,2),$SCR_CLR(EOS),"Interval (seconds): ")
+            display(tt,$SCR_POS(23,2),$SCR_CLR(EOS),"Interval (seconds): ")
             reads(tt,interval)
 
             if (interval) then
@@ -437,11 +435,11 @@ proc
                 if (%IsNumeric(interval)) then
                 begin
                     xcall Replicate(instanceName,REPLICATION_INSTRUCTION.CHANGE_INTERVAL,,%atrim(interval))
-                    display(tt,$scr_pos(24,2),$SCR_CLR(EOL),"Command queued")
+                    display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Command queued")
                 end
                 else
                 begin
-                    display(tt,$scr_pos(24,2),$SCR_CLR(EOL),"Invalid interval!")
+                    display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Invalid interval!")
                 end
             end
             else
@@ -455,10 +453,7 @@ proc
             data row, i4
             data name, string
 
-            display(tt,
-            &    $SCR_POS(4,2),$SCR_CLR(EOS),"Table",
-            &    $SCR_POS(5,2),              "------------------------------",
-            &    $SCR_POS(6,1))
+            display(tt,$SCR_CLR(SCREEN),"Available Tables",$SCR_POS(3,1))
 
             foreach name in validTables
                 writes(tt," " + name)
@@ -474,7 +469,7 @@ proc
 
         ("T "),
         begin
-            display(tt,$SCR_POS(24,2),$SCR_CLR(EOS),"Table name: ")
+            display(tt,$SCR_POS(23,2),$SCR_CLR(EOS),"Table name: ")
             reads(tt,tableName)
 
             if (tableName) then
@@ -498,7 +493,7 @@ proc
                 ;;Report if not found
                 if (!found)
                 begin
-                    display(tt,$scr_pos(24,2),$SCR_CLR(EOL),"Table not found!")
+                    display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Table not found!")
                     display(tt,$SCR_POS(1,57),$SCR_CLR(EOL),"<none>")
                     clear tableName
                 end
@@ -517,7 +512,7 @@ proc
 
             ;;Gte a new instance name
             clear tmpInstanceName
-            display(tt,$SCR_POS(24,2),$SCR_CLR(EOS),"Instance name: ")
+            display(tt,$SCR_POS(23,2),$SCR_CLR(EOS),"Instance name: ")
             reads(tt,tmpInstanceName)
             upcase tmpInstanceName
 
@@ -536,7 +531,7 @@ proc
                 xcall setlog("REPLICATOR_INSTANCE",instanceName,status)
 
                 clear tmpInstanceName
-                display(tt,$SCR_POS(24,2),$SCR_CLR(EOS),$SCR_POS(1,35),tmpInstanceName,$SCR_POS(1,35),instanceName)
+                display(tt,$SCR_POS(23,2),$SCR_CLR(EOS),$SCR_POS(1,35),tmpInstanceName,$SCR_POS(1,35),instanceName)
 
                 ;;Set the queue file name for the instance
                 queueFileName = "REPLICATOR_DATA:REPLICATION_" + instanceName + ".ISM"
@@ -546,7 +541,7 @@ proc
         ("R "),
         begin
             xcall Replicate(instanceName,REPLICATION_INSTRUCTION.CYCLE_LOG)
-            display(tt,$scr_pos(24,2),$SCR_CLR(EOL),"Command queued")
+            display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Command executed")
         end
 
         ("C "),
@@ -554,10 +549,10 @@ proc
             if (tableName) then
             begin
                 xcall Replicate(instanceName,REPLICATION_INSTRUCTION.CREATE_TABLE,tableName)
-                display(tt,$scr_pos(24,2),$SCR_CLR(EOL),"Command queued")
+                display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Command executed")
             end
             else
-                display(tt,$scr_pos(24,2),$SCR_CLR(EOL),"Invalid option!")
+                display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Invalid option!")
         end
 
         ("L "),
@@ -565,10 +560,10 @@ proc
             if (tableName) then
             begin
                 xcall Replicate(instanceName,REPLICATION_INSTRUCTION.LOAD_TABLE,tableName)
-                display(tt,$scr_pos(24,2),$SCR_CLR(EOL),"Command queued")
+                display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Command queued")
             end
             else
-                display(tt,$scr_pos(24,2),$SCR_CLR(EOL),"Invalid option!")
+                display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Invalid option!")
         end
 
         ("CL"),
@@ -576,10 +571,10 @@ proc
             if (tableName) then
             begin
                 xcall Replicate(instanceName,REPLICATION_INSTRUCTION.CREATE_AND_LOAD_TABLE,tableName)
-                display(tt,$scr_pos(24,2),$SCR_CLR(EOL),"Command queued")
+                display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Command queued")
             end
             else
-                display(tt,$scr_pos(24,2),$SCR_CLR(EOL),"Invalid option!")
+                display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Invalid option!")
         end
 
         ("BL"),
@@ -587,10 +582,10 @@ proc
             if (tableName) then
             begin
                 xcall Replicate(instanceName,REPLICATION_INSTRUCTION.BULK_LOAD_TABLE,tableName)
-                display(tt,$scr_pos(24,2),$SCR_CLR(EOL),"Command queued")
+                display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Command queued")
             end
             else
-                display(tt,$scr_pos(24,2),$SCR_CLR(EOL),"Invalid option!")
+                display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Invalid option!")
         end
 
         ("AI"),
@@ -598,10 +593,10 @@ proc
             if (tableName) then
             begin
                 xcall Replicate(instanceName,REPLICATION_INSTRUCTION.ADD_INDEXES,tableName)
-                display(tt,$scr_pos(24,2),$SCR_CLR(EOL),"Command queued")
+                display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Command queued")
             end
             else
-                display(tt,$scr_pos(24,2),$SCR_CLR(EOL),"Invalid option!")
+                display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Invalid option!")
         end
 
         ("DI"),
@@ -609,10 +604,10 @@ proc
             if (tableName) then
             begin
                 xcall Replicate(instanceName,REPLICATION_INSTRUCTION.DELETE_INDEXES,tableName)
-                display(tt,$scr_pos(24,2),$SCR_CLR(EOL),"Command queued")
+                display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Command queued")
             end
             else
-                display(tt,$scr_pos(24,2),$SCR_CLR(EOL),"Invalid option!")
+                display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Invalid option!")
         end
 
         ("TR"),
@@ -620,10 +615,10 @@ proc
             if (tableName) then
             begin
                 xcall Replicate(instanceName,REPLICATION_INSTRUCTION.DELETE_ALL_ROWS,tableName)
-                display(tt,$scr_pos(24,2),$SCR_CLR(EOL),"Command queued")
+                display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Command queued")
             end
             else
-                display(tt,$scr_pos(24,2),$SCR_CLR(EOL),"Invalid option!")
+                display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Invalid option!")
         end
 
         ("D "),
@@ -631,10 +626,10 @@ proc
             if (tableName) then
             begin
                 xcall Replicate(instanceName,REPLICATION_INSTRUCTION.DELETE_TABLE,tableName)
-                display(tt,$scr_pos(24,2),$SCR_CLR(EOL),"Command queued")
+                display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Command queued")
             end
             else
-                display(tt,$scr_pos(24,2),$SCR_CLR(EOL),"Invalid option!")
+                display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Invalid option!")
         end
 
         ("X "),
@@ -642,17 +637,17 @@ proc
             if (tableName) then
             begin
                 xcall Replicate(instanceName,REPLICATION_INSTRUCTION.CREATE_CSV,tableName)
-                display(tt,$scr_pos(24,2),$SCR_CLR(EOL),"Command queued")
+                display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Command queued")
             end
             else
-                display(tt,$scr_pos(24,2),$SCR_CLR(EOL),"Invalid option!")
+                display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Invalid option!")
         end
 
         ("E "),
             exitloop
 
         (),
-            display(tt,$scr_pos(24,2),$SCR_CLR(EOL),"Invalid option!")
+            display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Invalid option!")
 
         endusing
 

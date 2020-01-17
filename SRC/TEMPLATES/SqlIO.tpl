@@ -3076,13 +3076,13 @@ DeleteFiles,
         now = %datetime
         writelog("Deleting remote files")
 
-        fsc.Delete(remoteCsvFile)
+;        fsc.Delete(remoteCsvFile)
 <IF DEFINED_ASA_TIREMAX>
-;       fsc.Delete(remoteExceptionsFile)
-;       fsc.Delete(remoteExceptionsLog)
+;        fsc.Delete(remoteExceptionsFile)
+;        fsc.Delete(remoteExceptionsLog)
 <ELSE>
-        fsc.Delete(remoteExceptionsFile)
-        fsc.Delete(remoteExceptionsLog)
+;        fsc.Delete(remoteExceptionsFile)
+;        fsc.Delete(remoteExceptionsLog)
 </IF DEFINED_ASA_TIREMAX>
     end
 

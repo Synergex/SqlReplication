@@ -2574,9 +2574,9 @@ DeleteFiles,
         now = %datetime
         writelog("Deleting remote files")
 
-        fsc.Delete(remoteCsvFile)
-        fsc.Delete(remoteExceptionsFile)
-        fsc.Delete(remoteExceptionsLog)
+;        fsc.Delete(remoteCsvFile)
+;        fsc.Delete(remoteExceptionsFile)
+;        fsc.Delete(remoteExceptionsLog)
     end
 
     return

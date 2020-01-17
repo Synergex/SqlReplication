@@ -1,10 +1,20 @@
+#
+# Builds the SQL Replication sample environment on Linux
+#
 
 . ./setup
 
+#
+# Build the main library
+#
+
 dblproto -out library $LIBSRC/*.dbl
+
 dbl -o REPLICATOR_OBJ:library.dbo \
   LIBSRC:CommandLineParser.dbl \
   LIBSRC:ConfigureReplication.dbl \
+  LIBSRC:DatabaseCommunicationException.dbl \
+  LIBSRC:DataConversionTools.dbl \
   LIBSRC:DepartmentSqlIO.dbl \
   LIBSRC:EmployeeSqlIO.dbl \
   LIBSRC:File.dbl \
@@ -13,38 +23,75 @@ dbl -o REPLICATOR_OBJ:library.dbo \
   LIBSRC:GetDateTimeString.dbl \
   LIBSRC:GetReplicatedTables.dbl \
   LIBSRC:IndexExists.dbl \
+  LIBSRC:InstanceInfo.dbl \
   LIBSRC:IOHooksISAM.dbl \
   LIBSRC:IOHooksRELATIVE.dbl \
-  LIBSRC:InstanceInfo.dbl \
   LIBSRC:IsDate.dbl \
   LIBSRC:IsEmailAddress.dbl \
   LIBSRC:IsNumeric.dbl \
   LIBSRC:IsTime.dbl \
   LIBSRC:Json.dbl \
   LIBSRC:LastRecordCache.dbl \
-  LIBSRC:MakeDateForCsv.dbl\
-  LIBSRC:MakeDecimalForCsv.dbl\
-  LIBSRC:MakeTimeForCsv.dbl\
-  LIBSRC:OpenOrCrteateQueueFile.dbl\
+  LIBSRC:MakeDateForCsv.dbl \
+  LIBSRC:MakeDecimalForCsv.dbl \
+  LIBSRC:MakeTimeForCsv.dbl \
+  LIBSRC:OpenOrCreateQueueFile.dbl \
   LIBSRC:PopulateReplicationKey.dbl \
   LIBSRC:Replicate.dbl \
   LIBSRC:SmtpMail.dbl \
   LIBSRC:StringDictionary.dbl \
-  LIBSRC:StringTools.dbl
+  LIBSRC:StringTools.dbl \
+  LIBSRC:ThrowOnCommunicationError.dbl
 
 dblink -l REPLICATOR_EXE:library.elb REPLICATOR_OBJ:library.dbo
 
-dbl -o REPLICATOR_OBJ:replicator.dbo REPSRC:replicator.dbl
+#
+# Build the replicator application
+#
+
+dblproto -out replicator $REPSRC/*.dbl
+
+dbl -o REPLICATOR_OBJ:replicator.dbo \
+  REPSRC:replicator.dbl \
+  REPSRC:ConfigureEnvironment.dbl \
+  REPSRC:Counters.dbl \
+  REPSRC:DatabaseConnect.dbl \
+  REPSRC:DatabaseDisconnect.dbl \
+  REPSRC:DatabaseReconnect.dbl \
+  REPSRC:GetSettings.dbl \
+  REPSRC:Logger.dbl \
+  REPSRC:OpenQueueFile.dbl \
+  REPSRC:ReplicatorShutdown.dbl \
+  REPSRC:SendEmail.dbl \
+  REPSRC:Settings.dbl \
+  REPSRC:TimeNow.dbl
+
 dblink -o REPLICATOR_EXE:replicator.dbr REPLICATOR_OBJ:replicator.dbo REPLICATOR_EXE:library.elb
 
-dbl -o REPLICATOR_OBJ:replicatormenu.dbo REPSRC:ReplicatorMenu.dbl
-dblink -o REPLICATOR_EXE:replicatormenu.dbr REPLICATOR_OBJ:replicatormenu.dbo REPLICATOR_EXE:library.elb
+#
+# Build the other tools
+#
 
-dbl -o REPLICATOR_OBJ:departmentmaintenance.dbo REPSRC:DepartmentMaintenance.dbl
+dbl -o REPLICATOR_OBJ:changeeveryemployee.dbo TOOLSRC:ChangeEveryEmployee.dbl
+dblink -o REPLICATOR_EXE:changeeveryemployee.dbr REPLICATOR_OBJ:changeeveryemployee.dbo REPLICATOR_EXE:library.elb
+
+dbl -o REPLICATOR_OBJ:departmentmaintenance.dbo TOOLSRC:DepartmentMaintenance.dbl
 dblink -o REPLICATOR_EXE:departmentmaintenance.dbr REPLICATOR_OBJ:departmentmaintenance.dbo REPLICATOR_EXE:library.elb
 
-dbl -o REPLICATOR_OBJ:employeemaintenance.dbo REPSRC:EmployeeMaintenance.dbl
+dbl -o REPLICATOR_OBJ:employeedatareport.dbo TOOLSRC:EmployeeDataReport.dbl
+dblink -o REPLICATOR_EXE:employeedatareport.dbr REPLICATOR_OBJ:employeedatareport.dbo REPLICATOR_EXE:library.elb
+
+dbl -o REPLICATOR_OBJ:employeemaintenance.dbo TOOLSRC:EmployeeMaintenance.dbl
 dblink -o REPLICATOR_EXE:employeemaintenance.dbr REPLICATOR_OBJ:employeemaintenance.dbo REPLICATOR_EXE:library.elb
 
-dbl -o REPLICATOR_OBJ:replicatorstop.dbo REPSRC:ReplicatorStop.dbl
+dbl -o REPLICATOR_OBJ:instructioncount.dbo TOOLSRC:InstructionCount.dbl
+dblink -o REPLICATOR_EXE:instructioncount.dbr REPLICATOR_OBJ:instructioncount.dbo REPLICATOR_EXE:library.elb
+
+dbl -o REPLICATOR_OBJ:queuemonitor.dbo TOOLSRC:QueueMonitor.dbl
+dblink -o REPLICATOR_EXE:queuemonitor.dbr REPLICATOR_OBJ:queuemonitor.dbo REPLICATOR_EXE:library.elb
+
+dbl -o REPLICATOR_OBJ:replicatormenu.dbo TOOLSRC:ReplicatorMenu.dbl
+dblink -o REPLICATOR_EXE:replicatormenu.dbr REPLICATOR_OBJ:replicatormenu.dbo REPLICATOR_EXE:library.elb
+
+dbl -o REPLICATOR_OBJ:replicatorstop.dbo TOOLSRC:ReplicatorStop.dbl
 dblink -o REPLICATOR_EXE:replicatorstop.dbr REPLICATOR_OBJ:replicatorstop.dbo REPLICATOR_EXE:library.elb

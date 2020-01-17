@@ -72,7 +72,7 @@ proc
 
     if ((instances==^null && aAction!=REPLICATION_INSTRUCTION.OPEN_FILE) || (instances!=^null && aAction!=REPLICATION_INSTRUCTION.OPEN_FILE && !instances.TryGet(instanceName,instanceObj)))
     begin
-        data instanceQueueFile = "REPLICATOR_DATA:REPLICATION_" + instanceName + ".ISM"
+        data instanceQueueFile, string, "REPLICATOR_DATA:REPLICATION_" + instanceName + ".ISM"
         data instanceChannel, int
         data errorMessage, string
 
@@ -110,7 +110,7 @@ proc
         else
         begin
             ;;Not currently tracking this instance
-            data instanceQueueFile = "REPLICATOR_DATA:REPLICATION_" + instanceName + ".ISM"
+            data instanceQueueFile, string, "REPLICATOR_DATA:REPLICATION_" + instanceName + ".ISM"
             data instanceChannel, int
             data errorMessage, string
             ;;Open the queue file for the instance
