@@ -272,6 +272,7 @@ proc
                 begin
                     Logger.Log("Export table " + %atrim(instruction.structure_name) + " to delimited file")
                     call DoCreateCsv
+                    doForceCommit = true
                 end
 
                 (REPLICATION_INSTRUCTION.DELETE_ALL_ROWS),
