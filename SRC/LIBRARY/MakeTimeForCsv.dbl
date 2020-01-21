@@ -35,6 +35,19 @@
 ;;
 ;;*****************************************************************************
 
+.ifdef DBLV11
+function MakeTimeForCsv, a
+    required in aTime, n
+proc
+    using ^size(aTime) select
+    (4),
+        freturn %string(aTime,"XX:XX")
+    (6),
+        freturn %string(aTime,"XX:XX:XX")
+    endusing
+    freturn ""
+endfunction
+.else
 function MakeTimeForCsv, a
     required in aTime, n
 proc
@@ -49,3 +62,4 @@ proc
     end
     freturn ""
 endfunction
+.endc

@@ -993,7 +993,7 @@ proc
   <FIELD_LOOP>
     <IF CUSTOM_NOT_REPLICATOR_EXCLUDE>
       <IF DECIMAL>
-        if ((!<structure_name>.<field_original_name_modified>)||(!%IsNumeric(^a(<structure_name>.<field_original_name_modified>))))
+        if ((!<structure_name>.<field_original_name_modified>)||(!<IF NEGATIVE_ALLOWED>%IsDecimalNegatives<ELSE>%IsDecimalNoNegatives</IF NEGATIVE_ALLOWED>(<structure_name>.<field_original_name_modified>)))
             clear <structure_name>.<field_original_name_modified>
       </IF DECIMAL>
     </IF CUSTOM_NOT_REPLICATOR_EXCLUDE>
@@ -1407,7 +1407,7 @@ proc
   <FIELD_LOOP>
     <IF CUSTOM_NOT_REPLICATOR_EXCLUDE>
       <IF DECIMAL>
-            if ((!<structure_name>.<field_original_name_modified>)||(!%IsNumeric(^a(<structure_name>.<field_original_name_modified>))))
+            if ((!<structure_name>.<field_original_name_modified>)||(!<IF NEGATIVE_ALLOWED>%IsDecimalNegatives<ELSE>%IsDecimalNoNegatives</IF NEGATIVE_ALLOWED>(<structure_name>.<field_original_name_modified>)))
                 clear <structure_name>.<field_original_name_modified>
       </IF DECIMAL>
     </IF CUSTOM_NOT_REPLICATOR_EXCLUDE>
@@ -1817,7 +1817,7 @@ proc
   <FIELD_LOOP>
     <IF CUSTOM_NOT_REPLICATOR_EXCLUDE>
       <IF DECIMAL>
-        if ((!<structure_name>.<field_original_name_modified>)||(!%IsNumeric(^a(<structure_name>.<field_original_name_modified>))))
+        if ((!<structure_name>.<field_original_name_modified>)||(!<IF NEGATIVE_ALLOWED>%IsDecimalNegatives<ELSE>%IsDecimalNoNegatives</IF NEGATIVE_ALLOWED>(<structure_name>.<field_original_name_modified>)))
             clear <structure_name>.<field_original_name_modified>
       </IF DECIMAL>
     </IF CUSTOM_NOT_REPLICATOR_EXCLUDE>
@@ -3076,7 +3076,7 @@ DeleteFiles,
         now = %datetime
         writelog("Deleting remote files")
 
-;        fsc.Delete(remoteCsvFile)
+        fsc.Delete(remoteCsvFile)
 <IF DEFINED_ASA_TIREMAX>
 ;        fsc.Delete(remoteExceptionsFile)
 ;        fsc.Delete(remoteExceptionsLog)
@@ -3182,46 +3182,48 @@ endsubroutine
 ;;; <param name="errorMessage">Returned error text.</param>
 ;;; <returns>Returns true on success, otherwise false.</returns>
 
-function <StructureName>Csv, ^val
+function <StructureName>Csv, boolean
     required in  fileSpec, a
     optional out recordCount, n
     optional out errorMessage, a
-    endparams
 
-    .include "CONNECTDIR:ssql.def"
     .include "<STRUCTURE_NOALIAS>" repository, record="<structure_name>", end
 
     .define EXCEPTION_BUFSZ 100
 
     external function
-        MakeDateForCsv,     a
-        MakeDecimalForCsv,  a
-        MakeTimeForCsv,     a
+        IsDecimalNo,                    boolean
+        MakeDateForCsv,                 a
+        MakeDecimalForCsvNegatives,     a
+        MakeDecimalForCsvNoNegatives,   a
+        MakeTimeForCsv,                 a
 <IF DEFINED_ASA_TIREMAX>
-        TmJulianToYYYYMMDD, a
-        TmJulianToCsvDate,  a
+        TmJulianToYYYYMMDD,             a
+        TmJulianToCsvDate,              a
 </IF DEFINED_ASA_TIREMAX>
     endexternal
 
     stack record local_data
-        ok,                 boolean     ;;Return status
-        filechn,            int         ;;Data file channel
-        csvchn,             int         ;;CSV file channel
-        csvrec,             string      ;;A CSV file record
-        errnum,             int         ;;Error number
-        records,            int         ;;Number of records exported
-        errtxt,             a512        ;;Error message text
+.align
+        ok,                             boolean     ;;Return status
+.align
+        filechn,                        int         ;;Data file channel
+.align
+        outchn,                         int         ;;CSV file channel
+.align
+        outrec,                         string      ;;A CSV file record
+.align
+        records,                        int         ;;Number of records exported
+.align
+        pos,                            int         ;;Position in a string
+.align
+        errtxt,                         a512        ;;Error message text
     endrecord
-<IF DEFINED_ASA_TIREMAX>
-
-record
-        pipe_point1,        d6
-        pipe_point2,        d6
-</IF DEFINED_ASA_TIREMAX>
 proc
 
-    init local_data
     ok = true
+    clear records
+    errtxt = ""
 
     ;;Open the data file associated with the structure
 
@@ -3231,101 +3233,146 @@ proc
         errtxt = "Failed to open data file!"
     end
 
+    ;;Create the local CSV file
+
     if (ok)
     begin
-        ;;Create the local CSV file
         .ifdef OS_WINDOWS7
-        open(csvchn=0,o:s,fileSpec)
+        open(outchn=0,o:s,fileSpec)
         .endc
         .ifdef OS_UNIX
-        open(csvchn=0,o,fileSpec)
+        open(outchn=0,o,fileSpec)
         .endc
         .ifdef OS_VMS
-        open(csvchn=0,o,fileSpec,OPTIONS:"/stream")
+        open(outchn=0,o,fileSpec,OPTIONS:"/stream")
         .endc
 
         ;;Add a row of column headers
         .ifdef OS_WINDOWS7
-        writes(csvchn,"<IF STRUCTURE_RELATIVE>RecordNumber|</IF STRUCTURE_RELATIVE><FIELD_LOOP><IF CUSTOM_NOT_REPLICATOR_EXCLUDE><FieldSqlName><IF MORE>|</IF MORE></IF CUSTOM_NOT_REPLICATOR_EXCLUDE></FIELD_LOOP>")
+        writes(outchn,"<IF STRUCTURE_RELATIVE>RecordNumber|</IF STRUCTURE_RELATIVE><FIELD_LOOP><IF CUSTOM_NOT_REPLICATOR_EXCLUDE><FieldSqlName><IF MORE>|</IF MORE></IF CUSTOM_NOT_REPLICATOR_EXCLUDE></FIELD_LOOP>")
         .else
-        puts(csvchn,"<IF STRUCTURE_RELATIVE>RecordNumber|</IF STRUCTURE_RELATIVE><FIELD_LOOP><IF CUSTOM_NOT_REPLICATOR_EXCLUDE><FieldSqlName><IF MORE>|</IF MORE></IF CUSTOM_NOT_REPLICATOR_EXCLUDE></FIELD_LOOP>" + %char(13) + %char(10))
+        puts(outchn,"<IF STRUCTURE_RELATIVE>RecordNumber|</IF STRUCTURE_RELATIVE><FIELD_LOOP><IF CUSTOM_NOT_REPLICATOR_EXCLUDE><FieldSqlName><IF MORE>|</IF MORE></IF CUSTOM_NOT_REPLICATOR_EXCLUDE></FIELD_LOOP>" + %char(13) + %char(10))
         .endc
 
         ;;Read and add data file records
-        foreach <structure_name> in new Select(new From(filechn,<structure_name>)<IF STRUCTURE_TAGS>,(Where)(<TAG_LOOP><TAGLOOP_CONNECTOR_C>(<structure_name>.<tagloop_field_name><TAGLOOP_OPERATOR_DBL><TAGLOOP_TAG_VALUE>)</TAG_LOOP>)</IF STRUCTURE_TAGS>)
+        foreach <structure_name> in new Select(new From(filechn,Q_NO_GRFA,0,<structure_name>)<IF STRUCTURE_TAGS>,(Where)(<TAG_LOOP><TAGLOOP_CONNECTOR_C>(<structure_name>.<tagloop_field_name><TAGLOOP_OPERATOR_DBL><TAGLOOP_TAG_VALUE>)</TAG_LOOP>)</IF STRUCTURE_TAGS>)
         begin
-<IF DEFINED_ASA_TIREMAX>
             ;;Make sure there are no | characters in the data
-            pipe_point1=1
-            pipe_point2=
-            repeat
+            while (pos = %instr(1,<structure_name>,"|"))
             begin
-                xcall instr(pipe_point1,<structure_name>,"|",pipe_point2)
-                if(pipe_point2) then
-                begin
-                    <structure_name>(pipe_point2,pipe_point2)=
-                    pipe_point1=pipe_point2+1
-                    pipe_point2=
-                end
-                else
-                    exitloop
+                clear <structure_name>(pos:1)
             end
 
-</IF DEFINED_ASA_TIREMAX>
-            records += 1
-            csvrec = ""
-<FIELD_LOOP>
-  <IF CUSTOM_NOT_REPLICATOR_EXCLUDE>
-    <IF STRUCTURE_RELATIVE>
+            incr records
+            outrec = ""
+  <FIELD_LOOP>
+    <IF CUSTOM_NOT_REPLICATOR_EXCLUDE>
+      <IF STRUCTURE_RELATIVE>
             &   + %string(records) + "|"
-    </IF STRUCTURE_RELATIVE>
-    <IF CUSTOM_DBL_TYPE>
+      </IF STRUCTURE_RELATIVE>
+      <IF CUSTOM_DBL_TYPE>
+;//
+;// CUSTOM FIELDS
+;//
             &    + %<FIELD_CUSTOM_STRING_FUNCTION>(<structure_name>.<field_original_name_modified>) + "<IF MORE>|</IF MORE>"
-    <ELSE>
-      <IF ALPHA>
+      <ELSE>
+;//
+;// ALPHA
+;//
+        <IF ALPHA>
+          <IF DEFINED_DBLV11>
+            &    + (<structure_name>.<field_original_name_modified> ? %atrim(<structure_name>.<field_original_name_modified>)<IF MORE> + "|"</IF MORE> : "<IF MORE>|</IF MORE>")
+          <ELSE>
             &    + %atrim(<structure_name>.<field_original_name_modified>) + "<IF MORE>|</IF MORE>"
-      </IF ALPHA>
-      <IF DECIMAL>
-            &    + %MakeDecimalForCsv(<structure_name>.<field_original_name_modified>) + "<IF MORE>|</IF MORE>"
-      </IF DECIMAL>
-      <IF DATE>
+          </IF DEFINED_DBLV11>
+        </IF ALPHA>
+;//
+;// DECIMAL
+;//
+        <IF DECIMAL>
+          <IF DEFINED_DBLV11>
+            &    + (<structure_name>.<field_original_name_modified> ? <IF NEGATIVE_ALLOWED>%MakeDecimalForCsvNegatives<ELSE>%MakeDecimalForCsvNoNegatives</IF NEGATIVE_ALLOWED>(<structure_name>.<field_original_name_modified>)<IF MORE> + "|"</IF MORE> : "<IF MORE>|</IF MORE>")
+          <ELSE>
+            &    + <IF NEGATIVE_ALLOWED>%MakeDecimalForCsvNegatives<ELSE>%MakeDecimalForCsvNoNegatives</IF NEGATIVE_ALLOWED>(<structure_name>.<field_original_name_modified>) + "<IF MORE>|</IF MORE>"
+          </IF DEFINED_DBLV11>
+        </IF DECIMAL>
+;//
+;// DATE
+;//
+        <IF DATE>
+          <IF DEFINED_DBLV11>
+            &    + (<structure_name>.<field_original_name_modified> ? %string(<structure_name>.<field_original_name_modified>,"XXXX-XX-XX")<IF MORE> + "|"</IF MORE> : "<IF MORE>|</IF MORE>")
+          <ELSE>
             &    + %MakeDateForCsv(<structure_name>.<field_original_name_modified>) + "<IF MORE>|</IF MORE>"
-      </IF DATE>
-      <IF DATE_YYMMDD>
+          </IF DEFINED_DBLV11>
+        </IF DATE>
+;//
+;// DATE_YYMMDD
+;//
+        <IF DATE_YYMMDD>
             &    + %atrim(^a(<structure_name>.<field_original_name_modified>)) + "<IF MORE>|</IF MORE>"
-      </IF DATE_YYMMDD>
-      <IF TIME_HHMM>
+        </IF DATE_YYMMDD>
+;//
+;// TIME_HHMM
+;//
+        <IF TIME_HHMM>
+          <IF DEFINED_DBLV11>
+            &    + (<structure_name>.<field_original_name_modified> ? %MakeTimeForCsv(<structure_name>.<field_original_name_modified>)<IF MORE> + "|"</IF MORE> : "<IF MORE>|</IF MORE>")
+          <ELSE>
             &    + %MakeTimeForCsv(<structure_name>.<field_original_name_modified>) + "<IF MORE>|</IF MORE>"
-      </IF TIME_HHMM>
-      <IF TIME_HHMMSS>
+          </IF DEFINED_DBLV11>
+        </IF TIME_HHMM>
+;//
+;// TIME_HHMMSS
+;//
+        <IF TIME_HHMMSS>
+          <IF DEFINED_DBLV11>
+            &    + (<structure_name>.<field_original_name_modified> ? %MakeTimeForCsv(<structure_name>.<field_original_name_modified>)<IF MORE> + "|"</IF MORE> : "<IF MORE>|</IF MORE>")
+          <ELSE>
             &    + %MakeTimeForCsv(<structure_name>.<field_original_name_modified>) + "<IF MORE>|</IF MORE>"
-      </IF TIME_HHMMSS>
-      <IF USER>
-        <IF USERTIMESTAMP>
+          </IF DEFINED_DBLV11>
+        </IF TIME_HHMMSS>
+;//
+;// USER-DEFINED
+;//
+        <IF USER>
+          <IF USERTIMESTAMP>
             &    + %string(^d(<structure_name>.<field_original_name_modified>),"XXXX-XX-XX XX:XX:XX.XXXXXX") + "<IF MORE>|</IF MORE>"
-        <ELSE>
+          <ELSE>
             &    + <IF DEFINED_ASA_TIREMAX>%TmJulianToCsvDate<ELSE>%atrim</IF DEFINED_ASA_TIREMAX>(<structure_name>.<field_original_name_modified>) + "<IF MORE>|</IF MORE>"
-        </IF USERTIMESTAMP>
-      </IF USER>
-    </IF CUSTOM_CONVERT_FUNCTION>
-  </IF CUSTOM_NOT_REPLICATOR_EXCLUDE>
-</FIELD_LOOP>
+          </IF USERTIMESTAMP>
+        </IF USER>
+;//
+;//
+;//
+      </IF CUSTOM_DBL_TYPE>
+    </IF CUSTOM_NOT_REPLICATOR_EXCLUDE>
+  </FIELD_LOOP>
 
             .ifdef OS_WINDOWS7
-            writes(csvchn,csvrec)
+            writes(outchn,outrec)
             .else
-            puts(csvchn,csvrec + %char(13) + %char(10))
+            puts(outchn,outrec + %char(13) + %char(10))
             .endc
         end
     end
 
-    ;;Close the CSV file
-    if (csvchn)
-        close csvchn
+  <IF STRUCTURE_TAGS>
+  <ELSE>
+eof,
+  </IF STRUCTURE_TAGS>
 
-    ;;Close the data file
+    ;;Close the file
     if (filechn && %chopen(filechn))
+    begin
         close filechn
+    end
+
+    ;;Close the CSV file
+    if (outchn && %chopen(outchn))
+    begin
+        close outchn
+    end
 
     ;;Return the record count
     if (^passed(recordCount))

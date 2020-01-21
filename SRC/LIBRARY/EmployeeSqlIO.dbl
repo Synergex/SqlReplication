@@ -867,11 +867,11 @@ proc
 
         ;;Clean up any decimal fields
 
-        if ((!employee.emp_id)||(!%IsNumeric(^a(employee.emp_id))))
+        if ((!employee.emp_id)||(!%IsDecimalNoNegatives(employee.emp_id)))
             clear employee.emp_id
-        if ((!employee.emp_paid)||(!%IsNumeric(^a(employee.emp_paid))))
+        if ((!employee.emp_paid)||(!%IsDecimalNoNegatives(employee.emp_paid)))
             clear employee.emp_paid
-        if ((!employee.emp_address_zip)||(!%IsNumeric(^a(employee.emp_address_zip))))
+        if ((!employee.emp_address_zip)||(!%IsDecimalNoNegatives(employee.emp_address_zip)))
             clear employee.emp_address_zip
 
         ;;Clean up any date fields
@@ -1143,11 +1143,11 @@ proc
 
             ;;Clean up any decimal variables
 
-            if ((!employee.emp_id)||(!%IsNumeric(^a(employee.emp_id))))
+            if ((!employee.emp_id)||(!%IsDecimalNoNegatives(employee.emp_id)))
                 clear employee.emp_id
-            if ((!employee.emp_paid)||(!%IsNumeric(^a(employee.emp_paid))))
+            if ((!employee.emp_paid)||(!%IsDecimalNoNegatives(employee.emp_paid)))
                 clear employee.emp_paid
-            if ((!employee.emp_address_zip)||(!%IsNumeric(^a(employee.emp_address_zip))))
+            if ((!employee.emp_address_zip)||(!%IsDecimalNoNegatives(employee.emp_address_zip)))
                 clear employee.emp_address_zip
 
             ;;Clean up any date variables
@@ -1431,11 +1431,11 @@ proc
 
         ;;Clean up any decimal fields
 
-        if ((!employee.emp_id)||(!%IsNumeric(^a(employee.emp_id))))
+        if ((!employee.emp_id)||(!%IsDecimalNoNegatives(employee.emp_id)))
             clear employee.emp_id
-        if ((!employee.emp_paid)||(!%IsNumeric(^a(employee.emp_paid))))
+        if ((!employee.emp_paid)||(!%IsDecimalNoNegatives(employee.emp_paid)))
             clear employee.emp_paid
-        if ((!employee.emp_address_zip)||(!%IsNumeric(^a(employee.emp_address_zip))))
+        if ((!employee.emp_address_zip)||(!%IsDecimalNoNegatives(employee.emp_address_zip)))
             clear employee.emp_address_zip
 
         ;;Clean up any date fields
@@ -2574,7 +2574,7 @@ DeleteFiles,
         now = %datetime
         writelog("Deleting remote files")
 
-;        fsc.Delete(remoteCsvFile)
+        fsc.Delete(remoteCsvFile)
 ;        fsc.Delete(remoteExceptionsFile)
 ;        fsc.Delete(remoteExceptionsLog)
     end
@@ -2671,36 +2671,44 @@ endsubroutine
 ;;; <param name="errorMessage">Returned error text.</param>
 ;;; <returns>Returns true on success, otherwise false.</returns>
 
-function EmployeeCsv, ^val
+function EmployeeCsv, boolean
     required in  fileSpec, a
     optional out recordCount, n
     optional out errorMessage, a
-    endparams
 
-    .include "CONNECTDIR:ssql.def"
     .include "EMPLOYEE" repository, record="employee", end
 
     .define EXCEPTION_BUFSZ 100
 
     external function
-        MakeDateForCsv,     a
-        MakeDecimalForCsv,  a
-        MakeTimeForCsv,     a
+        IsDecimalNo,                    boolean
+        MakeDateForCsv,                 a
+        MakeDecimalForCsvNegatives,     a
+        MakeDecimalForCsvNoNegatives,   a
+        MakeTimeForCsv,                 a
     endexternal
 
     stack record local_data
-        ok,                 boolean     ;;Return status
-        filechn,            int         ;;Data file channel
-        csvchn,             int         ;;CSV file channel
-        csvrec,             string      ;;A CSV file record
-        errnum,             int         ;;Error number
-        records,            int         ;;Number of records exported
-        errtxt,             a512        ;;Error message text
+.align
+        ok,                             boolean     ;;Return status
+.align
+        filechn,                        int         ;;Data file channel
+.align
+        outchn,                         int         ;;CSV file channel
+.align
+        outrec,                         string      ;;A CSV file record
+.align
+        records,                        int         ;;Number of records exported
+.align
+        pos,                            int         ;;Position in a string
+.align
+        errtxt,                         a512        ;;Error message text
     endrecord
 proc
 
-    init local_data
     ok = true
+    clear records
+    errtxt = ""
 
     ;;Open the data file associated with the structure
 
@@ -2710,62 +2718,75 @@ proc
         errtxt = "Failed to open data file!"
     end
 
+    ;;Create the local CSV file
+
     if (ok)
     begin
-        ;;Create the local CSV file
         .ifdef OS_WINDOWS7
-        open(csvchn=0,o:s,fileSpec)
+        open(outchn=0,o:s,fileSpec)
         .endc
         .ifdef OS_UNIX
-        open(csvchn=0,o,fileSpec)
+        open(outchn=0,o,fileSpec)
         .endc
         .ifdef OS_VMS
-        open(csvchn=0,o,fileSpec,OPTIONS:"/stream")
+        open(outchn=0,o,fileSpec,OPTIONS:"/stream")
         .endc
 
         ;;Add a row of column headers
         .ifdef OS_WINDOWS7
-        writes(csvchn,"EmpId|EmpFirstName|EmpLastName|EmpDept|EmpHireDate|EmpPhoneWork|EmpPhoneCell|EmpPaid|EmpDateOfBirth|EmpHireTime|EmpEmail|EmpAddressStreet|EmpAddressCity|EmpAddressState|EmpAddressZip")
+        writes(outchn,"EmpId|EmpFirstName|EmpLastName|EmpDept|EmpHireDate|EmpPhoneWork|EmpPhoneCell|EmpPaid|EmpDateOfBirth|EmpHireTime|EmpEmail|EmpAddressStreet|EmpAddressCity|EmpAddressState|EmpAddressZip")
         .else
-        puts(csvchn,"EmpId|EmpFirstName|EmpLastName|EmpDept|EmpHireDate|EmpPhoneWork|EmpPhoneCell|EmpPaid|EmpDateOfBirth|EmpHireTime|EmpEmail|EmpAddressStreet|EmpAddressCity|EmpAddressState|EmpAddressZip" + %char(13) + %char(10))
+        puts(outchn,"EmpId|EmpFirstName|EmpLastName|EmpDept|EmpHireDate|EmpPhoneWork|EmpPhoneCell|EmpPaid|EmpDateOfBirth|EmpHireTime|EmpEmail|EmpAddressStreet|EmpAddressCity|EmpAddressState|EmpAddressZip" + %char(13) + %char(10))
         .endc
 
         ;;Read and add data file records
-        foreach employee in new Select(new From(filechn,employee))
+        foreach employee in new Select(new From(filechn,Q_NO_GRFA,0,employee))
         begin
-            records += 1
-            csvrec = ""
-            &    + %MakeDecimalForCsv(employee.emp_id) + "|"
-            &    + %atrim(employee.emp_first_name) + "|"
-            &    + %atrim(employee.emp_last_name) + "|"
-            &    + %atrim(employee.emp_dept) + "|"
-            &    + %MakeDateForCsv(employee.emp_hire_date) + "|"
-            &    + %atrim(employee.emp_phone_work) + "|"
-            &    + %atrim(employee.emp_phone_cell) + "|"
-            &    + %MakeDecimalForCsv(employee.emp_paid) + "|"
-            &    + %MakeDateForCsv(employee.emp_date_of_birth) + "|"
-            &    + %MakeTimeForCsv(employee.emp_hire_time) + "|"
-            &    + %atrim(employee.emp_email) + "|"
-            &    + %atrim(employee.emp_address_street) + "|"
-            &    + %atrim(employee.emp_address_city) + "|"
-            &    + %atrim(employee.emp_address_state) + "|"
-            &    + %MakeDecimalForCsv(employee.emp_address_zip) + ""
+            ;;Make sure there are no | characters in the data
+            while (pos = %instr(1,employee,"|"))
+            begin
+                clear employee(pos:1)
+            end
+
+            incr records
+            outrec = ""
+            &    + (employee.emp_id ? %MakeDecimalForCsvNoNegatives(employee.emp_id) + "|" : "|")
+            &    + (employee.emp_first_name ? %atrim(employee.emp_first_name) + "|" : "|")
+            &    + (employee.emp_last_name ? %atrim(employee.emp_last_name) + "|" : "|")
+            &    + (employee.emp_dept ? %atrim(employee.emp_dept) + "|" : "|")
+            &    + (employee.emp_hire_date ? %string(employee.emp_hire_date,"XXXX-XX-XX") + "|" : "|")
+            &    + (employee.emp_phone_work ? %atrim(employee.emp_phone_work) + "|" : "|")
+            &    + (employee.emp_phone_cell ? %atrim(employee.emp_phone_cell) + "|" : "|")
+            &    + (employee.emp_paid ? %MakeDecimalForCsvNoNegatives(employee.emp_paid) + "|" : "|")
+            &    + (employee.emp_date_of_birth ? %string(employee.emp_date_of_birth,"XXXX-XX-XX") + "|" : "|")
+            &    + (employee.emp_hire_time ? %MakeTimeForCsv(employee.emp_hire_time) + "|" : "|")
+            &    + (employee.emp_email ? %atrim(employee.emp_email) + "|" : "|")
+            &    + (employee.emp_address_street ? %atrim(employee.emp_address_street) + "|" : "|")
+            &    + (employee.emp_address_city ? %atrim(employee.emp_address_city) + "|" : "|")
+            &    + (employee.emp_address_state ? %atrim(employee.emp_address_state) + "|" : "|")
+            &    + (employee.emp_address_zip ? %MakeDecimalForCsvNoNegatives(employee.emp_address_zip) : "")
 
             .ifdef OS_WINDOWS7
-            writes(csvchn,csvrec)
+            writes(outchn,outrec)
             .else
-            puts(csvchn,csvrec + %char(13) + %char(10))
+            puts(outchn,outrec + %char(13) + %char(10))
             .endc
         end
     end
 
-    ;;Close the CSV file
-    if (csvchn)
-        close csvchn
+eof,
 
-    ;;Close the data file
+    ;;Close the file
     if (filechn && %chopen(filechn))
+    begin
         close filechn
+    end
+
+    ;;Close the CSV file
+    if (outchn && %chopen(outchn))
+    begin
+        close outchn
+    end
 
     ;;Return the record count
     if (^passed(recordCount))

@@ -35,10 +35,34 @@
 ;;
 ;;*****************************************************************************
 
-function MakeDecimalForCsv, a
+function MakeDecimalForCsvNegatives, a
     required in aNumber, n
+    external function
+        IsDecimalNegatives, boolean
+    endexternal
 proc
-    if (aNumber) && %IsNumeric(^a(aNumber))
+.ifdef DBLV11
+    if (%IsDecimalNegatives(aNumber))
         freturn %string(aNumber)
+.else
+    if (aNumber && %IsDecimalNegatives(aNumber))
+        freturn %string(aNumber)
+.endc
+    freturn ""
+endfunction
+
+function MakeDecimalForCsvNoNegatives, a
+    required in aNumber, n
+    external function
+        IsDecimalNoNegatives, boolean
+    endexternal
+proc
+.ifdef DBLV11
+    if (%IsDecimalNoNegatives(aNumber))
+        freturn %string(aNumber)
+.else
+    if (aNumber && %IsDecimalNoNegatives(aNumber))
+        freturn %string(aNumber)
+.endc
     freturn ""
 endfunction

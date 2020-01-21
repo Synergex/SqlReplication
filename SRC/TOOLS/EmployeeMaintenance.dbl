@@ -138,7 +138,7 @@ proc
                 (),
                 begin
                     ;;We have a potential employee number
-                    if (%IsNumeric(tmpvar(1:6))) then
+                    if (%IsDecimalNoNegatives(^d(tmpvar(1:6)))) then
                     begin
                         employee.emp_id = tmpvar(1:6)
                         exitloop

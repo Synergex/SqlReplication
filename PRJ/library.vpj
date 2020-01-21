@@ -202,8 +202,8 @@
             <F N="../SRC/LIBRARY/IOHooksISAM.dbl"/>
             <F N="../SRC/LIBRARY/IOHooksRELATIVE.dbl"/>
             <F N="../SRC/LIBRARY/IsDate.dbl"/>
+            <F N="../SRC/LIBRARY/IsDecimal.dbl"/>
             <F N="../SRC/LIBRARY/IsEmailAddress.dbl"/>
-            <F N="../SRC/LIBRARY/IsNumeric.dbl"/>
             <F N="../SRC/LIBRARY/IsTime.dbl"/>
             <F N="../SRC/LIBRARY/Json.dbl"/>
             <F N="../SRC/LIBRARY/LastRecordCache.dbl"/>

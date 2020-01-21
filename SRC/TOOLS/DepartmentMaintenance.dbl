@@ -335,7 +335,7 @@ Manager,
             (),
             begin
                 ;;We have a potential employee number
-                if (%IsNumeric(tmpvar(1:6))) then
+                if (%IsDecimalNoNegatives(^d(tmpvar(1:6)))) then
                 begin
                     department.dept_manager = %integer(tmpvar(1:6))
                     exitloop

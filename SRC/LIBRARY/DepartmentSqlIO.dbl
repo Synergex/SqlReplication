@@ -723,7 +723,7 @@ proc
 
         ;;Clean up any decimal fields
 
-        if ((!department.dept_manager)||(!%IsNumeric(^a(department.dept_manager))))
+        if ((!department.dept_manager)||(!%IsDecimalNoNegatives(department.dept_manager)))
             clear department.dept_manager
 
         ;;Clean up any date fields
@@ -955,7 +955,7 @@ proc
 
             ;;Clean up any decimal variables
 
-            if ((!department.dept_manager)||(!%IsNumeric(^a(department.dept_manager))))
+            if ((!department.dept_manager)||(!%IsDecimalNoNegatives(department.dept_manager)))
                 clear department.dept_manager
 
             ;;Clean up any date variables
@@ -1199,7 +1199,7 @@ proc
 
         ;;Clean up any decimal fields
 
-        if ((!department.dept_manager)||(!%IsNumeric(^a(department.dept_manager))))
+        if ((!department.dept_manager)||(!%IsDecimalNoNegatives(department.dept_manager)))
             clear department.dept_manager
 
         ;;Clean up any date fields
@@ -2331,7 +2331,7 @@ DeleteFiles,
         now = %datetime
         writelog("Deleting remote files")
 
-;        fsc.Delete(remoteCsvFile)
+        fsc.Delete(remoteCsvFile)
 ;        fsc.Delete(remoteExceptionsFile)
 ;        fsc.Delete(remoteExceptionsLog)
     end
@@ -2428,36 +2428,44 @@ endsubroutine
 ;;; <param name="errorMessage">Returned error text.</param>
 ;;; <returns>Returns true on success, otherwise false.</returns>
 
-function DepartmentCsv, ^val
+function DepartmentCsv, boolean
     required in  fileSpec, a
     optional out recordCount, n
     optional out errorMessage, a
-    endparams
 
-    .include "CONNECTDIR:ssql.def"
     .include "DEPARTMENT" repository, record="department", end
 
     .define EXCEPTION_BUFSZ 100
 
     external function
-        MakeDateForCsv,     a
-        MakeDecimalForCsv,  a
-        MakeTimeForCsv,     a
+        IsDecimalNo,                    boolean
+        MakeDateForCsv,                 a
+        MakeDecimalForCsvNegatives,     a
+        MakeDecimalForCsvNoNegatives,   a
+        MakeTimeForCsv,                 a
     endexternal
 
     stack record local_data
-        ok,                 boolean     ;;Return status
-        filechn,            int         ;;Data file channel
-        csvchn,             int         ;;CSV file channel
-        csvrec,             string      ;;A CSV file record
-        errnum,             int         ;;Error number
-        records,            int         ;;Number of records exported
-        errtxt,             a512        ;;Error message text
+.align
+        ok,                             boolean     ;;Return status
+.align
+        filechn,                        int         ;;Data file channel
+.align
+        outchn,                         int         ;;CSV file channel
+.align
+        outrec,                         string      ;;A CSV file record
+.align
+        records,                        int         ;;Number of records exported
+.align
+        pos,                            int         ;;Position in a string
+.align
+        errtxt,                         a512        ;;Error message text
     endrecord
 proc
 
-    init local_data
     ok = true
+    clear records
+    errtxt = ""
 
     ;;Open the data file associated with the structure
 
@@ -2467,50 +2475,63 @@ proc
         errtxt = "Failed to open data file!"
     end
 
+    ;;Create the local CSV file
+
     if (ok)
     begin
-        ;;Create the local CSV file
         .ifdef OS_WINDOWS7
-        open(csvchn=0,o:s,fileSpec)
+        open(outchn=0,o:s,fileSpec)
         .endc
         .ifdef OS_UNIX
-        open(csvchn=0,o,fileSpec)
+        open(outchn=0,o,fileSpec)
         .endc
         .ifdef OS_VMS
-        open(csvchn=0,o,fileSpec,OPTIONS:"/stream")
+        open(outchn=0,o,fileSpec,OPTIONS:"/stream")
         .endc
 
         ;;Add a row of column headers
         .ifdef OS_WINDOWS7
-        writes(csvchn,"DeptId|DeptName|DeptManager")
+        writes(outchn,"DeptId|DeptName|DeptManager")
         .else
-        puts(csvchn,"DeptId|DeptName|DeptManager" + %char(13) + %char(10))
+        puts(outchn,"DeptId|DeptName|DeptManager" + %char(13) + %char(10))
         .endc
 
         ;;Read and add data file records
-        foreach department in new Select(new From(filechn,department))
+        foreach department in new Select(new From(filechn,Q_NO_GRFA,0,department))
         begin
-            records += 1
-            csvrec = ""
-            &    + %atrim(department.dept_id) + "|"
-            &    + %atrim(department.dept_name) + "|"
-            &    + %MakeDecimalForCsv(department.dept_manager) + ""
+            ;;Make sure there are no | characters in the data
+            while (pos = %instr(1,department,"|"))
+            begin
+                clear department(pos:1)
+            end
+
+            incr records
+            outrec = ""
+            &    + (department.dept_id ? %atrim(department.dept_id) + "|" : "|")
+            &    + (department.dept_name ? %atrim(department.dept_name) + "|" : "|")
+            &    + (department.dept_manager ? %MakeDecimalForCsvNoNegatives(department.dept_manager) : "")
 
             .ifdef OS_WINDOWS7
-            writes(csvchn,csvrec)
+            writes(outchn,outrec)
             .else
-            puts(csvchn,csvrec + %char(13) + %char(10))
+            puts(outchn,outrec + %char(13) + %char(10))
             .endc
         end
     end
 
-    ;;Close the CSV file
-    if (csvchn)
-        close csvchn
+eof,
 
-    ;;Close the data file
+    ;;Close the file
     if (filechn && %chopen(filechn))
+    begin
         close filechn
+    end
+
+    ;;Close the CSV file
+    if (outchn && %chopen(outchn))
+    begin
+        close outchn
+    end
 
     ;;Return the record count
     if (^passed(recordCount))

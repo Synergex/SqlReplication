@@ -44,11 +44,11 @@ function IsTime, boolean
 proc
 	using ^size(value) select
 	(4),
-		freturn %IsNumeric(value)
+		freturn %IsDecimalNoNegatives(^d(value))
 		& && (hour>=0)   && (hour<=23)
 		& && (minute>=0) && (minute<=59)
 	(6),
-		freturn %IsNumeric(value)
+		freturn %IsDecimalNoNegatives(^d(value))
 		& && (hour>=0)   && (hour<=23)
 		& && (minute>=0) && (minute<=59)
 		& && (second>=0) && (second<=59)

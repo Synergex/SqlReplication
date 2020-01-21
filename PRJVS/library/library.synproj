@@ -30,8 +30,8 @@
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
     <DebugOptimize>Debug</DebugOptimize>
     <DBLink_ReferenceCheck>True</DBLink_ReferenceCheck>
-    <TargetRuntimeLevel>10030300</TargetRuntimeLevel>
-    <LanguageCompatibilityLevel>10030300</LanguageCompatibilityLevel>
+    <TargetRuntimeLevel>11010100</TargetRuntimeLevel>
+    <LanguageCompatibilityLevel>11010100</LanguageCompatibilityLevel>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|x64' ">
     <IncludeDebugInformation>true</IncludeDebugInformation>
@@ -128,11 +128,11 @@
     <Compile Include="..\..\SRC\LIBRARY\IsDate.dbl">
       <Link>IsDate.dbl</Link>
     </Compile>
+    <Compile Include="..\..\SRC\LIBRARY\IsDecimal.dbl">
+      <Link>IsDecimal.dbl</Link>
+    </Compile>
     <Compile Include="..\..\SRC\LIBRARY\IsEmailAddress.dbl">
       <Link>IsEmailAddress.dbl</Link>
-    </Compile>
-    <Compile Include="..\..\SRC\LIBRARY\IsNumeric.dbl">
-      <Link>IsNumeric.dbl</Link>
     </Compile>
     <Compile Include="..\..\SRC\LIBRARY\IsTime.dbl">
       <Link>IsTime.dbl</Link>

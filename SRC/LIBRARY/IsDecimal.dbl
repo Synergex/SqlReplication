@@ -1,8 +1,8 @@
 ;;*****************************************************************************
 ;;
-;; File:        IsNumeric.dbl
+;; File:        IsDecimal.dbl
 ;;
-;; Description: Checks if an alphanumeric value contains a numeric value.
+;; Description: Checks if an alphanumeric value contains a decimal value.
 ;;
 ;; Author:      Steve Ives, Synergex Professional Services Group
 ;;
@@ -35,57 +35,71 @@
 ;;
 ;;*****************************************************************************
 
-function IsNumeric, boolean
-	a_number        ,a
-	endparams
-    
-	.align
-	stack record
-		retval          ,boolean
-		posn            ,i4
-		number          ,d28.10
-	endrecord
-    
+function IsDecimalNegatives, boolean
+    required in aNumber, n
+    stack record
+        lastCharacterPos,   i4
+        number,             d28
+        lastCharacter,      a1
+    endrecord
 proc
-    
-    ;;Is there a "-" in there?
-    if %instr(1,a_number,"-")
+    ;;Is there a "+", "-" or "." anywhere there?
+    if %instr(1,aNumber,"+") || %instr(1,aNumber,"-") || %instr(1,aNumber,".")
         freturn false
-    
-	posn = ^size(a_number)
-    
-	;;Is the last character between "p" and "y"
-	if((a_number(posn:1)>='p')&&(a_number(posn:1)<='y')) then
-	begin
-		;;If it's the first character then it's a single-digit negative
-		if(posn==1)
-			exit
-		;;Make sure the rest of the value looks OK
-		try
-		begin
-			number=a_number(1:posn-1)
-		end
-		catch (ex, @BadDigitException)
-		begin
-			freturn false
-		end
-		endtry
-	end
-	else
-	begin
-		;;No "p" through "y", check the whole value
-		try
-		begin
-			number = a_number
-		end
-		catch (ex, @BadDigitException)
-		begin
-			freturn false
-		end
-		endtry
-	end
-    
-	freturn true
-    
+
+    lastCharacterPos = ^size(aNumber)
+    lastCharacter = aNumber(lastCharacterPos:1)
+
+    onerror badDigit
+
+    ;;Is the last character between "p" and "y"
+    if (lastCharacter>='p' && lastCharacter<='y') then
+    begin
+        ;;If it's the first character then it's a single-digit negative
+        if (lastCharacterPos==1)
+        begin
+            exit
+        end
+        ;;Make sure the rest of the value looks OK
+        number = aNumber(1:lastCharacterPos-1)
+    end
+    else
+    begin
+        ;;No "p" through "y", check the whole value
+        number = aNumber
+    end
+
+    freturn true
+
+badDigit,
+
+    freturn false
+
 endfunction
 
+function IsDecimalNoNegatives, boolean
+    required in aNumber, n
+    stack record
+        lastCharacterPos,   i4
+        number,             d28
+        lastCharacter,      a1
+    endrecord
+proc
+    ;;Is there a "+", "-" or "." anywhere there?
+    if %instr(1,aNumber,"+") || %instr(1,aNumber,"-") || %instr(1,aNumber,".")
+        freturn false
+
+    lastCharacterPos = ^size(aNumber)
+    lastCharacter = aNumber(lastCharacterPos:1)
+
+    onerror badDigit
+
+    number = aNumber
+
+    freturn true
+
+badDigit,
+
+    freturn false
+
+endfunction

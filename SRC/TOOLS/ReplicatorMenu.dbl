@@ -124,7 +124,7 @@ proc
 
     repeat
     begin
-        display(tt,$SCR_CLR(SCREEN),"SQL Replicator Menu",$SCR_POS(1,25),"Instance: "+instanceName,$SCR_POS(1,50),"Table: <none>")
+        display(tt,$SCR_CLR(SCREEN),$SCR_POS(1,1),"SQL Replicator Menu",$SCR_POS(1,25),"Instance: "+instanceName,$SCR_POS(1,50),"Table: " + tableName)
 
         if (windows) then
         begin
@@ -432,7 +432,7 @@ proc
 
             if (interval) then
             begin
-                if (%IsNumeric(interval)) then
+                if (%IsDecimalNoNegatives(^d(interval))) then
                 begin
                     xcall Replicate(instanceName,REPLICATION_INSTRUCTION.CHANGE_INTERVAL,,%atrim(interval))
                     display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Command queued")
@@ -494,13 +494,11 @@ proc
                 if (!found)
                 begin
                     display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Table not found!")
-                    display(tt,$SCR_POS(1,57),$SCR_CLR(EOL),"<none>")
                     clear tableName
                 end
             end
             else
             begin
-                display(tt,$SCR_POS(1,57),$SCR_CLR(EOL),"<none>")
                 nextloop
             end
         end
