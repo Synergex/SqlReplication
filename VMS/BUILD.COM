@@ -34,8 +34,8 @@ $ DIB/OPT/VECTORS=VECTORS/OBJ=OBJ:LIBRARY.OBJ -
  + LIBSRC:IOHooksISAM.dbl -
  + LIBSRC:IOHooksRELATIVE.dbl -
  + LIBSRC:IsDate.dbl -
+ + LIBSRC:IsDecimal.dbl -
  + LIBSRC:IsEmailAddress.dbl -
- + LIBSRC:IsNumeric.dbl -
  + LIBSRC:IsTime.dbl -
  + LIBSRC:Json.dbl -
  + LIBSRC:LastRecordCache.dbl -
