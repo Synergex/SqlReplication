@@ -92,9 +92,6 @@ function SmtpMail ,^val
 	optional in a_bodyfile      ,a			;File containing body text
 	optional in a_bodyhtml      ,n			;Does the body contain HTML?
 
-    ;Attachment
-	optional in a_attachfile    ,[*]a		;Attachment file names
-
     endparams
 
 	.include "REPLICATOR_INCLUDE:SmtpMail.def"
@@ -307,73 +304,6 @@ body_eof,
         exit
 body_err,
         freturn(SMERR_BODYFILE)
-    end
-
-    ;Were we passed an attachment array?
-    if (^passed(a_attachfile))
-    begin
-        ;Iterate through the attachments
-        for count from 1 thru ^argdim(^argnum(a_attachfile),1)
-        begin
-            ;If this one is blank, skip it
-            if (!a_attachfile[count])
-                nextloop
-
-            ;We have an attachment to process
-            clear infile, outfile
-
-            ;Is it a JPEG image?
-            if (%instr(1,a_attachfile[count],".jpg")) then
-            begin
-                ;Yes, it's a JPEG, attach it as an image
-                xcall put_data_line(sd,"")
-                xcall put_data_line(sd,'----=_NextPart_'+%hex(%jbno))
-                xcall put_data_line(sd,'Content-Type: image/ext; name="'+%atrim(a_attachfile[count])+'"')
-                xcall put_data_line(sd,"Content-Transfer-Encoding: base64")
-                xcall put_data_line(sd,'Content-Disposition: attachment; filename="'+%atrim(a_attachfile[count])+'"')
-                xcall put_data_line(sd,"Content-id: "+%atrim(a_attachfile[count]))
-                xcall put_data_line(sd,"")
-
-                ;Base64 encode the file
-                infile  = %atrim(a_attachfile[count]) + %char(0)
-                outfile = %atrim(a_attachfile[count]) + ".b64" + %char(0)
-                dllopt = ^i("e")
-                dll=%dll_open("b64")
-                dllsts = %dll_call(dll,DLL_TYPE_C,"b64",dllopt,^addr(infile),^addr(outfile),%integer(74))
-                xcall dll_close(dll)
-
-                ;Attach the Base64 encoded file
-                open(chan=%syn_freechn,i,outfile) [ERR=attach_err]
-                repeat
-                begin
-                    reads(chan,line_buf,attach_eof)
-                    xcall put_data_line(sd,%atrim(line_buf))
-                end
-
-            end
-            else
-            begin
-                ;No, it's not a JPEG, attack it as an octet-stream
-                xcall put_data_line(sd,"")
-                xcall put_data_line(sd,'----=_NextPart_'+%hex(%jbno))
-                xcall put_data_line(sd,'Content-Type: application/octet-stream; name="'+%atrim(a_attachfile[count])+'"')
-                xcall put_data_line(sd,"")
-                open(chan=%syn_freechn,i,a_attachfile[count]) [ERR=attach_err]
-                repeat
-                begin
-                    reads(chan,line_buf,attach_eof)
-                    xcall put_data_line(sd,%atrim(line_buf))
-                end
-            end
-
-attach_eof,
-            close(chan)
-            if (outfile)
-                xcall delet(outfile)
-            nextloop
-attach_err,
-            freturn(SMERR_ATTACHFILE)
-        end
     end
 
     ;End the final mime section
