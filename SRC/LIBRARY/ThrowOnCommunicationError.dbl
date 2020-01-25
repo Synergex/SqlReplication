@@ -38,6 +38,7 @@
 ;;*****************************************************************************
 
 import ReplicationLibrary
+import System.Collections
 
 ;;; <summary>
 ;;; This routine should be called after a SQL Connection error has been encountered.
@@ -55,7 +56,26 @@ import ReplicationLibrary
 subroutine ThrowOnCommunicationError
     required in dberror, int
     required in errtxt, a
+
+    static record
+        messages, @ArrayList
+        message, string
+    endrecord
+
 proc
+    if (messages == ^null)
+    begin
+        if (File.Exists("REPLICATOR_DATA:RetryErrorMessages.txt"))
+        begin
+            File.ReadAllLines("REPLICATOR_DATA:RetryErrorMessages.txt",messages)
+        end
+
+        if (messages.Count == 0)
+        begin
+            messages.Add((string)"Network connection lost (recv): errno: 10060")
+            messages.Add((string)"Shared Memory Provider: No process is on the other end of the pipe")
+        end
+    end
 
     ;Turn off network adapter on server
     ;   dberror    -1
@@ -74,12 +94,12 @@ proc
     ;   dberror    ???
     ;   errtxt     ???
 
-    if (
-    &    (dberror==-1 && errtxt=="Network connection lost (recv): errno: 10060")
-    &    || (dberror==-233 && %instr(1,errtxt,"Shared Memory Provider: No process is on the other end of the pipe"))
-    &    )
+    foreach message in messages
     begin
-        throw new DatabaseCommunicationException(dberror,%atrimtostring(errtxt))
+        if (%instr(1,errtxt,message))
+        begin
+            throw new DatabaseCommunicationException(dberror,%atrimtostring(errtxt))
+        end
     end
 
     xreturn
