@@ -70,8 +70,9 @@ proc
             File.ReadAllLines("REPLICATOR_DATA:RetryErrorMessages.txt",messages)
         end
 
-        if (messages.Count == 0)
+        if ((messages == ^null) || (messages.Count == 0))
         begin
+            messages = new ArrayList()
             messages.Add((string)"Network connection lost (recv): errno: 10060")
             messages.Add((string)"Shared Memory Provider: No process is on the other end of the pipe")
         end
@@ -94,11 +95,14 @@ proc
     ;   dberror    ???
     ;   errtxt     ???
 
-    foreach message in messages
+    if (errtxt)
     begin
-        if (%instr(1,errtxt,message))
+        foreach message in messages
         begin
-            throw new DatabaseCommunicationException(dberror,%atrimtostring(errtxt))
+            if (%instr(1,errtxt,message))
+            begin
+                throw new DatabaseCommunicationException(dberror,%atrimtostring(errtxt))
+            end
         end
     end
 

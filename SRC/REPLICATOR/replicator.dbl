@@ -385,7 +385,7 @@ proc
 ;;
 CommitTransaction,
 
-    Logger.VerboseLog("Committing transaction with " + %string(Counters.BatchCounter) + " change(s)")
+    Logger.VerboseLog(" - Committing transaction with " + %string(Counters.BatchCounter) + " change(s)")
 
     if (%ssc_commit(Settings.DatabaseChannel,SSQL_TXON)==SSQL_NORMAL) then
     begin
@@ -409,7 +409,7 @@ CommitTransaction,
 
         uncommittedInstructions.Clear()
 
-        Logger.VerboseLog("Start transaction")
+        Logger.VerboseLog(" - Start transaction")
         Counters.BatchCommits += 1
         Counters.BatchCounter = 0
     end
@@ -663,7 +663,6 @@ CreateTable,
 
     if (status) then
     begin
-        Logger.VerboseLog(" - Table created")
         ;;Now do an initial load of the data
         if (Settings.CanBulkLoad()) then
         begin
@@ -1208,8 +1207,6 @@ DoCreateTable,
                         status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,dberrtxt)
                         if (status) then
                         begin
-                            Logger.VerboseLog(" - Table created")
-
                             if (Settings.CanSendEmail())
                             begin
                                 xcall SendEmail("Replicator " + Settings.InstanceName + " created table " + %atrim(instruction.structure_name))

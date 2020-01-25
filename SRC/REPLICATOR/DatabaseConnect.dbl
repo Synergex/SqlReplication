@@ -87,7 +87,7 @@ proc
         (DatabaseCommitMode.Batch),
         begin
             Logger.Log("Commit mode: BATCH")
-            Logger.VerboseLog("Start transaction")
+            Logger.VerboseLog(" - Start transaction")
             dbstatus = %ssc_commit(Settings.DatabaseChannel,SSQL_TXON)
             Counters.BatchCounter = 0
         end
