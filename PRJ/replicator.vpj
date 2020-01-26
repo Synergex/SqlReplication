@@ -60,14 +60,14 @@
                 MenuCaption="&amp;Debug"
                 SaveOption="SaveCurrent"
                 RunFromDir="%rw">
-                <Exec CmdLine="dbr -d REPLICATOR_EXE:%n.dbr"/>
+                <Exec CmdLine="dbr -d REPLICATOR_EXE:replicator.dbr"/>
             </Target>
             <Target
                 Name="Execute"
                 MenuCaption="E&amp;xecute"
                 SaveOption="SaveCurrent"
                 RunFromDir="%rw">
-                <Exec CmdLine="dbr REPLICATOR_EXE:%n.dbr"/>
+                <Exec CmdLine="dbr REPLICATOR_EXE:replicator.dbr"/>
             </Target>
             <Target
                 Name="Synergy/DE Options"
@@ -288,14 +288,14 @@
                 MenuCaption="&amp;Debug"
                 SaveOption="SaveCurrent"
                 RunFromDir="%rw">
-                <Exec CmdLine="dbr -d REPLICATOR_EXE:%n.dbr"/>
+                <Exec CmdLine="dbr -d REPLICATOR_EXE:replicator.dbr"/>
             </Target>
             <Target
                 Name="Execute"
                 MenuCaption="E&amp;xecute"
                 SaveOption="SaveCurrent"
                 RunFromDir="%rw">
-                <Exec CmdLine="dbr REPLICATOR_EXE:%n.dbr"/>
+                <Exec CmdLine="dbr REPLICATOR_EXE:replicator.dbr"/>
             </Target>
             <Target
                 Name="Synergy/DE Options"
@@ -466,14 +466,14 @@
                 MenuCaption="&amp;Debug"
                 SaveOption="SaveCurrent"
                 RunFromDir="%rw">
-                <Exec CmdLine="dbr -d REPLICATOR_EXE:%n.dbr"/>
+                <Exec CmdLine="dbr -d REPLICATOR_EXE:replicator.dbr"/>
             </Target>
             <Target
                 Name="Execute"
                 MenuCaption="E&amp;xecute"
                 SaveOption="SaveCurrent"
                 RunFromDir="%rw">
-                <Exec CmdLine="dbr REPLICATOR_EXE:%n.dbr"/>
+                <Exec CmdLine="dbr REPLICATOR_EXE:replicator.dbr"/>
             </Target>
             <Target
                 Name="Synergy/DE Options"
@@ -644,14 +644,14 @@
                 MenuCaption="&amp;Debug"
                 SaveOption="SaveCurrent"
                 RunFromDir="%rw">
-                <Exec CmdLine="dbr -d REPLICATOR_EXE:%n.dbr"/>
+                <Exec CmdLine="dbr -d REPLICATOR_EXE:replicator.dbr"/>
             </Target>
             <Target
                 Name="Execute"
                 MenuCaption="E&amp;xecute"
                 SaveOption="SaveCurrent"
                 RunFromDir="%rw">
-                <Exec CmdLine="dbr REPLICATOR_EXE:%n.dbr"/>
+                <Exec CmdLine="dbr REPLICATOR_EXE:replicator.dbr"/>
             </Target>
             <Target
                 Name="Synergy/DE Options"
