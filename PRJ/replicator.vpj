@@ -215,9 +215,9 @@
             <F N="../VMS/REPLICATION.FDL"/>
             <F N="../VMS/REPLICATOR.OPT"/>
             <F N="../LINUX/replicator_count"/>
+            <F N="../LINUX/replicator_debug"/>
             <F N="../LINUX/replicator_detach"/>
             <F N="../VMS/REPLICATOR_DETACH.COM"/>
-            <F N="../LINUX/replicator_instructions"/>
             <F N="../LINUX/replicator_menu"/>
             <F N="../LINUX/replicator_run"/>
             <F N="../VMS/REPLICATOR_RUN.COM"/>
@@ -779,12 +779,12 @@
         <ExecMacro CmdLine="syn_set REPLICATOR_EXE=%(ROOT)EXE"/>
         <ExecMacro CmdLine="syn_set REPLICATOR_DATA=%(ROOT)DAT"/>
         <ExecMacro CmdLine="syn_set REPLICATOR_DATABASE=VTX12_SQLNATIVE://SqlReplication/.///Trusted_connection=yes"/>
-        <ExecMacro CmdLine="syn_set REPLICATOR_LOGDIR=%(ROOT)EXE"/>
+        <ExecMacro CmdLine="syn_set REPLICATOR_LOGDIR=%(ROOT)LOGS"/>
         <ExecMacro CmdLine="syn_set REPLICATOR_INTERVAL=2"/>
         <ExecMacro CmdLine="syn_set REPLICATOR_FULL_LOG=YES"/>
         <ExecMacro CmdLine="syn_set REPLICATOR_LOG_KEYS=YES"/>
         <ExecMacro CmdLine="syn_set REPLICATOR_LOG_BULK_LOAD_EXCEPTIONS=YES"/>
-        <ExecMacro CmdLine="syn_set REPLICATOR_EXPORT_LOCAL=%(ROOT)DAT"/>
+        <ExecMacro CmdLine="syn_set REPLICATOR_EXPORT_LOCAL=%(ROOT)CSV"/>
         <ExecMacro CmdLine="syn_set REPLICATOR_FILESERVICE_HOST=192.168.93.13"/>
         <ExecMacro CmdLine="syn_set REPLICATOR_FILESERVICE_PORT=8080"/>
         <ExecMacro CmdLine="syn_set REPLICATOR_ERROR_STOP=YES"/>

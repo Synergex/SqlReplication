@@ -658,12 +658,12 @@
         <ExecMacro CmdLine="syn_set REPLICATOR_EXE=%(ROOT)EXE"/>
         <ExecMacro CmdLine="syn_set REPLICATOR_DATA=%(ROOT)DAT"/>
         <ExecMacro CmdLine="syn_set REPLICATOR_DATABASE=VTX12_SQLNATIVE://SqlReplication/.///Trusted_connection=yes"/>
-        <ExecMacro CmdLine="syn_set REPLICATOR_LOGDIR=%(ROOT)EXE"/>
+        <ExecMacro CmdLine="syn_set REPLICATOR_LOGDIR=%(ROOT)LOGS"/>
         <ExecMacro CmdLine="syn_set REPLICATOR_INTERVAL=2"/>
         <ExecMacro CmdLine="syn_set REPLICATOR_FULL_LOG=YES"/>
         <ExecMacro CmdLine="syn_set REPLICATOR_LOG_KEYS=YES"/>
         <ExecMacro CmdLine="syn_set REPLICATOR_LOG_BULK_LOAD_EXCEPTIONS=YES"/>
-        <ExecMacro CmdLine="syn_set REPLICATOR_EXPORT_LOCAL=%(ROOT)DAT"/>
+        <ExecMacro CmdLine="syn_set REPLICATOR_EXPORT_LOCAL=%(ROOT)CSV"/>
         <ExecMacro CmdLine="syn_set REPLICATOR_FILESERVICE_HOST=192.168.93.13"/>
         <ExecMacro CmdLine="syn_set REPLICATOR_FILESERVICE_PORT=8080"/>
         <ExecMacro CmdLine="syn_set REPLICATOR_ERROR_STOP=YES"/>
