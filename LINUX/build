@@ -10,7 +10,7 @@
 
 dblproto -out library $LIBSRC/*.dbl
 
-dbl -o REPLICATOR_OBJ:library.dbo \
+dbl -do REPLICATOR_OBJ:library.dbo \
   LIBSRC:CommandLineParser.dbl \
   LIBSRC:ConfigureReplication.dbl \
   LIBSRC:DatabaseCommunicationException.dbl \
@@ -21,6 +21,7 @@ dbl -o REPLICATOR_OBJ:library.dbo \
   LIBSRC:FileChunkReader.dbl \
   LIBSRC:FileServiceClient.dbl \
   LIBSRC:GetDateTimeString.dbl \
+  LIBSRC:GetInstances.dbl \
   LIBSRC:GetReplicatedTables.dbl \
   LIBSRC:IndexExists.dbl \
   LIBSRC:InstanceInfo.dbl \
@@ -43,7 +44,7 @@ dbl -o REPLICATOR_OBJ:library.dbo \
   LIBSRC:StringTools.dbl \
   LIBSRC:ThrowOnCommunicationError.dbl
 
-dblink -l REPLICATOR_EXE:library.elb REPLICATOR_OBJ:library.dbo
+dblink -dl REPLICATOR_EXE:library.elb REPLICATOR_OBJ:library.dbo
 
 #
 # Build the replicator application
@@ -51,7 +52,7 @@ dblink -l REPLICATOR_EXE:library.elb REPLICATOR_OBJ:library.dbo
 
 dblproto -out replicator $REPSRC/*.dbl
 
-dbl -o REPLICATOR_OBJ:replicator.dbo \
+dbl -do REPLICATOR_OBJ:replicator.dbo \
   REPSRC:replicator.dbl \
   REPSRC:ConfigureEnvironment.dbl \
   REPSRC:Counters.dbl \
@@ -66,7 +67,7 @@ dbl -o REPLICATOR_OBJ:replicator.dbo \
   REPSRC:Settings.dbl \
   REPSRC:TimeNow.dbl
 
-dblink -o REPLICATOR_EXE:replicator.dbr REPLICATOR_OBJ:replicator.dbo REPLICATOR_EXE:library.elb
+dblink -do REPLICATOR_EXE:replicator.dbr REPLICATOR_OBJ:replicator.dbo REPLICATOR_EXE:library.elb
 
 #
 # Build the other tools

@@ -1,25 +1,27 @@
 
+BASEDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+
 # Configure RUNTIME environment
 
-. ./replicator_setup
+. $BASEDIR/replicator_setup
 
 # Configure DEVELOPMENT environment
 
 export TERM=vt100
-export LIBSRC=../src/library
-export REPSRC=../src/replicator
-export TOOLSRC=../src/tools
-export REPLICATOR_INCLUDE=../src/library
-export SYNEXPDIR=../proto
-export SYNIMPDIR=../proto
-export REPLICATOR_OBJ=../obj
-export REPLICATOR_XDL=../xdl
-export RPSMFIL=../repository/rpsmain.ism
-export RPSTFIL=../repository/rpstext.ism
+export LIBSRC=$BASEDIR/../SRC/LIBRARY
+export REPSRC=$BASEDIR/../SRC/REPLICATOR
+export TOOLSRC=$BASEDIR/../SRC/TOOLS
+export REPLICATOR_INCLUDE=$BASEDIR/../SRC/LIBRARY
+export SYNEXPDIR=$BASEDIR/../PROTO
+export SYNIMPDIR=$BASEDIR/../PROTO
+export REPLICATOR_OBJ=$BASEDIR/../OBJ
+export REPLICATOR_XDL=$BASEDIR/../XDL
+export RPSMFIL=$BASEDIR/../RPS/rpsmain.ism
+export RPSTFIL=$BASEDIR/../RPS/rpstext.ism
 
 if [ ! -f $RPSMFIL ]; then
-    dos2unix ../repository/REPLICATION.SCH
-    dbr RPS:rpsutl -i ../repository/REPLICATION.SCH -ia -ir
+    dos2unix $BASEDIR/../RPS/REPLICATION.SCH
+    dbr RPS:rpsutl -i $BASEDIR/../RPS/REPLICATION.SCH -ia -ir
 fi
 
 if [ ! -f $REPLICATOR_DATA/DEPARTMENT.ISM ]; then
@@ -36,7 +38,8 @@ fi
 
 if [ ! -f $REPLICATOR_DATA/REPLICATION_DEFAULT.ISM ]; then
     dos2unix $REPLICATOR_XDL/REPLICATION.XDL
-    cd ../data
+    cd $BASEDIR/../DAT
     dbr DBLDIR:bldism -k $REPLICATOR_XDL/REPLICATION.XDL
-    cd ../linux
+    cd $BASEDIR/../LINUX
 fi
+

@@ -40,21 +40,35 @@
 
 # Put us in the same folder as the script and execute replicator_setup
 
+BASEDIR=$(dirname "$0")
+cd $BASEDIR
+
+case $1 in
+    "LIVE1"|"LIVE2"|"LIVE3"|"LIVE4")
+        echo Starting replicator $1
+        export REPLICATOR_INSTANCE=$1
+        ;;
+    *)
+        echo Invalid instance name $1. Instance name must be LIVE1, LIVE2, LIVE3 or LIVE4
+        exit 1
+        ;;
+esac
+
 . ./replicator_setup
 
 # Is the replicator process already running?
 
-ps ax | grep "REPLICATOR_EXE:replicator $REPLICATOR_INSTANCE" | grep -v grep > /dev/null
+ps ax | grep "REPLICATOR_EXE:replicator.dbr $REPLICATOR_INSTANCE" | grep -v grep > /dev/null
 if [ $? -eq 0 ]; then
 
   # Yes, get its PID and display a message
   echo "Replicator ${REPLICATOR_INSTANCE} is already running. PID is:"
-  ps ax | grep "REPLICATOR_EXE:replicator $REPLICATOR_INSTANCE" | grep -v grep | grep -o '^[ ]*[0-9]*'
+  ps ax | grep "REPLICATOR_EXE:replicator.dbr $REPLICATOR_INSTANCE" | grep -v grep | grep -o '^[ ]*[0-9]*'
 
 else
 
   #Start the process
-  dbr REPLICATOR_EXE:replicator $REPLICATOR_INSTANCE
+  dbr REPLICATOR_EXE:replicator.dbr $REPLICATOR_INSTANCE
 
 fi
 

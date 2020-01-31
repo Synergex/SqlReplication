@@ -60,3 +60,4 @@ else
   dbr -d REPLICATOR_EXE:replicator.dbr $REPLICATOR_INSTANCE
 
 fi
+
