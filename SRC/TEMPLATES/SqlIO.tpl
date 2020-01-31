@@ -3246,7 +3246,9 @@ function <StructureName>Csv, boolean
 
     external function
         IsDecimalNo,                    boolean
+<IF NOT_DEFINED_DBLV11>
         MakeDateForCsv,                 a
+</IF NOT_DEFINED_DBLV11>
         MakeDecimalForCsvNegatives,     a
         MakeDecimalForCsvNoNegatives,   a
         MakeTimeForCsv,                 a

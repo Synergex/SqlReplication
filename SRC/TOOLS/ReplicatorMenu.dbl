@@ -327,8 +327,8 @@ proc
             data stopping, boolean
             open(chn=0,"I:I",queueFileName)
 
-            display(tt,$SCR_CLR(SCREEN),"View Instruction Queue",
-            &    $SCR_POS(3,1),"Operation             Table                           Affected Record",
+            display(tt,$SCR_POS(3,1),$SCR_CLR(EOS),
+            &    $SCR_POS(3,1),"Instruction           Table                           Affected Record",
             &    $SCR_POS(4,1),"--------------------  ------------------------------  ------------------------")
 
             find(chn,,^FIRST) [EOF=eof]
@@ -407,7 +407,7 @@ proc
                 end
                 else
                 begin
-                    display(tt,$scr_pos(5,1),$scr_clr(EOS))
+                    display(tt,$scr_pos(3,1),$scr_clr(EOS))
                     nextloop
                 end
             end

@@ -2497,7 +2497,6 @@ function DepartmentCsv, boolean
 
     external function
         IsDecimalNo,                    boolean
-        MakeDateForCsv,                 a
         MakeDecimalForCsvNegatives,     a
         MakeDecimalForCsvNoNegatives,   a
         MakeTimeForCsv,                 a
