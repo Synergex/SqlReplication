@@ -80,21 +80,16 @@ endfunction
 function IsDecimalNoNegatives, boolean
     required in aNumber, n
     stack record
-        lastCharacterPos,   i4
         number,             d28
-        lastCharacter,      a1
     endrecord
 proc
     ;;Is there a "+", "-" or "." anywhere there?
     if %instr(1,aNumber,"+") || %instr(1,aNumber,"-") || %instr(1,aNumber,".")
         freturn false
 
-    lastCharacterPos = ^size(aNumber)
-    lastCharacter = aNumber(lastCharacterPos:1)
-
     onerror badDigit
 
-    number = aNumber
+    number = ^a(aNumber)
 
     freturn true
 

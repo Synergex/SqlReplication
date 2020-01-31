@@ -39,12 +39,24 @@
 function MakeTimeForCsv, a
     required in aTime, n
 proc
+    onerror badTime
     using ^size(aTime) select
     (4),
+    begin
+        if (aTime(1:2) < 0 || aTime(1:2) > 24 || aTime(3:2) < 0 || aTime(3:2) > 59) then
+            freturn ""
+        else
         freturn %string(aTime,"XX:XX")
+    end
     (6),
+    begin
+        if (aTime(1:2) < 0 || aTime(1:2) > 24 || aTime(3:2) < 0 || aTime(3:2) > 59 || aTime(5:2) < 0 || aTime(5:2) > 59) then
+            freturn ""
+        else
         freturn %string(aTime,"XX:XX:XX")
+    end
     endusing
+badTime,
     freturn ""
 endfunction
 .else

@@ -1052,7 +1052,7 @@ proc
 
 <FIELD_LOOP>
   <IF CUSTOM_DBL_TYPE>
-        tmp<FieldSqlName> = %<FIELD_CUSTOM_CONVERT_FUNCTION>(<field_path>)
+        tmp<FieldSqlName> = %<FIELD_CUSTOM_CONVERT_FUNCTION>(<field_path>,<structure_name>)
   </IF CUSTOM_DBL_TYPE>
 </FIELD_LOOP>
 
@@ -1466,7 +1466,7 @@ proc
 
 <FIELD_LOOP>
   <IF CUSTOM_DBL_TYPE>
-            tmp<FieldSqlName> = %<FIELD_CUSTOM_CONVERT_FUNCTION>(<field_path>)
+            tmp<FieldSqlName> = %<FIELD_CUSTOM_CONVERT_FUNCTION>(<field_path>,<structure_name>)
   </IF CUSTOM_DBL_TYPE>
 </FIELD_LOOP>
 
@@ -1876,7 +1876,7 @@ proc
 
 <FIELD_LOOP>
   <IF CUSTOM_DBL_TYPE>
-        tmp<FieldSqlName> = %<FIELD_CUSTOM_CONVERT_FUNCTION>(<field_path>)
+        tmp<FieldSqlName> = %<FIELD_CUSTOM_CONVERT_FUNCTION>(<field_path>,<structure_name>)
   </IF CUSTOM_DBL_TYPE>
 </FIELD_LOOP>
 
@@ -2390,14 +2390,14 @@ endfunction
 
 function <StructureName>Load, ^val
 
-    required in  a_dbchn,    i
-    required in  a_commit_mode, i
-    optional out a_errtxt,   a
-    optional in  a_logex,    i
-    optional in  a_terminal, i
-    optional out a_added,    n
-    optional out a_failed,   n
-    optional in  a_progress, n
+    required in    a_dbchn,         i
+    required in    a_commit_mode,   i
+    optional out   a_errtxt,        a
+    optional in    a_logex,	        i
+    optional in    a_terminal,      i
+    optional inout a_added,         n
+    optional out   a_failed,        n
+    optional in    a_progress,      n
     endparams
 
     .include "CONNECTDIR:ssql.def"
@@ -2439,6 +2439,8 @@ function <StructureName>Load, ^val
         ex_mc       ,int        ;;Number of records in returned exception array
         ex_ch       ,int        ;;Exception log file channel
         attempted   ,int        ;;Rows being attempted
+        done_records,int        ;;Records loaded
+        max_records ,int        ;;Maximum records to load
         ttl_added   ,int        ;;Total rows added
         ttl_failed  ,int        ;;Total failed inserts
         errnum      ,int        ;;Error number
@@ -2469,6 +2471,11 @@ proc
         ok = false
         errtxt = "Failed to open data file!"
     end
+
+    ;;Were we passed a max # records to load
+
+    max_records = (^passed(a_added) && a_added > 0) ? a_added : 0
+    done_records = 0
 
     if (ok)
     begin
@@ -2540,9 +2547,18 @@ proc
             ^m(inpbuf[mc].inprec,mh) = tmprec
 </IF STRUCTURE_RELATIVE>
 
+            incr done_records
+
             ;;If the buffer is full, write it to the database
             if (mc==ms)
+            begin
                 call insert_data
+            end
+
+            if (max_records && (done_records == max_records))
+            begin
+                exitloop
+            end
         end
 
         if (mc)
@@ -2657,6 +2673,7 @@ function <StructureName>BulkLoad, ^val
     required in  a_db_timeout, n
     required in  a_bl_timeout, n
     optional in  a_logchannel, n
+    optional in  a_ttchannel,  n
     optional out a_records,    n
     optional out a_exceptions, n
     optional out a_errtxt,     a
@@ -2682,14 +2699,15 @@ function <StructureName>BulkLoad, ^val
         cursor,                 int
         length,                 int
         dberror,                int
-        recordCount,            int
+        recordCount,            int	        ;;# records to load / loaded
         exceptionCount,         int
-        errtxt,                 a512       ;;Error message text
+        errtxt,                 a512        ;;Error message text
         fsc,                    @FileServiceClient
         now,                    a20
     endrecord
 
     .define writelog(x) writes(a_logchannel,"   - " + %string(^d(now(9:8)),"XX:XX:XX.XX ") + x)
+    .define writett(x)  if ^passed(a_ttchannel) && a_ttchannel writes(a_ttchannel,"   - " + %string(^d(now(9:8)),"XX:XX:XX.XX ") + x)
 
 proc
 
@@ -2704,11 +2722,13 @@ proc
 
         now = %datetime
         writelog("Verifying FileService connection")
+        writett("Verifying FileService connection")
 
         if (!fsc.Ping(errtxt))
         begin
             now = %datetime
             writelog(errtxt = "No response from FileService, bulk upload cancelled")
+            writett(errtxt = "No response from FileService, bulk upload cancelled")
             ok = false
         end
     end
@@ -2738,12 +2758,38 @@ proc
 
         ;;Make sure there are no files left over from previous operations
 
-        call DeleteFiles
+        ;;Delete local files
+
+        now = %datetime
+        writelog("Deleting local files")
+        writett("Deleting local files")
+
+        xcall delet(localCsvFile)
+        xcall delet(localExceptionsFile)
+        xcall delet(localExceptionsLog)
+
+        ;;Delete remote files
+
+        if (remoteBulkLoad)
+        begin
+            now = %datetime
+            writelog("Deleting remote files")
+            writett("Deleting remote files")
+
+            fsc.Delete(remoteCsvFile)
+            fsc.Delete(remoteExceptionsFile)
+            fsc.Delete(remoteExceptionsLog)
+        end
+
+        ;;Were we asked to load a specific number of records?
+
+        recordCount =  (^passed(a_records) && a_records > 0) ? a_records : 0
 
         ;;And export the data
 
         now = %datetime
         writelog("Exporting delimited file")
+        writett("Exporting delimited file")
 
         ok = %<StructureName>Csv(localCsvFile,recordCount,errtxt)
     end
@@ -2756,6 +2802,7 @@ proc
         begin
             now = %datetime
             writelog("Uploading delimited file to database host")
+            writett("Uploading delimited file to database host")
             ok = fsc.UploadChunked(localCsvFile,remoteCsvFile,320,fileToLoad,errtxt)
         end
         else
@@ -2813,6 +2860,7 @@ proc
         begin
             now = %datetime
             writelog("Setting database timeout to " + %string(a_bl_timeout) + " seconds")
+            writett("Setting database timeout to " + %string(a_bl_timeout) + " seconds")
             if (%ssc_cmd(a_dbchn,,SSQL_TIMEOUT,%string(a_bl_timeout))==SSQL_FAILURE)
             begin
                 ok = false
@@ -2827,6 +2875,7 @@ proc
         begin
             now = %datetime
             writelog("Executing BULK INSERT")
+            writett("Executing BULK INSERT")
             if (%ssc_execute(a_dbchn,cursor,SSQL_STANDARD)==SSQL_FAILURE)
             begin
                 if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_NORMAL) then
@@ -2835,12 +2884,14 @@ proc
 
                     now = %datetime
                     writelog("Bulk insert error")
+                    writett("Bulk insert error")
                     using dberror select
                     (-4864),
                     begin
                         ;Bulk load data conversion error
                         now = %datetime
                         writelog("Data conversion errors were reported")
+                        writett("Data conversion errors were reported")
                         clear dberror, errtxt
                         call GetExceptionDetails
                     end
@@ -2858,8 +2909,29 @@ proc
                 end
             end
 
-            ;;Delete temporary files
-            call DeleteFiles
+;            ;;Delete temporary files
+;
+;            ;;Delete local files
+;
+;            now = %datetime
+;            writelog("Deleting local files")
+;            writett(Deleting local files")
+;
+;            xcall delet(localCsvFile)
+;            xcall delet(localExceptionsFile)
+;            xcall delet(localExceptionsLog)
+;
+;            ;;Delete remote files
+;
+;            if (remoteBulkLoad)
+;            begin
+;                now = %datetime
+;                writelog("Deleting remote files")
+;                writett("Deleting remote files")
+;                fsc.Delete(remoteCsvFile)
+;                fsc.Delete(remoteExceptionsFile)
+;                fsc.Delete(remoteExceptionsLog)
+;            end
         end
 
         ;;Commit or rollback the transaction
@@ -2870,6 +2942,7 @@ proc
             begin
                 now = %datetime
                 writelog("COMMIT")
+                writett("COMMIT")
                 if (%ssc_commit(a_dbchn,SSQL_TXOFF)==SSQL_FAILURE)
                 begin
                     if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
@@ -2883,6 +2956,7 @@ proc
                 ;;There was an error, rollback the transaction
                 now = %datetime
                 writelog("ROLLBACK")
+                writett("ROLLBACK")
                 if (%ssc_rollback(a_dbchn,SSQL_TXOFF) == SSQL_FAILURE)
                 begin
                     ok = false
@@ -2897,6 +2971,7 @@ proc
 
         now = %datetime
         writelog("Resetting database timeout to " + %string(a_db_timeout) + " seconds")
+        writett("Resetting database timeout to " + %string(a_db_timeout) + " seconds")
         if (%ssc_cmd(a_dbchn,,SSQL_TIMEOUT,%string(a_db_timeout))==SSQL_FAILURE)
             nop
 
@@ -2906,6 +2981,7 @@ proc
         begin
             now = %datetime
             writelog("Closing cursor")
+            writett("Closing cursor")
             if (%ssc_close(a_dbchn,cursor)==SSQL_FAILURE)
             begin
                 if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
@@ -2939,7 +3015,7 @@ GetExceptionDetails,
 
     now = %datetime
     writelog("Data conversion errors, processing exceptions")
-
+    writett("Data conversion errors, processing exceptions")
 
     if (remoteBulkLoad) then
     begin
@@ -2955,6 +3031,7 @@ GetExceptionDetails,
 
                 now = %datetime
                 writelog("Downloading remote exceptions data file")
+                writett("Downloading remote exceptions data file")
 
                 if (fsc.DownloadText(remoteExceptionsFile,exceptionRecords))
                 begin
@@ -2972,6 +3049,7 @@ GetExceptionDetails,
 
                     now = %datetime
                     writelog(%string(exceptionCount) + " items saved to " + localExceptionsFile)
+                    writett(%string(exceptionCount) + " items saved to " + localExceptionsFile)
                 end
             end
             else
@@ -2979,6 +3057,7 @@ GetExceptionDetails,
                 ;;Error file does not exist! In theory this should not happen, because we got here due to "data conversion error" being reported
                 now = %datetime
                 writelog("Remote exceptions data file not found!")
+                writett("Remote exceptions data file not found!")
             end
         end
         else
@@ -2986,6 +3065,7 @@ GetExceptionDetails,
             ;;Failed to determine if file exists
             now = %datetime
             writelog("Failed to determine if remote exceptions data file exists. Error was " + tmpmsg)
+            writett("Failed to determine if remote exceptions data file exists. Error was " + tmpmsg)
         end
 
         ;;Now check for and retrieve the associated exceptions log
@@ -2999,6 +3079,7 @@ GetExceptionDetails,
 
                 now = %datetime
                 writelog("Downloading remote exceptions log file")
+                writett("Downloading remote exceptions log file")
 
                 if (fsc.DownloadText(remoteExceptionsLog,exceptionRecords))
                 begin
@@ -3014,6 +3095,7 @@ GetExceptionDetails,
 
                     now = %datetime
                     writelog(%string(exceptionRecords.Length) + " items saved to " + localExceptionsLog)
+                    writelog(" - " + %string(exceptionRecords.Length) + " items saved to " + localExceptionsLog)
                 end
             end
             else
@@ -3021,6 +3103,7 @@ GetExceptionDetails,
                 ;;Error file does not exist! In theory this should not happen, because we got here due to "data conversion error" being reported
                 now = %datetime
                 writelog("Remote exceptions file not found!")
+                writett("Remote exceptions file not found!")
             end
         end
         else
@@ -3054,36 +3137,6 @@ eof,        close ex_ch
             now = %datetime
             writelog("Exceptions data file not found!")
         end
-    end
-
-    return
-
-DeleteFiles,
-
-    ;;Delete local files
-
-    now = %datetime
-    writelog("Deleting local files")
-
-    xcall delet(localCsvFile)
-    xcall delet(localExceptionsFile)
-    xcall delet(localExceptionsLog)
-
-    ;;Delete remote files
-
-    if (remoteBulkLoad)
-    begin
-        now = %datetime
-        writelog("Deleting remote files")
-
-        fsc.Delete(remoteCsvFile)
-<IF DEFINED_ASA_TIREMAX>
-;        fsc.Delete(remoteExceptionsFile)
-;        fsc.Delete(remoteExceptionsLog)
-<ELSE>
-;        fsc.Delete(remoteExceptionsFile)
-;        fsc.Delete(remoteExceptionsLog)
-</IF DEFINED_ASA_TIREMAX>
     end
 
     return
@@ -3178,14 +3231,14 @@ endsubroutine
 ;;; Exports <IF STRUCTURE_MAPPED><MAPPED_FILE><ELSE><FILE_NAME></IF STRUCTURE_MAPPED> to a CSV file.
 ;;; </summary>
 ;;; <param name="fileSpec">File to create</param>
-;;; <param name="recordCount">Returned error text.</param>
+;;; <param name="recordCount">Passed number of records to export, returned number of records exported.</param>
 ;;; <param name="errorMessage">Returned error text.</param>
 ;;; <returns>Returns true on success, otherwise false.</returns>
 
 function <StructureName>Csv, boolean
-    required in  fileSpec, a
-    optional out recordCount, n
-    optional out errorMessage, a
+    required in    fileSpec, a
+    optional inout recordCount, n
+    optional out   errorMessage, a
 
     .include "<STRUCTURE_NOALIAS>" repository, record="<structure_name>", end
 
@@ -3217,6 +3270,8 @@ function <StructureName>Csv, boolean
 .align
         pos,                            int         ;;Position in a string
 .align
+        recordsMax,                     int         ;;Max # or records to export
+.align
         errtxt,                         a512        ;;Error message text
     endrecord
 proc
@@ -3224,6 +3279,10 @@ proc
     ok = true
     clear records
     errtxt = ""
+
+    ;;Were we given a max # or records to export?
+
+    recordsMax = (^passed(recordCount) && recordCount > 0) ? recordCount : 0
 
     ;;Open the data file associated with the structure
 
@@ -3264,6 +3323,13 @@ proc
             end
 
             incr records
+
+            if (recordsmax && (records > recordsMax))
+            begin
+                decr records
+                exitloop
+            end
+
             outrec = ""
   <FIELD_LOOP>
     <IF CUSTOM_NOT_REPLICATOR_EXCLUDE>
@@ -3274,7 +3340,7 @@ proc
 ;//
 ;// CUSTOM FIELDS
 ;//
-            &    + %<FIELD_CUSTOM_STRING_FUNCTION>(<structure_name>.<field_original_name_modified>) + "<IF MORE>|</IF MORE>"
+            &    + %<FIELD_CUSTOM_STRING_FUNCTION>(<structure_name>.<field_original_name_modified>,<structure_name>) + "<IF MORE>|</IF MORE>"
       <ELSE>
 ;//
 ;// ALPHA
@@ -3291,7 +3357,7 @@ proc
 ;//
         <IF DECIMAL>
           <IF DEFINED_DBLV11>
-            &    + (<structure_name>.<field_original_name_modified> ? <IF NEGATIVE_ALLOWED>%MakeDecimalForCsvNegatives<ELSE>%MakeDecimalForCsvNoNegatives</IF NEGATIVE_ALLOWED>(<structure_name>.<field_original_name_modified>)<IF MORE> + "|"</IF MORE> : "<IF MORE>|</IF MORE>")
+            &    + (<structure_name>.<field_original_name_modified> ? <IF NEGATIVE_ALLOWED>%MakeDecimalForCsvNegatives<ELSE>%MakeDecimalForCsvNoNegatives</IF NEGATIVE_ALLOWED>(<structure_name>.<field_original_name_modified>)<IF MORE> + "|"</IF MORE> : "<IF MORE>0|</IF MORE>")
           <ELSE>
             &    + <IF NEGATIVE_ALLOWED>%MakeDecimalForCsvNegatives<ELSE>%MakeDecimalForCsvNoNegatives</IF NEGATIVE_ALLOWED>(<structure_name>.<field_original_name_modified>) + "<IF MORE>|</IF MORE>"
           </IF DEFINED_DBLV11>

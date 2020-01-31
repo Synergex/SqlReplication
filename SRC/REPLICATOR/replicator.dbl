@@ -63,6 +63,7 @@ main replicator
         status,                     i4                  ;;General working status return
         rows,                       i4                  ;;Number of rows affected
         oldSleepTime,               i4                  ;;Previous sleep time value
+        maxRowsToLoad,              i4                  ;;Maximum rows to load
         functionName,               string              ;;External function to call
         keyValue,                   string              ;;Key value of the current ISAM record
         recordNumber,               d28                 ;;Record number of the current relative record
@@ -244,6 +245,7 @@ proc
                 begin
                     Logger.Log("Load table " + %atrim(instruction.structure_name))
                     bulkLoad = false
+                    maxRowsToLoad = 0
                     call DoLoadTable
                     doForceCommit = true
                 end
@@ -257,6 +259,23 @@ proc
                         Logger.Log("Bulk load requested but unavailable!")
                         Logger.Log("Load table " + %atrim(instruction.structure_name))
                     end
+                    maxRowsToLoad = 0
+                    call DoLoadTable
+                    doForceCommit = true
+                end
+
+                (REPLICATION_INSTRUCTION.BULK_LOAD_FIRST_1000),
+                begin
+                    if (bulkLoad = Settings.CanBulkLoad()) then
+                    begin
+                        Logger.Log("Bulk load 1000 records to table " + %atrim(instruction.structure_name))
+                    end
+                    else
+                    begin
+                        Logger.Log("Bulk load 1000 records requested but unavailable!")
+                        Logger.Log("Load 1000 records to table " + %atrim(instruction.structure_name))
+                    end
+                    maxRowsToLoad = 1000
                     call DoLoadTable
                     doForceCommit = true
                 end
@@ -321,17 +340,21 @@ proc
                         Settings.SleepTime = oldSleepTime
                     end
                     endtry
+
+                    delete(Settings.InstructionChannel)
                 end
 
                 (REPLICATION_INSTRUCTION.CYCLE_LOG),
                 begin
                     Logger.Log("Cycle log file")
                     Logger.CycleLog()
+                    delete(Settings.InstructionChannel)
                 end
 
                 (REPLICATION_INSTRUCTION.SHUTDOWN),
                 begin
                     Logger.Log("Shutdown requested")
+
                     ;;Delete the shutdown instruction from the queue
                     delete(Settings.InstructionChannel)
 
@@ -400,9 +423,11 @@ CommitTransaction,
             end
             catch (e, @Exception)
             begin
-                ;TODO: Failed to delete a commited instruction. Now what?
-
-
+                ;;This can happen from time to time, because some "special"
+                ;;instructions like "change interval" and "cycle log" are deleted
+                ;;from the queue immediately even though the rfa has already been
+                ;;recorded. Just ignore it.
+                nop
             end
             endtry
         end
@@ -693,7 +718,7 @@ LoadTable,
 
         try
         begin
-            data successCount, int, 0
+            data successCount, int, maxRowsToLoad
             data failCount, int, 0
 
             functionName = %atrim(instruction.structure_name) + "Load"
@@ -762,11 +787,11 @@ BulkLoadTable,
 
         try
         begin
-            data totalRows, int
-            data failRows, int
+            data totalRows, int, maxRowsToLoad
+            data failRows, int, 0
 
             functionName = %atrim(instruction.structure_name) + "BulkLoad"
-            status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,Settings.LocalExportPath,Settings.FileServiceHost,Settings.FileServicePort,Settings.DatabaseTimeout,Settings.BulkLoadTimeout,Settings.LogFileChannel,totalRows,failRows,dberrtxt)
+            status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,Settings.LocalExportPath,Settings.FileServiceHost,Settings.FileServicePort,Settings.DatabaseTimeout,Settings.BulkLoadTimeout,Settings.LogFileChannel,Settings.TerminalChannel,totalRows,failRows,dberrtxt)
 
             if (status) then
             begin

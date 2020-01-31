@@ -49,14 +49,15 @@ namespace replicator
             if (Settings.LogFileChannel!=0)
             begin
                 data now, a20, %datetime
+                data tmpchn, i4
+
                 Settings.LogFileName = "REPLICATOR_LOGDIR:REPLICATOR_" + Settings.InstanceName + "_" + now(1:8) + "_" + now(9:6) + ".LOG"
 
-                Logger.Log("New log file is " + Settings.LogFileName)
+                Logger.Log(" - Log file is now " + Settings.LogFileName)
 
-                close Settings.LogFileChannel
-                Settings.LogFileChannel = 0
+                open(tmpchn=0,a:s,Settings.LogFileName)
 
-                open(Settings.LogFileChannel,a:s,Settings.LogFileName)
+                Settings.LogFileChannel = tmpchn
             end
         endmethod
 

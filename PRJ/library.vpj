@@ -85,18 +85,20 @@
             <Target
                 Name="Import Schema to Repository"
                 MenuCaption="&amp;Import Schema to Repository"
-                RunFromDir="%(BAT)"
+                RunFromDir="%wp"
                 CaptureOutputWith="ProcessBuffer"
-                SaveOption="SaveAll">
-                <Exec CmdLine="rps_import.bat"/>
+                SaveOption="SaveAll"
+                ClearProcessBuffer="1">
+                <Exec CmdLine="RpsImport.bat"/>
             </Target>
             <Target
                 Name="Export Repository to Schema"
                 MenuCaption="&amp;Export Repository to Schema"
-                RunFromDir="%(BAT)"
                 CaptureOutputWith="ProcessBuffer"
-                SaveOption="SaveAll">
-                <Exec CmdLine="rps_export.bat"/>
+                SaveOption="SaveAll"
+                RunFromDir="%wp"
+                ClearProcessBuffer="1">
+                <Exec CmdLine="RpsExport.bat"/>
             </Target>
             <Target
                 Name="Send to Linux"
@@ -178,7 +180,6 @@
             Filters="*.tpl">
             <F N="../SRC/TEMPLATES/ExcludeKeyTest.json"/>
             <F N="../SRC/TEMPLATES/FileDataReport.tpl"/>
-            <F N="../SRC/TEMPLATES/GetReplicatedTables.tpl"/>
             <F N="../SRC/TEMPLATES/SqlIO.tpl"/>
         </Folder>
         <Folder
@@ -196,6 +197,7 @@
             <F N="../SRC/LIBRARY/GenerateDepartmentData.dbl"/>
             <F N="../SRC/LIBRARY/GenerateEmployeeData.dbl"/>
             <F N="../SRC/LIBRARY/GetDateTimeString.dbl"/>
+            <F N="../SRC/LIBRARY/GetInstances.dbl"/>
             <F N="../SRC/LIBRARY/GetReplicatedTables.dbl"/>
             <F N="../SRC/LIBRARY/IndexExists.dbl"/>
             <F N="../SRC/LIBRARY/InstanceInfo.dbl"/>
@@ -313,18 +315,20 @@
             <Target
                 Name="Import Schema to Repository"
                 MenuCaption="&amp;Import Schema to Repository"
-                RunFromDir="%(BAT)"
+                RunFromDir="%wp"
                 CaptureOutputWith="ProcessBuffer"
-                SaveOption="SaveAll">
-                <Exec CmdLine="rps_import.bat"/>
+                SaveOption="SaveAll"
+                ClearProcessBuffer="1">
+                <Exec CmdLine="RpsImport.bat"/>
             </Target>
             <Target
                 Name="Export Repository to Schema"
                 MenuCaption="&amp;Export Repository to Schema"
-                RunFromDir="%(BAT)"
                 CaptureOutputWith="ProcessBuffer"
-                SaveOption="SaveAll">
-                <Exec CmdLine="rps_export.bat"/>
+                SaveOption="SaveAll"
+                RunFromDir="%wp"
+                ClearProcessBuffer="1">
+                <Exec CmdLine="RpsExport.bat"/>
             </Target>
             <Target
                 Name="Send to Linux"
@@ -482,18 +486,20 @@
             <Target
                 Name="Import Schema to Repository"
                 MenuCaption="&amp;Import Schema to Repository"
-                RunFromDir="%(BAT)"
+                RunFromDir="%wp"
                 CaptureOutputWith="ProcessBuffer"
-                SaveOption="SaveAll">
-                <Exec CmdLine="rps_import.bat"/>
+                SaveOption="SaveAll"
+                ClearProcessBuffer="1">
+                <Exec CmdLine="RpsImport.bat"/>
             </Target>
             <Target
                 Name="Export Repository to Schema"
                 MenuCaption="&amp;Export Repository to Schema"
-                RunFromDir="%(BAT)"
                 CaptureOutputWith="ProcessBuffer"
-                SaveOption="SaveAll">
-                <Exec CmdLine="rps_export.bat"/>
+                SaveOption="SaveAll"
+                RunFromDir="%wp"
+                ClearProcessBuffer="1">
+                <Exec CmdLine="RpsExport.bat"/>
             </Target>
             <Target
                 Name="Send to Linux"
@@ -651,18 +657,20 @@
             <Target
                 Name="Import Schema to Repository"
                 MenuCaption="&amp;Import Schema to Repository"
-                RunFromDir="%(BAT)"
+                RunFromDir="%wp"
                 CaptureOutputWith="ProcessBuffer"
-                SaveOption="SaveAll">
-                <Exec CmdLine="rps_import.bat"/>
+                SaveOption="SaveAll"
+                ClearProcessBuffer="1">
+                <Exec CmdLine="RpsImport.bat"/>
             </Target>
             <Target
                 Name="Export Repository to Schema"
                 MenuCaption="&amp;Export Repository to Schema"
-                RunFromDir="%(BAT)"
                 CaptureOutputWith="ProcessBuffer"
-                SaveOption="SaveAll">
-                <Exec CmdLine="rps_export.bat"/>
+                SaveOption="SaveAll"
+                RunFromDir="%wp"
+                ClearProcessBuffer="1">
+                <Exec CmdLine="RpsExport.bat"/>
             </Target>
             <Target
                 Name="Send to Linux"

@@ -3,11 +3,11 @@
 ;
 ;  REPOSITORY     : D:\SqlReplication\RPS\rpsmain.ism
 ;                 : D:\SqlReplication\RPS\rpstext.ism
-;                 : Version 11.1.1a
+;                 : Version 11.1.1b
 ;
-;  GENERATED      : 02-DEC-2019, 10:39:21
-;                 : Version 11.1.1a
-;  EXPORT OPTIONS : [ALL] 
+;  GENERATED      : 30-JAN-2020, 18:12:04
+;                 : Version 11.1.1c
+;  EXPORT OPTIONS : [ALL-K-R-A] 
  
  
 Format PHONE   Type NUMERIC   "(XXX) XXX-XXXX"   Justify LEFT
@@ -18,8 +18,9 @@ Enumeration REPLICATION_INSTRUCTION
           LOAD_TABLE 5, CREATE_AND_LOAD_TABLE 6, DELETE_ALL_ROWS 7,
           DELETE_TABLE 8, SHUTDOWN 9, INSERT_RELATIVE 10,
           UPDATE_RELATIVE 11, ADD_INDEXES 12, DELETE_INDEXES 13,
-          BULK_LOAD_TABLE 14, DELETE_ALL_INSTRUCTIONS 20, CLOSE_FILE 21,
-          CHANGE_INTERVAL 22, CREATE_CSV 23, CYCLE_LOG 24, OPEN_FILE 25,
+          BULK_LOAD_TABLE 14, BULK_LOAD_FIRST_1000,
+          DELETE_ALL_INSTRUCTIONS 20, CLOSE_FILE 21, CHANGE_INTERVAL 22,
+          CREATE_CSV 23, CYCLE_LOG 24, OPEN_FILE 25,
           DELETE_FIRST_INSTRUCTION 26
  
 Template DEPARTMENT_ID   Type ALPHA   Size 15

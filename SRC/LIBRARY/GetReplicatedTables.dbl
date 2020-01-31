@@ -41,10 +41,27 @@
 import System.Collections
 
 subroutine GetReplicatedTables
+    required in instanceName, string
     required out tables, @ArrayList
+    static record
+        defaultTables, @ArrayList
+    endrecord
 proc
     tables = new ArrayList()
-    tables.Add((string)"Employee")
-    tables.Add((string)"Department")
+
+    using instanceName select
+    ("DEFAULT"),
+    begin
+        if (defaultTables == ^null)
+        begin
+            defaultTables = new ArrayList()
+            defaultTables.Add((string)"Department")
+            defaultTables.Add((string)"Employee")
+        end
+    end
+    endusing
+
     xreturn
+
 endsubroutine
+

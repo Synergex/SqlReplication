@@ -37,7 +37,7 @@ proc
 
     ;;Get a list of all replicated tables
 
-    xcall GetReplicatedTables(replicatedTables)
+    xcall GetReplicatedTables(Settings.InstanceName,replicatedTables)
 
     ;;Attempt to close any open cursors - no errors will be generated regardless of what happens
 

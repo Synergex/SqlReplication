@@ -639,7 +639,7 @@ proc
                     Settings.CommitMode = DatabaseCommitMode.Manual
                 (),
                 begin
-                    Logger.ErrorLog("Invalid value specified for option REPLICATOR_AUTO_COMMIT. Specify YES or NO.")
+                    Logger.ErrorLog("Invalid value specified for option REPLICATOR_COMMIT_MODE. Specify YES or NO.")
                     ok = false
                 end
                 endusing

@@ -40,16 +40,21 @@ import ReplicationLibrary
 
 main ReplicatorMenu
 
+    .include "WND:windows.def"
+
     record
         tt,                 i4
         system,             d4
         runtime,            d4
         windows,            boolean
         unix,               boolean
+        instanceOk,         boolean
         pid,                int
         option,             a2
         validTables,        @ArrayList
+        validInstances,     @ArrayList
         tableName,          a30
+        tmpName,            string
         instanceName,       string
         queueFileName,      string
         tmpInstanceName,    a15
@@ -78,6 +83,11 @@ proc
 
     xcall flags(7004000,1)
     open(tt=0,i,"tt:")
+    xcall w_init(0,tt,5)
+
+.ifdef D_GUI
+    xcall w_caption(WC_SET,"SQL Replicator")
+.endc
 
     try
     begin
@@ -98,13 +108,13 @@ proc
     end
     endtry
 
-    ;;Get a collection of the valid table names
-
-    xcall GetReplicatedTables(validTables)
-
     ;;Clear screen and display title and instance name
 
     display(tt,$SCR_POS(1,1),$SCR_CLR(SCREEN),"Replicator Menu")
+
+    ;;Get valid instance names
+
+    xcall GetInstanceNames(validInstances)
 
     ;;Get the instance name, default to "DEFAULT"
     xcall getlog("REPLICATOR_INSTANCE",tmpInstanceName,status)
@@ -118,6 +128,36 @@ proc
     begin
         instanceName = "DEFAULT"
     end
+
+    ;;Validate the instance name
+
+    instanceOk = false
+    foreach tmpName in validInstances
+    begin
+        if (instanceName .eqs. tmpName)
+        begin
+            instanceOk = true
+            exitloop
+        end
+    end
+
+    if (instanceOk) then
+    begin
+.ifdef D_GUI
+        xcall w_caption(WC_SET,"SQL Replicator: Instance " + instanceName)
+.else
+        nop
+.endc
+    end
+    else
+    begin
+        display(tt, $SCR_POS(3,1),"Invalid instance name: ",instanceName)
+        stop
+    end
+
+    ;;Get a collection of the valid table names
+
+    xcall GetReplicatedTables(instanceName,validTables)
 
     ;;Set the queue file name for the instance
     queueFileName = "REPLICATOR_DATA:REPLICATION_" + instanceName + ".ISM"
@@ -149,12 +189,13 @@ proc
 .ifdef D_GUI
         display(tt,$SCR_POS(12,2),"QM. Start Queue Monitor")
 .endc
-        display(tt,$SCR_POS(14,2),"I.  Change interval")
-        display(tt,$SCR_POS(15,2),"N.  Change instance name")
-        display(tt,$SCR_POS(16,2),"R.  Restart log file")
+        display(tt,$SCR_POS(13,2),"S.  Change sleep interval")
+        display(tt,$SCR_POS(14,2),"R.  Restart log file")
 
-        display(tt,$SCR_POS(18,2),"A.  Available tables")
-        display(tt,$SCR_POS(19,2),"T.  Set current table")
+        display(tt,$SCR_POS(16,2),"AI. Available instances")
+        display(tt,$SCR_POS(17,2),"I.  Change instance name")
+        display(tt,$SCR_POS(18,2),"AT. Available tables")
+        display(tt,$SCR_POS(19,2),"T.  Change current table")
 
         display(tt,$SCR_POS(21,2),"E.  Exit")
 
@@ -164,11 +205,12 @@ proc
             display(tt,$SCR_POS( 4,40),"L.  Load table")
             display(tt,$SCR_POS( 5,40),"CL. Create and load table")
             display(tt,$SCR_POS( 6,40),"BL. Bulk load table")
-            display(tt,$SCR_POS( 7,40),"AI. Add indexes")
-            display(tt,$SCR_POS( 8,40),"DI. Delete indexes")
-            display(tt,$SCR_POS( 9,40),"TR. Truncate table")
-            display(tt,$SCR_POS(10,40),"D.  Delete table")
-            display(tt,$SCR_POS(11,40),"X.  Export to CSV")
+            display(tt,$SCR_POS( 7,40),"BR. Bulk load first 1000")
+            display(tt,$SCR_POS( 8,40),"AI. Add indexes")
+            display(tt,$SCR_POS( 9,40),"DI. Delete indexes")
+            display(tt,$SCR_POS(10,40),"TR. Truncate table")
+            display(tt,$SCR_POS(11,40),"D.  Delete table")
+            display(tt,$SCR_POS(12,40),"X.  Export to CSV")
 
             if (windows && (tableName=="Employee" || tableName=="Department"))
                 display(tt,$SCR_POS(13,40),"M.  Maintainance")
@@ -202,10 +244,7 @@ proc
                 xcall spawn("dbr REPLICATOR_EXE:replicator.dbr",D_NOWINDOW|D_NOWAIT)
             else if (unix)
             begin
-                if (instanceName) then
-                    xcall spawn("nohup dbr REPLICATOR_EXE:replicator $REPLICATOR_INSTANCE </dev/null >/dev/null 2>&1 &")
-                else
-                    xcall spawn("nohup dbr REPLICATOR_EXE:replicator </dev/null >/dev/null 2>&1 &")
+                xcall spawn("nohup dbr REPLICATOR_EXE:replicator.dbr $REPLICATOR_INSTANCE </dev/null >/dev/null 2>&1 &")
             end
         end
 
@@ -218,10 +257,7 @@ proc
                 data pipechn, int, 0
                 data instanceCount, int, 0
                 data buffer, a256
-                if (instanceName) then
-                    open(pipechn,i,'|ps ax | grep "REPLICATOR_EXE:replicator " | grep $REPLICATOR_INSTANCE')
-                else
-                    open(pipechn,i,'|ps ax | grep "REPLICATOR_EXE:replicator " | grep -v grep')
+                open(pipechn,i,'|ps -ef | grep "dbr REPLICATOR_EXE:replicator.dbr" | grep -v grep')
 
                 display(tt,$SCR_CLR(SCREEN),"Replicator status ...",$SCR_POS(3,1))
 
@@ -424,10 +460,10 @@ proc
         end
 .endc
 
-        ("I "),
+        ("S "),
         begin
             data interval, a5
-            display(tt,$SCR_POS(23,2),$SCR_CLR(EOS),"Interval (seconds): ")
+            display(tt,$SCR_POS(23,2),$SCR_CLR(EOS),"Sleep interval (seconds): ")
             reads(tt,interval)
 
             if (interval) then
@@ -448,17 +484,52 @@ proc
             end
         end
 
-        ("A "),
+        ("AI"),
         begin
-            data row, i4
+            data row, i4, 4
+            data col, i4, 2
             data name, string
 
-            display(tt,$SCR_CLR(SCREEN),"Available Tables",$SCR_POS(3,1))
+            display(tt,$SCR_POS(3,1),$SCR_CLR(EOS),"Available Instances")
+
+            foreach name in validInstances
+            begin
+                display(tt,$SCR_POS(row+=1,col),name)
+                if (row==21)
+                begin
+                    row=4
+                    col+=18
+                end
+            end
+
+            display(tt,$SCR_POS(23,1),"Press a key: ")
+            begin
+                data tmpvar, a1
+                accept(tt,tmpvar)
+                while (%ttsts)
+                    accept(tt,tmpvar)
+            end
+        end
+
+        ("AT"),
+        begin
+            data row, i4, 4
+            data col, i4, 2
+            data name, string
+
+            display(tt,$SCR_POS(3,1),$SCR_CLR(EOS),"Available Tables")
 
             foreach name in validTables
-                writes(tt," " + name)
+            begin
+                display(tt,$SCR_POS(row+=1,col),name)
+                if (row==21)
+                begin
+                    row=4
+                    col+=18
+                end
+            end
 
-            display(tt,13,10," Press a key: ")
+            display(tt,$SCR_POS(23,1),"Press a key: ")
             begin
                 data tmpvar, a1
                 accept(tt,tmpvar)
@@ -494,16 +565,18 @@ proc
                 if (!found)
                 begin
                     display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Table not found!")
+                    display(tt,$SCR_POS(1,57),$SCR_CLR(EOL),"<none>")
                     clear tableName
                 end
             end
             else
             begin
+                display(tt,$SCR_POS(1,57),$SCR_CLR(EOL),"<none>")
                 nextloop
             end
         end
 
-        ("N "),
+        ("I "),
         begin
             ;;Record the current instance name
             data oldInstanceName, string, instanceName
@@ -526,14 +599,41 @@ proc
                     instanceName = "DEFAULT"
                 end
 
-                xcall setlog("REPLICATOR_INSTANCE",instanceName,status)
+                ;;Validate the instance name
+
+                instanceOk = false
+                foreach tmpName in validInstances
+                begin
+                    if (instanceName .eqs. tmpName)
+                    begin
+                        instanceOk = true
+                        exitloop
+                    end
+                end
+
+                if (instanceOk) then
+                begin
+                    xcall setlog("REPLICATOR_INSTANCE",instanceName,status)
+
+                    ;;Get a collection of the valid table names
+
+                    xcall GetReplicatedTables(instanceName,validTables)
 
                 clear tmpInstanceName
                 display(tt,$SCR_POS(23,2),$SCR_CLR(EOS),$SCR_POS(1,35),tmpInstanceName,$SCR_POS(1,35),instanceName)
 
                 ;;Set the queue file name for the instance
                 queueFileName = "REPLICATOR_DATA:REPLICATION_" + instanceName + ".ISM"
+.ifdef D_GUI
+                    xcall w_caption(WC_SET,"SQL Replicator: Instance " + instanceName)
+.endc
             end
+                else
+                begin
+                    instanceName = oldInstanceName
+                    display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Invalid instance name!")
+                end
+        end
         end
 
         ("R "),
@@ -580,6 +680,17 @@ proc
             if (tableName) then
             begin
                 xcall Replicate(instanceName,REPLICATION_INSTRUCTION.BULK_LOAD_TABLE,tableName)
+                display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Command queued")
+            end
+            else
+                display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Invalid option!")
+        end
+
+        ("BR"),
+        begin
+            if (tableName) then
+            begin
+                xcall Replicate(instanceName,REPLICATION_INSTRUCTION.BULK_LOAD_FIRST_1000,tableName)
                 display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Command queued")
             end
             else
@@ -657,3 +768,4 @@ proc
     stop
 
 endmain
+
