@@ -58,6 +58,7 @@ proc
             defaultTables.Add((string)"Department")
             defaultTables.Add((string)"Employee")
         end
+        tables = defaultTables
     end
     endusing
 
