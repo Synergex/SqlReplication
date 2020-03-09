@@ -48,7 +48,7 @@ proc
     if (aNumber && %IsDecimalNegatives(aNumber))
         freturn %string(aNumber)
 .endc
-    freturn ""
+    freturn "0"
 endfunction
 
 function MakeDecimalForCsvNoNegatives, a
@@ -64,5 +64,5 @@ proc
     if (aNumber && %IsDecimalNoNegatives(aNumber))
         freturn %string(aNumber)
 .endc
-    freturn ""
+    freturn "0"
 endfunction
