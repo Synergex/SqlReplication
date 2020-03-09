@@ -51,6 +51,8 @@ namespace replicator
                 data now, a20, %datetime
                 data tmpchn, i4
 
+                close Settings.LogFileChannel
+
                 Settings.LogFileName = "REPLICATOR_LOGDIR:REPLICATOR_" + Settings.InstanceName + "_" + now(1:8) + "_" + now(9:6) + ".LOG"
 
                 Logger.Log(" - Log file is now " + Settings.LogFileName)
