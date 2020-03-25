@@ -166,7 +166,7 @@ proc
         if (error) then
             a_errtxt = errtxt
         else
-            a_errtxt = ""
+            clear a_errtxt
     end
 
     freturn error
@@ -330,7 +330,7 @@ proc
     if (^passed(a_errtxt))
     begin
         if (ok) then
-            a_errtxt = ""
+            clear a_errtxt
         else
             a_errtxt = errtxt
     end
@@ -535,7 +535,7 @@ proc
     if (^passed(a_errtxt))
     begin
         if (ok) then
-            a_errtxt = ""
+            clear a_errtxt
         else
             a_errtxt = errtxt
     end
@@ -702,7 +702,7 @@ proc
     if (^passed(a_errtxt))
     begin
         if (ok) then
-            a_errtxt = ""
+            clear a_errtxt
         else
             a_errtxt = errtxt
     end
@@ -1120,7 +1120,7 @@ proc
     if (^passed(a_errtxt))
     begin
         if (ok) then
-            a_errtxt = ""
+            clear a_errtxt
         else
             a_errtxt = errtxt
     end
@@ -1564,7 +1564,7 @@ proc
     if (^passed(a_errtxt))
     begin
         if (ok) then
-            a_errtxt = ""
+            clear a_errtxt
         else
             a_errtxt = %atrim(errtxt)+" [Database error "+%string(dberror)+"]"
     end
@@ -1927,7 +1927,7 @@ proc
     if (^passed(a_errtxt))
     begin
         if (ok) then
-            a_errtxt = ""
+            clear a_errtxt
         else
             a_errtxt = errtxt
     end
@@ -2090,7 +2090,7 @@ proc
     if (^passed(a_errtxt))
     begin
         if (ok) then
-            a_errtxt = ""
+            clear a_errtxt
         else
             a_errtxt = errtxt
     end
@@ -2222,7 +2222,7 @@ proc
     if (^passed(a_errtxt))
     begin
         if (ok) then
-            a_errtxt = ""
+            clear a_errtxt
         else
             a_errtxt = errtxt
     end
@@ -2365,7 +2365,7 @@ proc
     if (^passed(a_errtxt))
     begin
         if (ok) then
-            a_errtxt = ""
+            clear a_errtxt
         else
             a_errtxt = errtxt
     end
@@ -3279,8 +3279,7 @@ function <StructureName>Csv, boolean
 proc
 
     ok = true
-    clear records
-    errtxt = ""
+    clear records, errtxt
 
     ;;Were we given a max # or records to export?
 
@@ -3473,7 +3472,7 @@ proc
     try
     begin
         open(ch=0,<IF STRUCTURE_ISAM>i:i</IF STRUCTURE_ISAM><IF STRUCTURE_RELATIVE>i:r</IF STRUCTURE_RELATIVE>,"<FILE_NAME>")
-        errmsg = ""
+        clear errmsg
     end
     catch (ex, @Exception)
     begin
