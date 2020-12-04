@@ -2,7 +2,7 @@
 ;;
 ;; File:        replicator.dbl
 ;;
-;; Type:        Application (replicator)
+;; Type:        Application (SQL Replicator)
 ;;
 ;; Description: Replicates Synergy data file changes that have been recorded
 ;;              in the replucation log file to a SQL Server database.
@@ -47,7 +47,7 @@ main replicator
 .ifdef D_VMS
     .include "REPLICATION_VMS" repository, record="instruction", end
 .else
-    .include "REPLICATION" repository, record="instruction", end
+    .include "REPLICATION" repository, record="instruction",end
 .endc
 
 .align
@@ -65,7 +65,8 @@ main replicator
         oldSleepTime,               i4                  ;;Previous sleep time value
         maxRowsToLoad,              i4                  ;;Maximum rows to load
         functionName,               string              ;;External function to call
-        keyValue,                   string              ;;Key value of the current ISAM record
+        keyValue,                   a256                ;;Key value of the current ISAM record
+        keyLength,                  i4                  ;;Key length of the current ISAM record
         recordNumber,               d28                 ;;Record number of the current relative record
         dberrtxt,                   a1024               ;;Error text from a failed database call
         structure_data,             strStructureData    ;;Data stored for each structure
@@ -75,7 +76,7 @@ main replicator
     endrecord
 
     external function
-        xsubr,              ^val
+        xsubr,  ^val
     endexternal
 
 proc
@@ -117,6 +118,14 @@ proc
                     sleep Settings.ErrorSleepTime
                     nextloop
                 end
+                catch (ex, @NetworkException); $ERR_NETPROB (320)
+                begin
+                    if (%ReOpenQueueFile) nextloop
+                end
+                catch (ex, @ServerNotRunningException); $ERR_NOSERVER (321)
+                begin
+                    if (%ReOpenQueueFile) nextloop
+                end
                 endtry
             end
 
@@ -132,15 +141,29 @@ proc
                 sleep Settings.SleepTime
 
                 ;;Reset to beginning of file
-                try
+                repeat
                 begin
-                    find(Settings.InstructionChannel,,^FIRST,LOCK:Q_NO_LOCK)
+                    try
+                    begin
+                        find(Settings.InstructionChannel,,^FIRST,LOCK:Q_NO_LOCK)
+                        exitloop
+                    end
+                    catch (ex, @EndOfFileException); Instruction queue is empty
+                    begin
+                        exitloop
+                    end
+                    catch (ex, @NetworkException); $ERR_NETPROB (320)
+                    begin
+                        if (%ReOpenQueueFile)
+                            nextloop
+                    end
+                    catch (ex, @ServerNotRunningException); $ERR_NOSERVER (321)
+                    begin
+                        if (%ReOpenQueueFile)
+                            nextloop
+                    end
+                    endtry
                 end
-                catch (ex)
-                begin
-                    nop
-                end
-                endtry
             end
             else
             begin
@@ -149,7 +172,34 @@ proc
                 begin
                     ;;Restore the recorded action to it's original (positive) value
                     instruction.action = -instruction.action
-                    write(Settings.InstructionChannel,instruction)
+
+                    repeat
+                    begin
+                        try
+                        begin
+                            write(Settings.InstructionChannel,instruction)
+                            exitloop
+                        end
+                        catch (ex, @NetworkException); $ERR_NETPROB (320)
+                        begin
+                            if (%ReOpenQueueFile)
+                            begin
+                                ;;Re-read and lock the instruction record. What if THIS fails????
+                                read(Settings.InstructionChannel,instruction,instruction.transaction_id)
+                                nextloop
+                            end
+                        end
+                        catch (ex, @ServerNotRunningException); $ERR_NOSERVER (321)
+                        begin
+                            if (%ReOpenQueueFile)
+                            begin
+                                ;;Re-read and lock the instruction record. What if THIS fails????
+                                read(Settings.InstructionChannel,instruction,instruction.transaction_id)
+                                nextloop
+                            end
+                        end
+                        endtry
+                    end
 
                     ;;And shutdown
                     Logger.Log("Shutdown requested")
@@ -176,10 +226,10 @@ proc
                     ;;Check if we already have the file open
                     call CheckFileTable
 
-                    ;;If we don't have the file open by now then we probably have a configuration problem
-                    if (!structure_data.structure_chan)
+                    ;;If we failed to check the table for the file then we probably have a configuration problem
+                    if (!status)
                     begin
-                        Logger.ErrorLog("Abnormal replicator shutdown")
+                        Logger.ErrorLog("Abnormal replicator shutdown!")
                         exitloop
                     end
                 end
@@ -341,22 +391,102 @@ proc
                     end
                     endtry
 
-                    delete(Settings.InstructionChannel)
+                    repeat
+                    begin
+                        try
+                        begin
+                            delete(Settings.InstructionChannel)
+                            exitloop
+                        end
+                        catch (ex, @NetworkException); $ERR_NETPROB (320)
+                        begin
+                            if (%ReOpenQueueFile)
+                            begin
+                                ;;Re-read and lock the instruction record. What if THIS fails????
+                                read(Settings.InstructionChannel,instruction,instruction.transaction_id)
+                                nextloop
+                            end
+                        end
+                        catch (ex, @ServerNotRunningException); $ERR_NOSERVER (321)
+                        begin
+                            if (%ReOpenQueueFile)
+                            begin
+                                ;;Re-read and lock the instruction record. What if THIS fails????
+                                read(Settings.InstructionChannel,instruction,instruction.transaction_id)
+                                nextloop
+                            end
+                        end
+                        endtry
+                    end
                 end
 
                 (REPLICATION_INSTRUCTION.CYCLE_LOG),
                 begin
                     Logger.Log("Cycle log file")
                     Logger.CycleLog()
-                    delete(Settings.InstructionChannel)
+
+                    ;; Delete the "Cycle Log" instruction from the instructions 
+                    repeat
+                    begin
+                        try
+                        begin
+                            delete(Settings.InstructionChannel)
+                            exitloop
+                        end
+                        catch (ex, @NetworkException); $ERR_NETPROB (320)
+                        begin
+                            if (%ReOpenQueueFile)
+                            begin
+                                ;;Re-read and lock the instruction record. What if THIS fails????
+                                read(Settings.InstructionChannel,instruction,instruction.transaction_id)
+                                nextloop
+                            end
+                        end
+                        catch (ex, @ServerNotRunningException); $ERR_NOSERVER (321)
+                        begin
+                            if (%ReOpenQueueFile)
+                            begin
+                                ;;Re-read and lock the instruction record. What if THIS fails????
+                                read(Settings.InstructionChannel,instruction,instruction.transaction_id)
+                                nextloop
+                            end
+                        end
+                        endtry
+                    end
                 end
 
                 (REPLICATION_INSTRUCTION.SHUTDOWN),
                 begin
                     Logger.Log("Shutdown requested")
 
-                    ;;Delete the shutdown instruction from the queue
-                    delete(Settings.InstructionChannel)
+                    ;;Delete the "Shutdown" instruction from the queue
+                    repeat
+                    begin
+                        try
+                        begin
+                            delete(Settings.InstructionChannel)
+                            exitloop
+                        end
+                        catch (ex, @NetworkException); $ERR_NETPROB (320)
+                        begin
+                            if (%ReOpenQueueFile)
+                            begin
+                                ;;Re-read and lock the instruction record. What if THIS fails????
+                                read(Settings.InstructionChannel,instruction,instruction.transaction_id)
+                                nextloop
+                            end
+                        end
+                        catch (ex, @ServerNotRunningException); $ERR_NOSERVER (321)
+                        begin
+                            if (%ReOpenQueueFile)
+                            begin
+                                ;;Re-read and lock the instruction record. What if THIS fails????
+                                read(Settings.InstructionChannel,instruction,instruction.transaction_id)
+                                nextloop
+                            end
+                        end
+                        endtry
+                    end
 
                     xcall ReplicatorShutdown
                     stop
@@ -368,7 +498,19 @@ proc
                 if (Settings.CommitMode == DatabaseCommitMode.Batch) then
                 begin
                     ;;In batch commit mode we don't delete instructions until the batch has been committed
-                    unlock Settings.InstructionChannel
+                    try
+                    begin
+                        unlock Settings.InstructionChannel
+                    end
+                    catch (ex, @NetworkException); $ERR_NETPROB (320)
+                    begin
+                        if (%ReOpenQueueFile) nop
+                    end
+                    catch (ex, @ServerNotRunningException); $ERR_NOSERVER (321)
+                    begin
+                        if (%ReOpenQueueFile) nop
+                    end
+                    endtry
 
                     ;;This logic may look a little "hokey", but there is a reason for it!
                     if ((doForceCommit && (Counters.BatchCounter+=1)) || (doCheckCommit && ((Counters.BatchCounter += 1) == Settings.CommitBatchRows)))
@@ -379,7 +521,32 @@ proc
                 else
                 begin
                     ;;Not in batch mode, delete the completed instruction now
-                    delete(Settings.InstructionChannel)
+                    repeat
+                    begin
+                        try
+                        begin
+                            delete(Settings.InstructionChannel)
+                        end
+                        catch (ex, @NetworkException); $ERR_NETPROB (320)
+                        begin
+                            if (%ReOpenQueueFile)
+                            begin
+                                ;;Re-read and lock the instruction record. What if THIS fails????
+                                read(Settings.InstructionChannel,instruction,instruction.transaction_id)
+                                nextloop
+                            end
+                        end
+                        catch (ex, @ServerNotRunningException); $ERR_NOSERVER (321)
+                        begin
+                            if (%ReOpenQueueFile)
+                            begin
+                                ;;Re-read and lock the instruction record. What if THIS fails????
+                                read(Settings.InstructionChannel,instruction,instruction.transaction_id)
+                                nextloop
+                            end
+                        end
+                        endtry
+                    end
                 end
             end
         end
@@ -395,7 +562,7 @@ proc
     end
 
     ;;Close the instructions file
-    if (Settings.InstructionChannel&&%chopen(Settings.InstructionChannel))
+    if (Settings.InstructionChannel && %chopen(Settings.InstructionChannel))
     begin
         close Settings.InstructionChannel
     end
@@ -403,9 +570,9 @@ proc
     ;;All done
     stop
 
-;;-----------------------------------------------------------------------------
-;; Commit the current transaction and start a new one (only used in batch transaction mode)
-;;
+    ;;-----------------------------------------------------------------------------
+    ;; Commit the current transaction and start a new one (only used in batch transaction mode)
+    ;;
 CommitTransaction,
 
     Logger.VerboseLog(" - Committing transaction with " + %string(Counters.BatchCounter) + " change(s)")
@@ -420,6 +587,14 @@ CommitTransaction,
             begin
                 read(Settings.InstructionChannel,instruction,,LOCK:Q_AUTO_LOCK,RFA:unboxedRfa)
                 delete(Settings.InstructionChannel)
+            end
+            catch (ex, @NetworkException); $ERR_NETPROB (320)
+            begin
+                if (%ReOpenQueueFile) nextloop
+            end
+            catch (ex, @ServerNotRunningException); $ERR_NOSERVER (321)
+            begin
+                if (%ReOpenQueueFile) nextloop
             end
             catch (e, @Exception)
             begin
@@ -447,99 +622,58 @@ CommitTransaction,
 
     return
 
-;;-----------------------------------------------------------------------------
-;; Check if we have already opened this file in this process
-;;
+    ;;-----------------------------------------------------------------------------
+    ;; Check if we have already opened this file in this process
+    ;;
 CheckFileTable,
 
     ;;If there is an entry for the file in our namespace then we're good to go
 
     if (nsptr = %nspc_find(Settings.ChannelInfo,instruction.structure_name,structure_data))
     begin
+        status = true
         return
     end
 
     Logger.VerboseLog("First instruction checks for table " + %atrim(instruction.structure_name))
 
-    ;;No, open the file and make sure it worked
+    ;;Make sure the table exists in the database
 
-    call OpenFile
+    call CheckTable
 
-    ;;If we failed to open the file then we have a serious problem!
+    ;;If we failed verify the table then we have a serious problem!
 
-    if (!structure_data.structure_chan)
+    if (!status)
     begin
-        Logger.ErrorLog("Failed to open ISAM file for structure " + %atrim(instruction.structure_name))
+        Logger.ErrorLog("Failed to verify table status for structure " + %atrim(instruction.structure_name))
         return
     end
 
     ;;Get the record size of the file
-
-    try
-    begin
-        functionName = %atrim(instruction.structure_name) + "Length"
-        structure_data.structure_size = %xsubr(functionName)
-    end
-    catch (ex, @SynException)
-    begin
-        ok = Logger.LogFunctionFail(functionName,ex.Errno,ex.Message)
-        return
-    end
-    endtry
+    functionName = %atrim(instruction.structure_name) + "Length"
+    structure_data.structure_size = %xsubr(functionName)
 
     ;;Get the type of the file
-
-    try
-    begin
-        functionName = %atrim(instruction.structure_name) + "Type"
-        xcall xsubr(functionName,structure_data.structure_type)
-    end
-    catch (ex, @SynException)
-    begin
-        ok = Logger.LogFunctionFail(functionName,ex.Errno,ex.Message)
-        return
-    end
-    endtry
+    functionName = %atrim(instruction.structure_name) + "Type"
+    xcall xsubr(functionName,structure_data.structure_type)
 
     using structure_data.structure_type select
 
     ("DBL ISAM"),
     begin
-        ;;Search for the first unique key. There should always be one, because without one the
-        ;;constructor in the I/O hooks class would not activate replication for the file.
-        data thisKey, i4
-        structure_data.structure_keynum = -1
-        for thisKey from 0 thru %isinfo(structure_data.structure_chan,"NUMKEYS") - 1
-        begin
-            if (!%isinfo(structure_data.structure_chan,"DUPS",thisKey))
-            begin
-                ;;Found it!
-                structure_data.structure_keynum = thisKey
-                exitloop
-            end
-        end
+        ;;Get the key number of the first unique key. There should always be one, because without
+        ;;one the constructor in the I/O hooks class would not activate replication for the file.
+        functionName = %atrim(instruction.structure_name) + "KeyNum"
+        structure_data.structure_keynum = %xsubr(functionName)
 
-        ;;Did we find a unique key?
-        if (structure_data.structure_keynum>=0) then
-        begin
-            ;;Report the key that will be used
-            Logger.VerboseLog(" - Key " + %string(structure_data.structure_keynum) + " will be used to synchronize data")
+        ;;Report the key that will be used
+        Logger.VerboseLog(" - Key " + %string(structure_data.structure_keynum) + " will be used to synchronize data")
 
-            ;;And save the structure name
-            structure_data.structure_name = instruction.structure_name
+        ;;And save the structure name
+        structure_data.structure_name = instruction.structure_name
 
-            ;;Record the new open file in the namespace
-            nsptr = %nspc_add(Settings.ChannelInfo,instruction.structure_name,structure_data)
-        end
-        else
-        begin
-            ;;In theory we should never get here because CodeGen should not be able to create the
-            ;;required code if no unique key is present.
-            ;;But just in case, this will cause the replicator to abort
-            close structure_data.structure_chan
-            clear structure_data.structure_chan
-            Logger.ErrorLog("File for structure " + %atrim(instruction.structure_name) + " has no unique key!")
-        end
+        ;;Record the table in the namespace
+        nsptr = %nspc_add(Settings.ChannelInfo,instruction.structure_name,structure_data)
     end
 
     ("RELATIVE"),
@@ -553,7 +687,7 @@ CheckFileTable,
         ;;And save the structure name
         structure_data.structure_name = instruction.structure_name
 
-        ;;Record the new open file in the namespace
+        ;;Record the table in the namespace
         nsptr = %nspc_add(Settings.ChannelInfo,instruction.structure_name,structure_data)
     end
 
@@ -561,41 +695,9 @@ CheckFileTable,
 
     return
 
-;;-----------------------------------------------------------------------------
-;; Open a Synergy data file
-;;
-OpenFile,
-
-    Logger.VerboseLog(" - Opening associated data file")
-
-    try
-    begin
-        functionName = %atrim(instruction.structure_name) + "OpenInput"
-        structure_data.structure_chan = %xsubr(functionName,dberrtxt)
-    end
-    catch (ex, @SynException)
-    begin
-        ok = Logger.LogFunctionFail(functionName,ex.Errno,ex.Message)
-        return
-    end
-    endtry
-
-    if (structure_data.structure_chan) then
-    begin
-        Logger.VerboseLog(" - File opened")
-        call CheckTable
-    end
-    else
-    begin
-        Logger.VerboseLog(" - Failed to open file!")
-        Logger.LogFunctionError(functionName,status,dberrtxt)
-    end
-
-    return
-
-;;-----------------------------------------------------------------------------
-;; Find out if a table exists in the SQL database. If not create and load it.
-;;
+    ;;-----------------------------------------------------------------------------
+    ;; Find out if a table exists in the SQL database. If not create and load it.
+    ;;
 CheckTable,
 
     Logger.VerboseLog(" - Checking if table exists")
@@ -647,12 +749,12 @@ CheckTable,
 
     return
 
-;;-----------------------------------------------------------------------------
-;; Create and load a new table in the SQL database
-;; This code is only used when doing an initial check for a table because of
-;; a first replication instruction. Explicit CREATE_TABLE instructions are
-;; handled by DoCreateTable.
-;;
+    ;;-----------------------------------------------------------------------------
+    ;; Create and load a new table in the SQL database
+    ;; This code is only used when doing an initial check for a table because of
+    ;; a first replication instruction. Explicit CREATE_TABLE instructions are
+    ;; handled by DoCreateTable.
+    ;;
 CreateTable,
 
     Logger.Log(" - Creating table")
@@ -705,9 +807,9 @@ CreateTable,
 
     return
 
-;;-----------------------------------------------------------------------------
-;; Perform an initial load of a new table in the SQL database
-;;
+    ;;-----------------------------------------------------------------------------
+    ;; Perform an initial load of a new table in the SQL database
+    ;;
 LoadTable,
 
     Logger.Log(" - Load starting at " + %TimeNow)
@@ -718,8 +820,8 @@ LoadTable,
 
         try
         begin
-            data successCount, int, maxRowsToLoad
-            data failCount, int, 0
+            data successCount,  int,maxRowsToLoad
+            data failCount,     int,0
 
             functionName = %atrim(instruction.structure_name) + "Load"
 
@@ -774,9 +876,9 @@ LoadTable,
 
     return
 
-;;-----------------------------------------------------------------------------
-;; Perform a bulk load of a table from a delimited text file.
-;;
+    ;;-----------------------------------------------------------------------------
+    ;; Perform a bulk load of a table from a delimited text file.
+    ;;
 BulkLoadTable,
 
     Logger.Log(" - Bulk load starting at " + %TimeNow)
@@ -787,8 +889,8 @@ BulkLoadTable,
 
         try
         begin
-            data totalRows, int, maxRowsToLoad
-            data failRows, int, 0
+            data totalRows, int,maxRowsToLoad
+            data failRows,  int,0
 
             functionName = %atrim(instruction.structure_name) + "BulkLoad"
             status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,Settings.LocalExportPath,Settings.FileServiceHost,Settings.FileServicePort,Settings.DatabaseTimeout,Settings.BulkLoadTimeout,Settings.LogFileChannel,Settings.TerminalChannel,totalRows,failRows,dberrtxt)
@@ -835,9 +937,9 @@ BulkLoadTable,
 
     return
 
-;;-----------------------------------------------------------------------------
-;; Add a new row (ISAM)
-;;
+    ;;-----------------------------------------------------------------------------
+    ;; Add a new row (ISAM)
+    ;;
 DoInsert,
 
     if (switchMode) then
@@ -849,8 +951,9 @@ DoInsert,
     begin
         if (Settings.LogKeys)
         begin
-            keyValue = %keyVal(structure_data.structure_chan,instruction.record,structure_data.structure_keynum)
-            Logger.VerboseLog(" - Key: " + keyValue)
+            functionName = %atrim(instruction.structure_name) + "KeyVal"
+            status = %xsubr(functionName,instruction.record,keyValue,keyLength)
+            Logger.VerboseLog(" - Key: " + keyValue(1:keyLength))
         end
     end
 
@@ -911,9 +1014,9 @@ DoInsert,
 
     return
 
-;;-----------------------------------------------------------------------------
-;; Add a new row (RELATIVE)
-;;
+    ;;-----------------------------------------------------------------------------
+    ;; Add a new row (RELATIVE)
+    ;;
 DoInsertRelative,
 
     if (switchMode) then
@@ -925,7 +1028,7 @@ DoInsertRelative,
     begin
         if (Settings.LogKeys)
         begin
-            data pos, i4, %instr(1,instruction.record,":")
+            data pos,   i4, %instr(1,instruction.record,":")
             recordNumber = instruction.record(1:pos-1)
             instruction.record = instruction.record(pos+1:structure_data.structure_size)
             Logger.VerboseLog(" - Record #: " + %string(recordNumber))
@@ -989,9 +1092,9 @@ DoInsertRelative,
 
     return
 
-;;-----------------------------------------------------------------------------
-;; Update an existing row (ISAM)
-;;
+    ;;-----------------------------------------------------------------------------
+    ;; Update an existing row (ISAM)
+    ;;
 DoUpdate,
     
     if (switchMode) then
@@ -1003,8 +1106,9 @@ DoUpdate,
     begin
         if (Settings.LogKeys)
         begin
-            keyValue = %keyVal(structure_data.structure_chan,instruction.record,structure_data.structure_keynum)
-            Logger.VerboseLog(" - Key: " + keyValue)
+            functionName = %atrim(instruction.structure_name) + "KeyVal"
+            status = %xsubr(functionName,instruction.record,keyValue,keyLength)
+            Logger.VerboseLog(" - Key: " + keyValue(1:keyLength))
         end
     end
 
@@ -1066,9 +1170,9 @@ DoUpdate,
 
     return
 
-;;-----------------------------------------------------------------------------
-;; Update an existing row (RELATIVE)
-;;
+    ;;-----------------------------------------------------------------------------
+    ;; Update an existing row (RELATIVE)
+    ;;
 DoUpdateRelative,
 
     if (switchMode) then
@@ -1080,7 +1184,7 @@ DoUpdateRelative,
     begin
         if (Settings.LogKeys)
         begin
-            data pos, i4, %instr(1,instruction.record,":")
+            data pos,   i4, %instr(1,instruction.record,":")
             recordNumber = instruction.record(1:pos-1)
             instruction.record = instruction.record(pos+1:structure_data.structure_size)
             Logger.VerboseLog(" - Record #: " + %string(recordNumber))
@@ -1145,16 +1249,17 @@ DoUpdateRelative,
 
     return
 
-;;-----------------------------------------------------------------------------
-;; Delete a row
-;;
+    ;;-----------------------------------------------------------------------------
+    ;; Delete a row
+    ;;
 DoDelete,
 
-    keyValue = %keyval(structure_data.structure_chan,instruction.record,structure_data.structure_keynum)
+    functionName = %atrim(instruction.structure_name) + "KeyVal"
+    status = %xsubr(functionName,instruction.record,keyValue,keyLength)
 
     if (Settings.LogKeys)
     begin
-        Logger.VerboseLog(" - Key: " + keyValue)
+        Logger.VerboseLog(" - Key: " + keyValue(1:keyLength))
     end
 
     repeat
@@ -1162,7 +1267,7 @@ DoDelete,
         try
         begin
             functionName = %atrim(instruction.structure_name) + "Delete"
-            status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,(a)keyValue,dberrtxt)
+            status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,keyValue(1:keyLength),dberrtxt)
             if (status) then
             begin
                 Logger.VerboseLog(" - Row deleted")
@@ -1198,9 +1303,9 @@ DoDelete,
 
     return
 
-;;-----------------------------------------------------------------------------
-;; Create a new table
-;;
+    ;;-----------------------------------------------------------------------------
+    ;; Create a new table
+    ;;
 DoCreateTable,
 
     ;;Create a new table (only)
@@ -1294,9 +1399,9 @@ DoCreateTable,
 
     return
 
-;;-----------------------------------------------------------------------------
-;; Load new data into existing table
-;;
+    ;;-----------------------------------------------------------------------------
+    ;; Load new data into existing table
+    ;;
 DoLoadTable,
 
     ;;Do a full load of an existing table with new data
@@ -1361,9 +1466,9 @@ DoLoadTable,
 
     return
 
-;;-----------------------------------------------------------------------------
-;; Create a new table and load new data into it
-;;
+    ;;-----------------------------------------------------------------------------
+    ;; Create a new table and load new data into it
+    ;;
 DoCreateAndLoadTable,
     
     ;;Create a new table, do nothing if the table already exists
@@ -1372,16 +1477,16 @@ DoCreateAndLoadTable,
 
     return
 
-;;-----------------------------------------------------------------------------
-;; Export ISAM file to CSV file
-;;
+    ;;-----------------------------------------------------------------------------
+    ;; Export ISAM file to CSV file
+    ;;
 DoCreateCsv,
 
     Logger.Log(" - Export starting at " + %TimeNow)
 
     try
     begin
-        data csvFileSpec, a128, Settings.LocalExportPath
+        data csvFileSpec,   a128,   Settings.LocalExportPath
         functionName = %atrim(instruction.structure_name) + "Csv"
         status = %xsubr(functionName,csvFileSpec,dberrtxt)
         if (status) then
@@ -1401,9 +1506,9 @@ DoCreateCsv,
 
     return
 
-;;-----------------------------------------------------------------------------
-;; Delete all rows from an existing table
-;;
+    ;;-----------------------------------------------------------------------------
+    ;; Delete all rows from an existing table
+    ;;
 DoDeleteAllRows,
 
     repeat
@@ -1450,23 +1555,15 @@ DoDeleteAllRows,
 
     return
 
-;;-----------------------------------------------------------------------------
-;; Delete an existing table
-;;
+    ;;-----------------------------------------------------------------------------
+    ;; Delete an existing table
+    ;;
 DoDeleteTable,
 
-    ;;Is the file in the file table?
+    ;;Is the table recorded in the list of open tables?
     if (nsptr=%nspc_find(Settings.ChannelInfo,instruction.structure_name,structure_data))
     begin
-
-        ;Yes - close the file
-        if ((structure_data.structure_chan)&&%chopen(structure_data.structure_chan))
-        begin
-            close structure_data.structure_chan
-            clear structure_data
-        end
-
-        ;And remove it from the file table
+        ;Yes, remove it
         xcall nspc_delete(Settings.ChannelInfo,nsptr)
     end
 
@@ -1514,9 +1611,9 @@ DoDeleteTable,
 
     return
 
-;;-----------------------------------------------------------------------------
-;; Add alternate key indexes to a table (if they don't already exist)
-;;
+    ;;-----------------------------------------------------------------------------
+    ;; Add alternate key indexes to a table (if they don't already exist)
+    ;;
 DoAddIndexes,
 
     repeat
@@ -1568,9 +1665,9 @@ DoAddIndexes,
 
     return
 
-;;-----------------------------------------------------------------------------
-;; Delete alternate key indexes from a table
-;;
+    ;;-----------------------------------------------------------------------------
+    ;; Delete alternate key indexes from a table
+    ;;
 DoDeleteIndexes,
 
     repeat

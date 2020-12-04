@@ -1,5 +1,5 @@
 <CODEGEN_FILENAME><StructureName>SqlIO.dbl</CODEGEN_FILENAME>
-<REQUIRES_CODEGEN_VERSION>5.5.2</REQUIRES_CODEGEN_VERSION>
+<REQUIRES_CODEGEN_VERSION>5.6.3</REQUIRES_CODEGEN_VERSION>
 ;//****************************************************************************
 ;//
 ;// Guard against REPLICATOR_EXCLUDE being used on key segments
@@ -3398,9 +3398,88 @@ proc
     freturn <structureName>
 
 endfunction
-</IF STRUCTURE_ISAM>
 
+;;*****************************************************************************
+;;; <summary>
+;;; Extract a key value from the segment fields in a record.
+;;; This function behaves like %KEYVAL but without requiring an open channel.
+;;; </summary>
+;;; <param name="aRecord">Record containing key data</param>
+;;; <returns>Returned key value.</returns>
+
+function <StructureName>KeyVal, ^val
+    required in  aRecord, str<StructureName>
+    required out aKeyVal, a
+    required out aKeyLen, n
+    endparams
+    .align
+    stack record
+        pos,    int
+        len,    int
+        keyval, a255
+  <UNIQUE_KEY>
+    <IF LITERAL_SEGMENTS>
+        tmpval, string
+    </IF LITERAL_SEGMENTS>
+  </UNIQUE_KEY>
+    endrecord
+proc
+    clear keyval
+    pos = 1
+    len = 0
+
+  <UNIQUE_KEY>
+    <SEGMENT_LOOP>
+      <IF SEG_TYPE_FIELD>
+    ; Key segment <SEGMENT_NUMBER> (Field)
+    keyval(pos:<SEGMENT_LENGTH>) = aRecord(<SEGMENT_POSITION>,<SEGMENT_LENGTH>)
+        <IF MORE>
+    pos += <SEGMENT_LENGTH>
+        </IF MORE>
+    len += <SEGMENT_LENGTH>
+      <ELSE SEG_TYPE_LITERAL>
+    ; Key segment <SEGMENT_NUMBER> (Literal value)
+    tmpval = "<SEGMENT_LITVAL>"
+    keyval(pos:tmpval.Length) = tmpval
+        <IF MORE>
+    pos += tmpval.Length
+        </IF MORE>
+    len += tmpval.Length
+      <ELSE SEG_TYPE_RECNUM>
+    throw new ApplicationException("Key segments of type RECORD NUMBER are not supported by replication!")
+      <ELSE SEG_TYPE_EXTERNAL>
+    throw new ApplicationException("Key segments of type EXTERNAL VALUE are not supported by replication!")
+      </IF>
+
+    </SEGMENT_LOOP>
+  </UNIQUE_KEY>
+    aKeyVal = keyval(1,len)
+    aKeyLen = len
+
+    freturn true
+
+endfunction
+
+;;*****************************************************************************
+;;; <summary>
+;;; Returns the key number of the first unique key.
+;;; </summary>
+;;; <returns>Returned key number.</returns>
+
+function <StructureName>KeyNum, ^val
+proc
+    freturn <UNIQUE_KEY><KEY_NUMBER></UNIQUE_KEY>
+endfunction
+
+</IF STRUCTURE_ISAM>
 <IF STRUCTURE_MAPPED>
+;;*****************************************************************************
+;;; <summary>
+;;; 
+;;; </summary>
+;;; <param name="<mapped_structure>"></param>
+;;; <returns></returns>
+
 function <structure_name>_map, a
     .include "<MAPPED_STRUCTURE>" repository, required in group="<mapped_structure>"
     endparams
@@ -3413,6 +3492,13 @@ proc
   </FIELD_LOOP>
     freturn <structure_name>
 endfunction
+
+;;*****************************************************************************
+;;; <summary>
+;;; 
+;;; </summary>
+;;; <param name="<structure_name>"></param>
+;;; <returns></returns>
 
 function <structure_name>_unmap, a
     .include "<STRUCTURE_NAME>" repository, required in group="<structure_name>"
@@ -3428,11 +3514,23 @@ proc
 endfunction
 
 </IF STRUCTURE_MAPPED>
+;;*****************************************************************************
+;;; <summary>
+;;; 
+;;; </summary>
+;;; <returns></returns>
 
 function <StructureName>Length ,^val
 proc
     freturn <STRUCTURE_SIZE>
 endfunction
+
+;;*****************************************************************************
+;;; <summary>
+;;; 
+;;; </summary>
+;;; <param name="fileType"></param>
+;;; <returns></returns>
 
 function <StructureName>Type, ^val
     required out fileType, a

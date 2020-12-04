@@ -947,6 +947,130 @@ proc
         end
     end
 
+    if (ok)
+    begin
+        ;;Command line?
+        if (CommandLineParser.Parse("qreconnectattempts",clValues)) then
+        begin
+            using clValues.Count select
+            (1),
+            begin
+                try
+                begin
+                    Settings.QRetryMaxAttempts = %integer((string)clValues[0])
+                    if (Settings.QRetryMaxAttempts < 0)
+                    begin
+                        Logger.ErrorLog("Invalid option value for -qreconnectattempts. Value must be >= 0.")
+                        ok = false
+                    end
+                end
+                catch (e, @Exception)
+                begin
+                    Logger.ErrorLog("Invalid option value following the -qreconnectattempts option. Specify an integer greater than 0.")
+                    ok = false
+                end
+                endtry
+            end
+            (0),
+            begin
+                Logger.ErrorLog("Missing value after the -qreconnectattempts option")
+                ok = false
+            end
+            (),
+            begin
+                Logger.ErrorLog("Only one value may follow the -qreconnectattempts option")
+                ok = false
+            end
+            endusing
+        end
+        else
+        begin
+            ;;Environment variable?
+            data tmpval, a32
+            xcall getlog("REPLICATOR_QRECONNECT_ATTEMPTS",tmpval,length)
+            if (length)
+            begin
+                try
+                begin
+                    Settings.QRetryMaxAttempts = %integer(%atrim(tmpval))
+                    if (Settings.QRetryMaxAttempts < 0)
+                    begin
+                        Logger.ErrorLog("Invalid option value for REPLICATOR_QRECONNECT_ATTEMPTS. Value must be >= 0.")
+                        ok = false
+                    end
+                end
+                catch (e, @Exception)
+                begin
+                    Logger.ErrorLog("Invalid option value for REPLICATOR_QRECONNECT_ATTEMPTS. Specify an integer value.")
+                    ok = false
+                end
+                endtry
+            end
+        end
+    end
+
+    if (ok)
+    begin
+        ;;Command line?
+        if (CommandLineParser.Parse("qreconnectdelay",clValues)) then
+        begin
+            using clValues.Count select
+            (1),
+            begin
+                try
+                begin
+                    Settings.QRetryDelaySeconds = %integer((string)clValues[0])
+                    if (Settings.QRetryDelaySeconds < 1)
+                    begin
+                        Logger.ErrorLog("Invalid option value for -qreconnectdelay. Value must be 1 or greater.")
+                        ok = false
+                    end
+                end
+                catch (e, @Exception)
+                begin
+                    Logger.ErrorLog("Invalid option value following the -qreconnectdelay option. Specify an integer value.")
+                    ok = false
+                end
+                endtry
+            end
+            (0),
+            begin
+                Logger.ErrorLog("Missing value after the -qreconnectdelay option")
+                ok = false
+            end
+            (),
+            begin
+                Logger.ErrorLog("Only one value may follow the -qreconnectdelay option")
+                ok = false
+            end
+            endusing
+        end
+        else
+        begin
+            ;;Environment variable?
+            data tmpval, a32
+            xcall getlog("REPLICATOR_QRECONNECT_DELAY",tmpval,length)
+            if (length)
+            begin
+                try
+                begin
+                    Settings.QRetryDelaySeconds = %integer(%atrim(tmpval))
+                    if (Settings.QRetryDelaySeconds < 1)
+                    begin
+                        Logger.ErrorLog("Invalid option value for REPLICATOR_QRECONNECT_DELAY. Value must be 1 or greater.")
+                        ok = false
+                    end
+                end
+                catch (e, @Exception)
+                begin
+                    Logger.ErrorLog("Invalid option value for REPLICATOR_QRECONNECT_DELAY. Specify an integer value.")
+                    ok = false
+                end
+                endtry
+            end
+        end
+    end
+    
     freturn ok
 
 endfunction

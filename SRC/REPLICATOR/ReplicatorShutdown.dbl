@@ -120,10 +120,6 @@ proc
                 nop
             end
             endtry
-
-            ;;Close the channel
-            if ((structure_data.structure_chan)&&%chopen(structure_data.structure_chan))
-                close structure_data.structure_chan
         end
 
         xcall nspc_close(Settings.ChannelInfo)

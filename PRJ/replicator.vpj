@@ -193,6 +193,7 @@
             <F N="../SRC/REPLICATOR/GetSettings.dbl"/>
             <F N="../SRC/REPLICATOR/Logger.dbl"/>
             <F N="../SRC/REPLICATOR/OpenQueueFile.dbl"/>
+            <F N="../SRC/REPLICATOR/ReOpenQueueFile.dbl"/>
             <F N="../SRC/REPLICATOR/replicator.dbl"/>
             <F N="../SRC/REPLICATOR/ReplicatorShutdown.dbl"/>
             <F N="../SRC/REPLICATOR/SendEmail.dbl"/>

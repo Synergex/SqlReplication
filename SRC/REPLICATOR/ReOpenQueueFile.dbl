@@ -1,0 +1,72 @@
+;;*****************************************************************************
+;;
+;; Routine:     ReOpenQueueFile
+;;
+;; Description: Re-ppen the queue file following an xfServer connection failure
+;;
+;; Author:      Steve Ives, Synergex Professional Services Group
+;;
+;; Created:     6th November 2020
+;;
+;;*****************************************************************************
+;;
+
+import replicator
+
+function ReOpenQueueFile, boolean
+    stack record
+        ok, boolean
+        retryCount, int     ;Current retry count
+        reConnected, boolean;Are we re-connected?
+    endrecord
+proc
+
+    ;TODO: Need to introduce configurable retry logic based on specified
+    ;dealy and retry count parameters.
+
+    ok = false
+    retryCount = 0
+    reConnected = false
+
+    Logger.ErrorLog("Lost xfServer connection to instruction queue file!")
+
+    ;;First try to close the current channel, ignoring any errors
+
+    try
+    begin
+        close Settings.InstructionChannel
+        Settings.InstructionChannel = 0
+    end
+    catch (e, @Exception)
+    begin
+        nop
+    end
+    endtry
+    
+    ;;Now try to get the channel open again
+
+    do
+    begin
+        Logger.Log(" - Waiting " + %string(Settings.QRetryDelaySeconds) + " seconds before attempting to re-connect...")
+        sleep Settings.QRetryDelaySeconds
+        retryCount += 1
+
+        Logger.Log(" - Re-connect attempt " + %string(retryCount) + " of " + %string(Settings.QRetryMaxAttempts) + "...")
+        if (%OpenQueueFile)
+        begin
+            Logger.Log(" - Connected!")
+            freturn true
+        end
+    end
+    until (retryCount == Settings.QRetryMaxAttempts)
+
+    if (reConnected)
+        freturn true
+
+    Logger.ErrorLog("Re-connect failed, shutting down!")
+    Settings.InstructionChannel = 0
+    xcall ReplicatorShutdown
+
+    freturn false
+
+endfunction

@@ -98,6 +98,9 @@
     <Compile Include="..\..\SRC\REPLICATOR\OpenQueueFile.dbl">
       <Link>OpenQueueFile.dbl</Link>
     </Compile>
+    <Compile Include="..\..\SRC\REPLICATOR\ReOpenQueueFile.dbl">
+      <Link>ReOpenQueueFile.dbl</Link>
+    </Compile>
     <Compile Include="..\..\SRC\REPLICATOR\replicator.dbl">
       <Link>replicator.dbl</Link>
     </Compile>

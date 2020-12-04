@@ -1,5 +1,6 @@
 
 import replicator
+import Synergex.SynergyDE
 
 namespace replicator
 
@@ -22,6 +23,17 @@ namespace replicator
                     open(tmpchn=0,a:s,Settings.LogFileName)
                     Settings.LogFileChannel = tmpchn
                     ok = true
+                end
+                catch (ex, @ServerNotRunningException)
+                begin
+                    ;;If we get here then logging has been configured to use a remote (xfServer) connection, which is not recommended
+                    data tmpmsg, string, "Replicator is configured for remote logging and xfServer is not running!"
+                    if (Settings.RunningOnTerminal) then
+                        writes(Settings.TerminalChannel,tmpmsg)
+                    else
+                        xcall syn_reportevent(D_EVENTLOG_ERROR_TYPE,tmpmsg)
+                    Settings.LogFileChannel = 0
+                    ok = false
                 end
                 catch (ex)
                 begin

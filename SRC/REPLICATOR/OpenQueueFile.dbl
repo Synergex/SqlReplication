@@ -12,6 +12,7 @@
 ;;
 
 import replicator
+import Synergex.SynergyDE
 
 function OpenQueueFile, boolean
 proc
@@ -27,7 +28,12 @@ proc
             Settings.InstructionChannel = tmpchn
             freturn true
         end
-        catch (e, @Synergex.SynergyDE.NoFileFoundException)
+        catch (ex, @ServerNotRunningException)
+        begin
+            Logger.ErrorLog("Instruction queue file is remote and xfServer is not running!")
+            freturn false
+        end
+        catch (e, @NoFileFoundException)
         begin
             ;;The queue file does not exist so we'll try to create it
             try

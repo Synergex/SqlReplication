@@ -2934,11 +2934,69 @@ proc
 
 endfunction
 
+;;*****************************************************************************
+;;; <summary>
+;;; Extract a key value from the segment fields in a record.
+;;; This function behaves like %KEYVAL but without requiring an open channel.
+;;; </summary>
+;;; <param name="aRecord">Record containing key data</param>
+;;; <returns>Returned key value.</returns>
+
+function EmployeeKeyVal, ^val
+    required in  aRecord, strEmployee
+    required out aKeyVal, a
+    required out aKeyLen, n
+    endparams
+    .align
+    stack record
+        pos,    int
+        len,    int
+        keyval, a255
+    endrecord
+proc
+    clear keyval
+    pos = 1
+    len = 0
+
+    ; Key segment 1 (Field)
+    keyval(pos:6) = aRecord(1,6)
+    len += 6
+
+    aKeyVal = keyval(1,len)
+    aKeyLen = len
+
+    freturn true
+
+endfunction
+
+;;*****************************************************************************
+;;; <summary>
+;;; Returns the key number of the first unique key.
+;;; </summary>
+;;; <returns>Returned key number.</returns>
+
+function EmployeeKeyNum, ^val
+proc
+    freturn 0
+endfunction
+
+;;*****************************************************************************
+;;; <summary>
+;;; 
+;;; </summary>
+;;; <returns></returns>
 
 function EmployeeLength ,^val
 proc
     freturn 300
 endfunction
+
+;;*****************************************************************************
+;;; <summary>
+;;; 
+;;; </summary>
+;;; <param name="fileType"></param>
+;;; <returns></returns>
 
 function EmployeeType, ^val
     required out fileType, a
