@@ -3382,7 +3382,7 @@ proc
       <ELSE DECIMAL>
     <structureName>.<segment_name> = ^d(aKeyValue(segPos:<SEGMENT_LENGTH>))
       <ELSE DATE>
-    if ((!<structureName>.<segment_name>)||(!%IsDate(^a(<structureName>.<segment_name>)))) then
+    if ((!^d(aKeyValue(segPos:<SEGMENT_LENGTH>)))||(!%IsDate(^a(^d(aKeyValue(segPos:<SEGMENT_LENGTH>)))))) then
         ^a(<structureName>.<segment_name>) = "17530101"
     else
         <structureName>.<segment_name> = ^d(aKeyValue(segPos:<SEGMENT_LENGTH>))
