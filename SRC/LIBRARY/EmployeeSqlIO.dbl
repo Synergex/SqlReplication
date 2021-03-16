@@ -2959,7 +2959,7 @@ proc
     len = 0
 
     ; Key segment 1 (Field)
-    keyval(pos:6) = aRecord(1,6)
+    keyval(pos:6) = aRecord(1:6)
     len += 6
 
     aKeyVal = keyval(1,len)

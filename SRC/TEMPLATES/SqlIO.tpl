@@ -3432,7 +3432,7 @@ proc
     <SEGMENT_LOOP>
       <IF SEG_TYPE_FIELD>
     ; Key segment <SEGMENT_NUMBER> (Field)
-    keyval(pos:<SEGMENT_LENGTH>) = aRecord(<SEGMENT_POSITION>,<SEGMENT_LENGTH>)
+    keyval(pos:<SEGMENT_LENGTH>) = aRecord(<SEGMENT_POSITION>:<SEGMENT_LENGTH>)
         <IF MORE>
     pos += <SEGMENT_LENGTH>
         </IF MORE>
