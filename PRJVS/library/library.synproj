@@ -52,8 +52,8 @@
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
     <DebugOptimize>Optimize</DebugOptimize>
     <DBLink_ReferenceCheck>True</DBLink_ReferenceCheck>
-    <TargetRuntimeLevel>10030300</TargetRuntimeLevel>
-    <LanguageCompatibilityLevel>10030300</LanguageCompatibilityLevel>
+    <TargetRuntimeLevel>11010100</TargetRuntimeLevel>
+    <LanguageCompatibilityLevel>11010100</LanguageCompatibilityLevel>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Deploy|x86' ">
     <IncludeDebugInformation>False</IncludeDebugInformation>
@@ -62,8 +62,8 @@
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
     <DebugOptimize>Optimize</DebugOptimize>
     <DBLink_ReferenceCheck>True</DBLink_ReferenceCheck>
-    <TargetRuntimeLevel>10030300</TargetRuntimeLevel>
-    <LanguageCompatibilityLevel>10030300</LanguageCompatibilityLevel>
+    <TargetRuntimeLevel>11010100</TargetRuntimeLevel>
+    <LanguageCompatibilityLevel>11010100</LanguageCompatibilityLevel>
     <OutputPath>bin\x86\Deploy\</OutputPath>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|x64' ">
@@ -74,8 +74,8 @@
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
     <DebugOptimize>Optimize</DebugOptimize>
     <DBLink_ReferenceCheck>True</DBLink_ReferenceCheck>
-    <TargetRuntimeLevel>10030300</TargetRuntimeLevel>
-    <LanguageCompatibilityLevel>10030300</LanguageCompatibilityLevel>
+    <TargetRuntimeLevel>11010100</TargetRuntimeLevel>
+    <LanguageCompatibilityLevel>11010100</LanguageCompatibilityLevel>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Deploy|x64' ">
     <IncludeDebugInformation>False</IncludeDebugInformation>
@@ -84,8 +84,8 @@
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
     <DebugOptimize>Optimize</DebugOptimize>
     <DBLink_ReferenceCheck>True</DBLink_ReferenceCheck>
-    <TargetRuntimeLevel>10030300</TargetRuntimeLevel>
-    <LanguageCompatibilityLevel>10030300</LanguageCompatibilityLevel>
+    <TargetRuntimeLevel>11010100</TargetRuntimeLevel>
+    <LanguageCompatibilityLevel>11010100</LanguageCompatibilityLevel>
     <OutputPath>bin\x64\Deploy\</OutputPath>
   </PropertyGroup>
   <Import Project="$(MSBuildExtensionsPath)\Synergex\dbl\Synergex.SynergyDE.Traditional.targets" />
