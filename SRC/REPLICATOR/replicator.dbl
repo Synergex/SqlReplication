@@ -520,33 +520,29 @@ proc
                 end
                 else
                 begin
-                    ;;Not in batch mode, delete the completed instruction now
-                 ;repeat - this should not be a repeat, we are in manual mode to one record at a time
+                    try
                     begin
-                        try
-                        begin
-                            delete(Settings.InstructionChannel)
-                        end
-                        catch (ex, @NetworkException); $ERR_NETPROB (320)
-                        begin
-                            if (%ReOpenQueueFile)
-                            begin
-                                ;;Re-read and lock the instruction record. What if THIS fails????
-                                read(Settings.InstructionChannel,instruction,instruction.transaction_id)
-                                nextloop
-                            end
-                        end
-                        catch (ex, @ServerNotRunningException); $ERR_NOSERVER (321)
-                        begin
-                            if (%ReOpenQueueFile)
-                            begin
-                                ;;Re-read and lock the instruction record. What if THIS fails????
-                                read(Settings.InstructionChannel,instruction,instruction.transaction_id)
-                                nextloop
-                            end
-                        end
-                        endtry
+                        delete(Settings.InstructionChannel)
                     end
+                    catch (ex, @NetworkException); $ERR_NETPROB (320)
+                    begin
+                        if (%ReOpenQueueFile)
+                        begin
+                            ;;Re-read and lock the instruction record. What if THIS fails????
+                            read(Settings.InstructionChannel,instruction,instruction.transaction_id)
+                            nextloop
+                        end
+                    end
+                    catch (ex, @ServerNotRunningException); $ERR_NOSERVER (321)
+                    begin
+                        if (%ReOpenQueueFile)
+                        begin
+                            ;;Re-read and lock the instruction record. What if THIS fails????
+                            read(Settings.InstructionChannel,instruction,instruction.transaction_id)
+                            nextloop
+                        end
+                    end
+                    endtry
                 end
             end
         end
