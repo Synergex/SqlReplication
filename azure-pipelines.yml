@@ -74,12 +74,12 @@ jobs:
   - task: CmdLine@2
     displayName: 'Sign MSI file'
     inputs:
-      script: '"C:\Program Files (x86)\Windows Kits\10\bin\x86\signtool.exe" sign /v /td sha256 /tr http://timestamp.digicert.com /fd sha256 /f $(cert.secureFilePath) /p "$(SigPass)" /d "SQL Replication FileService" /du "www.synergex.com" FileService\bin\release\FileService.exe'
+      script: '"C:\Program Files (x86)\Windows Kits\10\bin\x86\signtool.exe" sign /v /td sha256 /tr http://timestamp.digicert.com /fd sha256 /f $(cert.secureFilePath) /p "$(SigPass)" /d "SQL Replication FileService" /du "www.synergex.com" FileService\bin\AnyCPU\Deploy\FileService.exe'
 
   - task: PublishBuildArtifacts@1
     displayName: 'Save MSI file as artifact'
     inputs:
-      pathToPublish: 'FileService\bin\release\FileService.exe' 
+      pathToPublish: 'FileService\bin\AnyCPU\Deploy\FileService.exe' 
       artifactName: 'FileService-Installer' 
       #publishLocation: 'Container' # Options: container, filePath
       #targetPath: # Required when publishLocation == FilePath
