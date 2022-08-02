@@ -521,7 +521,7 @@ proc
                 else
                 begin
                     ;;Not in batch mode, delete the completed instruction now
-                    repeat
+                 ;repeat - this should not be a repeat, we are in manual mode to one record at a time
                     begin
                         try
                         begin
