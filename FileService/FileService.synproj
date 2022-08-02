@@ -32,10 +32,9 @@
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
     <DebugOptimize>Debug</DebugOptimize>
     <DocumentationFile>bin\Debug\FileService.xml</DocumentationFile>
-    <Prefer32Bit Condition=" '$(TargetFrameworkVersion)'  != 'v4.0' AND '$(Prefer32Bit)' != 'false' ">true</Prefer32Bit>
     <TargetRuntimeLevel>11010100</TargetRuntimeLevel>
-    <UnevaluatedOutputPath>.\</UnevaluatedOutputPath>
-    <Prefer32Bit />
+    <UnevaluatedOutputPath>bin\Debug\</UnevaluatedOutputPath>
+    <Prefer32Bit>False</Prefer32Bit>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <IncludeDebugInformation>true</IncludeDebugInformation>
@@ -44,10 +43,8 @@
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
     <DebugOptimize>Optimize</DebugOptimize>
     <DocumentationFile>bin\Release\FileService.xml</DocumentationFile>
-    <Prefer32Bit Condition=" '$(TargetFrameworkVersion)'  != 'v4.0' AND '$(Prefer32Bit)' != 'false' ">true</Prefer32Bit>
-    <UnevaluatedOutputPath>.\</UnevaluatedOutputPath>
-    <Prefer32Bit>
-    </Prefer32Bit>
+    <UnevaluatedOutputPath>bin\Release\</UnevaluatedOutputPath>
+    <Prefer32Bit>False</Prefer32Bit>
     <TargetRuntimeLevel>11010100</TargetRuntimeLevel>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Deploy|AnyCPU' ">
@@ -56,10 +53,8 @@
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
     <DebugOptimize>Optimize</DebugOptimize>
     <DocumentationFile>bin\Release\FileService.xml</DocumentationFile>
-    <Prefer32Bit Condition=" '$(TargetFrameworkVersion)'  != 'v4.0' AND '$(Prefer32Bit)' != 'false' ">true</Prefer32Bit>
-    <UnevaluatedOutputPath>.\</UnevaluatedOutputPath>
-    <Prefer32Bit>
-    </Prefer32Bit>
+    <UnevaluatedOutputPath>bin\AnyCPU\Deploy\</UnevaluatedOutputPath>
+    <Prefer32Bit>False</Prefer32Bit>
     <OutputPath>bin\AnyCPU\Deploy\</OutputPath>
     <TargetRuntimeLevel>11010100</TargetRuntimeLevel>
   </PropertyGroup>
@@ -108,7 +103,6 @@
       <HintPath>..\packages\Microsoft.AspNet.WebApi.WebHost.5.2.9\lib\net45\System.Web.Http.WebHost.dll</HintPath>
       <Private>true</Private>
     </Reference>
-	  <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="FileService.dbl">
