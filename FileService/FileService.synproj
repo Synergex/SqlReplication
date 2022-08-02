@@ -45,6 +45,17 @@
     <UnevaluatedOutputPath>bin\Release\</UnevaluatedOutputPath>
     <Prefer32Bit>False</Prefer32Bit>
   </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Deploy|AnyCPU' ">
+    <IncludeDebugInformation>true</IncludeDebugInformation>
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
+    <DebugOptimize>Optimize</DebugOptimize>
+    <DocumentationFile>bin\Release\FileService.xml</DocumentationFile>
+    <Prefer32Bit Condition=" '$(TargetFrameworkVersion)'  != 'v4.0' AND '$(Prefer32Bit)' != 'false' ">true</Prefer32Bit>
+    <UnevaluatedOutputPath>bin\Release\</UnevaluatedOutputPath>
+    <Prefer32Bit>False</Prefer32Bit>
+    <OutputPath>bin\AnyCPU\Deploy\</OutputPath>
+  </PropertyGroup>
   <ItemGroup>
     <Reference Include="Microsoft.Owin, Version=4.2.2.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35">
       <HintPath>..\packages\Microsoft.Owin.4.2.2\lib\net45\Microsoft.Owin.dll</HintPath>
