@@ -10,8 +10,8 @@
 
   <Product
     Name="File Service"
-    Version="1.1"
-    Id="{B1369A80-59B2-407C-94F1-AFEB9AEE2053}"
+    Version="1.2"
+    Id="{CE916019-B608-4471-9B04-74EB257124FE}"
     Language="1033"
     Manufacturer="Synergex International Corporation"
     UpgradeCode="{D610D7F5-5DCC-4E46-A4C9-A393B53790D7}">
