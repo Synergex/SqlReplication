@@ -32,6 +32,8 @@ jobs:
     value: 'Any CPU'
   - name: buildConfiguration
     value: 'Deploy'
+  - name: agent.retainDefaultEncoding
+    value: true
 
   steps:
   - task: NuGetToolInstaller@1
