@@ -9,25 +9,28 @@ $ WRITE SYS$OUTPUT "Loading repository schema..."
 $ !
 $ RPSUTL:==$RPS:RPSUTL.EXE
 $ !
-$ RPSUTL -i [-.REPOSITORY]REPLICATION.SCH -ia -ir
+$ RPSUTL -i [.REPOSITORY]REPOSITORY.SCM -ia -ir
 $ !
 $ !------------------------------------------------------------------------------------
 $ WRITE SYS$OUTPUT "Prototyping library routines..."
 $ !
-$ DBLPROTO -OUT LIBRARY LIBSRC:*.DBL
+$ DBLPROTO -OUT LIBRARY LIBSRC:*.dbl
 $ !
 $ WRITE SYS$OUTPUT "Compiling library routines..."
-$ DIB/OPT/VECTORS=VECTORS/OBJ=OBJ:LIBRARY.OBJ -
+$ DBL/OPT/OBJ=OBJ:LIBRARY.OBJ -
    LIBSRC:CommandLineParser.dbl -
  + LIBSRC:ConfigureReplication.dbl -
  + LIBSRC:DatabaseCommunicationException.dbl -
- + LIBSRC:DataConversionTools.dbl
+ + LIBSRC:DataConversionTools.dbl -
  + LIBSRC:DepartmentSqlIO.dbl -
  + LIBSRC:EmployeeSqlIO.dbl -
  + LIBSRC:File.dbl -
  + LIBSRC:FileChunkReader.dbl -
  + LIBSRC:FileServiceClient.dbl -
+ + LIBSRC:GenerateDepartmentData.dbl -
+ + LIBSRC:GenerateEmployeeData.dbl -
  + LIBSRC:GetDateTimeString.dbl -
+ + LIBSRC:GetInstanceNames.dbl -
  + LIBSRC:GetReplicatedTables.dbl -
  + LIBSRC:IndexExists.dbl -
  + LIBSRC:InstanceInfo.dbl -
@@ -48,7 +51,16 @@ $ DIB/OPT/VECTORS=VECTORS/OBJ=OBJ:LIBRARY.OBJ -
  + LIBSRC:SmtpMail.dbl -
  + LIBSRC:StringDictionary.dbl -
  + LIBSRC:StringTools.dbl -
- + LIBSRC:ThrowOnCommunicationError.dbl
+ + LIBSRC:ThrowOnCommunicationError.dbl -
+ + LIBSRC:PalwSqlIO.dbl -
+ + LIBSRC:ProdSqlIO.dbl -
+ + LIBSRC:PurhSqlIO.dbl -
+ + LIBSRC:PurlSqlIO.dbl -
+ + LIBSRC:TcodSqlIO.dbl -
+ + LIBSRC:VendSqlIO.dbl -
+ + LIBSRC:WhpdSqlIO.dbl -
+ + LIBSRC:WhseSqlIO.dbl -
+ + LIBSRC:WhvdSqlIO.dbl
 $ !
 $ WRITE SYS$OUTPUT "Creating object library LIBRARY.OLB..."
 $ LIB/CREATE OBJ:LIBRARY.OLB OBJ:LIBRARY.OBJ
@@ -62,8 +74,8 @@ $ WRITE SYS$OUTPUT "Compiling replicator and utilities..."
 $ !
 $ OPTIONS_FILE="''HERE'REPLICATOR.OPT/OPT"
 $ !
-$ DIB/OPT/OBJ=OBJ:REPLICATOR.OBJ -
- + REPSRC:replicator -
+$ DBL/OPT/OBJ=OBJ:REPLICATOR.OBJ -
+   REPSRC:replicator -
  + REPSRC:ConfigureEnvironment.dbl -
  + REPSRC:Counters.dbl -
  + REPSRC:DatabaseConnect.dbl -
@@ -72,6 +84,7 @@ $ DIB/OPT/OBJ=OBJ:REPLICATOR.OBJ -
  + REPSRC:GetSettings.dbl -
  + REPSRC:Logger.dbl -
  + REPSRC:OpenQueueFile.dbl -
+ + REPSRC:ReOpenQueueFile.dbl -
  + REPSRC:ReplicatorShutdown.dbl -
  + REPSRC:SendEmail.dbl -
  + REPSRC:Settings.dbl -
@@ -79,27 +92,33 @@ $ DIB/OPT/OBJ=OBJ:REPLICATOR.OBJ -
 $!
 $ LINK/EXE=REPLICATOR_EXE:REPLICATOR.EXE OBJ:REPLICATOR.OBJ,'OPTIONS_FILE
 $ !
-$ DIB/OPT/OBJ=OBJ: TOOLSRC:ReplicatorMenu.dbl
+$ DBL/OPT/OBJ=OBJ: TOOLSRC:ChangeEveryEmployee.dbl
+$ LINK/EXE=REPLICATOR_EXE:ChangeEveryEmployee.exe OBJ:ChangeEveryEmployee.obj,'OPTIONS_FILE
+$ !
+$ DBL/OPT/OBJ=OBJ: TOOLSRC:DepartmentMaintenance.dbl
+$ LINK/EXE=REPLICATOR_EXE:DepartmentMaintenance.exe OBJ:DepartmentMaintenance.obj,'OPTIONS_FILE
+$ !
+$ DBL/OPT/OBJ=OBJ: TOOLSRC:EmployeeDataReport.dbl
+$ LINK/EXE=REPLICATOR_EXE:EmployeeDataReport.exe OBJ:EmployeeDataReport.obj,'OPTIONS_FILE
+$ !
+$ DBL/OPT/OBJ=OBJ: TOOLSRC:EmployeeMaintenance.dbl
+$ LINK/EXE=REPLICATOR_EXE:EmployeeMaintenance.exe OBJ:EmployeeMaintenance.obj,'OPTIONS_FILE
+$ !
+$ DBL/OPT/OBJ=OBJ: TOOLSRC:InstructionCount.dbl
+$ LINK/EXE=REPLICATOR_EXE:InstructionCount.exe OBJ:InstructionCount.obj,'OPTIONS_FILE
+$ !
+$ DBL/OPT/OBJ=OBJ: TOOLSRC:QueueMonitor.dbl
+$ LINK/EXE=REPLICATOR_EXE:QueueMonitor.exe OBJ:QueueMonitor.obj,'OPTIONS_FILE
+$ !
+$ DBL/OPT/OBJ=OBJ: TOOLSRC:ReplicatorMenu.dbl
 $ LINK/EXE=REPLICATOR_EXE:ReplicatorMenu.exe OBJ:ReplicatorMenu.obj,'OPTIONS_FILE
 $ !
-$ DIB/OPT/OBJ=OBJ: TOOLSRC:DEPARTMENTEMAINTENANCE.DBL
-$ LINK/EXE=REPLICATOR_EXE:DEPARTMENTMAINTENANCE.EXE OBJ:DEPARTMENTMAINTENANCE.OBJ,'OPTIONS_FILE
-$ !
-$ DIB/OPT/OBJ=OBJ: TOOLSRC:EMPLOYEEMAINTENANCE.DBL
-$ LINK/EXE=REPLICATOR_EXE:EMPLOYEEMAINTENANCE.EXE OBJ:EMPLOYEEMAINTENANCE.OBJ,'OPTIONS_FILE
+$ DBL/OPT/OBJ=OBJ: TOOLSRC:ReplicatorStop.dbl
+$ LINK/EXE=REPLICATOR_EXE:ReplicatorStop.exe OBJ:ReplicatorStop.obj,'OPTIONS_FILE
 $ !
 $ !------------------------------------------------------------------------------------
 $ WRITE SYS$OUTPUT "Cleaning up..."
 $ !
-$ PURGE/KEEP=3/NOCONFIRM/NOLOG RPSMFIL
-$ PURGE/KEEP=3/NOCONFIRM/NOLOG RPSTFIL
-$ PURGE/KEEP=3/NOCONFIRM/NOLOG LIBSRC:
-$ PURGE/KEEP=3/NOCONFIRM/NOLOG REPSRC:
-$ PURGE/KEEP=3/NOCONFIRM/NOLOG TOOLSRC:
-$ PURGE/NOCONFIRM/NOLOG [-.REPOSITORY]*.SCH
-$ PURGE/NOCONFIRM/NOLOG LIBRARY.COM
-$ PURGE/NOCONFIRM/NOLOG VECTORS.VEC
-$ PURGE/NOCONFIRM/NOLOG OBJ:
-$ PURGE/NOCONFIRM/NOLOG REPLICATOR_EXE:
+$ PURGE/NOCONFIRM/NOLOG [...]
 $ !
 $ EXIT

@@ -639,7 +639,7 @@ proc
         ;;After 7.2 they can be optionally parsed case-preserved.  This is
         ;;based on a process setting $SET PROCESS/PARSE_STYLE=TRADITIONAL|EXTENDED.
         ;;CodeGen required TRADITIONAL command-line parsing to be used.
-        if (option==opt_char+UpperCase(a_opt))
+        if (option.eq.opt_char+UpperCase(a_opt))
         .else
         if (option==opt_char+a_opt)
         .endc
