@@ -781,7 +781,7 @@ function randomZipCode, i4
     endrecord
 proc
 
-	;TODO: THE STATE MIN AND MAX DATA IS NOT CURRENTLY USED!
+	;THE STATE MIN AND MAX DATA IS NOT CURRENTLY USED!
 
 	using state select
 	("AK"),

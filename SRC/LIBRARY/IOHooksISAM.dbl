@@ -132,7 +132,11 @@ namespace ReplicationLibrary
                     ;;Record the table name
                     if (mMultiTable = aTableName.StartsWith("MULTI_")) then
                     begin
+.ifdef D_NETSTANDARD
+                        mTableName = aTableName.Replace("MULTI_","")
+.else
                         mTableName = aTableName - "MULTI_"
+.endc
                     end
                     else
                     begin

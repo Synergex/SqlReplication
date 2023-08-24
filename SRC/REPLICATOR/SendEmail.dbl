@@ -3,6 +3,20 @@
 
 import replicator
 
+.ifdef DBLNET
+
+subroutine SendEmail
+    required in subject, string
+    required in body, [#]string
+    required in bodyhtml, boolean
+    required in recipientEmail, string
+proc
+    ;TODO: DOTNET: Need to implement email for .NET
+    xreturn
+endsubroutine
+
+.else
+
 subroutine SendEmail
     required in subject, string
     optional in body, [#]string
@@ -19,9 +33,12 @@ subroutine SendEmail
     endrecord
 proc
     emailStatus = 0
-    html = ^passed(bodyhtml) && bodyhtml
+    if ^passed(bodyhtml) then
+        html = bodyhtml
+    else
+        html = false
 
-    if (^passed(body)) then
+    if (^passed(body) && body != ^null) then
     begin
         bodyData = body
     end
@@ -30,7 +47,7 @@ proc
         bodyData = new string[#] { "" }
     end
 
-    if (^passed(recipientEmail) && recipientEmail.Length>0) then
+    if (^passed(recipientEmail) && recipientEmail != ^null && recipientEmail.Length>0) then
     begin
         recipientAddress = recipientEmail
     end
@@ -48,3 +65,4 @@ proc
 
 endsubroutine
 
+.endc

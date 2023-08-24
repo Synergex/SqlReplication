@@ -31,7 +31,14 @@ namespace replicator
                     if (Settings.RunningOnTerminal) then
                         writes(Settings.TerminalChannel,tmpmsg)
                     else
+                    begin
+.ifdef DBLNET
+                        ;TODO: Implement event logging for .NET
+                        nop
+.else
                         xcall syn_reportevent(D_EVENTLOG_ERROR_TYPE,tmpmsg)
+.endc
+                    end
                     Settings.LogFileChannel = 0
                     ok = false
                 end
@@ -41,7 +48,13 @@ namespace replicator
                     if (Settings.RunningOnTerminal) then
                         writes(Settings.TerminalChannel,tmpmsg)
                     else
+                    begin
+.ifdef DBLNET
+                        nop
+.else
                         xcall syn_reportevent(D_EVENTLOG_ERROR_TYPE,tmpmsg)
+.endc
+                    end
                     Settings.LogFileChannel = 0
                     ok = false
                 end
@@ -100,7 +113,11 @@ namespace replicator
             Logger.Log("ERROR: " + message)
             ;;Are we also logging to the system log?
             if (Settings.SystemLog)
-                xcall syn_reportevent(D_EVENTLOG_ERROR_TYPE,"ERROR: " + message)
+.ifdef DBLNET
+            nop
+.else
+            xcall syn_reportevent(D_EVENTLOG_ERROR_TYPE,"ERROR: " + message)
+.endc
         endmethod
 
         ;;; <summary>
@@ -144,14 +161,14 @@ namespace replicator
                     body[1] = "The SQL Replicator encountered the following error and will STOP processing:"
                     body[2] = ""
                     body[3] = errorText
-                    xcall SendEmail("ERROR: Replicator " + Settings.InstanceName + " encountered an error and will STOP processing!",body)
+                    xcall SendEmail("ERROR: Replicator " + Settings.InstanceName + " encountered an error and will STOP processing!",body,false,^null)
                 end
                 else
                 begin
                     body[1] = "The SQL Replicator encountered the following error and will CONTINUE processing:"
                     body[2] = ""
                     body[3] = errorText
-                    xcall SendEmail("ERROR: Replicator " + Settings.InstanceName + " encountered an error but will CONTINUE processing.",body)
+                    xcall SendEmail("ERROR: Replicator " + Settings.InstanceName + " encountered an error but will CONTINUE processing.",body,false,^null)
                 end
             end
 
@@ -196,14 +213,14 @@ namespace replicator
                     body[1] = "The SQL Replicator encountered the following error and will STOP processing:"
                     body[2] = ""
                     body[3] = errorText
-                    xcall SendEmail("ERROR: Replicator " + Settings.InstanceName + " encountered an error and will STOP processing!",body)
+                    xcall SendEmail("ERROR: Replicator " + Settings.InstanceName + " encountered an error and will STOP processing!",body,false,^null)
                 end
                 else
                 begin
                     body[1] = "The SQL Replicator encountered the following error and will CONTINUE processing:"
                     body[2] = ""
                     body[3] = errorText
-                    xcall SendEmail("ERROR: Replicator " + Settings.InstanceName + " encountered an error but will CONTINUE processing.",body)
+                    xcall SendEmail("ERROR: Replicator " + Settings.InstanceName + " encountered an error but will CONTINUE processing.",body,false,^null)
                 end
             end
 

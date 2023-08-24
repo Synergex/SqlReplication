@@ -42,7 +42,7 @@ function IsEmailAddress, boolean
 		candidateAddress, string
 	endrecord
 proc
-	;TODO: Implement email address validation
+	;TODO: ENHANCEMENT: Implement email address validation
 
 	candidateAddress = address.Trim()
 

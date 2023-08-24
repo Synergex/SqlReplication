@@ -611,7 +611,7 @@ CommitTransaction,
     end
     else
     begin
-        ;TODO: Commit failed - now what?
+        ;TODO: ENHANCEMENT: Commit failed - now what?
 
 
     end
@@ -700,10 +700,11 @@ CheckTable,
 
     repeat
     begin
+        data doReturn, boolean, false
         try
         begin
             functionName = %atrim(instruction.structure_name) + "Exists"
-            status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,dberrtxt)
+            status = %xsubr(functionName,(i)(Settings.DatabaseChannel),(i)(Settings.CommitMode),dberrtxt)
             exitloop
         end
         catch (ex, @DatabaseCommunicationException)
@@ -722,9 +723,12 @@ CheckTable,
         catch (ex, @SynException)
         begin
             ok = Logger.LogFunctionFail(functionName,ex.Errno,ex.Message)
-            return
+            doReturn = true ;Can't return out of a try in .NET
         end
         endtry
+
+        if (doReturn)
+            return
     end
 
     using status select
@@ -757,10 +761,11 @@ CreateTable,
 
     repeat
     begin
+        data doReturn, boolean, false
         try
         begin
             functionName = %atrim(instruction.structure_name) + "Create"
-            status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,dberrtxt)
+            status = %xsubr(functionName,(i)(Settings.DatabaseChannel),(i)(Settings.CommitMode),dberrtxt)
             exitloop
         end
         catch (ex, @DatabaseCommunicationException)
@@ -779,9 +784,12 @@ CreateTable,
         catch (ex, @SynException)
         begin
             ok = Logger.LogFunctionFail(functionName,ex.Errno,ex.Message)
-            return
+            doReturn = true ;Can't return from a TRY in .NET
         end
         endtry
+
+        if (doReturn)
+            return
     end
 
     if (status) then
@@ -823,11 +831,11 @@ LoadTable,
 
             if (Settings.RunningOnTerminal) then
             begin
-                status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,dberrtxt,Settings.LogLoadExceptions,Settings.TerminalChannel,successCount,failCount,Settings.BulkLoadProgressReporting)
+                status = %xsubr(functionName,(i)(Settings.DatabaseChannel),(i)(Settings.CommitMode),dberrtxt,Settings.LogLoadExceptions,Settings.TerminalChannel,successCount,failCount,Settings.BulkLoadProgressReporting)
             end
             else
             begin
-                status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,dberrtxt,Settings.LogLoadExceptions,,successCount,failCount)
+                status = %xsubr(functionName,(i)(Settings.DatabaseChannel),(i)(Settings.CommitMode),dberrtxt,Settings.LogLoadExceptions,,successCount,failCount)
             end
 
             if (status) then
@@ -889,7 +897,7 @@ BulkLoadTable,
             data failRows,  int,0
 
             functionName = %atrim(instruction.structure_name) + "BulkLoad"
-            status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,Settings.LocalExportPath,Settings.FileServiceHost,Settings.FileServicePort,Settings.DatabaseTimeout,Settings.BulkLoadTimeout,Settings.LogFileChannel,Settings.TerminalChannel,totalRows,failRows,dberrtxt)
+            status = %xsubr(functionName,(i)(Settings.DatabaseChannel),(i)(Settings.CommitMode),Settings.LocalExportPath,Settings.FileServiceHost,Settings.FileServicePort,Settings.DatabaseTimeout,Settings.BulkLoadTimeout,Settings.LogFileChannel,Settings.TerminalChannel,totalRows,failRows,dberrtxt)
 
             if (status) then
             begin
@@ -955,10 +963,11 @@ DoInsert,
 
     repeat
     begin
+        data doReturn, boolean, false
         try
         begin
             functionName = %atrim(instruction.structure_name) + "Insert"
-            status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,instruction.record(1,structure_data.structure_size),dberrtxt)
+            status = %xsubr(functionName,(i)(Settings.DatabaseChannel),(i)(Settings.CommitMode),instruction.record(1,structure_data.structure_size),dberrtxt)
             exitloop
         end
         catch (ex, @DatabaseCommunicationException)
@@ -977,9 +986,12 @@ DoInsert,
         catch (ex, @SynException)
         begin
             ok = Logger.LogFunctionFail(functionName,ex.Errno,ex.Message)
-            return
+            doReturn = true ;Can't return from a TRY in .NET
         end
         endtry
+
+        if (doReturn)
+            return
     end
 
     using status select
@@ -1033,10 +1045,11 @@ DoInsertRelative,
 
     repeat
     begin
+        data doReturn, boolean, false
         try
         begin
             functionName = %atrim(instruction.structure_name) + "Insert"
-            status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,recordNumber,instruction.record(1,structure_data.structure_size),dberrtxt)
+            status = %xsubr(functionName,(i)(Settings.DatabaseChannel),(i)(Settings.CommitMode),recordNumber,instruction.record(1,structure_data.structure_size),dberrtxt)
             exitloop
         end
         catch (ex, @DatabaseCommunicationException)
@@ -1055,9 +1068,12 @@ DoInsertRelative,
         catch (ex, @SynException)
         begin
             ok = Logger.LogFunctionFail(functionName,ex.Errno,ex.Message)
-            return
+            doReturn = true ;Can't return from a TRY in .NET
         end
         endtry
+
+        if (doReturn)
+            return
     end
 
     using status select
@@ -1110,10 +1126,11 @@ DoUpdate,
 
     repeat
     begin
+        data doReturn, boolean, false
         try
         begin
             functionName = %atrim(instruction.structure_name) + "Update"
-            status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,instruction.record(1,structure_data.structure_size),rows,dberrtxt)
+            status = %xsubr(functionName,(i)(Settings.DatabaseChannel),(i)(Settings.CommitMode),instruction.record(1,structure_data.structure_size),rows,dberrtxt)
             exitloop
         end
         catch (ex, @DatabaseCommunicationException)
@@ -1132,9 +1149,12 @@ DoUpdate,
         catch (ex, @SynException)
         begin
             ok = Logger.LogFunctionFail(functionName,ex.Errno,ex.Message)
-            return
+            doReturn = true ;Can't return from a TRY in .NET
         end
         endtry
+
+        if (doReturn)
+            return
     end
 
     if (status) then
@@ -1189,10 +1209,11 @@ DoUpdateRelative,
 
     repeat
     begin
+        data doReturn, boolean, false
         try
         begin
             functionName = %atrim(instruction.structure_name) + "Update"
-            status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,recordNumber,instruction.record(1,structure_data.structure_size),rows,dberrtxt)
+            status = %xsubr(functionName,(i)(Settings.DatabaseChannel),(i)(Settings.CommitMode),recordNumber,instruction.record(1,structure_data.structure_size),rows,dberrtxt)
             exitloop
         end
         catch (ex, @DatabaseCommunicationException)
@@ -1211,9 +1232,12 @@ DoUpdateRelative,
         catch (ex, @SynException)
         begin
             ok = Logger.LogFunctionFail(functionName,ex.Errno,ex.Message)
-            return
+            doReturn = true ;Can't return from a TRY in .NET
         end
         endtry
+
+        if (doReturn)
+            return
     end
 
     if (status) then
@@ -1263,7 +1287,7 @@ DoDelete,
         try
         begin
             functionName = %atrim(instruction.structure_name) + "Delete"
-            status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,keyValue(1:keyLength),dberrtxt)
+            status = %xsubr(functionName,(i)(Settings.DatabaseChannel),(i)(Settings.CommitMode),keyValue(1:keyLength),dberrtxt)
             if (status) then
             begin
                 Logger.VerboseLog(" - Row deleted")
@@ -1314,7 +1338,7 @@ DoCreateTable,
         try
         begin
             functionName = %atrim(instruction.structure_name) + "Exists"
-            status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,dberrtxt)
+            status = %xsubr(functionName,(i)(Settings.DatabaseChannel),(i)(Settings.CommitMode),dberrtxt)
             using status select
             (1),
             begin
@@ -1330,12 +1354,12 @@ DoCreateTable,
                     try
                     begin
                         functionName = %atrim(instruction.structure_name) + "Create"
-                        status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,dberrtxt)
+                        status = %xsubr(functionName,(i)(Settings.DatabaseChannel),(i)(Settings.CommitMode),dberrtxt)
                         if (status) then
                         begin
                             if (Settings.CanSendEmail())
                             begin
-                                xcall SendEmail("Replicator " + Settings.InstanceName + " created table " + %atrim(instruction.structure_name))
+                                xcall SendEmail("Replicator " + Settings.InstanceName + " created table " + %atrim(instruction.structure_name),^null,false,^null)
                             end
                         end
                         else
@@ -1406,10 +1430,11 @@ DoLoadTable,
 
     repeat
     begin
+        data doReturn, boolean, false
         try
         begin
             functionName = %atrim(instruction.structure_name) + "Exists"
-            status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,dberrtxt)
+            status = %xsubr(functionName,(i)(Settings.DatabaseChannel),(i)(Settings.CommitMode),dberrtxt)
             exitloop
         end
         catch (ex, @DatabaseCommunicationException)
@@ -1428,9 +1453,12 @@ DoLoadTable,
         catch (ex, @SynException)
         begin
             ok = Logger.LogFunctionFail(functionName,ex.Errno,ex.Message)
-            return
+            doReturn = true ;Can't return from a TRY in .NET
         end
         endtry
+
+        if (doReturn)
+            return
     end
 
     using status select
@@ -1512,14 +1540,14 @@ DoDeleteAllRows,
         try
         begin
             functionName = %atrim(instruction.structure_name) + "Clear"
-            status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,dberrtxt)
+            status = %xsubr(functionName,(i)(Settings.DatabaseChannel),(i)(Settings.CommitMode),dberrtxt)
             if (status) then
             begin
                 Logger.VerboseLog(" - Table truncated")
 
                 if (Settings.CanSendEmail())
                 begin
-                    xcall SendEmail("Replicator " + Settings.InstanceName + " truncated table " + %atrim(instruction.structure_name))
+                    xcall SendEmail("Replicator " + Settings.InstanceName + " truncated table " + %atrim(instruction.structure_name),^null,false,^null)
                 end
             end
             else
@@ -1565,17 +1593,18 @@ DoDeleteTable,
 
     repeat
     begin
+        data doReturn, boolean, false
         try
         begin
             functionName = %atrim(instruction.structure_name) + "Drop"
-            status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,dberrtxt)
+            status = %xsubr(functionName,(i)(Settings.DatabaseChannel),(i)(Settings.CommitMode),dberrtxt)
             if (status) then
             begin
                 Logger.VerboseLog(" - Table deleted")
 
                 if (Settings.CanSendEmail())
                 begin
-                    xcall SendEmail("Replicator " + Settings.InstanceName + " deleted table " + %atrim(instruction.structure_name))
+                    xcall SendEmail("Replicator " + Settings.InstanceName + " deleted table " + %atrim(instruction.structure_name),^null,false,^null)
                 end
             end
             else
@@ -1600,9 +1629,12 @@ DoDeleteTable,
         catch (ex, @SynException)
         begin
             ok = Logger.LogFunctionFail(functionName,ex.Errno,ex.Message)
-            return
+            doReturn = true ;Can't return from a TRY in .NET
         end
         endtry
+
+        if (doReturn)
+            return
     end
 
     return
@@ -1617,14 +1649,14 @@ DoAddIndexes,
         try
         begin
             functionName = %atrim(instruction.structure_name) + "Index"
-            status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,Settings.DatabaseTimeout,Settings.BulkLoadTimeout,Settings.LogFileChannel,dberrtxt)
+            status = %xsubr(functionName,(i)(Settings.DatabaseChannel),(i)(Settings.CommitMode),(i)(Settings.DatabaseTimeout),(i)(Settings.BulkLoadTimeout),(i)(Settings.LogFileChannel),dberrtxt)
             if (status) then
             begin
                 Logger.VerboseLog(" - Indexes added")
 
                 if (Settings.CanSendEmail())
                 begin
-                    xcall SendEmail("Replicator " + Settings.InstanceName + " added indexes to table " + %atrim(instruction.structure_name))
+                    xcall SendEmail("Replicator " + Settings.InstanceName + " added indexes to table " + %atrim(instruction.structure_name),^null,false,^null)
                 end
             end
             else
@@ -1671,14 +1703,14 @@ DoDeleteIndexes,
         try
         begin
             functionName = %atrim(instruction.structure_name) + "UnIndex"
-            status = %xsubr(functionName,Settings.DatabaseChannel,Settings.CommitMode,dberrtxt)
+            status = %xsubr(functionName,(i)(Settings.DatabaseChannel),(i)(Settings.CommitMode),dberrtxt)
             if (status) then
             begin
                 Logger.VerboseLog(" - Indexes removed")
 
                 if (Settings.CanSendEmail())
                 begin
-                    xcall SendEmail("Replicator " + Settings.InstanceName + " removed indexes from table " + %atrim(instruction.structure_name))
+                    xcall SendEmail("Replicator " + Settings.InstanceName + " removed indexes from table " + %atrim(instruction.structure_name),^null,false,^null)
                 end
             end
             else

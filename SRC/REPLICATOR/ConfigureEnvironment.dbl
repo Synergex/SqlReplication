@@ -41,7 +41,9 @@ proc
         data tmpchn, i4, 0
         open(tmpchn,o,"tt:")
         Settings.TerminalChannel = tmpchn
+.ifndef DBLNET
         display(Settings.TerminalChannel,$scr_pos(1,1),$scr_clr(SCREEN))
+.endc
         writes(Settings.TerminalChannel,"SQL Replicator Log")
     end
 
@@ -91,7 +93,12 @@ proc
 
     ;;Register a shutdown handler
     if (ok && !Settings.RunningOnTerminal)
+.ifdef DBLNET
+        ;TODO: DOTNET: Need to figure out how to do a shutdown handler in .NET
+        nop
+.else
         xcall syn_atexit(%xaddr("ReplicatorShutdown"))
+.endc
 
 .ifdef d_GUI
     ;;If anything has gone wrong so far and we're running on the terminal, pause so that
@@ -146,7 +153,7 @@ proc
         ;;If we're sending emails then let's record the server startup
         if (Settings.CanSendEmail())
         begin
-            xcall SendEmail("Replicator " + Settings.InstanceName  + " started.")
+            xcall SendEmail("Replicator " + Settings.InstanceName  + " started.",^null,false,^null)
         end
 
         ;;If were writing to the system log, record the startup
@@ -178,7 +185,11 @@ proc
                 tmpmsg += "Replicator is NOT configured to send email messages" + %char(13) + %char(10)
             end
 
+.ifdef DBLNET
+            nop
+.else
             xcall syn_reportevent(D_EVENTLOG_INFORMATION_TYPE,tmpmsg)
+.endc
         end
     end
 

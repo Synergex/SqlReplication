@@ -39,8 +39,8 @@ namespace ReplicationLibrary
 
     public class StringTools
 
-        .define D_32K           32768
-        .define D_32BIT_MAX     65535
+.define D_32K           32768
+.define D_32BIT_MAX     65535
 
         private static b64Chars, a*, "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/="
 
@@ -83,7 +83,7 @@ namespace ReplicationLibrary
             endparams
 
             stack record
-				inData              ,D_HANDLE
+                inData              ,D_HANDLE
                 inLength            ,int
                 bits24              ,strBits24
             endrecord
@@ -94,7 +94,7 @@ namespace ReplicationLibrary
             endstructure
 
             structure outputLine
-                                    ,a76
+                ,a76
             endstructure
 
         proc
@@ -106,7 +106,7 @@ namespace ReplicationLibrary
             begin
                 data ix                 ,int
                 data setsOf4            ,int
-				data unencodedData      ,D_HANDLE
+                data unencodedData      ,D_HANDLE
                 data unencodedDataIx    ,int
                 data fillerCount        ,int, 0
 
@@ -187,8 +187,8 @@ namespace ReplicationLibrary
                 inData = %mem_proc(DM_FREE,inData)
 
                 ;mreturn HandleToString(unencodedData)
-				mreturn %string_from_handle(unencodedData)
-			end
+                mreturn %string_from_handle(unencodedData)
+            end
             else
                 mreturn ""
 
@@ -219,7 +219,7 @@ namespace ReplicationLibrary
                 ;;(which will be either 2 bits or 4 bits), then that will
                 ;;equate to either 1 or 2 extra "Filler" characters needed at
                 ;;the end of the data.
-				data encodedData        ,D_HANDLE
+                data encodedData        ,D_HANDLE
                 data bits24             ,strBits24
                 data setsOf3            ,int    ,inLength/3
                 data remainingChars     ,int    ,inLength-(setsOf3*3)
@@ -292,16 +292,16 @@ namespace ReplicationLibrary
                     ^m(str1byte[b64ctr+=1],encodedData) = b64Chars(65:1)
 					
                     if (addLineBreaks&&((b64LineLength+=4)==76))
-					begin
-						^m(str1byte[b64ctr+=1],encodedData) = %char(13)
-						^m(str1byte[b64ctr+=1],encodedData) = %char(10)
-						b64LineLength = 0
-					end
+                    begin
+                        ^m(str1byte[b64ctr+=1],encodedData) = %char(13)
+                        ^m(str1byte[b64ctr+=1],encodedData) = %char(10)
+                        b64LineLength = 0
+                    end
                 end
 
                 ;;Turn the memory handle into a string and return the data
-				;mreturn HandleToString(encodedData)
-				mreturn %string_from_handle(encodedData)
+                ;mreturn HandleToString(encodedData)
+                mreturn %string_from_handle(encodedData)
             end
             else
                 mreturn ""
@@ -316,7 +316,7 @@ namespace ReplicationLibrary
         ;;; <param name="addLineBreaks">Add line breaks after every 76th character.</param>
         ;;; <returns>Base64 encoded data.</returns>
         public static method Base64EncodeHandle, string
-			required in dataToEncode    ,D_HANDLE
+            required in dataToEncode    ,D_HANDLE
             required in addLineBreaks   ,boolean
             endparams
 
@@ -333,7 +333,7 @@ namespace ReplicationLibrary
                 ;;(which will be either 2 bits or 4 bits), then that will
                 ;;equate to either 1 or 2 extra "Filler" characters needed at
                 ;;the end of the data.
-				data encodedData        ,D_HANDLE
+                data encodedData        ,D_HANDLE
                 data bits24             ,strBits24
                 data setsOf3            ,int    ,inLength/3
                 data remainingChars     ,int    ,inLength-(setsOf3*3)
@@ -402,19 +402,19 @@ namespace ReplicationLibrary
                     else
                         ^m(str1byte[b64ctr+=1],encodedData) = b64Chars(65:1)
 
-					^m(str1byte[b64ctr+=1],encodedData) = b64Chars(65:1)
+                    ^m(str1byte[b64ctr+=1],encodedData) = b64Chars(65:1)
 
-					if (addLineBreaks&&((b64LineLength+=4)==76))
-					begin
-						^m(str1byte[b64ctr+=1],encodedData) = %char(13)
-						^m(str1byte[b64ctr+=1],encodedData) = %char(10)
-						b64LineLength = 0
-					end
+                    if (addLineBreaks&&((b64LineLength+=4)==76))
+                    begin
+                        ^m(str1byte[b64ctr+=1],encodedData) = %char(13)
+                        ^m(str1byte[b64ctr+=1],encodedData) = %char(10)
+                        b64LineLength = 0
+                    end
                 end
 
                 ;;Turn the memory handle into a string and return the data
                 ;mreturn HandleToString(encodedData)
-				mreturn %string_from_handle(encodedData)
+                mreturn %string_from_handle(encodedData)
             end
             else
                 mreturn ""
@@ -427,12 +427,12 @@ namespace ReplicationLibrary
         ;;; <param name="handleIn">Memory handle to be copied.</param>
         ;;; <param name="handleOut">Memory handle containing copy of data.</param>
         public static method CopyHandle, void
-			required in  handleIn   ,D_HANDLE
-			required out handleOut  ,D_HANDLE
+            required in  handleIn   ,D_HANDLE
+            required out handleOut  ,D_HANDLE
             endparams
 
             structure chunk
-                                    ,a D_32K
+                ,a D_32K
             endstructure
 
             stack record
@@ -467,7 +467,11 @@ namespace ReplicationLibrary
 
             ;;If we're on a 64-bit system, or we're on a 32-bit system and the
             ;;size of the data is less than 64K then we can copy it in one go
-            if ((D_ADDRSIZE==8)||(totalSize<=D_32BIT_MAX)) then
+.ifdef D_NETSTANDARD
+            if (Environment.Is64BitProcess || (totalSize <= D_32BIT_MAX)) then
+.else
+            if ((D_ADDRSIZE == 8) || (totalSize <= D_32BIT_MAX)) then
+.endc
                 ^m(handleOut) = ^m(handleIn)
             else
             begin
@@ -484,7 +488,7 @@ namespace ReplicationLibrary
                 ;;Copy remaining characters
                 if (characters)
                     ^m(chunk[blocks+1](1:characters),handleOut)
-                    &       = ^m(chunk[blocks+1](1:characters),handleIn)
+                    &    = ^m(chunk[blocks+1](1:characters),handleIn)
             end
 
             mreturn
@@ -493,7 +497,7 @@ namespace ReplicationLibrary
 
         public static method FileToHandle, boolean
             required in  fileSpec   ,string
-			required out fileData   ,D_HANDLE
+            required out fileData   ,D_HANDLE
             endparams
 
             stack record
@@ -502,7 +506,7 @@ namespace ReplicationLibrary
             endrecord
 
             structure block
-                            ,a D_32K
+                ,a D_32K
             endstructure
 
         proc
@@ -511,12 +515,12 @@ namespace ReplicationLibrary
             ;;Open the input file
             try
             begin
-				.ifdef OS_VMS
+.ifdef OS_VMS
 				open(ch=0,i,fileSpec,OPTIONS:"/stream")
-				.else
-				open(ch=0,i,fileSpec)
-				.endc
-			end
+.else
+                open(ch=0,i,fileSpec)
+.endc
+            end
             catch (ex)
             begin
                 ok = false
@@ -539,11 +543,11 @@ namespace ReplicationLibrary
                 ;;Read data from file in "block size" chunks
                 try
                 begin
-					repeat
-					begin
-						;reads(ch,^m(block[blocks+=1],fileData))
-						gets(ch,^m(block[blocks+=1],fileData))
-					end
+                    repeat
+                    begin
+                        ;reads(ch,^m(block[blocks+=1],fileData))
+                        gets(ch,^m(block[blocks+=1],fileData))
+                    end
                 end
                 catch (ex, @EndOfFileException)
                 begin
@@ -568,15 +572,15 @@ namespace ReplicationLibrary
 
             stack record
                 ok                  ,boolean
-				dataHandle          ,D_HANDLE
+                dataHandle          ,D_HANDLE
             endrecord
 
         proc
 
             if (ok = StringTools.FileToHandle(fileSpec,dataHandle))
             begin
-				;dataString = HandleToString(dataHandle)
-				dataString = %string_from_handle(dataHandle)
+                ;dataString = HandleToString(dataHandle)
+                dataString = %string_from_handle(dataHandle)
                 dataHandle = %mem_proc(DM_FREE,dataHandle)
             end
 
@@ -585,7 +589,7 @@ namespace ReplicationLibrary
         endmethod
 
         public static method HandleToFile, boolean
-			required in inHandle    ,D_HANDLE
+            required in inHandle    ,D_HANDLE
             required in fileSpec    ,string
             endparams
 
@@ -595,7 +599,7 @@ namespace ReplicationLibrary
             endrecord
 
             structure block
-                                    ,a D_32K
+                ,a D_32K
             endstructure
 
         proc
@@ -623,7 +627,11 @@ namespace ReplicationLibrary
                 ;;If we're on a 64-bit system, or if we're on a 32-bit system
                 ;;and the size of the data is less than 64K, then we can write
                 ;;the data out with a single PUTS.
+.ifdef D_NETSTANDARD
+                if (Environment.Is64BitProcess || (totalSize <= D_32BIT_MAX)) then
+.else
                 if ((D_ADDRSIZE==8)||(totalSize<=D_32BIT_MAX)) then
+.endc
                 begin
                     puts(ch,^m(inHandle))
                 end
@@ -715,6 +723,24 @@ namespace ReplicationLibrary
             mreturn outData
         endmethod
 
+.ifdef D_NETSTANDARD
+        public static method StringToFile, boolean
+            required in inString    ,string
+            required in fileSpec    ,string
+            endparams
+        proc
+            try
+            begin
+                System.IO.File.WriteAllBytes(fileSpec,System.Text.Encoding.UTF8.GetBytes(inString))
+            end
+            catch (e, @Exception)
+            begin
+                mreturn false
+            end
+            endtry
+            mreturn true
+        endmethod
+.else
         public static method StringToFile, boolean
             required in inString    ,string
             required in fileSpec    ,string
@@ -775,6 +801,7 @@ namespace ReplicationLibrary
             mreturn ok
 
         endmethod
+.endc
 
 ; Use %HANDLE_FROM_STRING instead
 ;

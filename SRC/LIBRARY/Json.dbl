@@ -35,6 +35,8 @@
 ;;
 ;;*****************************************************************************
 
+.ifndef D_NETSTANDARD
+
 import System.Collections
 
 .ifdef DBLNET
@@ -828,3 +830,5 @@ namespace Json
     endclass
 
 endnamespace
+
+.endc

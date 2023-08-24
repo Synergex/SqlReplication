@@ -21,8 +21,7 @@ function ReOpenQueueFile, boolean
     endrecord
 proc
 
-    ;TODO: Need to introduce configurable retry logic based on specified
-    ;dealy and retry count parameters.
+    ;TODO: ENHANCEMENT: Need configurable retry logic based on delay and retry count parameters
 
     ok = false
     retryCount = 0

@@ -79,8 +79,13 @@ proc
     ;;If were writing to the system log, record the counters there too
 
     if (Settings.SystemLog)
+    begin
+.ifdef DBLNET
+        nop
+.else
         xcall syn_reportevent(D_EVENTLOG_INFORMATION_TYPE,message)
-
+.endc
+    end
     ;;If we're sending emails then send a shutting down message
 
     if (Settings.CanSendEmail())
@@ -96,7 +101,7 @@ proc
         body[08] =      "ERRORS:  " + %string(Counters.Errors, "ZZZ,ZZZ,ZZZ,ZZX") + "</pre>"
         body[09] = "</body>"
         body[10] = "</html>"
-        xcall SendEmail("Replicator " + Settings.InstanceName + " stopped.",body,true)
+        xcall SendEmail("Replicator " + Settings.InstanceName + " stopped.",body,true,^null)
     end
 
     ;;Clean up any database cursors and data files that we have open

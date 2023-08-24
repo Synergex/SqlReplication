@@ -72,6 +72,8 @@
 ;;
 ;;*****************************************************************************
 
+.ifndef D_NETSTANDARD
+
 function SmtpMail ,^val
 
     ;Server
@@ -493,3 +495,4 @@ stack record ivars
 
 endfunction
 
+.endc

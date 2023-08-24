@@ -34,403 +34,429 @@
 ;; POSSIBILITY OF SUCH DAMAGE.
 ;;
 ;;*****************************************************************************
-
+.ifdef D_NETSTANDARD
+import System.Collections.Generic
+import System.Text.Json
+.else
 import Json
+.endc
 import ReplicationLibrary
 
 namespace ReplicationLibrary
 
-	public class FileServiceClient
+    public class FileServiceClient
 		
-		private mHost, string
-		private mPort, string
+        private mHost, string
+        private mPort, string
 
-		public method FileServiceClient
-			required in host, string
-			required in port, string
-		proc
-			mHost = host
-			mPort = port
-		endmethod
+        public method FileServiceClient
+            required in host, string
+            required in port, string
+        proc
+            mHost = host
+            mPort = port
+        endmethod
 
-		public method Ping, boolean
-			optional out errorMessage, a
-			endparams
-			stack record
-				ok, boolean
-				httperror, int
-				errtxt, string
-				requestHeaders, [#]string
-				responseHeaders, [#]string
-				respopnseBody, string
-			endrecord
-		proc
-			requestHeaders = new string[1]
-			requestHeaders[1] = "Host: " + mHost + ":" + mPort
+        public method Ping, boolean
+            optional out errorMessage, a
+            endparams
+            stack record
+                ok, boolean
+                httperror, int
+                errtxt, string
+                requestHeaders, [#]string
+                responseHeaders, [#]string
+                respopnseBody, string
+            endrecord
+        proc
+            requestHeaders = new string[1]
+            requestHeaders[1] = "Host: " + mHost + ":" + mPort
 
-			using httperror = %http_get(getURI("ping"),5,respopnseBody,errtxt,requestHeaders,responseHeaders,,,,,,,"1.1") select
-			(0), ;OK
-			begin
-				errtxt = ""
-				ok = true
-			end
-			(),
-			begin
-				errtxt = "HTTP " + %string(httperror) + ": " + errtxt
-				ok = false
-			end
-			endusing
+            using httperror = %http_get(getURI("ping"),5,respopnseBody,errtxt,requestHeaders,responseHeaders,,,,,,,"1.1") select
+            (0), ;OK
+            begin
+                errtxt = ""
+                ok = true
+            end
+            (),
+            begin
+                errtxt = "HTTP " + %string(httperror) + ": " + errtxt
+                ok = false
+            end
+            endusing
 
-			if (^passed(errorMessage))
-				errorMessage = errtxt
+            if (^passed(errorMessage))
+                errorMessage = errtxt
 
-			mreturn ok
+            mreturn ok
 
-		endmethod
+        endmethod
 
-		public method Upload, boolean
-			required in localFileSpec, string
-			required in serverFileName, string
-			optional out serverFileSpec, string
-			optional out errorText, a
+        public method Upload, boolean
+            required in localFileSpec, string
+            required in serverFileName, string
+            required out serverFileSpec, string
+            optional out errorText, a
 
-			stack record
-				ok, boolean
-				errtxt, string
-				fileData, string
-				httpError, int
-				responseBody, string
-				requestHeaders, [#]string
-				responseHeaders, [#]string
-			endrecord
-		proc
-			ok = true
-			errtxt = ""
+            stack record
+                ok, boolean
+                errtxt, string
+                fileData, string
+                httpError, int
+                responseBody, string
+                requestHeaders, [#]string
+                responseHeaders, [#]string
+            endrecord
+        proc
+            ok = true
+            errtxt = ""
 
-			if (!ok=StringTools.FileToString(localFileSpec,fileData))
-			begin
-				errtxt = "Failed to read local file"
-				ok = false
-			end
+            if (!ok=StringTools.FileToString(localFileSpec,fileData))
+            begin
+                errtxt = "Failed to read local file"
+                ok = false
+            end
 
-			if (ok)
-			begin
-				requestHeaders = new String[3]
-				requestHeaders[1] = "Host: " + mHost + ":" + mPort
-				requestHeaders[2] = "Content-Type: text/plain"
-				requestHeaders[3] = "Content-Length: " + %string(fileData.Length)
+            if (ok)
+            begin
+                requestHeaders = new String[3]
+                requestHeaders[1] = "Host: " + mHost + ":" + mPort
+                requestHeaders[2] = "Content-Type: text/plain"
+                requestHeaders[3] = "Content-Length: " + %string(fileData.Length)
 
-				using httpError = %http_post(getURI("serverFileName"),,fileData,responseBody,errtxt,requestHeaders,responseHeaders,,,,,,,"1.1") select
-				(201),
-				begin
-					if (^passed(serverFileSpec))
-					begin
-						serverFileSpec = GetHeaderValue(responseHeaders,"ServerFileSpec")
-					end
-				end
-				(),
-					ok = false
-				endusing
-			end
+                using httpError = %http_post(getURI("serverFileName"),,fileData,responseBody,errtxt,requestHeaders,responseHeaders,,,,,,,"1.1") select
+                (201),
+                begin
+                    if (^passed(serverFileSpec))
+                    begin
+                        serverFileSpec = GetHeaderValue(responseHeaders,"ServerFileSpec")
+                    end
+                end
+                (),
+                    ok = false
+                endusing
+            end
 
-			if (^passed(errorText))
-				errorText = errtxt
+            if (^passed(errorText))
+                errorText = errtxt
 
-			mreturn ok
+            mreturn ok
 
-		endmethod
+        endmethod
 
-		public method UploadChunked, boolean
-			required in localFileSpec, string
-			required in serverFileName, string
-			required in blockCount, int
-			optional out serverFileSpec, string
-			optional out errorText, a
+        public method UploadChunked, boolean
+            required in localFileSpec, string
+            required in serverFileName, string
+            required in blockCount, int
+            required out serverFileSpec, string
+            optional out errorText, a
 
-			stack record
-				ok, boolean
-				errtxt, string
-				fileData, string
-				httpError, int
-				requestBody, string
-				responseBody, string
-				requestHeaders, [#]string
-				responseHeaders, [#]string
+            stack record
+                ok, boolean
+                errtxt, string
+                fileData, string
+                httpError, int
+                requestBody, string
+                responseBody, string
+                requestHeaders, [#]string
+                responseHeaders, [#]string
 
-				chunkReader, @FileChunkReader
-				chunkData, D_HANDLE
-				moreChunks, boolean
-				doCleanup, boolean
+                chunkReader, @FileChunkReader
+                chunkData, D_HANDLE
+                moreChunks, boolean
+                doCleanup, boolean
 
-			endrecord
-		proc
-			ok = true
-			errtxt = ""
+            endrecord
+        proc
+            ok = true
+            errtxt = ""
 
-			;;Get the FileChunkReader up and running
-			try
-			begin
-				chunkReader = new FileChunkReader(localFileSpec,blockCount)
-				doCleanup = true
-			end
-			catch (e, @Exception)
-			begin
-				ok = false
-				errtxt = "Failed to open file " + localFileSpec
-				doCleanup = false
-			end
-			endtry
+            ;;Get the FileChunkReader up and running
+            try
+            begin
+                chunkReader = new FileChunkReader(localFileSpec,blockCount)
+                doCleanup = true
+            end
+            catch (e, @Exception)
+            begin
+                ok = false
+                errtxt = "Failed to open file " + localFileSpec
+                doCleanup = false
+            end
+            endtry
 
-			;;Prepare the HTTP environment
-			if (ok)
-			begin
-				requestHeaders = new String[3]
-				requestHeaders[1] = "Host: " + mHost + ":" + mPort
-				requestHeaders[2] = "Content-Type: text/plain"
-			end
+            ;;Prepare the HTTP environment
+            if (ok)
+            begin
+                requestHeaders = new String[3]
+                requestHeaders[1] = "Host: " + mHost + ":" + mPort
+                requestHeaders[2] = "Content-Type: text/plain"
+            end
 
-			;;Read the first chunk
-			if (ok)
-			begin
-				moreChunks = chunkReader.ReadChunk(chunkData)
+            ;;Read the first chunk
+            if (ok)
+            begin
+                moreChunks = chunkReader.ReadChunk(chunkData)
 
-				;;Upload the first chunk
-				requestBody = %string_from_handle(chunkData)
-				requestHeaders[3] = "Content-Length: " + %string(requestBody.Length)
-				using httpError = %http_post(getURI("chunked/start/"+serverFileName),,requestBody,responseBody,errtxt,requestHeaders,responseHeaders,,,,,,,"1.1") select
-				(204),
-				begin
-					nop
-				end
-				(),
-				begin
-					ok = false
-				end
-				endusing
+                ;;Upload the first chunk
+                requestBody = %string_from_handle(chunkData)
+                requestHeaders[3] = "Content-Length: " + %string(requestBody.Length)
+                using httpError = %http_post(getURI("chunked/start/"+serverFileName),,requestBody,responseBody,errtxt,requestHeaders,responseHeaders,,,,,,,"1.1") select
+                (204),
+                begin
+                    nop
+                end
+                (),
+                begin
+                    ok = false
+                end
+                endusing
 
-				;;Was the entire file in the first chunk?
-				if (!moreChunks)
-					clear chunkData
-			end
+                ;;Was the entire file in the first chunk?
+                if (!moreChunks)
+                    clear chunkData
+            end
 
-			;;Process subsequent chunks until there are no more
-			if (ok && moreChunks)
-			begin
-				while (moreChunks = chunkReader.ReadChunk(chunkData))
-				begin
-					;;Upload the first chunk
-					requestBody = %string_from_handle(chunkData)
-					requestHeaders[3] = "Content-Length: " + %string(requestBody.Length)
-					using httpError = %http_post(getURI("chunked/continue/"+serverFileName),,requestBody,responseBody,errtxt,requestHeaders,responseHeaders,,,,,,,"1.1") select
-					(204),
-					begin
-						nop
-					end
-					(),
-					begin
-						ok = false
-						exitloop
-					end
-					endusing
-				end
-			end
+            ;;Process subsequent chunks until there are no more
+            if (ok && moreChunks)
+            begin
+                while (moreChunks = chunkReader.ReadChunk(chunkData))
+                begin
+                    ;;Upload the first chunk
+                    requestBody = %string_from_handle(chunkData)
+                    requestHeaders[3] = "Content-Length: " + %string(requestBody.Length)
+                    using httpError = %http_post(getURI("chunked/continue/"+serverFileName),,requestBody,responseBody,errtxt,requestHeaders,responseHeaders,,,,,,,"1.1") select
+                    (204),
+                    begin
+                        nop
+                    end
+                    (),
+                    begin
+                        ok = false
+                        exitloop
+                    end
+                    endusing
+                end
+            end
 
-			;;Process the final chunk 
-			if (ok)
-			begin
-				;;If chunkData != 0 then there is final data to be uploaded
-				if (chunkData) then
-					requestBody = %string_from_handle(chunkData)
-				else
-					requestBody = ""
+            ;;Process the final chunk 
+            if (ok)
+            begin
+                ;;If chunkData != 0 then there is final data to be uploaded
+                if (chunkData) then
+                    requestBody = %string_from_handle(chunkData)
+                else
+                    requestBody = ""
 
-				;;Complete the chunked upload
-				requestHeaders[3] = "Content-Length: " + %string(requestBody.Length)
-				using httpError = %http_post(getURI("chunked/finish/"+serverFileName),,requestBody,responseBody,errtxt,requestHeaders,responseHeaders,,,,,,,"1.1") select
-				(201),
-				begin
-					if (^passed(serverFileSpec))
-					begin
-						serverFileSpec = GetHeaderValue(responseHeaders,"ServerFileSpec")
-					end
-				end
-				(),
-				begin
-					ok = false
-				end
-				endusing
+                ;;Complete the chunked upload
+                requestHeaders[3] = "Content-Length: " + %string(requestBody.Length)
+                using httpError = %http_post(getURI("chunked/finish/"+serverFileName),,requestBody,responseBody,errtxt,requestHeaders,responseHeaders,,,,,,,"1.1") select
+                (201),
+                begin
+                    if (^passed(serverFileSpec))
+                    begin
+                        serverFileSpec = GetHeaderValue(responseHeaders,"ServerFileSpec")
+                    end
+                end
+                (),
+                begin
+                    ok = false
+                end
+                endusing
 
-			end
+            end
 
-			;;Clean up
-			if (doCleanup)
-				chunkReader.Cleanup()
+            ;;Clean up
+            if (doCleanup)
+                chunkReader.Cleanup()
 
-			;;Return any error message
-			if (^passed(errorText))
-				errorText = errtxt
+            ;;Return any error message
+            if (^passed(errorText))
+                errorText = errtxt
 
-			mreturn ok
+            mreturn ok
 
-		endmethod
+        endmethod
 
-		public method DownloadText, boolean
-			required in  serverFileName, string
-			required out records, [#]string
-			optional out errorMessage, string
-			endparams
-			stack record
-				ok, boolean
-				httpError, int
-				errtxt, string
-				requestHeaders, [#]string
-				responseHeaders, [#]string
-				responseBody, string
-			endrecord
-		proc
-			errtxt = ""
+        public method DownloadText, boolean
+            required in  serverFileName, string
+            required out records, [#]string
+            required out errorMessage, string
+            endparams
+            stack record
+                ok, boolean
+                httpError, int
+                errtxt, string
+                requestHeaders, [#]string
+                responseHeaders, [#]string
+                responseBody, string
+            endrecord
+        proc
+            errtxt = ""
 
-			requestHeaders = new string[1]
-			requestHeaders[1] = "Host: " + mHost + ":" + mPort
+            requestHeaders = new string[1]
+            requestHeaders[1] = "Host: " + mHost + ":" + mPort
 
-			using httpError = %http_get(getURI("text/"+serverFileName),,responseBody,errtxt,requestHeaders,responseHeaders,,,,,,,"1.1") select
-			(0), ;OK (actually 200)
-			begin
-				data parser,   @Json, new Json()
-				data arrayObj, @JsonArray
-				data itemObj,  @JsonText
-				data result,   @JsonValue, parser.ParseJson(responseBody)
-				data ix, int
+            using httpError = %http_get(getURI("text/"+serverFileName),,responseBody,errtxt,requestHeaders,responseHeaders,,,,,,,"1.1") select
+            (0), ;OK (actually 200)
+            begin
+.ifdef D_NETSTANDARD
+                disposable data doc, @JsonDocument, JsonDocument.Parse(responseBody)
+                data root, JsonElement, doc.RootElement
 
-				if(result.JsonType != JSON_TYPE.ARRAY_VAL)
-					throw new Exception("FileService did not return an array!")
+                if (root.ValueKind != JsonValueKind.Array)
+                    throw new Exception("FileService did not return an array!")
 
-				arrayObj = (JsonArray)result
+                data elements = new List<string>()
+                data element, JsonElement
+                ;TODO: COMPILER BUG: enumerator variable should not be necessary (8/14/2023)
+                data enumerator = root.EnumerateArray() 
+                foreach element in enumerator
+                begin
+                    if (element.ValueKind == JsonValueKind.String)
+                    begin
+                        elements.Add(element.GetString())
+                    end
+                end
 
-				records = new string[arrayObj.arrayValues.Count]
+                records = elements.ToArray()
+                ok = true
+.else
+                data parser,   @Json, new Json()
+                data arrayObj, @JsonArray
+                data itemObj,  @JsonText
+                data result,   @JsonValue, parser.ParseJson(responseBody)
+                data ix, int
 
-				for ix from 0 thru arrayObj.arrayValues.Count-1
-					records[ix+1] = ((JsonText)arrayObj.arrayValues[ix]).Value
+                if(result.JsonType != JSON_TYPE.ARRAY_VAL)
+                    throw new Exception("FileService did not return an array!")
 
-				ok = true
-			end
-			(404), ;Not found
-			begin
-				records = ^null
-				ok = true
-			end
-			(),
-			begin
-				errtxt = "HTTP " + %string(httpError) + ": " + errtxt
-				records = ^null
-				ok = false
-			end
-			endusing
+                arrayObj = (JsonArray)result
 
-			if (^passed(errorMessage))
-				errorMessage = errtxt
+                records = new string[arrayObj.arrayValues.Count]
 
-			mreturn ok
+                for ix from 0 thru arrayObj.arrayValues.Count-1
+                    records[ix+1] = ((JsonText)arrayObj.arrayValues[ix]).Value
+.endc
+                ok = true
+            end
+            (404), ;Not found
+            begin
+                records = ^null
+                ok = true
+            end
+            (),
+            begin
+                errtxt = "HTTP " + %string(httpError) + ": " + errtxt
+                records = ^null
+                ok = false
+            end
+            endusing
 
-		endmethod
+            if (^passed(errorMessage))
+                errorMessage = errtxt
 
-		public method Exists, boolean
-			required in serverFileName, string
-			required out fileExists, boolean
-			optional out errorMessage, string
-			endparams
-			stack record
-				ok, boolean
-				httperror, int
-				errtxt, string
-				requestHeaders, [#]string
-				responseHeaders, [#]string
-				respopnseBody, string
-			endrecord
-		proc
-			errtxt = ""
+            mreturn ok
 
-			requestHeaders = new string[1]
-			requestHeaders[1] = "Host: " + mHost + ":" + mPort
+        endmethod
 
-			using httperror = %http_get(getURI("exists/"+serverFileName),,respopnseBody,errtxt,requestHeaders,responseHeaders,,,,,,,"1.1") select
-			(204), ;No content
-			begin
-				fileExists = true
-				ok = true
-			end
-			(404), ;Not found
-			begin
-				fileExists = false
-				ok = true
-			end
-			(),
-			begin
-				errtxt = "HTTP " + %string(httperror) + ": " + errtxt
-				fileExists = false
-				ok = false
-			end
-			endusing
+        public method Exists, boolean
+            required in serverFileName, string
+            required out fileExists, boolean
+            required out errorMessage, string
+            endparams
+            stack record
+                ok, boolean
+                httperror, int
+                errtxt, string
+                requestHeaders, [#]string
+                responseHeaders, [#]string
+                respopnseBody, string
+            endrecord
+        proc
+            errtxt = ""
 
-			if (^passed(errorMessage))
-				errorMessage = errtxt
+            requestHeaders = new string[1]
+            requestHeaders[1] = "Host: " + mHost + ":" + mPort
 
-			mreturn ok
+            using httperror = %http_get(getURI("exists/"+serverFileName),,respopnseBody,errtxt,requestHeaders,responseHeaders,,,,,,,"1.1") select
+            (204), ;No content
+            begin
+                fileExists = true
+                ok = true
+            end
+            (404), ;Not found
+            begin
+                fileExists = false
+                ok = true
+            end
+            (),
+            begin
+                errtxt = "HTTP " + %string(httperror) + ": " + errtxt
+                fileExists = false
+                ok = false
+            end
+            endusing
 
-		endmethod
+            if (^passed(errorMessage))
+                errorMessage = errtxt
 
-		public method Delete, boolean
-			required in serverFileName, string
-			endparams
-			stack record
-				httpError, int
-				errtxt, string
-				requestHeaders, [#]string
-				responseHeaders, [#]string
-				requestBody, string
-				respopnseBody, string
-			endrecord
-		proc
+            mreturn ok
 
-			requestHeaders = new string[1]
-			requestHeaders[1] = "Host: " + mHost + ":" + mPort
+        endmethod
 
-			if (httpError = %http_delete(getURI(serverFileName),,requestBody,respopnseBody,errtxt,requestHeaders,,,,,,,"1.1"))
-				mreturn false
+        public method Delete, boolean
+            required in serverFileName, string
+            endparams
+            stack record
+                httpError, int
+                errtxt, string
+                requestHeaders, [#]string
+                responseHeaders, [#]string
+                requestBody, string
+                respopnseBody, string
+            endrecord
+        proc
 
-			mreturn true
+            requestHeaders = new string[1]
+            requestHeaders[1] = "Host: " + mHost + ":" + mPort
 
-		endmethod
+            if (httpError = %http_delete(getURI(serverFileName),,requestBody,respopnseBody,errtxt,requestHeaders,,,,,,,"1.1"))
+                mreturn false
 
-		private method GetHeaderValue, string
-			required in headers, [#]string
-			required in name, string
-			endparams
-			stack record
-				header, string
-			endrecord
-		proc
-			foreach header in headers
-			begin
-				if (header.ToLower().StartsWith(name.ToLower()+": "))
-				begin
-					data valueStart, int, header.IndexOf(": ",0) + 2
-					if (valueStart < header.Length)
-					begin
-						data value, string, header.Substring(valueStart,header.Length-valueStart)
-						mreturn value
-					end
-				end
-			end
-			mreturn ""
-		endmethod
+            mreturn true
 
-		private method getURI, string
-			required in path, string
-		proc
-			mreturn "http://"+ mHost + ":" + mPort + "/FileService/" + path
-		endmethod
+        endmethod
 
-	endclass
+        private method GetHeaderValue, string
+            required in headers, [#]string
+            required in name, string
+            endparams
+            stack record
+                header, string
+            endrecord
+        proc
+            foreach header in headers
+            begin
+                if (header.ToLower().StartsWith(name.ToLower()+": "))
+                begin
+                    data valueStart, int, header.IndexOf(": ",0) + 2
+                    if (valueStart < header.Length)
+                    begin
+                        data value, string, header.Substring(valueStart,header.Length-valueStart)
+                        mreturn value
+                    end
+                end
+            end
+            mreturn ""
+        endmethod
+
+        private method getURI, string
+            required in path, string
+        proc
+            mreturn "http://"+ mHost + ":" + mPort + "/FileService/" + path
+        endmethod
+
+    endclass
 
 endnamespace
