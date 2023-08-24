@@ -1,0 +1,63 @@
+<Project Sdk="Microsoft.NET.Sdk" DefaultTargets="restore;Build">
+  <Import Project="$(SolutionDir)Common.props" />
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <DefaultLanguageSourceExtension>.dbl</DefaultLanguageSourceExtension>
+    <EnableDefaultItems>false</EnableDefaultItems>
+    <ProjectGuid>{d62894b0-e298-40f2-a110-04b008e0febb}</ProjectGuid>
+    <Name>NetReplicationLibrary</Name>
+    <EnableCommonProperties>True</EnableCommonProperties>
+    <CommonPropertiesFileLocation>$(SolutionDir)Common.props</CommonPropertiesFileLocation>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Synergex.SynergyDE.Build" Version="23.*" />
+    <PackageReference Include="Synergex.SynergyDE.synrnt" Version="12.*" />
+    <PackageReference Include="System.Text.Json">
+      <Version>6.0.8</Version>
+    </PackageReference>
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="..\SRC\LIBRARY\CommandLineParser.dbl" />
+    <Compile Include="..\SRC\LIBRARY\ConfigureReplication.dbl" />
+    <Compile Include="..\SRC\LIBRARY\DatabaseCommunicationException.dbl" />
+    <Compile Include="..\SRC\LIBRARY\DataConversionTools.dbl" />
+    <Compile Include="..\SRC\LIBRARY\DepartmentSqlIO.dbl" />
+    <Compile Include="..\SRC\LIBRARY\EmployeeSqlIO.dbl" />
+    <Compile Include="..\SRC\LIBRARY\File.dbl" />
+    <Compile Include="..\SRC\LIBRARY\FileChunkReader.dbl" />
+    <Compile Include="..\SRC\LIBRARY\FileServiceClient.dbl" />
+    <Compile Include="..\SRC\LIBRARY\GenerateDepartmentData.dbl" />
+    <Compile Include="..\SRC\LIBRARY\GenerateEmployeeData.dbl" />
+    <Compile Include="..\SRC\LIBRARY\GetDateTimeString.dbl" />
+    <Compile Include="..\SRC\LIBRARY\GetInstances.dbl" />
+    <Compile Include="..\SRC\LIBRARY\GetReplicatedTables.dbl" />
+    <Compile Include="..\SRC\LIBRARY\IndexExists.dbl" />
+    <Compile Include="..\SRC\LIBRARY\InstanceInfo.dbl" />
+    <Compile Include="..\SRC\LIBRARY\IOHooksISAM.dbl" />
+    <Compile Include="..\SRC\LIBRARY\IOHooksRELATIVE.dbl" />
+    <Compile Include="..\SRC\LIBRARY\IsDate.dbl" />
+    <Compile Include="..\SRC\LIBRARY\IsDecimal.dbl" />
+    <Compile Include="..\SRC\LIBRARY\IsEmailAddress.dbl" />
+    <Compile Include="..\SRC\LIBRARY\IsTime.dbl" />
+    <Compile Include="..\SRC\LIBRARY\Json.dbl" />
+    <Compile Include="..\SRC\LIBRARY\LastRecordCache.dbl" />
+    <Compile Include="..\SRC\LIBRARY\MakeDateForCsv.dbl" />
+    <Compile Include="..\SRC\LIBRARY\MakeDecimalForCsv.dbl" />
+    <Compile Include="..\SRC\LIBRARY\MakeTimeForCsv.dbl" />
+    <Compile Include="..\SRC\LIBRARY\OpenOrCreateQueueFile.dbl" />
+    <Compile Include="..\SRC\LIBRARY\PopulateReplicationKey.dbl" />
+    <Compile Include="..\SRC\LIBRARY\Replicate.dbl" />
+    <Compile Include="..\SRC\LIBRARY\SmtpMail.dbl" />
+    <Compile Include="..\SRC\LIBRARY\StringDictionary.dbl" />
+    <Compile Include="..\SRC\LIBRARY\StringTools.dbl" />
+    <Compile Include="..\SRC\LIBRARY\ThrowOnCommunicationError.dbl" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="..\SRC\LIBRARY\SmtpMail.def">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="..\SRC\LIBRARY\sqlgbl.def">
+      <SubType>Content</SubType>
+    </Content>
+  </ItemGroup>
+</Project>
