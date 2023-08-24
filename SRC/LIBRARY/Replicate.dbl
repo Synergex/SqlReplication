@@ -239,7 +239,24 @@ proc
 
         ;;And add it to the queue
 
+.ifdef OS_VMS
+        ;On VMS we don't have auto sequence keys so we need to allocate a %DATETIME value as the
+        ;transaction ID and be prepared to retry if we get a duplicate key error.
+        instruction.transaction_id = %datetime
+        repeat
+        begin
+            store(instanceData.Channel,instruction) [$ERR_NODUPS=dupkey]
+            if (false)
+            begin
+dupkey,         instruction.transaction_id = ^a(^d(instruction.transaction_id)+1)
+                nextloop
+            end
+            exitloop
+        end
+.else
+        ;On other platforms we can just store the transaction
         store(instanceData.Channel,instruction)
+.endc
 
     end
     endusing

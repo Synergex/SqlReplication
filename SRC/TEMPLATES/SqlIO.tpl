@@ -72,6 +72,9 @@ import Synergex.SynergyDE.Select
 .include "<STRUCTURE_NOALIAS>" repository, structure="str<StructureName>", end
 .endc
 
+.define writelog(x) if ^passed(a_logchannel) && a_logchannel && %chopen(a_logchannel) writes(a_logchannel,%string(^d(now(1:14)),"XXXX-XX-XX XX:XX:XX ") + x)
+.define writett(x)  if ^passed(a_ttchannel) && a_ttchannel writes(a_ttchannel,"   - " + %string(^d(now(9:8)),"XX:XX:XX.XX ") + x)
+
 ;;*****************************************************************************
 ;;; <summary>
 ;;; Determines if the <StructureName> table exists in the database.
@@ -407,8 +410,6 @@ function <StructureName>Index, ^val
         sql                 ,string     ;;SQL statement
     endrecord
 
-    .define writelog(x) writes(a_logchannel,"   - " + %string(^d(now(9:8)),"XX:XX:XX.XX ") + x)
-
 proc
     init local_data
     ok = true
@@ -433,7 +434,7 @@ proc
     if (ok)
     begin
         now = %datetime
-        writelog("Setting database timeout to " + %string(a_bl_timeout) + " seconds")
+        writelog(" - Setting database timeout to " + %string(a_bl_timeout) + " seconds")
         if (%ssc_cmd(a_dbchn,,SSQL_TIMEOUT,%string(a_bl_timeout))==SSQL_FAILURE)
         begin
             ok = false
@@ -447,9 +448,6 @@ proc
 
     if (ok && !IndexExists(a_dbchn,"IX_<StructureName>_<PRIMARY_KEY><KeyName></PRIMARY_KEY>",errtxt))
     begin
-        now = %datetime
-        writelog("  - Adding index IX_<StructureName>_<PRIMARY_KEY><KeyName></PRIMARY_KEY>")
-
         sql = '<PRIMARY_KEY>CREATE INDEX IX_<StructureName>_<KeyName> ON "<StructureName>"(<SEGMENT_LOOP>"<FieldSqlName>" <SEGMENT_ORDER><,></SEGMENT_LOOP>)</PRIMARY_KEY>'
 
         call open_cursor
@@ -459,6 +457,18 @@ proc
             call execute_cursor
             call close_cursor
         end
+
+        now = %datetime
+
+        if (ok) then
+        begin
+            writelog(" - Added index IX_<StructureName>_<PRIMARY_KEY><KeyName></PRIMARY_KEY>")
+        end
+        else
+        begin
+            writelog(" - ERROR: Failed to add index IX_<StructureName>_<PRIMARY_KEY><KeyName></PRIMARY_KEY>")
+            ok = true
+        end
     end
 
   </IF STRUCTURE_HAS_UNIQUE_PK>
@@ -467,9 +477,6 @@ proc
 
     if (ok && !%IndexExists(a_dbchn,"IX_<StructureName>_<KeyName>",errtxt))
     begin
-        now = %datetime
-        writelog("  - Adding index IX_<StructureName>_<KeyName>")
-
         sql = 'CREATE <IF FIRST_UNIQUE_KEY>CLUSTERED<ELSE><KEY_UNIQUE></IF FIRST_UNIQUE_KEY> INDEX IX_<StructureName>_<KeyName> ON "<StructureName>"(<SEGMENT_LOOP>"<FieldSqlName>" <SEGMENT_ORDER><,></SEGMENT_LOOP>)'
 
         call open_cursor
@@ -478,6 +485,18 @@ proc
         begin
             call execute_cursor
             call close_cursor
+        end
+
+        now = %datetime
+
+        if (ok) then
+        begin
+            writelog(" - Added index IX_<StructureName>_<KeyName>")
+        end
+        else
+        begin
+            writelog(" - ERROR: Failed to add index IX_<StructureName>_<KeyName>s")
+            ok = true
         end
     end
 
@@ -514,7 +533,7 @@ proc
     ;;Set the database timeout back to the regular value
 
     now = %datetime
-    writelog("Resetting database timeout to " + %string(a_db_timeout) + " seconds")
+    writelog(" - Resetting database timeout to " + %string(a_db_timeout) + " seconds")
     if (%ssc_cmd(a_dbchn,,SSQL_TIMEOUT,%string(a_db_timeout))==SSQL_FAILURE)
         nop
 
@@ -2577,9 +2596,6 @@ function <StructureName>BulkLoad, ^val
         fsc,                    @FileServiceClient
         now,                    a20
     endrecord
-
-    .define writelog(x) writes(a_logchannel,"   - " + %string(^d(now(9:8)),"XX:XX:XX.XX ") + x)
-    .define writett(x)  if ^passed(a_ttchannel) && a_ttchannel writes(a_ttchannel,"   - " + %string(^d(now(9:8)),"XX:XX:XX.XX ") + x)
 
 proc
 

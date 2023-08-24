@@ -192,10 +192,10 @@ proc
         display(tt,$SCR_POS(13,2),"S.  Change sleep interval")
         display(tt,$SCR_POS(14,2),"R.  Restart log file")
 
-        display(tt,$SCR_POS(16,2),"AI. Available instances")
-        display(tt,$SCR_POS(17,2),"I.  Change instance name")
-        display(tt,$SCR_POS(18,2),"AT. Available tables")
-        display(tt,$SCR_POS(19,2),"T.  Change current table")
+        display(tt,$SCR_POS(16,2),"IN. Instance Names")
+        display(tt,$SCR_POS(17,2),"I.  Select Instance")
+        display(tt,$SCR_POS(18,2),"TN. Table names")
+        display(tt,$SCR_POS(19,2),"T.  Select table")
 
         display(tt,$SCR_POS(21,2),"E.  Exit")
 
@@ -484,13 +484,13 @@ proc
             end
         end
 
-        ("AI"),
+        ("IN"),
         begin
             data row, i4, 4
             data col, i4, 2
             data name, string
 
-            display(tt,$SCR_POS(3,1),$SCR_CLR(EOS),"Available Instances")
+            display(tt,$SCR_POS(3,1),$SCR_CLR(EOS),"Instance Names")
 
             foreach name in validInstances
             begin
@@ -511,13 +511,13 @@ proc
             end
         end
 
-        ("AT"),
+        ("TN"),
         begin
             data row, i4, 4
             data col, i4, 2
             data name, string
 
-            display(tt,$SCR_POS(3,1),$SCR_CLR(EOS),"Available Tables")
+            display(tt,$SCR_POS(3,1),$SCR_CLR(EOS),"Table Names")
 
             foreach name in validTables
             begin

@@ -317,8 +317,9 @@ namespace ReplicationLibrary
 ;            end
 ;            else
 ;            begin
-            mreturn mTableName
-;            end
+            begin
+                mreturn mTableName
+            end
 
         endmethod
 

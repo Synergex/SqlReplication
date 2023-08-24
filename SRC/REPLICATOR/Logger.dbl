@@ -20,7 +20,7 @@ namespace replicator
                 try
                 begin
                     data tmpchn, int
-                    open(tmpchn=0,a:s,Settings.LogFileName)
+                    open(tmpchn=0,o:s,Settings.LogFileName)
                     Settings.LogFileChannel = tmpchn
                     ok = true
                 end
@@ -82,7 +82,7 @@ namespace replicator
 
                 Logger.Log(" - Log file is now " + Settings.LogFileName)
 
-                open(tmpchn=0,a:s,Settings.LogFileName)
+                open(tmpchn=0,o:s,Settings.LogFileName)
 
                 Settings.LogFileChannel = tmpchn
             end

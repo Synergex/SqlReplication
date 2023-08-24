@@ -53,6 +53,7 @@
 import System.Collections
 
 subroutine GetReplicatedTables
+    required in instanceName, string
     required out tables, @ArrayList
     static record
         defaultTables, @ArrayList

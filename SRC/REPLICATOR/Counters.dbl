@@ -16,10 +16,12 @@ namespace replicator
     public class Counters
 
         ;;Required for non-VS build!
+.ifndef OS_VMS
         static method Counters
         proc
         endmethod
 
+.endc
         public static Inserts, int
 
         public static Updates, int

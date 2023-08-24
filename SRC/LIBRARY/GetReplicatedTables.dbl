@@ -47,8 +47,6 @@ subroutine GetReplicatedTables
         defaultTables, @ArrayList
     endrecord
 proc
-    tables = new ArrayList()
-
     using instanceName select
     ("DEFAULT"),
     begin

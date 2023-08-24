@@ -21,7 +21,7 @@ dbl -do REPLICATOR_OBJ:library.dbo \
   LIBSRC:FileChunkReader.dbl \
   LIBSRC:FileServiceClient.dbl \
   LIBSRC:GetDateTimeString.dbl \
-  LIBSRC:GetInstances.dbl \
+  LIBSRC:GetInstanceNames.dbl \
   LIBSRC:GetReplicatedTables.dbl \
   LIBSRC:IndexExists.dbl \
   LIBSRC:InstanceInfo.dbl \
