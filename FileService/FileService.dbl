@@ -34,8 +34,7 @@ namespace FileService
 			data eventLogLog = "Application"
 			data eventLogSource = "FileService"
 
-			;TODO: There may be a compiler bug in here somewhere. The namespace prefix should not be
-			;required (it's imported) but without it I get %DBL-E-ISSTAT, Class type required to access static member SourceExists
+			;TODO: COMPILER BUG: Namespace prefix should not be required (it's imported)
 			if (!System.Diagnostics.EventLog.SourceExists(eventLogSource))
 				System.Diagnostics.EventLog.CreateEventSource(eventLogSource, eventLogLog)
 
