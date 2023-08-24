@@ -2965,12 +2965,13 @@ GetExceptionDetails,
             begin
                 ;;Download the error file
                 data exceptionRecords, [#]string
+                data errorMessage, string
 
                 now = %datetime
                 writelog("Downloading remote exceptions log file")
                 writett("Downloading remote exceptions log file")
 
-                if (fsc.DownloadText(remoteExceptionsLog,exceptionRecords))
+                if (fsc.DownloadText(remoteExceptionsLog,exceptionRecords,errorMessage))
                 begin
                     data ex_ch, int
                     data exceptionRecord, string

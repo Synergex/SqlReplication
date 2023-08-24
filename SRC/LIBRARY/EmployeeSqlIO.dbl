@@ -16,6 +16,9 @@ import Synergex.SynergyDE.Select
 .include "EMPLOYEE" repository, structure="strEmployee", end
 .endc
 
+.define writelog(x) if ^passed(a_logchannel) && a_logchannel && %chopen(a_logchannel) writes(a_logchannel,%string(^d(now(1:14)),"XXXX-XX-XX XX:XX:XX ") + x)
+.define writett(x)  if ^passed(a_ttchannel) && a_ttchannel writes(a_ttchannel,"   - " + %string(^d(now(9:8)),"XX:XX:XX.XX ") + x)
+
 ;;*****************************************************************************
 ;;; <summary>
 ;;; Determines if the Employee table exists in the database.
@@ -331,8 +334,6 @@ function EmployeeIndex, ^val
         sql                 ,string     ;;SQL statement
     endrecord
 
-    .define writelog(x) writes(a_logchannel,"   - " + %string(^d(now(9:8)),"XX:XX:XX.XX ") + x)
-
 proc
     init local_data
     ok = true
@@ -357,7 +358,7 @@ proc
     if (ok)
     begin
         now = %datetime
-        writelog("Setting database timeout to " + %string(a_bl_timeout) + " seconds")
+        writelog(" - Setting database timeout to " + %string(a_bl_timeout) + " seconds")
         if (%ssc_cmd(a_dbchn,,SSQL_TIMEOUT,%string(a_bl_timeout))==SSQL_FAILURE)
         begin
             ok = false
@@ -370,9 +371,6 @@ proc
 
     if (ok && !%IndexExists(a_dbchn,"IX_Employee_EmpDept",errtxt))
     begin
-        now = %datetime
-        writelog("  - Adding index IX_Employee_EmpDept")
-
         sql = 'CREATE  INDEX IX_Employee_EmpDept ON "Employee"("EmpDept" ASC)'
 
         call open_cursor
@@ -382,15 +380,24 @@ proc
             call execute_cursor
             call close_cursor
         end
+
+        now = %datetime
+
+        if (ok) then
+        begin
+            writelog(" - Added index IX_Employee_EmpDept")
+        end
+        else
+        begin
+            writelog(" - ERROR: Failed to add index IX_Employee_EmpDepts")
+            ok = true
+        end
     end
 
     ;;Create index 2 (Last name)
 
     if (ok && !%IndexExists(a_dbchn,"IX_Employee_EmpLastName",errtxt))
     begin
-        now = %datetime
-        writelog("  - Adding index IX_Employee_EmpLastName")
-
         sql = 'CREATE  INDEX IX_Employee_EmpLastName ON "Employee"("EmpLastName" ASC)'
 
         call open_cursor
@@ -400,15 +407,24 @@ proc
             call execute_cursor
             call close_cursor
         end
+
+        now = %datetime
+
+        if (ok) then
+        begin
+            writelog(" - Added index IX_Employee_EmpLastName")
+        end
+        else
+        begin
+            writelog(" - ERROR: Failed to add index IX_Employee_EmpLastNames")
+            ok = true
+        end
     end
 
     ;;Create index 3 (State)
 
     if (ok && !%IndexExists(a_dbchn,"IX_Employee_StateCode",errtxt))
     begin
-        now = %datetime
-        writelog("  - Adding index IX_Employee_StateCode")
-
         sql = 'CREATE  INDEX IX_Employee_StateCode ON "Employee"("EmpAddressState" ASC)'
 
         call open_cursor
@@ -418,15 +434,24 @@ proc
             call execute_cursor
             call close_cursor
         end
+
+        now = %datetime
+
+        if (ok) then
+        begin
+            writelog(" - Added index IX_Employee_StateCode")
+        end
+        else
+        begin
+            writelog(" - ERROR: Failed to add index IX_Employee_StateCodes")
+            ok = true
+        end
     end
 
     ;;Create index 4 (Zip code)
 
     if (ok && !%IndexExists(a_dbchn,"IX_Employee_ZipCode",errtxt))
     begin
-        now = %datetime
-        writelog("  - Adding index IX_Employee_ZipCode")
-
         sql = 'CREATE  INDEX IX_Employee_ZipCode ON "Employee"("EmpAddressZip" ASC)'
 
         call open_cursor
@@ -435,6 +460,18 @@ proc
         begin
             call execute_cursor
             call close_cursor
+        end
+
+        now = %datetime
+
+        if (ok) then
+        begin
+            writelog(" - Added index IX_Employee_ZipCode")
+        end
+        else
+        begin
+            writelog(" - ERROR: Failed to add index IX_Employee_ZipCodes")
+            ok = true
         end
     end
 
@@ -470,7 +507,7 @@ proc
     ;;Set the database timeout back to the regular value
 
     now = %datetime
-    writelog("Resetting database timeout to " + %string(a_db_timeout) + " seconds")
+    writelog(" - Resetting database timeout to " + %string(a_db_timeout) + " seconds")
     if (%ssc_cmd(a_dbchn,,SSQL_TIMEOUT,%string(a_db_timeout))==SSQL_FAILURE)
         nop
 
@@ -2203,9 +2240,6 @@ function EmployeeBulkLoad, ^val
         fsc,                    @FileServiceClient
         now,                    a20
     endrecord
-
-    .define writelog(x) writes(a_logchannel,"   - " + %string(^d(now(9:8)),"XX:XX:XX.XX ") + x)
-    .define writett(x)  if ^passed(a_ttchannel) && a_ttchannel writes(a_ttchannel,"   - " + %string(^d(now(9:8)),"XX:XX:XX.XX ") + x)
 
 proc
 

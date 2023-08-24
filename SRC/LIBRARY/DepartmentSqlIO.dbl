@@ -16,6 +16,9 @@ import Synergex.SynergyDE.Select
 .include "DEPARTMENT" repository, structure="strDepartment", end
 .endc
 
+.define writelog(x) if ^passed(a_logchannel) && a_logchannel && %chopen(a_logchannel) writes(a_logchannel,%string(^d(now(1:14)),"XXXX-XX-XX XX:XX:XX ") + x)
+.define writett(x)  if ^passed(a_ttchannel) && a_ttchannel writes(a_ttchannel,"   - " + %string(^d(now(9:8)),"XX:XX:XX.XX ") + x)
+
 ;;*****************************************************************************
 ;;; <summary>
 ;;; Determines if the Department table exists in the database.
@@ -319,8 +322,6 @@ function DepartmentIndex, ^val
         sql                 ,string     ;;SQL statement
     endrecord
 
-    .define writelog(x) writes(a_logchannel,"   - " + %string(^d(now(9:8)),"XX:XX:XX.XX ") + x)
-
 proc
     init local_data
     ok = true
@@ -345,7 +346,7 @@ proc
     if (ok)
     begin
         now = %datetime
-        writelog("Setting database timeout to " + %string(a_bl_timeout) + " seconds")
+        writelog(" - Setting database timeout to " + %string(a_bl_timeout) + " seconds")
         if (%ssc_cmd(a_dbchn,,SSQL_TIMEOUT,%string(a_bl_timeout))==SSQL_FAILURE)
         begin
             ok = false
@@ -358,9 +359,6 @@ proc
 
     if (ok && !%IndexExists(a_dbchn,"IX_Department_DeptManager",errtxt))
     begin
-        now = %datetime
-        writelog("  - Adding index IX_Department_DeptManager")
-
         sql = 'CREATE  INDEX IX_Department_DeptManager ON "Department"("DeptManager" ASC)'
 
         call open_cursor
@@ -369,6 +367,18 @@ proc
         begin
             call execute_cursor
             call close_cursor
+        end
+
+        now = %datetime
+
+        if (ok) then
+        begin
+            writelog(" - Added index IX_Department_DeptManager")
+        end
+        else
+        begin
+            writelog(" - ERROR: Failed to add index IX_Department_DeptManagers")
+            ok = true
         end
     end
 
@@ -404,7 +414,7 @@ proc
     ;;Set the database timeout back to the regular value
 
     now = %datetime
-    writelog("Resetting database timeout to " + %string(a_db_timeout) + " seconds")
+    writelog(" - Resetting database timeout to " + %string(a_db_timeout) + " seconds")
     if (%ssc_cmd(a_dbchn,,SSQL_TIMEOUT,%string(a_db_timeout))==SSQL_FAILURE)
         nop
 
@@ -1960,9 +1970,6 @@ function DepartmentBulkLoad, ^val
         fsc,                    @FileServiceClient
         now,                    a20
     endrecord
-
-    .define writelog(x) writes(a_logchannel,"   - " + %string(^d(now(9:8)),"XX:XX:XX.XX ") + x)
-    .define writett(x)  if ^passed(a_ttchannel) && a_ttchannel writes(a_ttchannel,"   - " + %string(^d(now(9:8)),"XX:XX:XX.XX ") + x)
 
 proc
 
