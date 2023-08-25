@@ -1,37 +1,37 @@
 namespace FileService.Properties
-	
-	{System.Runtime.CompilerServices.CompilerGeneratedAttribute()}
-	{System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.VisualStudio.Editors.SettingsDesigner.SettingsSingleFileGenerator", "15.5.0.0")}
-	internal sealed partial class Settings inherits System.Configuration.ApplicationSettingsBase
-		
-		private static defaultInstance, @Settings, (@Settings)System.Configuration.ApplicationSettingsBase.Synchronized(new Settings())
-		
-		public static property Default, @Settings
-			method get
-			proc
-				mreturn defaultInstance
-			endmethod
-		endproperty
-		
-		{System.Configuration.ApplicationScopedSettingAttribute()}
-		{System.Diagnostics.DebuggerNonUserCodeAttribute()}
-		{System.Configuration.DefaultSettingValueAttribute("")}
-		public property StorageFolder, string
-			method get
-			proc
-				mreturn (string)this["StorageFolder"]
-			endmethod
-		endproperty
-		
-		{System.Configuration.ApplicationScopedSettingAttribute()}
-		{System.Diagnostics.DebuggerNonUserCodeAttribute()}
-		{System.Configuration.DefaultSettingValueAttribute("8080")}
-		public property HttpListenerPort, int
-			method get
-			proc
-				mreturn (int)this["HttpListenerPort"]
-			endmethod
-		endproperty
-	endclass
+    
+    {System.Runtime.CompilerServices.CompilerGeneratedAttribute()}
+    {System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.VisualStudio.Editors.SettingsDesigner.SettingsSingleFileGenerator", "17.6.0.0")}
+    internal sealed partial class Settings inherits System.Configuration.ApplicationSettingsBase
+        
+        private static defaultInstance, @Settings, (@Settings)System.Configuration.ApplicationSettingsBase.Synchronized(new Settings())
+        
+        public static property Default, @Settings
+            method get
+            proc
+                mreturn defaultInstance
+            endmethod
+        endproperty
+        
+        {System.Configuration.ApplicationScopedSettingAttribute()}
+        {System.Diagnostics.DebuggerNonUserCodeAttribute()}
+        {System.Configuration.DefaultSettingValueAttribute("")}
+        public property StorageFolder, string
+            method get
+            proc
+                mreturn (string)this["StorageFolder"]
+            endmethod
+        endproperty
+        
+        {System.Configuration.ApplicationScopedSettingAttribute()}
+        {System.Diagnostics.DebuggerNonUserCodeAttribute()}
+        {System.Configuration.DefaultSettingValueAttribute("8080")}
+        public property HttpListenerPort, int
+            method get
+            proc
+                mreturn (int)this["HttpListenerPort"]
+            endmethod
+        endproperty
+    endclass
 endnamespace
 

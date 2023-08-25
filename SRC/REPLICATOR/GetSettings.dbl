@@ -175,7 +175,18 @@ proc
         begin
             using clValues.Count select
             (1),
-                Settings.FileServicePort = (string)clValues[0]
+            begin
+                try
+                begin
+                    Settings.FileServicePort = %integer((string)clValues[0])
+                end
+                catch (e, @Exception)
+                begin
+                    Logger.ErrorLog("Value after the -fileserviceport option is not an integer")
+                    ok = false
+                end
+                endtry
+            end
             (0),
             begin
                 Logger.ErrorLog("Missing value after the -fileserviceport option")
@@ -194,7 +205,18 @@ proc
             data tmpval, a80
             xcall getlog("REPLICATOR_FILESERVICE_PORT",tmpval,length)
             if (length)
-                Settings.FileServicePort = tmpval(1:length)
+            begin
+                try
+                begin
+                    Settings.FileServicePort = %integer(tmpval(1:length))
+                end
+                catch (e, @Exception)
+                begin
+                    Logger.ErrorLog("The value of REPLICATOR_FILESERVICE_PORT is not an integer")
+                    ok = false
+                end
+                endtry
+            end
         end
     end
 

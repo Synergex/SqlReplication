@@ -38,7 +38,7 @@ namespace replicator
             ErrorSleepTime      = 0.01
             LocalExportPath     = ^null
             FileServiceHost     = ^null
-            FileServicePort     = "8080"
+            FileServicePort     = 8080
             InstanceName        = "DEFAULT"
             LogFileChannel      = 0
             LogFileName         = "REPLICATOR_LOGDIR:REPLICATOR_" + InstanceName + "_" + now(1:8) + "_" + now(9:6) + ".LOG"
@@ -65,7 +65,7 @@ namespace replicator
         ;;; <summary>
         ;;; The SQL Connection database channel that represents our connection to the database.
         ;;; </summary>
-        public static readwrite property DatabaseChannel, int
+        public static readwrite property DatabaseChannel, i4
 
         ;;; <summary>
         ;;; Database connection string.
@@ -93,7 +93,7 @@ namespace replicator
         ;;; <summary>
         ;;; The channel number of the replication instruction file.
         ;;; </summary>
-        public static readwrite property InstructionChannel, int
+        public static readwrite property InstructionChannel, i4
 
         ;;; <summary>
         ;;; The email address or addresses to send status messages to.
@@ -120,22 +120,22 @@ namespace replicator
         ;;; <summary>
         ;;; How many times should replicator attempt to re-connect to the database?
         ;;; </summary>
-        public static readwrite property RetryMaxAttempts, int
+        public static readwrite property RetryMaxAttempts, i4
 
         ;;; <summary>
         ;;; How many seconds should replicator wait between database re-connect attempts?
         ;;; </summary>
-        public static readwrite property RetryDelaySeconds, int
+        public static readwrite property RetryDelaySeconds, i4
 
         ;;; <summary>
         ;;; How many times should replicator attempt to re-connect to a remote queue file?
         ;;; </summary>
-        public static readwrite property QRetryMaxAttempts, int
+        public static readwrite property QRetryMaxAttempts, i4
 
         ;;; <summary>
         ;;; How many seconds should replicator wait between remote queue file re-connect attempts?
         ;;; </summary>
-        public static readwrite property QRetryDelaySeconds, int
+        public static readwrite property QRetryDelaySeconds, i4
 
         ;;; <summary>
         ;;; Where should export files be created locally?
@@ -148,9 +148,9 @@ namespace replicator
         public static readwrite property FileServiceHost, string
 
         ;;; <summary>
-        ;;; The name or IP address of the system running FileService
+        ;;; The IP port number that FileService is listening on
         ;;; </summary>
-        public static readwrite property FileServicePort, string
+        public static readwrite property FileServicePort, i4
 
         ;;; <summary>
         ;;; Are we doing full logging?
@@ -160,7 +160,7 @@ namespace replicator
         ;;; <summary>
         ;;; The channel that the replicator log file is open on.
         ;;; </summary>
-        public static readwrite property LogFileChannel, int
+        public static readwrite property LogFileChannel, i4
 
         ;;; <summary>
         ;;; The name of the replicator log file.
@@ -181,12 +181,12 @@ namespace replicator
         ;;; <summary>
         ;;; Maximum number of database cursors
         ;;; </summary>
-        public static readwrite property MaxCursors, int
+        public static readwrite property MaxCursors, i4
 
         ;;; <summary>
         ;;; Maximum number of columns in a database table
         ;;; </summary>
-        public static readwrite property MaxColumns, int
+        public static readwrite property MaxColumns, i4
 
         ;;; <summary>
         ;;; Should we report progress when bulk loading tables?
@@ -201,7 +201,7 @@ namespace replicator
         ;;; <summary>
         ;;; How many seconds should we sleep when we run out of instructions to process?
         ;;; </summary>
-        public static readwrite property SleepTime, int
+        public static readwrite property SleepTime, i4
 
         ;;; <summary>
         ;;; Should we stop processing and close if we encounter an error?
@@ -216,7 +216,7 @@ namespace replicator
         ;;; <summary>
         ;;; If running interactively, the channel number of the terminal.
         ;;; </summary>
-        public static readwrite property TerminalChannel, int
+        public static readwrite property TerminalChannel, i4
 
         ;;; <summary>
         ;;; The name of the replication transation log file.
@@ -259,17 +259,17 @@ namespace replicator
         ;;; <summary>
         ;;; If the replicator is in batch commit mode, how many rows constitute a batch?
         ;;; </summary>
-        public static readwrite property CommitBatchRows, int
+        public static readwrite property CommitBatchRows, i4
 
         ;;; <summary>
         ;;; Database statement execution timeout in seconds. The default is 60 seconds.
         ;;; </summary>
-        public static readwrite property DatabaseTimeout, int
+        public static readwrite property DatabaseTimeout, i4
 
         ;;; <summary>
         ;;; Database statement execution timeout for bulk load and indexing operations in seconds. The default value is 900 seconds (15 minutes).
         ;;; </summary>
-        public static readwrite property BulkLoadTimeout, int
+        public static readwrite property BulkLoadTimeout, i4
 
     endclass
 

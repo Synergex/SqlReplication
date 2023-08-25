@@ -153,14 +153,14 @@ proc
     end
 
     ;;Make sure that the keyboard input buffer is empty
-
+.ifndef DBLNET
     if (Settings.RunningOnTerminal)
     begin
         data tmpvar, a1
         while (%ttsts)
             accept(Settings.TerminalChannel,tmpvar)
     end
-
+.endc
     ;;On Windows, give the user the chance to read the final messages
 
 .ifdef D_GUI

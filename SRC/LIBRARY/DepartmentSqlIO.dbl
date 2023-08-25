@@ -1931,10 +1931,10 @@ endfunction
 function DepartmentBulkLoad, ^val
 
     required in  a_dbchn,      i
-    required in  a_commit_mode, i
-    required in  a_localpath,  string
-    required in  a_server,     string
-    required in  a_port,       string
+    required in  a_commit_mode,i
+    required in  a_localpath,  a
+    required in  a_server,     a
+    required in  a_port,       i
     required in  a_db_timeout, n
     required in  a_bl_timeout, n
     optional in  a_logchannel, n
@@ -1978,7 +1978,7 @@ proc
 
     ;;If we're doing a remote bulk load, create an instance of the FileService client and verify that we can access the FileService server
 
-    if (remoteBulkLoad = ((a_server!=^null) && (a_server.nes." ")))
+    if (remoteBulkLoad = (a_server.nes." "))
     begin
         fsc = new FileServiceClient(a_server,a_port)
 
