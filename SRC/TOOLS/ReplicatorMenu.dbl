@@ -44,6 +44,7 @@ main ReplicatorMenu
 
     record
         tt,                 i4
+        mainwnd,            i4
         system,             d4
         runtime,            d4
         windows,            boolean
@@ -83,12 +84,16 @@ proc
 
     xcall flags(7004000,1)
     open(tt=0,i,"tt:")
+
     xcall w_init(0,tt,5)
+    xcall w_proc(WP_CREATE,mainwnd,"MAINWND",24,80)
+    xcall w_proc(WP_PLACE,mainwnd,1,1)
 
 .ifdef D_GUI
     xcall w_caption(WC_SET,"SQL Replicator")
 .endc
 
+.ifndef DBLNET
     try
     begin
 .ifdef D_VMS
@@ -100,17 +105,17 @@ proc
     catch (ex, @Exception)
     begin
 .ifdef D_VMS
-        display(tt,"ERROR: Failed to activate shared image REPLICATOR_SH")
+        xcall w_disp(mainwnd,WD_WRITES,"ERROR: Failed to activate shared image REPLICATOR_SH")
 .else
-        display(tt,"ERROR: Failed to activate ELB REPLICATOR_EXE:library.elb")
+        xcall w_disp(mainwnd,WD_WRITES,"ERROR: Failed to activate ELB REPLICATOR_EXE:library.elb")
 .endc
         stop
     end
     endtry
-
+.endc
     ;;Clear screen and display title and instance name
 
-    display(tt,$SCR_POS(1,1),$SCR_CLR(SCREEN),"Replicator Menu")
+    xcall w_disp(mainwnd,WD_POS,1,1,WD_CLR,WDC_WND,"Replicator Menu")
 
     ;;Get valid instance names
 
@@ -145,13 +150,13 @@ proc
     begin
 .ifdef D_GUI
         xcall w_caption(WC_SET,"SQL Replicator: Instance " + instanceName)
-.else
-        nop
 .endc
     end
     else
     begin
-        display(tt, $SCR_POS(3,1),"Invalid instance name: ",instanceName)
+        xcall w_disp(mainwnd,WD_POS,3,1,"Invalid instance name: ",instanceName)
+        xcall w_updt
+        sleep 1
         stop
     end
 
@@ -164,60 +169,61 @@ proc
 
     repeat
     begin
-        display(tt,$SCR_CLR(SCREEN),$SCR_POS(1,1),"SQL Replicator Menu",$SCR_POS(1,25),"Instance: "+instanceName,$SCR_POS(1,50),"Table: " + tableName)
+        xcall w_disp(mainwnd,WD_CLR,WDC_WND,WD_POS,1,1,"SQL Replicator Menu",WD_POS,1,25,"Instance: "+instanceName,WD_POS,1,50,"Table: " + tableName)
 
+.ifndef DBLNET
         if (windows) then
         begin
-            display(tt,$SCR_POS(3,2),"SR. Start Replicator (Normal)")
-            display(tt,$SCR_POS(4,2),"SD. Start Replicator (Debug)")
+            xcall w_disp(mainwnd,WD_POS,3,2,"SR. Start Replicator (Normal)")
+            xcall w_disp(mainwnd,WD_POS,4,2,"SD. Start Replicator (Debug)")
         end
         else if (unix)
         begin
-            display(tt,$SCR_POS(3,2),"SR. Start Replicator (Detached)")
-            display(tt,$SCR_POS(4,2),"RS. Replicator Status")
+            xcall w_disp(mainwnd,WD_POS,3,2,"SR. Start Replicator (Detached)")
+            xcall w_disp(mainwnd,WD_POS,4,2,"RS. Replicator Status")
         end
+.endc
+        xcall w_disp(mainwnd,WD_POS,5,2, "SN. Stop Replicator  (Now)")
+        xcall w_disp(mainwnd,WD_POS,6,2, "SQ. Stop Replicator  (Queued)")
 
-        display(tt,$SCR_POS(5,2), "SN. Stop Replicator  (Now)")
-        display(tt,$SCR_POS(6,2), "SQ. Stop Replicator  (Queued)")
-
-        display(tt,$SCR_POS(8,2), "V.  View instructions")
-        display(tt,$SCR_POS(9,2), "P.  Purge instructions")
-        display(tt,$SCR_POS(10,2),"PF. Purge first instruction")
+        xcall w_disp(mainwnd,WD_POS,8,2, "V.  View instructions")
+        xcall w_disp(mainwnd,WD_POS,9,2, "P.  Purge instructions")
+        xcall w_disp(mainwnd,WD_POS,10,2,"PF. Purge first instruction")
 .ifndef D_VMS
-        display(tt,$SCR_POS(12,2),"Q.  Queue length")
+        xcall w_disp(mainwnd,WD_POS,12,2,"Q.  Queue length")
 .endc
 .ifdef D_GUI
-        display(tt,$SCR_POS(12,2),"QM. Start Queue Monitor")
+        xcall w_disp(mainwnd,WD_POS,12,2,"QM. Start Queue Monitor")
 .endc
-        display(tt,$SCR_POS(13,2),"S.  Change sleep interval")
-        display(tt,$SCR_POS(14,2),"R.  Restart log file")
+        xcall w_disp(mainwnd,WD_POS,13,2,"S.  Change sleep interval")
+        xcall w_disp(mainwnd,WD_POS,14,2,"R.  Restart log file")
 
-        display(tt,$SCR_POS(16,2),"IN. Instance Names")
-        display(tt,$SCR_POS(17,2),"I.  Select Instance")
-        display(tt,$SCR_POS(18,2),"TN. Table names")
-        display(tt,$SCR_POS(19,2),"T.  Select table")
+        xcall w_disp(mainwnd,WD_POS,16,2,"IN. Instance Names")
+        xcall w_disp(mainwnd,WD_POS,17,2,"I.  Select Instance")
+        xcall w_disp(mainwnd,WD_POS,18,2,"TN. Table names")
+        xcall w_disp(mainwnd,WD_POS,19,2,"T.  Select table")
 
-        display(tt,$SCR_POS(21,2),"E.  Exit")
+        xcall w_disp(mainwnd,WD_POS,21,2,"E.  Exit")
 
         if (tableName)
         begin
-            display(tt,$SCR_POS( 3,40),"C.  Create table")
-            display(tt,$SCR_POS( 4,40),"L.  Load table")
-            display(tt,$SCR_POS( 5,40),"CL. Create and load table")
-            display(tt,$SCR_POS( 6,40),"BL. Bulk load table")
-            display(tt,$SCR_POS( 7,40),"BR. Bulk load first 1000")
-            display(tt,$SCR_POS( 8,40),"AI. Add indexes")
-            display(tt,$SCR_POS( 9,40),"DI. Delete indexes")
-            display(tt,$SCR_POS(10,40),"TR. Truncate table")
-            display(tt,$SCR_POS(11,40),"D.  Delete table")
-            display(tt,$SCR_POS(12,40),"X.  Export to CSV")
+            xcall w_disp(mainwnd,WD_POS, 3,40,"C.  Create table")
+            xcall w_disp(mainwnd,WD_POS, 4,40,"L.  Load table")
+            xcall w_disp(mainwnd,WD_POS, 5,40,"CL. Create and load table")
+            xcall w_disp(mainwnd,WD_POS, 6,40,"BL. Bulk load table")
+            xcall w_disp(mainwnd,WD_POS, 7,40,"BR. Bulk load first 1000")
+            xcall w_disp(mainwnd,WD_POS, 8,40,"AI. Add indexes")
+            xcall w_disp(mainwnd,WD_POS, 9,40,"DI. Delete indexes")
+            xcall w_disp(mainwnd,WD_POS,10,40,"TR. Truncate table")
+            xcall w_disp(mainwnd,WD_POS,11,40,"D.  Delete table")
+            xcall w_disp(mainwnd,WD_POS,12,40,"X.  Export to CSV")
 
             if (windows && (tableName=="Employee" || tableName=="Department"))
-                display(tt,$SCR_POS(13,40),"M.  Maintainance")
+                xcall w_disp(mainwnd,WD_POS,13,40,"M.  Maintainance")
         end
 
-        display(tt,$SCR_POS(23,2),$SCR_CLR(EOS),"Select an option: ")
-        reads(tt,option)
+        xcall w_disp(mainwnd,WD_POS,23,2,WD_CLR,WDC_EOW,"Select an option: ")
+        xcall w_disp(mainwnd,WD_READS,option)
 
         using option select
 
@@ -259,26 +265,30 @@ proc
                 data buffer, a256
                 open(pipechn,i,'|ps -ef | grep "dbr REPLICATOR_EXE:replicator.dbr" | grep -v grep')
 
-                display(tt,$SCR_CLR(SCREEN),"Replicator status ...",$SCR_POS(3,1))
+                xcall w_disp(mainwnd,WD_CLR,WDC_WND,"Replicator status ...",WD_POS,3,1)
 
                 repeat
                 begin
                     reads(pipechn,buffer,EndOfPipe)
-                    writes(tt,%atrim(buffer))
+                    xcall w_disp(mainwnd,WD_WRITES,%atrim(buffer))
                     instanceCount+=1
                 end
             EndOfPipe,
                 close pipechn
 
                 if (!instanceCount)
-                    display(tt,"No replicator instances found!")
+                    xcall w_disp(mainwnd,"No replicator instances found!")
 
-                display(tt,$SCR_POS(23,2),"Press a key to continue: ")
+                xcall w_disp(mainwnd,WD_POS,23,2,"Press a key to continue: ")
                 begin
                     data tmpvar, a1
-                    accept(tt,tmpvar)
+                    xcall w_disp(mainwnd,WD_ACCEPT,tmpvar)
+.ifdef DBLNET
+                    while (%w_info(WIF_TTSTS))
+.else
                     while (%ttsts)
-                        accept(tt,tmpvar)
+.endc
+                        xcall w_disp(mainwnd,WD_ACCEPT,tmpvar)
                 end
 
             end
@@ -310,13 +320,13 @@ proc
         norec,
             close chn
             xcall Replicate(instanceName,REPLICATION_INSTRUCTION.SHUTDOWN)
-            display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Command queued")
+            xcall w_disp(mainwnd,WD_POS,23,2,WD_CLR,WDC_EOL,"Command queued")
         end
 
         ("SQ"),
         begin
             xcall Replicate(instanceName,REPLICATION_INSTRUCTION.SHUTDOWN)
-            display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Command queued")
+            xcall w_disp(mainwnd,WD_POS,23,2,WD_CLR,WDC_EOL,"Command queued")
         end
 
         ("V "),
@@ -327,9 +337,9 @@ proc
             data stopping, boolean
             open(chn=0,"I:I",queueFileName)
 
-            display(tt,$SCR_POS(3,1),$SCR_CLR(EOS),
-            &    $SCR_POS(3,1),"Instruction           Table                           Affected Record",
-            &    $SCR_POS(4,1),"--------------------  ------------------------------  ------------------------")
+            xcall w_disp(mainwnd,WD_POS,3,1,WD_CLR,WDC_EOW,
+            &    WD_POS,3,1,"Instruction           Table                           Affected Record",
+            &    WD_POS,4,1,"--------------------  ------------------------------  ------------------------")
 
             find(chn,,^FIRST) [EOF=eof]
 
@@ -390,15 +400,19 @@ proc
                     outbuf.table = instruction.structure_name
                     outbuf.keyval = instruction.record
 
-                    display(tt,$scr_pos(row,1),outbuf)
+                    xcall w_disp(mainwnd,WD_POS,row,1,outbuf)
                 end
 
-                display(tt,$SCR_POS(23,1),"Press ENTER for more or M for menu: ")
+                xcall w_disp(mainwnd,WD_POS,23,1,"Press ENTER for more or M for menu: ")
 
                 begin
-                    accept(tt,tmpvar)
+                    xcall w_disp(mainwnd,WD_ACCEPT,tmpvar)
+.ifdef DBLNET
+                    while (%w_info(WIF_TTSTS))
+.else
                     while (%ttsts)
-                        accept(tt,tmpvar)
+.endc
+                        xcall w_disp(mainwnd,WD_ACCEPT,tmpvar)
                 end
 
                 if (tmpvar=="M") then
@@ -407,7 +421,7 @@ proc
                 end
                 else
                 begin
-                    display(tt,$scr_pos(3,1),$scr_clr(EOS))
+                    xcall w_disp(mainwnd,WD_POS,3,1,WD_CLR,WDC_EOW)
                     nextloop
                 end
             end
@@ -417,11 +431,15 @@ proc
 
             if (tmpvar!="M")
             begin
-                display(tt,$SCR_POS(23,1),$SCR_CLR(EOS),"No more instructions. Press a key: ")
+                xcall w_disp(mainwnd,WD_POS,23,1,WD_CLR,WDC_EOW,"No more instructions. Press a key: ")
                 begin
-                    accept(tt,tmpvar)
+                    xcall w_disp(mainwnd,WD_ACCEPT,tmpvar)
+.ifdef DBLNET
+                    while (%w_info(WIF_TTSTS))
+.else
                     while (%ttsts)
-                        accept(tt,tmpvar)
+.endc
+                        xcall w_disp(mainwnd,WD_ACCEPT,tmpvar)
                 end
             end
             nextloop
@@ -430,25 +448,30 @@ proc
         ("P "),
         begin
             xcall Replicate(instanceName,REPLICATION_INSTRUCTION.DELETE_ALL_INSTRUCTIONS)
-            display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Command executed")
+            xcall w_disp(mainwnd,WD_POS,23,2,WD_CLR,WDC_EOL,"Command executed")
         end
 
         ("PF"),
         begin
             xcall Replicate(instanceName,REPLICATION_INSTRUCTION.DELETE_FIRST_INSTRUCTION)
-            display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Command executed")
+            xcall w_disp(mainwnd,WD_POS,23,2,WD_CLR,WDC_EOL,"Command executed")
         end
 
 .ifndef D_VMS
         ("Q "),
         begin
+            data tmpvar, a1
             data chn, i4
             open(chn=0,"I:I",queueFileName)
-            display(tt,$scr_pos(23,2),$scr_clr(EOL),"Queue length: " + %string(%isinfo(chn,"NUMRECS")))
+            xcall w_disp(mainwnd,WD_POS,23,2,WD_CLR,WDC_EOL,"Queue length: " + %string(%isinfo(chn,"NUMRECS")))
             close chn
-            accept(tt,chn)
+            xcall w_disp(mainwnd,WD_ACCEPT,tmpvar)
+.ifdef DBLNET
+            while (%w_info(WIF_TTSTS))
+.else
             while (%ttsts)
-                accept(tt,chn)
+.endc
+                xcall w_disp(mainwnd,WD_ACCEPT,tmpvar)
             nextloop
         end
 .endc
@@ -463,19 +486,19 @@ proc
         ("S "),
         begin
             data interval, a5
-            display(tt,$SCR_POS(23,2),$SCR_CLR(EOS),"Sleep interval (seconds): ")
-            reads(tt,interval)
+            xcall w_disp(mainwnd,WD_POS,23,2,WD_CLR,WDC_EOW,"Sleep interval (seconds): ")
+            xcall w_disp(mainwnd,WD_READS,interval)
 
             if (interval) then
             begin
                 if (%IsDecimalNoNegatives(^d(interval))) then
                 begin
                     xcall Replicate(instanceName,REPLICATION_INSTRUCTION.CHANGE_INTERVAL,,%atrim(interval))
-                    display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Command queued")
+                    xcall w_disp(mainwnd,WD_POS,23,2,WD_CLR,WDC_EOL,"Command queued")
                 end
                 else
                 begin
-                    display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Invalid interval!")
+                    xcall w_disp(mainwnd,WD_POS,23,2,WD_CLR,WDC_EOL,"Invalid interval!")
                 end
             end
             else
@@ -490,11 +513,11 @@ proc
             data col, i4, 2
             data name, string
 
-            display(tt,$SCR_POS(3,1),$SCR_CLR(EOS),"Instance Names")
+            xcall w_disp(mainwnd,WD_POS,3,1,WD_CLR,WDC_EOW,"Instance Names")
 
             foreach name in validInstances
             begin
-                display(tt,$SCR_POS(row+=1,col),name)
+                xcall w_disp(mainwnd,WD_POS,row+=1,col,name)
                 if (row==21)
                 begin
                     row=4
@@ -502,12 +525,16 @@ proc
                 end
             end
 
-            display(tt,$SCR_POS(23,1),"Press a key: ")
+            xcall w_disp(mainwnd,WD_POS,23,1,"Press a key: ")
             begin
                 data tmpvar, a1
-                accept(tt,tmpvar)
+                xcall w_disp(mainwnd,WD_ACCEPT,tmpvar)
+.ifdef DBLNET
+                while (%w_info(WIF_TTSTS))
+.else
                 while (%ttsts)
-                    accept(tt,tmpvar)
+.endc
+                    xcall w_disp(mainwnd,WD_ACCEPT,tmpvar)
             end
         end
 
@@ -517,11 +544,11 @@ proc
             data col, i4, 2
             data name, string
 
-            display(tt,$SCR_POS(3,1),$SCR_CLR(EOS),"Table Names")
+            xcall w_disp(mainwnd,WD_POS,3,1,WD_CLR,WDC_EOW,"Table Names")
 
             foreach name in validTables
             begin
-                display(tt,$SCR_POS(row+=1,col),name)
+                xcall w_disp(mainwnd,WD_POS,row+=1,col,name)
                 if (row==21)
                 begin
                     row=4
@@ -529,19 +556,23 @@ proc
                 end
             end
 
-            display(tt,$SCR_POS(23,1),"Press a key: ")
+            xcall w_disp(mainwnd,WD_POS,23,1,"Press a key: ")
             begin
                 data tmpvar, a1
-                accept(tt,tmpvar)
+                xcall w_disp(mainwnd,WD_ACCEPT,tmpvar)
+.ifdef DBLNET
+                while (%w_info(WIF_TTSTS))
+.else
                 while (%ttsts)
-                    accept(tt,tmpvar)
+.endc
+                    xcall w_disp(mainwnd,WD_ACCEPT,tmpvar)
             end
         end
 
         ("T "),
         begin
-            display(tt,$SCR_POS(23,2),$SCR_CLR(EOS),"Table name: ")
-            reads(tt,tableName)
+            xcall w_disp(mainwnd,WD_POS,23,2,WD_CLR,WDC_EOW,"Table name: ")
+            xcall w_disp(mainwnd,WD_READS,tableName)
 
             if (tableName) then
             begin
@@ -555,7 +586,7 @@ proc
                     if ((a)(name.ToUpper()).eqs.tableName)
                     begin
                         tableName = (a)name
-                        display(tt,$SCR_POS(1,57),$SCR_CLR(EOL),%atrim(tableName))
+                        xcall w_disp(mainwnd,WD_POS,1,57,WD_CLR,WDC_EOL,%atrim(tableName))
                         found = true
                         exitloop
                     end
@@ -564,14 +595,14 @@ proc
                 ;;Report if not found
                 if (!found)
                 begin
-                    display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Table not found!")
-                    display(tt,$SCR_POS(1,57),$SCR_CLR(EOL),"<none>")
+                    xcall w_disp(mainwnd,WD_POS,23,2,WD_CLR,WDC_EOL,"Table not found!")
+                    xcall w_disp(mainwnd,WD_POS,1,57,WD_CLR,WDC_EOL,"<none>")
                     clear tableName
                 end
             end
             else
             begin
-                display(tt,$SCR_POS(1,57),$SCR_CLR(EOL),"<none>")
+                xcall w_disp(mainwnd,WD_POS,1,57,WD_CLR,WDC_EOL,"<none>")
                 nextloop
             end
         end
@@ -583,8 +614,8 @@ proc
 
             ;;Gte a new instance name
             clear tmpInstanceName
-            display(tt,$SCR_POS(23,2),$SCR_CLR(EOS),"Instance name: ")
-            reads(tt,tmpInstanceName)
+            xcall w_disp(mainwnd,WD_POS,23,2,WD_CLR,WDC_EOW,"Instance name: ")
+            xcall w_disp(mainwnd,WD_READS,tmpInstanceName)
             upcase tmpInstanceName
 
             ;;Did it change?
@@ -620,7 +651,7 @@ proc
                     xcall GetReplicatedTables(instanceName,validTables)
 
                 clear tmpInstanceName
-                display(tt,$SCR_POS(23,2),$SCR_CLR(EOS),$SCR_POS(1,35),tmpInstanceName,$SCR_POS(1,35),instanceName)
+                xcall w_disp(mainwnd,WD_POS,23,2,WD_CLR,WDC_EOW,WD_POS,1,35,tmpInstanceName,WD_POS,1,35,instanceName)
 
                 ;;Set the queue file name for the instance
                 queueFileName = "REPLICATOR_DATA:REPLICATION_" + instanceName + ".ISM"
@@ -631,7 +662,7 @@ proc
                 else
                 begin
                     instanceName = oldInstanceName
-                    display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Invalid instance name!")
+                    xcall w_disp(mainwnd,WD_POS,23,2,WD_CLR,WDC_EOL,"Invalid instance name!")
                 end
         end
         end
@@ -639,7 +670,7 @@ proc
         ("R "),
         begin
             xcall Replicate(instanceName,REPLICATION_INSTRUCTION.CYCLE_LOG)
-            display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Command executed")
+            xcall w_disp(mainwnd,WD_POS,23,2,WD_CLR,WDC_EOL,"Command executed")
         end
 
         ("C "),
@@ -647,10 +678,10 @@ proc
             if (tableName) then
             begin
                 xcall Replicate(instanceName,REPLICATION_INSTRUCTION.CREATE_TABLE,tableName)
-                display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Command executed")
+                xcall w_disp(mainwnd,WD_POS,23,2,WD_CLR,WDC_EOL,"Command executed")
             end
             else
-                display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Invalid option!")
+                xcall w_disp(mainwnd,WD_POS,23,2,WD_CLR,WDC_EOL,"Invalid option!")
         end
 
         ("L "),
@@ -658,10 +689,10 @@ proc
             if (tableName) then
             begin
                 xcall Replicate(instanceName,REPLICATION_INSTRUCTION.LOAD_TABLE,tableName)
-                display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Command queued")
+                xcall w_disp(mainwnd,WD_POS,23,2,WD_CLR,WDC_EOL,"Command queued")
             end
             else
-                display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Invalid option!")
+                xcall w_disp(mainwnd,WD_POS,23,2,WD_CLR,WDC_EOL,"Invalid option!")
         end
 
         ("CL"),
@@ -669,10 +700,10 @@ proc
             if (tableName) then
             begin
                 xcall Replicate(instanceName,REPLICATION_INSTRUCTION.CREATE_AND_LOAD_TABLE,tableName)
-                display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Command queued")
+                xcall w_disp(mainwnd,WD_POS,23,2,WD_CLR,WDC_EOL,"Command queued")
             end
             else
-                display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Invalid option!")
+                xcall w_disp(mainwnd,WD_POS,23,2,WD_CLR,WDC_EOL,"Invalid option!")
         end
 
         ("BL"),
@@ -680,10 +711,10 @@ proc
             if (tableName) then
             begin
                 xcall Replicate(instanceName,REPLICATION_INSTRUCTION.BULK_LOAD_TABLE,tableName)
-                display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Command queued")
+                xcall w_disp(mainwnd,WD_POS,23,2,WD_CLR,WDC_EOL,"Command queued")
             end
             else
-                display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Invalid option!")
+                xcall w_disp(mainwnd,WD_POS,23,2,WD_CLR,WDC_EOL,"Invalid option!")
         end
 
         ("BR"),
@@ -691,10 +722,10 @@ proc
             if (tableName) then
             begin
                 xcall Replicate(instanceName,REPLICATION_INSTRUCTION.BULK_LOAD_FIRST_1000,tableName)
-                display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Command queued")
+                xcall w_disp(mainwnd,WD_POS,23,2,WD_CLR,WDC_EOL,"Command queued")
             end
             else
-                display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Invalid option!")
+                xcall w_disp(mainwnd,WD_POS,23,2,WD_CLR,WDC_EOL,"Invalid option!")
         end
 
         ("AI"),
@@ -702,10 +733,10 @@ proc
             if (tableName) then
             begin
                 xcall Replicate(instanceName,REPLICATION_INSTRUCTION.ADD_INDEXES,tableName)
-                display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Command queued")
+                xcall w_disp(mainwnd,WD_POS,23,2,WD_CLR,WDC_EOL,"Command queued")
             end
             else
-                display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Invalid option!")
+                xcall w_disp(mainwnd,WD_POS,23,2,WD_CLR,WDC_EOL,"Invalid option!")
         end
 
         ("DI"),
@@ -713,10 +744,10 @@ proc
             if (tableName) then
             begin
                 xcall Replicate(instanceName,REPLICATION_INSTRUCTION.DELETE_INDEXES,tableName)
-                display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Command queued")
+                xcall w_disp(mainwnd,WD_POS,23,2,WD_CLR,WDC_EOL,"Command queued")
             end
             else
-                display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Invalid option!")
+                xcall w_disp(mainwnd,WD_POS,23,2,WD_CLR,WDC_EOL,"Invalid option!")
         end
 
         ("TR"),
@@ -724,10 +755,10 @@ proc
             if (tableName) then
             begin
                 xcall Replicate(instanceName,REPLICATION_INSTRUCTION.DELETE_ALL_ROWS,tableName)
-                display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Command queued")
+                xcall w_disp(mainwnd,WD_POS,23,2,WD_CLR,WDC_EOL,"Command queued")
             end
             else
-                display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Invalid option!")
+                xcall w_disp(mainwnd,WD_POS,23,2,WD_CLR,WDC_EOL,"Invalid option!")
         end
 
         ("D "),
@@ -735,10 +766,10 @@ proc
             if (tableName) then
             begin
                 xcall Replicate(instanceName,REPLICATION_INSTRUCTION.DELETE_TABLE,tableName)
-                display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Command queued")
+                xcall w_disp(mainwnd,WD_POS,23,2,WD_CLR,WDC_EOL,"Command queued")
             end
             else
-                display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Invalid option!")
+                xcall w_disp(mainwnd,WD_POS,23,2,WD_CLR,WDC_EOL,"Invalid option!")
         end
 
         ("X "),
@@ -746,24 +777,25 @@ proc
             if (tableName) then
             begin
                 xcall Replicate(instanceName,REPLICATION_INSTRUCTION.CREATE_CSV,tableName)
-                display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Command queued")
+                xcall w_disp(mainwnd,WD_POS,23,2,WD_CLR,WDC_EOL,"Command queued")
             end
             else
-                display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Invalid option!")
+                xcall w_disp(mainwnd,WD_POS,23,2,WD_CLR,WDC_EOL,"Invalid option!")
         end
 
         ("E "),
             exitloop
 
         (),
-            display(tt,$scr_pos(23,2),$SCR_CLR(EOL),"Invalid option!")
+            xcall w_disp(mainwnd,WD_POS,23,2,WD_CLR,WDC_EOL,"Invalid option!")
 
         endusing
 
         sleep 0.5
     end
 
-    display(tt,$SCR_POS(1,1),$SCR_CLR(SCREEN))
+    xcall w_disp(mainwnd,WD_POS,1,1,WD_CLR,WDC_WND)
+    xcall w_exit
     close tt
     stop
 
