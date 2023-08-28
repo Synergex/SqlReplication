@@ -33,6 +33,9 @@
     <DebugOptimize>Debug</DebugOptimize>
     <DocumentationFile>bin\Debug\FileService.xml</DocumentationFile>
     <Prefer32Bit Condition=" '$(TargetFrameworkVersion)'  != 'v4.0' AND '$(Prefer32Bit)' != 'false' ">true</Prefer32Bit>
+    <TargetRuntimeLevel>11010104</TargetRuntimeLevel>
+    <UnevaluatedOutputPath>.\</UnevaluatedOutputPath>
+    <Prefer32Bit />
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <IncludeDebugInformation>true</IncludeDebugInformation>
@@ -42,8 +45,10 @@
     <DebugOptimize>Optimize</DebugOptimize>
     <DocumentationFile>bin\Release\FileService.xml</DocumentationFile>
     <Prefer32Bit Condition=" '$(TargetFrameworkVersion)'  != 'v4.0' AND '$(Prefer32Bit)' != 'false' ">true</Prefer32Bit>
-    <UnevaluatedOutputPath>bin\Release\</UnevaluatedOutputPath>
-    <Prefer32Bit>False</Prefer32Bit>
+    <UnevaluatedOutputPath>.\</UnevaluatedOutputPath>
+    <Prefer32Bit>
+    </Prefer32Bit>
+    <TargetRuntimeLevel>11010104</TargetRuntimeLevel>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="Microsoft.Owin, Version=4.2.2.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35">
