@@ -6,7 +6,7 @@
     <ProductVersion>3.10</ProductVersion>
     <ProjectGuid>8d11bdfd-bfd7-473f-9199-d34d2cda2d94</ProjectGuid>
     <SchemaVersion>2.0</SchemaVersion>
-    <OutputName>FileServiceSetup</OutputName>
+    <OutputName>FileService Setup 1.2</OutputName>
     <OutputType>Package</OutputType>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|x86' ">
