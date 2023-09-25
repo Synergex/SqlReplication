@@ -180,6 +180,7 @@ endfunction
 ;;; </summary>
 ;;; <param name="a_dbchn">Connected database channel.</param>
 ;;; <param name="a_commit_mode">What commit mode are we using?</param>
+;;; <param name="a_data_compression">Enable data compression on table?</param>
 ;;; <param name="a_errtxt">Returned error text.</param>
 ;;; <returns>Returns true on success, otherwise false.</returns>
 
@@ -187,6 +188,7 @@ function <StructureName>Create, ^val
 
     required in  a_dbchn,  i
     required in  a_commit_mode, i
+    required in  a_data_compression, i
     optional out a_errtxt, a
     endparams
 
@@ -264,6 +266,11 @@ proc
         & + 'CONSTRAINT PK_<StructureName> PRIMARY KEY CLUSTERED("RecordNumber" ASC)'
 </IF STRUCTURE_ISAM>
         & + ')'
+
+        if (a_data_compression)
+        begin
+            sql = sql + " WITH(DATA_COMPRESSION=PAGE)"
+        end
 
         call open_cursor
 
@@ -391,6 +398,7 @@ function <StructureName>Index, ^val
     required in  a_commit_mode, i
     required in  a_db_timeout, n
     required in  a_bl_timeout, n
+    required in  a_data_compression, n
     optional in  a_logchannel, n
     optional out a_errtxt, a
     endparams
@@ -450,6 +458,11 @@ proc
     begin
         sql = '<PRIMARY_KEY>CREATE INDEX IX_<StructureName>_<KeyName> ON "<StructureName>"(<SEGMENT_LOOP>"<FieldSqlName>" <SEGMENT_ORDER><,></SEGMENT_LOOP>)</PRIMARY_KEY>'
 
+        if (a_data_compression)
+        begin
+            sql = sql + " WITH(DATA_COMPRESSION=PAGE)"
+        end
+
         call open_cursor
 
         if (ok)
@@ -478,6 +491,11 @@ proc
     if (ok && !%IndexExists(a_dbchn,"IX_<StructureName>_<KeyName>",errtxt))
     begin
         sql = 'CREATE <IF FIRST_UNIQUE_KEY>CLUSTERED<ELSE><KEY_UNIQUE></IF FIRST_UNIQUE_KEY> INDEX IX_<StructureName>_<KeyName> ON "<StructureName>"(<SEGMENT_LOOP>"<FieldSqlName>" <SEGMENT_ORDER><,></SEGMENT_LOOP>)'
+
+        if (a_data_compression)
+        begin
+            sql = sql + " WITH(DATA_COMPRESSION=PAGE)"
+        end
 
         call open_cursor
 
@@ -2548,6 +2566,7 @@ endfunction
 ;;; <param name="a_remotepath">Remote export directory or URL</param>
 ;;; <param name="a_db_timeout">Database timeout in seconds.</param>
 ;;; <param name="a_bl_timeout">Bulk load timeout in seconds.</param>
+;;; <param name="a_bl_batchsz">Bulk load batch size in rows.</param>
 ;;; <param name="a_logchannel">Log file channel to log messages on.</param>
 ;;; <param name="a_records">Total number of records processed</param>
 ;;; <param name="a_exceptions">Total number of exception records detected</param>

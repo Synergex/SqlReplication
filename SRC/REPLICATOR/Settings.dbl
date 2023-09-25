@@ -56,6 +56,7 @@ namespace replicator
             RetryDelaySeconds   = 30
             QRetryMaxAttempts   = 10
             QRetryDelaySeconds  = 30
+            EnableDataCompression  = false
         endmethod
 
         ;;; <summary>
@@ -276,6 +277,11 @@ namespace replicator
         ;;; The batch size to be used with bulk load operations.
         ;;; </summary>
         public static readwrite property BulkLoadBatchSize, int
+
+        ;;; <summary>
+        ;;; Use data compression for tables and indexes?
+        ;;; </summary>
+        public static readwrite property EnableDataCompression, boolean
 
     endclass
 

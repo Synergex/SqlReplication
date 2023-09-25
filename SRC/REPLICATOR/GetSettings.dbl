@@ -456,6 +456,24 @@ proc
         end
     end
 
+    ;;Use data compression for tables and indexes
+
+    if (ok)
+    begin
+        ;;Command line?
+        if (CommandLineParser.Parse("datacompression")) then
+        begin
+            Settings.EnableDataCompression = true
+        end
+        else
+        begin
+            ;;Environment variable?
+            data tmpval, a3
+            xcall getlog("REPLICATOR_DATA_COMPRESSION",tmpval,length)
+            Settings.EnableDataCompression = ((length>0)&&(tmpval.eq."YES"))
+        end
+    end
+
     ;;Max columns
 
     if (ok)

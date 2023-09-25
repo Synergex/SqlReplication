@@ -105,9 +105,14 @@ proc
     begin
         if (Settings.BulkLoadBatchSize > 0)
         begin
-            Logger.Log("Commit mode: MANUAL")
-            Logger.Log("B/L btch sz: " + %string(Settings.BulkLoadBatchSize))
+            Logger.Log("Bulk load batch size: " + %string(Settings.BulkLoadBatchSize))
         end
+    end
+
+    ;;Report if data compression is enables
+    if (ok)
+    begin
+        Logger.Log("Compression: " + (Settings.EnableDataCompression == true ? "ENABLED" : "DISABLED"))
     end
 
     freturn ok
