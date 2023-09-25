@@ -100,6 +100,16 @@ proc
         endusing
     end
 
+    ;;Report custom bulk load batch size
+    if (ok)
+    begin
+        if (Settings.BulkLoadBatchSize > 0)
+        begin
+            Logger.Log("Commit mode: MANUAL")
+            Logger.Log("B/L btch sz: " + %string(Settings.BulkLoadBatchSize))
+        end
+    end
+
     freturn ok
 
 endfunction

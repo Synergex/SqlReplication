@@ -897,7 +897,7 @@ BulkLoadTable,
             data failRows,  int,0
 
             functionName = %atrim(instruction.structure_name) + "BulkLoad"
-            status = %xsubr(functionName,(i)(Settings.DatabaseChannel),(i)(Settings.CommitMode),(a)Settings.LocalExportPath,(a)Settings.FileServiceHost,Settings.FileServicePort,Settings.DatabaseTimeout,Settings.BulkLoadTimeout,Settings.LogFileChannel,Settings.TerminalChannel,totalRows,failRows,dberrtxt)
+            status = %xsubr(functionName,Settings.DatabaseChannel,(i)(Settings.CommitMode),Settings.LocalExportPath,Settings.FileServiceHost,Settings.FileServicePort,Settings.DatabaseTimeout,Settings.BulkLoadTimeout,Settings.BulkLoadBatchSize,Settings.LogFileChannel,Settings.TerminalChannel,totalRows,failRows,dberrtxt)
 
             if (status) then
             begin

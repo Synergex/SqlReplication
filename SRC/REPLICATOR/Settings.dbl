@@ -51,6 +51,7 @@ namespace replicator
             DatabaseChannel     = 1
             DatabaseTimeout     = 60
             BulkLoadTimeout     = 900
+            BulkLoadBatchSize   = 0
             RetryMaxAttempts    = 10
             RetryDelaySeconds   = 30
             QRetryMaxAttempts   = 10
@@ -270,6 +271,11 @@ namespace replicator
         ;;; Database statement execution timeout for bulk load and indexing operations in seconds. The default value is 900 seconds (15 minutes).
         ;;; </summary>
         public static readwrite property BulkLoadTimeout, i4
+
+        ;;; <summary>
+        ;;; The batch size to be used with bulk load operations.
+        ;;; </summary>
+        public static readwrite property BulkLoadBatchSize, int
 
     endclass
 

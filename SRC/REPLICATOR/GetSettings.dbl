@@ -845,6 +845,60 @@ proc
         end
     end
 
+    ;;Bulk load batch size
+
+    if (ok)
+    begin
+        ;;Command line?
+        if (CommandLineParser.Parse("bulkloadbatchsize",clValues)) then
+        begin
+            using clValues.Count select
+            (1),
+            begin
+                try
+                begin
+                    Settings.BulkLoadBatchSize = %integer((string)clValues[0])
+                end
+                catch (e, @Exception)
+                begin
+                    Logger.ErrorLog("Invalid option value following the -bulkloadbatchsize option. Specify an integer greater than 1.")
+                    ok = false
+                end
+                endtry
+            end
+            (0),
+            begin
+                Logger.ErrorLog("Missing value after the -bulkloadbatchsize option")
+                ok = false
+            end
+            (),
+            begin
+                Logger.ErrorLog("Only one value may follow the -bulkloadbatchsize option")
+                ok = false
+            end
+            endusing
+        end
+        else
+        begin
+            ;;Environment variable?
+            data tmpval, a32
+            xcall getlog("REPLICATOR_BULKLOAD_BATCHSIZE",tmpval,length)
+            if (length)
+            begin
+                try
+                begin
+                    Settings.BulkLoadBatchSize = %integer(%atrim(tmpval))
+                end
+                catch (e, @Exception)
+                begin
+                    Logger.ErrorLog("Invalid option value for REPLICATOR_BULKLOAD_BATCHSIZE. Specify an integer greater than 1.")
+                    ok = false
+                end
+                endtry
+            end
+        end
+    end
+	
     if (ok)
     begin
         ;;Command line?

@@ -2563,6 +2563,7 @@ function <StructureName>BulkLoad, ^val
     required in  a_port,       i
     required in  a_db_timeout, n
     required in  a_bl_timeout, n
+    required in  a_bl_batchsz, n
     optional in  a_logchannel, n
     optional in  a_ttchannel,  n
     optional out a_records,    n
@@ -2730,7 +2731,14 @@ proc
 
             errorFile = fileToLoad + "_err"
 
-            sql = "BULK INSERT <StructureName> FROM '" + fileToLoad + "' WITH (FIRSTROW=2,FIELDTERMINATOR='|',ROWTERMINATOR='\n', ERRORFILE='" + errorFile + "')"
+            sql = "BULK INSERT <StructureName> FROM '" + fileToLoad + "' WITH (FIRSTROW=2,FIELDTERMINATOR='|',ROWTERMINATOR='\n', MAXERRORS=100000000, ERRORFILE='" + errorFile + "'"
+
+            if (a_bl_batchsz > 0)
+            begin
+                sql = sql + ", BATCHSIZE=" + %string(a_bl_batchsz)
+            end
+
+           sql = sql + ")"
 
             if (%ssc_open(a_dbchn,cursor,sql,SSQL_NONSEL,SSQL_STANDARD)==SSQL_NORMAL) then
                 cursorOpen = true
