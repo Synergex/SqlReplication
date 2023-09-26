@@ -109,10 +109,17 @@ proc
         end
     end
 
-    ;;Report if data compression is enables
+    ;;Report if data compression is enabled
     if (ok)
     begin
-        Logger.Log("Compression: " + (Settings.EnableDataCompression == true ? "ENABLED" : "DISABLED"))
+        using Settings.DataCompressionMode select
+        (DatabaseDataCompression.None),
+            Logger.Log("Compression: NONE")
+        (DatabaseDataCompression.Row),
+            Logger.Log("Compression: ROW")
+        (DatabaseDataCompression.Page),
+            Logger.Log("Compression: PAGE")
+        endusing
     end
 
     freturn ok

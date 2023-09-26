@@ -14,6 +14,13 @@ namespace replicator
         Manual,             3
     endenum
 
+    ;; Do not change these values, they are processed via their integer value in the SqlIO routines!
+    public enum DatabaseDataCompression
+        None,       1
+        Row,        2
+        Page,       3
+    endenum
+
     ;;; <summary>
     ;;; Represents various settings used within the replicator application.
     ;;; </summary>
@@ -56,7 +63,7 @@ namespace replicator
             RetryDelaySeconds   = 30
             QRetryMaxAttempts   = 10
             QRetryDelaySeconds  = 30
-            EnableDataCompression  = false
+            DataCompressionMode = DatabaseDataCompression.None
         endmethod
 
         ;;; <summary>
@@ -281,7 +288,7 @@ namespace replicator
         ;;; <summary>
         ;;; Use data compression for tables and indexes?
         ;;; </summary>
-        public static readwrite property EnableDataCompression, boolean
+        public static readwrite property DataCompressionMode, DatabaseDataCompression
 
     endclass
 

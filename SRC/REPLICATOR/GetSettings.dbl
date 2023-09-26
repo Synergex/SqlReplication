@@ -461,16 +461,45 @@ proc
     if (ok)
     begin
         ;;Command line?
-        if (CommandLineParser.Parse("datacompression")) then
+        if (CommandLineParser.Parse("datacompression",clValues)) then
         begin
-            Settings.EnableDataCompression = true
+            using clValues.Count select
+            (1),
+            begin
+                using ((string)clValues[0]).ToUpper() select
+                ("ROW"),
+                    Settings.DataCompressionMode = DatabaseDataCompression.Row
+                ("PAGE"),
+                    Settings.DataCompressionMode = DatabaseDataCompression.Page
+                (),
+                    Settings.DataCompressionMode = DatabaseDataCompression.None
+                endusing
+            end
+            (0),
+            begin
+                Logger.ErrorLog("Missing value after the -datacompression option")
+                ok = false
+            end
+            (),
+            begin
+                Logger.ErrorLog("Only one value may follow the -datacompression option")
+                ok = false
+            end
+            endusing
         end
         else
         begin
             ;;Environment variable?
             data tmpval, a3
             xcall getlog("REPLICATOR_DATA_COMPRESSION",tmpval,length)
-            Settings.EnableDataCompression = ((length>0)&&(tmpval.eq."YES"))
+            using ((string)tmpval(1:length)).ToUpper() select
+            ("ROW"),
+                Settings.DataCompressionMode = DatabaseDataCompression.Row
+            ("PAGE"),
+                Settings.DataCompressionMode = DatabaseDataCompression.Page
+            (),
+                Settings.DataCompressionMode = DatabaseDataCompression.None
+            endusing
         end
     end
 

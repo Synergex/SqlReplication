@@ -180,7 +180,7 @@ endfunction
 ;;; </summary>
 ;;; <param name="a_dbchn">Connected database channel.</param>
 ;;; <param name="a_commit_mode">What commit mode are we using?</param>
-;;; <param name="a_data_compression">Enable data compression on table?</param>
+;;; <param name="a_data_compression">Data compression mode</param>
 ;;; <param name="a_errtxt">Returned error text.</param>
 ;;; <returns>Returns true on success, otherwise false.</returns>
 
@@ -267,10 +267,12 @@ proc
 </IF STRUCTURE_ISAM>
         & + ')'
 
-        if (a_data_compression)
-        begin
+        using a_data_compression select
+        (2),
+            sql = sql + " WITH(DATA_COMPRESSION=ROW)"
+        (3),
             sql = sql + " WITH(DATA_COMPRESSION=PAGE)"
-        end
+        endusing
 
         call open_cursor
 
@@ -388,6 +390,7 @@ endfunction
 ;;; <param name="a_commit_mode">What commit mode are we using?</param>
 ;;; <param name="a_db_timeout">Database timeout in seconds.</param>
 ;;; <param name="a_bl_timeout">Bulk load timeout in seconds.</param>
+;;; <param name="a_data_compression">Data compression mode.</param>
 ;;; <param name="a_logchannel">Log file channel to log messages on.</param>
 ;;; <param name="a_errtxt">Returned error text.</param>
 ;;; <returns>Returns true on success, otherwise false.</returns>
@@ -458,10 +461,12 @@ proc
     begin
         sql = '<PRIMARY_KEY>CREATE INDEX IX_<StructureName>_<KeyName> ON "<StructureName>"(<SEGMENT_LOOP>"<FieldSqlName>" <SEGMENT_ORDER><,></SEGMENT_LOOP>)</PRIMARY_KEY>'
 
-        if (a_data_compression)
-        begin
+        using a_data_compression select
+        (2),
+            sql = sql + " WITH(DATA_COMPRESSION=ROW)"
+        (3),
             sql = sql + " WITH(DATA_COMPRESSION=PAGE)"
-        end
+        endusing
 
         call open_cursor
 
@@ -492,10 +497,12 @@ proc
     begin
         sql = 'CREATE <IF FIRST_UNIQUE_KEY>CLUSTERED<ELSE><KEY_UNIQUE></IF FIRST_UNIQUE_KEY> INDEX IX_<StructureName>_<KeyName> ON "<StructureName>"(<SEGMENT_LOOP>"<FieldSqlName>" <SEGMENT_ORDER><,></SEGMENT_LOOP>)'
 
-        if (a_data_compression)
-        begin
+        using a_data_compression select
+        (2),
+            sql = sql + " WITH(DATA_COMPRESSION=ROW)"
+        (3),
             sql = sql + " WITH(DATA_COMPRESSION=PAGE)"
-        end
+        endusing
 
         call open_cursor
 

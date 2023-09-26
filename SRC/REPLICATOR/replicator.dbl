@@ -765,7 +765,7 @@ CreateTable,
         try
         begin
             functionName = %atrim(instruction.structure_name) + "Create"
-            status = %xsubr(functionName,(i)(Settings.DatabaseChannel),(i)(Settings.CommitMode),(i)(Settings.EnableDataCompression),dberrtxt)
+            status = %xsubr(functionName,(i)(Settings.DatabaseChannel),(i)(Settings.CommitMode),(i)(Settings.DataCompressionMode),dberrtxt)
             exitloop
         end
         catch (ex, @DatabaseCommunicationException)
@@ -1649,7 +1649,7 @@ DoAddIndexes,
         try
         begin
             functionName = %atrim(instruction.structure_name) + "Index"
-            status = %xsubr(functionName,(i)(Settings.DatabaseChannel),(i)(Settings.CommitMode),(i)(Settings.DatabaseTimeout),(i)(Settings.BulkLoadTimeout),(i)(Settings.EnableDataCompression),(i)(Settings.LogFileChannel),dberrtxt)
+            status = %xsubr(functionName,(i)(Settings.DatabaseChannel),(i)(Settings.CommitMode),(i)(Settings.DatabaseTimeout),(i)(Settings.BulkLoadTimeout),(i)(Settings.DataCompressionMode),(i)(Settings.LogFileChannel),dberrtxt)
             if (status) then
             begin
                 Logger.VerboseLog(" - Indexes added")
