@@ -47,7 +47,7 @@ subroutine Replicate
     optional in aRecord,        a
 
 .ifdef D_VMS
-	.include "REPLICATION_VMS" repository, stack record="instruction", end
+    .include "REPLICATION_VMS" repository, stack record="instruction", end
 .else
     .include "REPLICATION" repository, stack record="instruction", end
 .endc
@@ -58,7 +58,7 @@ subroutine Replicate
 
     stack record
         instanceName, string
-		instanceObj,  @object
+        instanceObj,  @object
         instanceData, @InstanceInfo
     endrecord
 
@@ -76,7 +76,11 @@ proc
         data instanceChannel, int
         data errorMessage, string
 
-        instances = new StringDictionary()
+        ;;Do we need to create the StringDictionary?
+        if (instances == ^null)
+        begin
+            instances = new StringDictionary()
+        end
 
         ;;Open the queue file for the instance
         if (!%OpenOrCreateQueueFile(instanceQueueFile,instanceChannel,errorMessage))
@@ -104,7 +108,7 @@ proc
         begin
             ;;Already tracking this instance.
             ;;Record the additional channel associated with the instance.
-			instanceData = (@InstanceInfo)instanceObj
+            instanceData = (@InstanceInfo)instanceObj
             instanceData.ReferenceCount += 1
         end
         else
@@ -150,32 +154,32 @@ proc
         end
     end
 
-   (REPLICATION_INSTRUCTION.DELETE_FIRST_INSTRUCTION),
-	begin
-		;;Get the instance data
-		instanceData = (@InstanceInfo)(instances.Get(instanceName))
+    (REPLICATION_INSTRUCTION.DELETE_FIRST_INSTRUCTION),
+    begin
+        ;;Get the instance data
+        instanceData = (@InstanceInfo)(instances.Get(instanceName))
 
-		;Delete first pending instruction only
-		try
-		begin
-			read(instanceData.Channel,instruction,^FIRST)
-			delete(instanceData.Channel)
-		end
-		catch (ex, @EndOfFileException)
-		begin
-			nop
-		end
-		catch (ex, @Exception)
-		begin
-			sleep 0.0001
-		end
-		endtry
-	end
+        ;Delete first pending instruction only
+        try
+        begin
+            read(instanceData.Channel,instruction,^FIRST)
+            delete(instanceData.Channel)
+        end
+        catch (ex, @EndOfFileException)
+        begin
+            nop
+        end
+        catch (ex, @Exception)
+        begin
+            sleep 0.0001
+        end
+        endtry
+    end
 
     (REPLICATION_INSTRUCTION.DELETE_ALL_INSTRUCTIONS),
     begin
-		;;Get the instance data
-		instanceData = (@InstanceInfo)(instances.Get(instanceName))
+        ;;Get the instance data
+        instanceData = (@InstanceInfo)(instances.Get(instanceName))
 
         ;Delete pending instructions
         try 
@@ -218,8 +222,8 @@ proc
 
     (),
     begin
-		;;Get the instance data
-		instanceData = (@InstanceInfo)(instances.Get(instanceName))
+        ;;Get the instance data
+        instanceData = (@InstanceInfo)(instances.Get(instanceName))
 
         ;;Configure the new instruction
 
@@ -264,4 +268,3 @@ dupkey,         instruction.transaction_id = ^a(^d(instruction.transaction_id)+1
     xreturn
 
 endsubroutine
-

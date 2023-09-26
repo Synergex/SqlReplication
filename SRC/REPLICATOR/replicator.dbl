@@ -1354,7 +1354,7 @@ DoCreateTable,
                     try
                     begin
                         functionName = %atrim(instruction.structure_name) + "Create"
-                        status = %xsubr(functionName,(i)(Settings.DatabaseChannel),(i)(Settings.CommitMode),dberrtxt)
+                        status = %xsubr(functionName,(i)(Settings.DatabaseChannel),(i)(Settings.CommitMode),(i)(Settings.DataCompressionMode),dberrtxt)
                         if (status) then
                         begin
                             if (Settings.CanSendEmail())
