@@ -8,7 +8,7 @@ FILE
 	KEYS		2
 
 RECORD
-	SIZE		73
+	SIZE		100
 	FORMAT		fixed
 	COMPRESS_DATA	yes
 

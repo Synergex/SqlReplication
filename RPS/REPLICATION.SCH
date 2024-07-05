@@ -68,6 +68,10 @@ Field DEPT_MANAGER   Template EMPLOYEE_ID
    Description "Department manager"
    Prompt "Manager"
  
+Field MONAME_001   Type ALPHA   Size 27   Language Noview   Script Noview
+   Report Noview   Nonamelink
+   Description "Spare space"
+
 Key DEPT_ID   ACCESS   Order ASCENDING   Dups NO
    Description "Department ID"
    Segment FIELD   DEPT_ID
