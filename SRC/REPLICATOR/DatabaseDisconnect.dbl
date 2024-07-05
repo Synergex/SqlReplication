@@ -18,7 +18,7 @@ proc
     try
     begin
         data dbstatus, int
-        Logger.Log(" - Attempting to close database channel")
+        Logger.Log("Closing database channel...")
         dbstatus = %ssc_release(Settings.DatabaseChannel)
     end
     catch (e, @Exception)

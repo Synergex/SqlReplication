@@ -80,11 +80,9 @@ namespace replicator
 
                 Settings.LogFileName = "REPLICATOR_LOGDIR:REPLICATOR_" + Settings.InstanceName + "_" + now(1:8) + "_" + now(9:6) + ".LOG"
 
-                Logger.Log(" - Log file is now " + Settings.LogFileName)
-
                 open(tmpchn=0,o:s,Settings.LogFileName)
-
                 Settings.LogFileChannel = tmpchn
+                Logger.Log("New log " + Settings.LogFileName)
             end
         endmethod
 
@@ -100,7 +98,7 @@ namespace replicator
                 writes(Settings.LogFileChannel,%TimeNow + message)
             ;;If running on the terminal, also display the message
             if (Settings.RunningOnTerminal)
-                writes(Settings.TerminalChannel,message)
+                writes(Settings.TerminalChannel,%TimeNow + message)
         endmethod
 
         ;;; <summary>

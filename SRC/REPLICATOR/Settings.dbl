@@ -9,9 +9,9 @@ namespace replicator
 
     ;; Do not change these values, they are processed via their integer value in the SqlIO routines!
     public enum DatabaseCommitMode
-        Automatic,          1
-        Batch,              2
-        Manual,             3
+        Automatic,  1
+        Batch,      2
+        Manual,     3
     endenum
 
     ;; Do not change these values, they are processed via their integer value in the SqlIO routines!
@@ -24,12 +24,11 @@ namespace replicator
     ;;; <summary>
     ;;; Represents various settings used within the replicator application.
     ;;; </summary>
-    .ifdef D_VMS
+.ifdef D_VMS
     public class Settings
-    .else
+.else
     public static class Settings
-    .endc
-
+.endc
         ;;; <summary>
         ;;; Configure default settings
         ;;; Can't use a static constructor because VMS doesn't support them

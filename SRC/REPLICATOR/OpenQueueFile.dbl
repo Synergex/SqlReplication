@@ -48,7 +48,7 @@ proc
             catch (ex, @Exception)
             begin
                 ;;We can't create the file, we're dead!
-                Logger.ErrorLog("Failed to create transaction log file " + Settings.TransactionFile + " - Error was: " + e.Message)
+                Logger.ErrorLog("Failed to create transaction log file " + Settings.TransactionFile + " Error was: " + e.Message)
                 freturn false
             end
             endtry
@@ -56,7 +56,7 @@ proc
         catch (e, @Exception)
         begin
             ;;The file is present but we can't open it. We're dead!
-            Logger.ErrorLog("Failed to open transaction log file " + Settings.TransactionFile + " - Error was: " + e.Message)
+            Logger.ErrorLog("Failed to open transaction log file " + Settings.TransactionFile + " Error was: " + e.Message)
             freturn false
         end
         endtry

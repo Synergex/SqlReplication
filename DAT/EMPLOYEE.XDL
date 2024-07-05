@@ -28,7 +28,7 @@ RECORD
 KEY 0
 	!Primary key
 	START		1
-	LENGTH		6
+	LENGTH		8
 	TYPE		alpha
 	ORDER		ascending
 	NAME		"EMP_ID"
@@ -41,7 +41,7 @@ KEY 0
 
 KEY 1
 	!Alternate key #1
-	START		47
+	START		49
 	LENGTH		15
 	TYPE		alpha
 	ORDER		ascending
@@ -57,7 +57,7 @@ KEY 1
 
 KEY 2
 	!Alternate key #2
-	START		27
+	START		29
 	LENGTH		20
 	TYPE		nocase
 	ORDER		ascending
@@ -73,7 +73,7 @@ KEY 2
 
 KEY 3
 	!Alternate key #3
-	START		216
+	START		218
 	LENGTH		2
 	TYPE		alpha
 	ORDER		ascending
@@ -89,7 +89,7 @@ KEY 3
 
 KEY 4
 	!Alternate key #4
-	START		218
+	START		220
 	LENGTH		5
 	TYPE		alpha
 	ORDER		ascending

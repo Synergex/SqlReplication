@@ -17,7 +17,7 @@ import Synergex.SynergyDE.Select
 .endc
 
 .define writelog(x) if ^passed(a_logchannel) && a_logchannel && %chopen(a_logchannel) writes(a_logchannel,%string(^d(now(1:14)),"XXXX-XX-XX XX:XX:XX ") + x)
-.define writett(x)  if ^passed(a_ttchannel) && a_ttchannel writes(a_ttchannel,"   - " + %string(^d(now(9:8)),"XX:XX:XX.XX ") + x)
+.define writett(x)  if ^passed(a_ttchannel) && a_ttchannel writes(a_ttchannel,%string(^d(now(1:14)),"XXXX-XX-XX XX:XX:XX ") + x)
 
 ;;*****************************************************************************
 ;;; <summary>
@@ -25,6 +25,7 @@ import Synergex.SynergyDE.Select
 ;;; </summary>
 ;;; <param name="a_dbchn">Connected database channel.</param>
 ;;; <param name="a_commit_mode">What commit mode are we using?</param>
+;;; <param name="a_temp_table">Use TEMP table?</param>
 ;;; <param name="a_errtxt">Returned error text.</param>
 ;;; <returns>Returns 1 if the table exists, otherwise a number indicating the type of error.</returns>
 
@@ -32,12 +33,14 @@ function EmployeeExists, ^val
 
     required in  a_dbchn,  i
     required in  a_commit_mode, i
+    required in  a_temp_table, i
     optional out a_errtxt, a
     endparams
 
     .include "CONNECTDIR:ssql.def"
 
     stack record local_data
+        sql         ,string ;;SQL statement
         error       ,int    ;;Returned error number
         dberror     ,int    ;;Database error number
         cursor      ,int    ;;Database cursor
@@ -50,13 +53,20 @@ proc
 
     init local_data
 
+    if (a_temp_table) then
+        sql = "SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME='EmployeeTEMP'"
+    else
+        sql = "SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME='Employee'"
+
     ;;Open a cursor for the SELECT statement
 
-    if (%ssc_open(a_dbchn,cursor,"SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME='Employee'",SSQL_SELECT)==SSQL_FAILURE)
+    if (%ssc_open(a_dbchn,cursor,sql,SSQL_SELECT)==SSQL_FAILURE)
     begin
         error=-1
-        if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+        if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE) then
             errtxt="Failed to open cursor"
+        else
+            xcall ThrowOnCommunicationError("EmployeeExists",dberror,errtxt)
     end
 
     ;;Bind host variables to receive the data
@@ -66,8 +76,10 @@ proc
         if (%ssc_define(a_dbchn,cursor,1,table_name)==SSQL_FAILURE)
         begin
             error=-1
-            if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+            if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE) then
                 errtxt="Failed to bind variable"
+            else
+                xcall ThrowOnCommunicationError("EmployeeExists",dberror,errtxt)
         end
     end
 
@@ -81,11 +93,10 @@ proc
         end
         else
         begin
-            if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
-            begin
+            if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE) then
                 errtxt="Failed to execute SQL Statement"
-            end
-            xcall ThrowOnCommunicationError(dberror,errtxt)
+            else
+                xcall ThrowOnCommunicationError("EmployeeExists",dberror,errtxt)
         end
     end
 
@@ -98,8 +109,10 @@ proc
             if (!error)
             begin
                 error=-1
-                if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+                if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE) then
                     errtxt="Failed to close cursor"
+                else
+                    xcall ThrowOnCommunicationError("EmployeeExists",dberror,errtxt)
             end
         end
     end
@@ -125,6 +138,7 @@ endfunction
 ;;; <param name="a_dbchn">Connected database channel.</param>
 ;;; <param name="a_commit_mode">What commit mode are we using?</param>
 ;;; <param name="a_data_compression">Data compression mode</param>
+;;; <param name="a_temp_table">Use TEMP table?</param>
 ;;; <param name="a_errtxt">Returned error text.</param>
 ;;; <returns>Returns true on success, otherwise false.</returns>
 
@@ -133,6 +147,7 @@ function EmployeeCreate, ^val
     required in  a_dbchn,  i
     required in  a_commit_mode, i
     required in  a_data_compression, i
+    required in  a_temp_table, i
     optional out a_errtxt, a
     endparams
 
@@ -146,6 +161,7 @@ function EmployeeCreate, ^val
         length      ,int        ;;Length of a string
         transaction ,int        ;;Transaction in process
         errtxt      ,a512       ;;Returned error message text
+        tableName   ,string     ;;Table name
         sql         ,string     ;;SQL statement
     endrecord
 
@@ -163,9 +179,10 @@ proc
         else
         begin
             ok = false
-            if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+            if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE) then
                 errtxt="Failed to start transaction"
-            xcall ThrowOnCommunicationError(dberror,errtxt)
+            else
+                xcall ThrowOnCommunicationError("EmployeeCreate",dberror,errtxt)
         end
     end
 
@@ -173,8 +190,13 @@ proc
 
     if (ok)
     begin
-        sql = 'CREATE TABLE "Employee" ('
-        & + '"EmpId" DECIMAL(6) NOT NULL,'
+        if (a_temp_table) then
+            tableName = "EmployeeTEMP"
+        else
+            tableName = "Employee"
+
+        sql = 'CREATE TABLE ' + tableName + ' ('
+        & + '"EmpId" DECIMAL(8) NOT NULL,'
         & + '"EmpFirstName" VARCHAR(20) NOT NULL,'
         & + '"EmpLastName" VARCHAR(20) NOT NULL,'
         & + '"EmpDept" VARCHAR(15) NOT NULL,'
@@ -189,7 +211,7 @@ proc
         & + '"EmpAddressCity" VARCHAR(20),'
         & + '"EmpAddressState" VARCHAR(2),'
         & + '"EmpAddressZip" DECIMAL(5),'
-        & + 'CONSTRAINT PK_Employee PRIMARY KEY CLUSTERED("EmpId" ASC)'
+        & + 'CONSTRAINT PK_' + tableName + ' PRIMARY KEY CLUSTERED("EmpId" ASC)'
         & + ')'
 
         using a_data_compression select
@@ -212,7 +234,7 @@ proc
 
     if (ok)
     begin
-        sql = 'GRANT ALL ON "Employee" TO PUBLIC'
+        sql = 'GRANT ALL ON ' + tableName + ' TO PUBLIC'
 
         call open_cursor
 
@@ -233,9 +255,10 @@ proc
             if (%ssc_commit(a_dbchn,SSQL_TXOFF)==SSQL_FAILURE)
             begin
                 ok = false
-                if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+                if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE) then
                     errtxt="Failed to commit transaction"
-                xcall ThrowOnCommunicationError(dberror,errtxt)
+                else
+                    xcall ThrowOnCommunicationError("EmployeeCreate",dberror,errtxt)
             end
         end
         else
@@ -244,9 +267,10 @@ proc
             if (%ssc_rollback(a_dbchn,SSQL_TXOFF) == SSQL_FAILURE)
             begin
                 ok = false
-                if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+                if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE) then
                     errtxt="Failed to rollback transaction"
-                xcall ThrowOnCommunicationError(dberror,errtxt)
+                else
+                    xcall ThrowOnCommunicationError("EmployeeCreate",dberror,errtxt)
             end
         end
     end
@@ -268,8 +292,10 @@ open_cursor,
     if (%ssc_open(a_dbchn,cursor,(a)sql,SSQL_NONSEL)==SSQL_FAILURE)
     begin
         ok = false
-        if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+        if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE) then
             errtxt="Failed to open cursor"
+        else
+            xcall ThrowOnCommunicationError("EmployeeCreate",dberror,errtxt)
     end
 
     return
@@ -279,9 +305,10 @@ execute_cursor,
     if (%ssc_execute(a_dbchn,cursor,SSQL_STANDARD)==SSQL_FAILURE)
     begin
         ok = false
-        if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+        if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE) then
             errtxt="Failed to execute SQL statement"
-        xcall ThrowOnCommunicationError(dberror,errtxt)
+        else
+            xcall ThrowOnCommunicationError("EmployeeCreate",dberror,errtxt)
     end
 
     return
@@ -295,8 +322,10 @@ close_cursor,
             if (ok)
             begin
                 ok = false
-                if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+                if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE) then
                     errtxt="Failed to close cursor"
+                else
+                    xcall ThrowOnCommunicationError("EmployeeCreate",dberror,errtxt)
             end
         end
         clear cursor
@@ -358,9 +387,10 @@ proc
         else
         begin
             ok = false
-            if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+            if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE) then
                 errtxt="Failed to start transaction"
-            xcall ThrowOnCommunicationError(dberror,errtxt)
+            else
+                xcall ThrowOnCommunicationError("EmployeeIndex",dberror,errtxt)
         end
     end
 
@@ -369,12 +399,14 @@ proc
     if (ok)
     begin
         now = %datetime
-        writelog(" - Setting database timeout to " + %string(a_bl_timeout) + " seconds")
+        writelog("Setting database timeout to " + %string(a_bl_timeout) + " seconds")
         if (%ssc_cmd(a_dbchn,,SSQL_TIMEOUT,%string(a_bl_timeout))==SSQL_FAILURE)
         begin
             ok = false
-            if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+            if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE) then
                 errtxt="Failed to set database timeout"
+            else
+                xcall ThrowOnCommunicationError("EmployeeIndex",dberror,errtxt)
         end
     end
 
@@ -403,11 +435,11 @@ proc
 
         if (ok) then
         begin
-            writelog(" - Added index IX_Employee_EmpDept")
+            writelog("Added index IX_Employee_EmpDept")
         end
         else
         begin
-            writelog(" - ERROR: Failed to add index IX_Employee_EmpDepts")
+            writelog("ERROR: Failed to add index IX_Employee_EmpDepts")
             ok = true
         end
     end
@@ -437,11 +469,11 @@ proc
 
         if (ok) then
         begin
-            writelog(" - Added index IX_Employee_EmpLastName")
+            writelog("Added index IX_Employee_EmpLastName")
         end
         else
         begin
-            writelog(" - ERROR: Failed to add index IX_Employee_EmpLastNames")
+            writelog("ERROR: Failed to add index IX_Employee_EmpLastNames")
             ok = true
         end
     end
@@ -471,11 +503,11 @@ proc
 
         if (ok) then
         begin
-            writelog(" - Added index IX_Employee_StateCode")
+            writelog("Added index IX_Employee_StateCode")
         end
         else
         begin
-            writelog(" - ERROR: Failed to add index IX_Employee_StateCodes")
+            writelog("ERROR: Failed to add index IX_Employee_StateCodes")
             ok = true
         end
     end
@@ -505,11 +537,11 @@ proc
 
         if (ok) then
         begin
-            writelog(" - Added index IX_Employee_ZipCode")
+            writelog("Added index IX_Employee_ZipCode")
         end
         else
         begin
-            writelog(" - ERROR: Failed to add index IX_Employee_ZipCodes")
+            writelog("ERROR: Failed to add index IX_Employee_ZipCodes")
             ok = true
         end
     end
@@ -525,9 +557,10 @@ proc
             if (%ssc_commit(a_dbchn,SSQL_TXOFF)==SSQL_FAILURE)
             begin
                 ok = false
-                if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+                if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE) then
                     errtxt="Failed to commit transaction"
-                xcall ThrowOnCommunicationError(dberror,errtxt)
+                else
+                    xcall ThrowOnCommunicationError("EmployeeIndex",dberror,errtxt)
             end
         end
         else
@@ -536,9 +569,10 @@ proc
             if (%ssc_rollback(a_dbchn,SSQL_TXOFF) == SSQL_FAILURE)
             begin
                 ok = false
-                if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+                if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE) then
                     errtxt="Failed to rollback transaction"
-                xcall ThrowOnCommunicationError(dberror,errtxt)
+                else
+                    xcall ThrowOnCommunicationError("EmployeeIndex",dberror,errtxt)
             end
         end
     end
@@ -546,7 +580,7 @@ proc
     ;;Set the database timeout back to the regular value
 
     now = %datetime
-    writelog(" - Resetting database timeout to " + %string(a_db_timeout) + " seconds")
+    writelog("Resetting database timeout to " + %string(a_db_timeout) + " seconds")
     if (%ssc_cmd(a_dbchn,,SSQL_TIMEOUT,%string(a_db_timeout))==SSQL_FAILURE)
         nop
 
@@ -567,8 +601,10 @@ open_cursor,
     if (%ssc_open(a_dbchn,cursor,(a)sql,SSQL_NONSEL)==SSQL_FAILURE)
     begin
         ok = false
-        if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+        if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE) then
             errtxt="Failed to open cursor"
+        else
+            xcall ThrowOnCommunicationError("EmployeeIndex",dberror,errtxt)
     end
 
     return
@@ -578,9 +614,10 @@ execute_cursor,
     if (%ssc_execute(a_dbchn,cursor,SSQL_STANDARD)==SSQL_FAILURE)
     begin
         ok = false
-        if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+        if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE) then
             errtxt="Failed to execute SQL statement"
-        xcall ThrowOnCommunicationError(dberror,errtxt)
+        else
+            xcall ThrowOnCommunicationError("EmployeeIndex",dberror,errtxt)
     end
 
     return
@@ -594,8 +631,10 @@ close_cursor,
             if (ok)
             begin
                 ok = false
-                if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+                if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE) then
                     errtxt="Failed to close cursor"
+                else
+                    xcall ThrowOnCommunicationError("EmployeeIndex",dberror,errtxt)
             end
         end
         clear cursor
@@ -648,9 +687,10 @@ proc
         else
         begin
             ok = false
-            if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+            if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE) then
                 errtxt="Failed to start transaction"
-            xcall ThrowOnCommunicationError(dberror,errtxt)
+            else
+                xcall ThrowOnCommunicationError("EmployeeUnIndex",dberror,errtxt)
         end
     end
 
@@ -724,9 +764,10 @@ proc
             if (%ssc_commit(a_dbchn,SSQL_TXOFF)==SSQL_FAILURE)
             begin
                 ok = false
-                if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+                if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE) then
                     errtxt="Failed to commit transaction"
-                xcall ThrowOnCommunicationError(dberror,errtxt)
+                else
+                    xcall ThrowOnCommunicationError("EmployeeUnIndex",dberror,errtxt)
             end
         end
         else
@@ -735,9 +776,10 @@ proc
             if (%ssc_rollback(a_dbchn,SSQL_TXOFF) == SSQL_FAILURE)
             begin
                 ok = false
-                if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+                if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE) then
                     errtxt="Failed to rollback transaction"
-                xcall ThrowOnCommunicationError(dberror,errtxt)
+                else
+                    xcall ThrowOnCommunicationError("EmployeeUnIndex",dberror,errtxt)
             end
         end
     end
@@ -759,8 +801,10 @@ open_cursor,
     if (%ssc_open(a_dbchn,cursor,(a)sql,SSQL_NONSEL)==SSQL_FAILURE)
     begin
         ok = false
-        if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+        if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE) then
             errtxt="Failed to open cursor"
+        else
+            xcall ThrowOnCommunicationError("EmployeeUnIndex",dberror,errtxt)
     end
 
     return
@@ -770,9 +814,10 @@ execute_cursor,
     if (%ssc_execute(a_dbchn,cursor,SSQL_STANDARD)==SSQL_FAILURE)
     begin
         ok = false
-        if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+        if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE) then
             errtxt="Failed to execute SQL statement"
-        xcall ThrowOnCommunicationError(dberror,errtxt)
+        else
+            xcall ThrowOnCommunicationError("EmployeeUnIndex",dberror,errtxt)
     end
 
     return
@@ -786,8 +831,10 @@ close_cursor,
             if (ok)
             begin
                 ok = false
-                if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+                if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE) then
                     errtxt="Failed to close cursor"
+                else
+                    xcall ThrowOnCommunicationError("EmployeeUnIndex",dberror,errtxt)
             end
         end
         clear cursor
@@ -857,6 +904,7 @@ function EmployeeInsert, ^val
         c1Employee, i4, 0
     endcommon
 
+
 proc
 
     init local_data
@@ -874,9 +922,10 @@ proc
         begin
             ok = false
             sts = 0
-            if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+            if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE) then
                 errtxt="Failed to start transaction"
-            xcall ThrowOnCommunicationError(dberror,errtxt)
+            else
+                xcall ThrowOnCommunicationError("EmployeeInsert",dberror,errtxt)
         end
     end
 
@@ -888,8 +937,10 @@ proc
         begin
             ok = false
             sts = 0
-            if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+            if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE) then
                 errtxt="Failed to open cursor"
+            else
+                xcall ThrowOnCommunicationError("EmployeeInsert",dberror,errtxt)
         end
     end
 
@@ -916,8 +967,10 @@ proc
         begin
             ok = false
             sts = 0
-            if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+            if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE) then
                 errtxt="Failed to bind variables"
+            else
+                xcall ThrowOnCommunicationError("EmployeeInsert",dberror,errtxt)
         end
     end
 
@@ -987,7 +1040,7 @@ proc
                 end
                 (),
                 begin
-                    nop
+                    xcall ThrowOnCommunicationError("EmployeeInsert",dberror,errtxt)
                 end
                 endusing
             end
@@ -995,7 +1048,6 @@ proc
             begin
                 errtxt="Failed to execute SQL statement"
             end
-            xcall ThrowOnCommunicationError(dberror,errtxt)
         end
     end
 
@@ -1010,9 +1062,10 @@ proc
             begin
                 ok = false
                 sts = 0
-                if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+                if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE) then
                     errtxt="Failed to commit transaction"
-                xcall ThrowOnCommunicationError(dberror,errtxt)
+                else
+                    xcall ThrowOnCommunicationError("EmployeeInsert",dberror,errtxt)
             end
         end
         else
@@ -1021,9 +1074,10 @@ proc
             if (%ssc_rollback(a_dbchn,SSQL_TXOFF) == SSQL_FAILURE)
             begin
                 ok = false
-                if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+                if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE) then
                     errtxt="Failed to rollback transaction"
-                xcall ThrowOnCommunicationError(dberror,errtxt)
+                else
+                    xcall ThrowOnCommunicationError("EmployeeInsert",dberror,errtxt)
             end
         end
     end
@@ -1149,9 +1203,10 @@ proc
         else
         begin
             ok = false
-            if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+            if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE) then
                 errtxt="Failed to start transaction"
-            xcall ThrowOnCommunicationError(dberror,errtxt)
+            else
+                xcall ThrowOnCommunicationError("EmployeeInsertRows",dberror,errtxt)
         end
     end
 
@@ -1162,8 +1217,10 @@ proc
         if (%ssc_open(a_dbchn,c2Employee,sql,SSQL_NONSEL,SSQL_STANDARD)==SSQL_FAILURE)
         begin
             ok = false
-            if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+            if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE) then
                 errtxt="Failed to open cursor"
+            else
+                xcall ThrowOnCommunicationError("EmployeeInsertRows",dberror,errtxt)
         end
     end
 
@@ -1189,8 +1246,10 @@ proc
         &    employee.emp_address_zip)==SSQL_FAILURE)
         begin
             ok = false
-            if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+            if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE) then
                 errtxt="Failed to bind variables"
+            else
+                xcall ThrowOnCommunicationError("EmployeeInsertRows",dberror,errtxt)
         end
     end
 
@@ -1249,10 +1308,10 @@ proc
 
             if (%ssc_execute(a_dbchn,c2Employee,SSQL_STANDARD)==SSQL_FAILURE)
             begin
-                if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+                if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE) then
                     errtxt="Failed to execute SQL statement"
-
-                xcall ThrowOnCommunicationError(dberror,errtxt)
+                else
+                    xcall ThrowOnCommunicationError("EmployeeInsertRows",dberror,errtxt)
 
                 clear continue
 
@@ -1298,9 +1357,10 @@ proc
             if (%ssc_commit(a_dbchn,SSQL_TXOFF)==SSQL_FAILURE)
             begin
                 ok = false
-                if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+                if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE) then
                     errtxt="Failed to commit transaction"
-                xcall ThrowOnCommunicationError(dberror,errtxt)
+                else
+                    xcall ThrowOnCommunicationError("EmployeeInsertRows",dberror,errtxt)
             end
         end
         else
@@ -1309,9 +1369,10 @@ proc
             if (%ssc_rollback(a_dbchn,SSQL_TXOFF) == SSQL_FAILURE)
             begin
                 ok = false
-                if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+                if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE) then
                     errtxt="Failed to rollback transaction"
-                xcall ThrowOnCommunicationError(dberror,errtxt)
+                else
+                    xcall ThrowOnCommunicationError("EmployeeInsertRows",dberror,errtxt)
             end
         end
     end
@@ -1409,6 +1470,7 @@ function EmployeeUpdate, ^val
     global common
         c3Employee, i4
     endcommon
+
 proc
 
     init local_data
@@ -1432,9 +1494,10 @@ proc
         else
         begin
             ok = false
-            if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+            if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE) then
                 errtxt="Failed to start transaction"
-            xcall ThrowOnCommunicationError(dberror,errtxt)
+            else
+                xcall ThrowOnCommunicationError("EmployeeUpdate",dberror,errtxt)
         end
     end
 
@@ -1445,8 +1508,10 @@ proc
         if (%ssc_open(a_dbchn,c3Employee,sql,SSQL_NONSEL,SSQL_STANDARD)==SSQL_FAILURE)
         begin
             ok = false
-            if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+            if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE) then
                 errtxt="Failed to open cursor"
+            else
+                xcall ThrowOnCommunicationError("EmployeeUpdate",dberror,errtxt)
         end
     end
 
@@ -1472,8 +1537,10 @@ proc
         &    employee.emp_address_zip)==SSQL_FAILURE)
         begin
             ok = false
-            if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+            if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE) then
                 errtxt="Failed to bind variables"
+            else
+                xcall ThrowOnCommunicationError("EmployeeUpdate",dberror,errtxt)
         end
     end
 
@@ -1484,8 +1551,10 @@ proc
         if (%ssc_bind(a_dbchn,c3Employee,1,employee.emp_id)==SSQL_FAILURE)
         begin
             ok = false
-            if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+            if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE) then
                 errtxt="Failed to bind key variables"
+            else
+                xcall ThrowOnCommunicationError("EmployeeUpdate",dberror,errtxt)
         end
     end
 
@@ -1541,9 +1610,10 @@ proc
         else
         begin
             ok = false
-            if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+            if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE) then
                 errtxt="Failed to execute SQL statement"
-            xcall ThrowOnCommunicationError(dberror,errtxt)
+            else
+                xcall ThrowOnCommunicationError("EmployeeUpdate",dberror,errtxt)
         end
     end
 
@@ -1557,9 +1627,10 @@ proc
             if (%ssc_commit(a_dbchn,SSQL_TXOFF)==SSQL_FAILURE)
             begin
                 ok = false
-                if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+                if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE) then
                     errtxt="Failed to commit transaction"
-                xcall ThrowOnCommunicationError(dberror,errtxt)
+                else
+                    xcall ThrowOnCommunicationError("EmployeeUpdate",dberror,errtxt)
             end
         end
         else
@@ -1568,9 +1639,10 @@ proc
             if (%ssc_rollback(a_dbchn,SSQL_TXOFF) == SSQL_FAILURE)
             begin
                 ok = false
-                if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+                if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE) then
                     errtxt="Failed to rollback transaction"
-                xcall ThrowOnCommunicationError(dberror,errtxt)
+                else
+                    xcall ThrowOnCommunicationError("EmployeeUpdate",dberror,errtxt)
             end
         end
     end
@@ -1642,9 +1714,10 @@ proc
         else
         begin
             ok = false
-            if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+            if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE) then
                 errtxt="Failed to start transaction"
-            xcall ThrowOnCommunicationError(dberror,errtxt)
+            else
+                xcall ThrowOnCommunicationError("EmployeeDelete",dberror,errtxt)
         end
     end
 
@@ -1657,8 +1730,10 @@ proc
         if (%ssc_open(a_dbchn,cursor,(a)sql,SSQL_NONSEL)==SSQL_FAILURE)
         begin
             ok = false
-            if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+            if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE) then
                 errtxt="Failed to open cursor"
+            else
+                xcall ThrowOnCommunicationError("EmployeeDelete",dberror,errtxt)
         end
     end
 
@@ -1669,9 +1744,10 @@ proc
         if (%ssc_execute(a_dbchn,cursor,SSQL_STANDARD)==SSQL_FAILURE)
         begin
             ok = false
-            if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+            if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE) then
                 errtxt="Failed to execute SQL statement"
-            xcall ThrowOnCommunicationError(dberror,errtxt)
+            else
+                xcall ThrowOnCommunicationError("EmployeeDelete",dberror,errtxt)
         end
     end
 
@@ -1684,8 +1760,10 @@ proc
             if (ok)
             begin
                 ok = false
-                if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+                if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE) then
                     errtxt="Failed to close cursor"
+                else
+                    xcall ThrowOnCommunicationError("EmployeeDelete",dberror,errtxt)
             end
         end
     end
@@ -1700,9 +1778,10 @@ proc
             if (%ssc_commit(a_dbchn,SSQL_TXOFF)==SSQL_FAILURE)
             begin
                 ok = false
-                if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+                if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE) then
                     errtxt="Failed to commit transaction"
-                xcall ThrowOnCommunicationError(dberror,errtxt)
+                else
+                    xcall ThrowOnCommunicationError("EmployeeDelete",dberror,errtxt)
             end
         end
         else
@@ -1711,9 +1790,10 @@ proc
             if (%ssc_rollback(a_dbchn,SSQL_TXOFF) == SSQL_FAILURE)
             begin
                 ok = false
-                if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+                if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE) then
                     errtxt="Failed to rollback transaction"
-                xcall ThrowOnCommunicationError(dberror,errtxt)
+                else
+                    xcall ThrowOnCommunicationError("EmployeeDelete",dberror,errtxt)
             end
         end
     end
@@ -1738,6 +1818,7 @@ endfunction
 ;;; </summary>
 ;;; <param name="a_dbchn">Connected database channel.</param>
 ;;; <param name="a_commit_mode">What commit mode are we using?</param>
+;;; <param name="a_temp_table">Use TEMP table?</param>
 ;;; <param name="a_errtxt">Returned error text.</param>
 ;;; <returns>Returns true on success, otherwise false.</returns>
 
@@ -1745,6 +1826,7 @@ function EmployeeClear, ^val
 
     required in  a_dbchn,  i
     required in  a_commit_mode, i
+    required in  a_temp_table, i
     optional out a_errtxt, a
     endparams
 
@@ -1774,9 +1856,10 @@ proc
         else
         begin
             ok = false
-            if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+            if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE) then
                 errtxt="Failed to start transaction"
-            xcall ThrowOnCommunicationError(dberror,errtxt)
+            else
+                xcall ThrowOnCommunicationError("EmployeeClear",dberror,errtxt)
         end
     end
 
@@ -1784,12 +1867,18 @@ proc
 
     if (ok)
     begin
-        sql = 'TRUNCATE TABLE "Employee"'
+        if (a_temp_table) then
+            sql = 'TRUNCATE TABLE EmployeeTEMP'
+        else
+            sql = 'TRUNCATE TABLE Employee'
+
         if (%ssc_open(a_dbchn,cursor,(a)sql,SSQL_NONSEL)==SSQL_FAILURE)
         begin
             ok = false
-            if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+            if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE) then
                 errtxt="Failed to open cursor"
+            else
+                xcall ThrowOnCommunicationError("EmployeeClear",dberror,errtxt)
         end
     end
 
@@ -1800,9 +1889,10 @@ proc
         if (%ssc_execute(a_dbchn,cursor,SSQL_STANDARD)==SSQL_FAILURE)
         begin
             ok = false
-            if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+            if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE) then
                 errtxt="Failed to execute SQL statement"
-            xcall ThrowOnCommunicationError(dberror,errtxt)
+            else
+                xcall ThrowOnCommunicationError("EmployeeClear",dberror,errtxt)
         end
     end
 
@@ -1815,8 +1905,10 @@ proc
             if (ok)
             begin
                 ok = false
-                if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+                if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE) then
                     errtxt="Failed to close cursor"
+                else
+                    xcall ThrowOnCommunicationError("EmployeeClear",dberror,errtxt)
             end
         end
     end
@@ -1831,9 +1923,10 @@ proc
             if (%ssc_commit(a_dbchn,SSQL_TXOFF)==SSQL_FAILURE)
             begin
                 ok = false
-                if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+                if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE) then
                     errtxt="Failed to commit transaction"
-                xcall ThrowOnCommunicationError(dberror,errtxt)
+                else
+                    xcall ThrowOnCommunicationError("EmployeeClear",dberror,errtxt)
             end
         end
         else
@@ -1842,9 +1935,10 @@ proc
             if (%ssc_rollback(a_dbchn,SSQL_TXOFF) == SSQL_FAILURE)
             begin
                 ok = false
-                if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+                if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE) then
                     errtxt="Failed to rollback transaction"
-                xcall ThrowOnCommunicationError(dberror,errtxt)
+                else
+                    xcall ThrowOnCommunicationError("EmployeeClear",dberror,errtxt)
             end
         end
     end
@@ -1869,6 +1963,7 @@ endfunction
 ;;; </summary>
 ;;; <param name="a_dbchn">Connected database channel.</param>
 ;;; <param name="a_commit_mode">What commit mode are we using?</param>
+;;; <param name="a_temp_table">Use TEMP table?</param>
 ;;; <param name="a_errtxt">Returned error text.</param>
 ;;; <returns>Returns true on success, otherwise false.</returns>
 
@@ -1876,6 +1971,7 @@ function EmployeeDrop, ^val
 
     required in  a_dbchn,  i
     required in  a_commit_mode, i
+    required in  a_temp_table, i
     optional out a_errtxt, a
     endparams
 
@@ -1883,6 +1979,7 @@ function EmployeeDrop, ^val
 
     stack record local_data
         ok          ,boolean    ;;Return status
+        sql         ,string     ;;SQL statement
         dberror     ,int        ;;Database error number
         cursor      ,int        ;;Database cursor
         length      ,int        ;;Length of a string
@@ -1908,9 +2005,10 @@ proc
         else
         begin
             ok = false
-            if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+            if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE) then
                 errtxt="Failed to start transaction"
-            xcall ThrowOnCommunicationError(dberror,errtxt)
+            else
+                xcall ThrowOnCommunicationError("EmployeeDrop",dberror,errtxt)
         end
     end
 
@@ -1918,11 +2016,18 @@ proc
 
     if (ok)
     begin
-        if (%ssc_open(a_dbchn,cursor,"DROP TABLE Employee",SSQL_NONSEL)==SSQL_FAILURE)
+        sql = "DROP TABLE Employee"
+
+        if (a_temp_table)
+            sql = sql + "TEMP"
+
+        if (%ssc_open(a_dbchn,cursor,sql,SSQL_NONSEL)==SSQL_FAILURE)
         begin
             ok = false
-            if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+            if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE) then
                 errtxt="Failed to open cursor"
+            else
+                xcall ThrowOnCommunicationError("EmployeeDrop",dberror,errtxt)
         end
     end
 
@@ -1938,14 +2043,16 @@ proc
                 if (dberror==-3701) then
                     clear errtxt
                 else
+                begin
                     ok = false
+                    xcall ThrowOnCommunicationError("EmployeeDrop",dberror,errtxt)
+                end
             end
             else
             begin
                 errtxt="Failed to execute SQL statement"
                 ok = false
             end
-            xcall ThrowOnCommunicationError(dberror,errtxt)
         end
     end
 
@@ -1958,8 +2065,10 @@ proc
             if (ok)
             begin
                 ok = false
-                if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+                if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE) then
                     errtxt="Failed to close cursor"
+                else
+                    xcall ThrowOnCommunicationError("EmployeeDrop",dberror,errtxt)
             end
         end
     end
@@ -1974,9 +2083,10 @@ proc
             if (%ssc_commit(a_dbchn,SSQL_TXOFF)==SSQL_FAILURE)
             begin
                 ok = false
-                if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+                if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE) then
                     errtxt="Failed to commit transaction"
-                xcall ThrowOnCommunicationError(dberror,errtxt)
+                else
+                    xcall ThrowOnCommunicationError("EmployeeDrop",dberror,errtxt)
             end
         end
         else
@@ -1985,9 +2095,10 @@ proc
             if (%ssc_rollback(a_dbchn,SSQL_TXOFF) == SSQL_FAILURE)
             begin
                 ok = false
-                if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+                if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE) then
                     errtxt="Failed to rollback transaction"
-                xcall ThrowOnCommunicationError(dberror,errtxt)
+                else
+                    xcall ThrowOnCommunicationError("EmployeeDrop",dberror,errtxt)
             end
         end
     end
@@ -2211,7 +2322,7 @@ insert_data,
             ;;No exceptions
             ttl_added += attempted
             if ^passed(a_terminal) && a_terminal && ^passed(a_progress) && a_progress
-                writes(a_terminal," - " + %string(ttl_added) + " rows inserted")
+                writes(a_terminal,%string(ttl_added) + " rows inserted")
         end
     end
 
@@ -2228,7 +2339,9 @@ endfunction
 ;;; <param name="a_dbchn">Connected database channel.</param>
 ;;; <param name="a_commit_mode">What commit mode are we using?</param>
 ;;; <param name="a_localpath">Path to local export directory</param>
-;;; <param name="a_remotepath">Remote export directory or URL</param>
+;;; <param name="a_server">Server name or IP</param>
+;;; <param name="a_port">Server IP port</param>
+;;; <param name="a_temp_table">Use temp table</param>
 ;;; <param name="a_db_timeout">Database timeout in seconds.</param>
 ;;; <param name="a_bl_timeout">Bulk load timeout in seconds.</param>
 ;;; <param name="a_bl_batchsz">Bulk load batch size in rows.</param>
@@ -2245,6 +2358,7 @@ function EmployeeBulkLoad, ^val
     required in  a_localpath,  a
     required in  a_server,     a
     required in  a_port,       i
+    required in  a_temp_table, n
     required in  a_db_timeout, n
     required in  a_bl_timeout, n
     required in  a_bl_batchsz, n
@@ -2400,9 +2514,10 @@ proc
             else
             begin
                 ok = false
-                if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+                if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE) then
                     errtxt="Failed to start transaction"
-                xcall ThrowOnCommunicationError(dberror,errtxt)
+                else
+                    xcall ThrowOnCommunicationError("EmployeeBulkLoad",dberror,errtxt)
             end
         end
 
@@ -2415,11 +2530,16 @@ proc
 
             errorFile = fileToLoad + "_err"
 
-            sql = "BULK INSERT Employee FROM '" + fileToLoad + "' WITH (FIRSTROW=2,FIELDTERMINATOR='|',ROWTERMINATOR='\n', MAXERRORS=100000000, ERRORFILE='" + errorFile + "'"
+            sql = "BULK INSERT Employee"
+
+            if (a_temp_table)
+                sql = sql + "TEMP"
+
+            sql = sql + " FROM '" + fileToLoad + "' WITH (FIRSTROW=2,FIELDTERMINATOR='|',ROWTERMINATOR='\n',MAXERRORS=100000000,ERRORFILE='" + errorFile + "'"
 
             if (a_bl_batchsz > 0)
             begin
-                sql = sql + ", BATCHSIZE=" + %string(a_bl_batchsz)
+                sql = sql + ",BATCHSIZE=" + %string(a_bl_batchsz)
             end
 
            sql = sql + ")"
@@ -2429,8 +2549,10 @@ proc
             else
             begin
                 ok = false
-                if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+                if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE) then
                     errtxt="Failed to open cursor"
+                else
+                    xcall ThrowOnCommunicationError("EmployeeBulkLoad",dberror,errtxt)
             end
         end
 
@@ -2444,8 +2566,10 @@ proc
             if (%ssc_cmd(a_dbchn,,SSQL_TIMEOUT,%string(a_bl_timeout))==SSQL_FAILURE)
             begin
                 ok = false
-                if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+                if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE) then
                     errtxt="Failed to set database timeout"
+                else
+                    xcall ThrowOnCommunicationError("EmployeeBulkLoad",dberror,errtxt)
             end
         end
 
@@ -2460,7 +2584,7 @@ proc
             begin
                 if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_NORMAL) then
                 begin
-                    xcall ThrowOnCommunicationError(dberror,errtxt)
+                    xcall ThrowOnCommunicationError("EmployeeBulkLoad",dberror,errtxt)
 
                     now = %datetime
                     writelog("Bulk insert error")
@@ -2525,10 +2649,11 @@ proc
                 writett("COMMIT")
                 if (%ssc_commit(a_dbchn,SSQL_TXOFF)==SSQL_FAILURE)
                 begin
-                    if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
-                        errtxt="Failed to commit transaction"
                     ok = false
-                    xcall ThrowOnCommunicationError(dberror,errtxt)
+                    if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE) then
+                        errtxt="Failed to commit transaction"
+                    else
+                        xcall ThrowOnCommunicationError("EmployeeBulkLoad",dberror,errtxt)
                 end
             end
             else
@@ -2540,9 +2665,10 @@ proc
                 if (%ssc_rollback(a_dbchn,SSQL_TXOFF) == SSQL_FAILURE)
                 begin
                     ok = false
-                    if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+                    if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE) then
                         errtxt="Failed to rollback transaction"
-                    xcall ThrowOnCommunicationError(dberror,errtxt)
+                    else
+                        xcall ThrowOnCommunicationError("EmployeeBulkLoad",dberror,errtxt)
                 end
             end
         end
@@ -2564,8 +2690,10 @@ proc
             writett("Closing cursor")
             if (%ssc_close(a_dbchn,cursor)==SSQL_FAILURE)
             begin
-                if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+                if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE) then
                     errtxt="Failed to close cursor"
+                else
+                    xcall ThrowOnCommunicationError("EmployeeBulkLoad",dberror,errtxt)
             end
         end
     end
@@ -2584,7 +2712,7 @@ proc
         a_errtxt = errtxt
 
       now = %datetime
-      writelog("BULK ULOAD COMPLETE")
+      writelog("BULK LOAD COMPLETE")
 
     freturn ok
 
@@ -2677,7 +2805,6 @@ GetExceptionDetails,
 
                     now = %datetime
                     writelog(%string(exceptionRecords.Length) + " items saved to " + localExceptionsLog)
-                    writelog(" - " + %string(exceptionRecords.Length) + " items saved to " + localExceptionsLog)
                 end
             end
             else
@@ -2847,6 +2974,7 @@ function EmployeeCsv, boolean
 .align
         errtxt,                         a512        ;;Error message text
     endrecord
+
 proc
 
     ok = true
@@ -3011,8 +3139,8 @@ proc
     clear employee
     segPos = 1
 
-    employee.emp_id = ^d(aKeyValue(segPos:6))
-    segPos += 6
+    employee.emp_id = ^d(aKeyValue(segPos:8))
+    segPos += 8
 
     freturn employee
 
@@ -3043,8 +3171,8 @@ proc
     len = 0
 
     ; Key segment 1 (Field)
-    keyval(pos:6) = aRecord(1:6)
-    len += 6
+    keyval(pos:8) = aRecord(1:8)
+    len += 8
 
     aKeyVal = keyval(1,len)
     aKeyLen = len
@@ -3091,9 +3219,9 @@ endfunction
 
 ;;*****************************************************************************
 ;;; <summary>
-;;; 
+;;; Return the number of columns in the Employee table
 ;;; </summary>
-;;; <returns></returns>
+;;; <returns>Number of columns</returns>
 
 function EmployeeCols ,^val
 proc

@@ -73,7 +73,7 @@ import Synergex.SynergyDE.Select
 .endc
 
 .define writelog(x) if ^passed(a_logchannel) && a_logchannel && %chopen(a_logchannel) writes(a_logchannel,%string(^d(now(1:14)),"XXXX-XX-XX XX:XX:XX ") + x)
-.define writett(x)  if ^passed(a_ttchannel) && a_ttchannel writes(a_ttchannel,"   - " + %string(^d(now(9:8)),"XX:XX:XX.XX ") + x)
+.define writett(x)  if ^passed(a_ttchannel) && a_ttchannel writes(a_ttchannel,%string(^d(now(1:14)),"XXXX-XX-XX XX:XX:XX ") + x)
 
 ;;*****************************************************************************
 ;;; <summary>
@@ -81,6 +81,7 @@ import Synergex.SynergyDE.Select
 ;;; </summary>
 ;;; <param name="a_dbchn">Connected database channel.</param>
 ;;; <param name="a_commit_mode">What commit mode are we using?</param>
+;;; <param name="a_temp_table">Use TEMP table?</param>
 ;;; <param name="a_errtxt">Returned error text.</param>
 ;;; <returns>Returns 1 if the table exists, otherwise a number indicating the type of error.</returns>
 
@@ -88,12 +89,14 @@ function <StructureName>Exists, ^val
 
     required in  a_dbchn,  i
     required in  a_commit_mode, i
+    required in  a_temp_table, i
     optional out a_errtxt, a
     endparams
 
     .include "CONNECTDIR:ssql.def"
 
     stack record local_data
+        sql         ,string ;;SQL statement
         error       ,int    ;;Returned error number
         dberror     ,int    ;;Database error number
         cursor      ,int    ;;Database cursor
@@ -106,13 +109,20 @@ proc
 
     init local_data
 
+    if (a_temp_table) then
+        sql = "SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME='<StructureName>TEMP'"
+    else
+        sql = "SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME='<StructureName>'"
+
     ;;Open a cursor for the SELECT statement
 
-    if (%ssc_open(a_dbchn,cursor,"SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME='<StructureName>'",SSQL_SELECT)==SSQL_FAILURE)
+    if (%ssc_open(a_dbchn,cursor,sql,SSQL_SELECT)==SSQL_FAILURE)
     begin
         error=-1
-        if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+        if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE) then
             errtxt="Failed to open cursor"
+        else
+            xcall ThrowOnCommunicationError("<StructureName>Exists",dberror,errtxt)
     end
 
     ;;Bind host variables to receive the data
@@ -122,8 +132,10 @@ proc
         if (%ssc_define(a_dbchn,cursor,1,table_name)==SSQL_FAILURE)
         begin
             error=-1
-            if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+            if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE) then
                 errtxt="Failed to bind variable"
+            else
+                xcall ThrowOnCommunicationError("<StructureName>Exists",dberror,errtxt)
         end
     end
 
@@ -137,11 +149,10 @@ proc
         end
         else
         begin
-            if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
-            begin
+            if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE) then
                 errtxt="Failed to execute SQL Statement"
-            end
-            xcall ThrowOnCommunicationError(dberror,errtxt)
+            else
+                xcall ThrowOnCommunicationError("<StructureName>Exists",dberror,errtxt)
         end
     end
 
@@ -154,8 +165,10 @@ proc
             if (!error)
             begin
                 error=-1
-                if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+                if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE) then
                     errtxt="Failed to close cursor"
+                else
+                    xcall ThrowOnCommunicationError("<StructureName>Exists",dberror,errtxt)
             end
         end
     end
@@ -181,6 +194,7 @@ endfunction
 ;;; <param name="a_dbchn">Connected database channel.</param>
 ;;; <param name="a_commit_mode">What commit mode are we using?</param>
 ;;; <param name="a_data_compression">Data compression mode</param>
+;;; <param name="a_temp_table">Use TEMP table?</param>
 ;;; <param name="a_errtxt">Returned error text.</param>
 ;;; <returns>Returns true on success, otherwise false.</returns>
 
@@ -189,6 +203,7 @@ function <StructureName>Create, ^val
     required in  a_dbchn,  i
     required in  a_commit_mode, i
     required in  a_data_compression, i
+    required in  a_temp_table, i
     optional out a_errtxt, a
     endparams
 
@@ -202,6 +217,7 @@ function <StructureName>Create, ^val
         length      ,int        ;;Length of a string
         transaction ,int        ;;Transaction in process
         errtxt      ,a512       ;;Returned error message text
+        tableName   ,string     ;;Table name
         sql         ,string     ;;SQL statement
     endrecord
 
@@ -219,9 +235,10 @@ proc
         else
         begin
             ok = false
-            if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+            if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE) then
                 errtxt="Failed to start transaction"
-            xcall ThrowOnCommunicationError(dberror,errtxt)
+            else
+                xcall ThrowOnCommunicationError("<StructureName>Create",dberror,errtxt)
         end
     end
 
@@ -229,7 +246,12 @@ proc
 
     if (ok)
     begin
-        sql = 'CREATE TABLE "<StructureName>" ('
+        if (a_temp_table) then
+            tableName = "<StructureName>TEMP"
+        else
+            tableName = "<StructureName>"
+
+        sql = 'CREATE TABLE ' + tableName + ' ('
 ;//
 ;// Columns
 ;//
@@ -261,9 +283,9 @@ proc
 ;// Primary key constraint
 ;//
 <IF STRUCTURE_ISAM AND STRUCTURE_HAS_UNIQUE_PK>
-        & + 'CONSTRAINT PK_<StructureName> PRIMARY KEY CLUSTERED(<PRIMARY_KEY><SEGMENT_LOOP>"<FieldSqlName>" <SEGMENT_ORDER><,></SEGMENT_LOOP></PRIMARY_KEY>)'
+        & + 'CONSTRAINT PK_' + tableName + ' PRIMARY KEY CLUSTERED(<PRIMARY_KEY><SEGMENT_LOOP>"<FieldSqlName>" <SEGMENT_ORDER><,></SEGMENT_LOOP></PRIMARY_KEY>)'
 <ELSE STRUCTURE_RELATIVE>
-        & + 'CONSTRAINT PK_<StructureName> PRIMARY KEY CLUSTERED("RecordNumber" ASC)'
+        & + 'CONSTRAINT PK_' + tableName + ' PRIMARY KEY CLUSTERED("RecordNumber" ASC)'
 </IF STRUCTURE_ISAM>
         & + ')'
 
@@ -287,7 +309,7 @@ proc
 
     if (ok)
     begin
-        sql = 'GRANT ALL ON "<StructureName>" TO PUBLIC'
+        sql = 'GRANT ALL ON ' + tableName + ' TO PUBLIC'
 
         call open_cursor
 
@@ -308,9 +330,10 @@ proc
             if (%ssc_commit(a_dbchn,SSQL_TXOFF)==SSQL_FAILURE)
             begin
                 ok = false
-                if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+                if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE) then
                     errtxt="Failed to commit transaction"
-                xcall ThrowOnCommunicationError(dberror,errtxt)
+                else
+                    xcall ThrowOnCommunicationError("<StructureName>Create",dberror,errtxt)
             end
         end
         else
@@ -319,9 +342,10 @@ proc
             if (%ssc_rollback(a_dbchn,SSQL_TXOFF) == SSQL_FAILURE)
             begin
                 ok = false
-                if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+                if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE) then
                     errtxt="Failed to rollback transaction"
-                xcall ThrowOnCommunicationError(dberror,errtxt)
+                else
+                    xcall ThrowOnCommunicationError("<StructureName>Create",dberror,errtxt)
             end
         end
     end
@@ -343,8 +367,10 @@ open_cursor,
     if (%ssc_open(a_dbchn,cursor,(a)sql,SSQL_NONSEL)==SSQL_FAILURE)
     begin
         ok = false
-        if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+        if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE) then
             errtxt="Failed to open cursor"
+        else
+            xcall ThrowOnCommunicationError("<StructureName>Create",dberror,errtxt)
     end
 
     return
@@ -354,9 +380,10 @@ execute_cursor,
     if (%ssc_execute(a_dbchn,cursor,SSQL_STANDARD)==SSQL_FAILURE)
     begin
         ok = false
-        if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+        if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE) then
             errtxt="Failed to execute SQL statement"
-        xcall ThrowOnCommunicationError(dberror,errtxt)
+        else
+            xcall ThrowOnCommunicationError("<StructureName>Create",dberror,errtxt)
     end
 
     return
@@ -370,8 +397,10 @@ close_cursor,
             if (ok)
             begin
                 ok = false
-                if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+                if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE) then
                     errtxt="Failed to close cursor"
+                else
+                    xcall ThrowOnCommunicationError("<StructureName>Create",dberror,errtxt)
             end
         end
         clear cursor
@@ -434,9 +463,10 @@ proc
         else
         begin
             ok = false
-            if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+            if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE) then
                 errtxt="Failed to start transaction"
-            xcall ThrowOnCommunicationError(dberror,errtxt)
+            else
+                xcall ThrowOnCommunicationError("<StructureName>Index",dberror,errtxt)
         end
     end
 
@@ -445,12 +475,14 @@ proc
     if (ok)
     begin
         now = %datetime
-        writelog(" - Setting database timeout to " + %string(a_bl_timeout) + " seconds")
+        writelog("Setting database timeout to " + %string(a_bl_timeout) + " seconds")
         if (%ssc_cmd(a_dbchn,,SSQL_TIMEOUT,%string(a_bl_timeout))==SSQL_FAILURE)
         begin
             ok = false
-            if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+            if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE) then
                 errtxt="Failed to set database timeout"
+            else
+                xcall ThrowOnCommunicationError("<StructureName>Index",dberror,errtxt)
         end
     end
 
@@ -480,11 +512,11 @@ proc
 
         if (ok) then
         begin
-            writelog(" - Added index IX_<StructureName>_<PRIMARY_KEY><KeyName></PRIMARY_KEY>")
+            writelog("Added index IX_<StructureName>_<PRIMARY_KEY><KeyName></PRIMARY_KEY>")
         end
         else
         begin
-            writelog(" - ERROR: Failed to add index IX_<StructureName>_<PRIMARY_KEY><KeyName></PRIMARY_KEY>")
+            writelog("ERROR: Failed to add index IX_<StructureName>_<PRIMARY_KEY><KeyName></PRIMARY_KEY>")
             ok = true
         end
     end
@@ -516,11 +548,11 @@ proc
 
         if (ok) then
         begin
-            writelog(" - Added index IX_<StructureName>_<KeyName>")
+            writelog("Added index IX_<StructureName>_<KeyName>")
         end
         else
         begin
-            writelog(" - ERROR: Failed to add index IX_<StructureName>_<KeyName>s")
+            writelog("ERROR: Failed to add index IX_<StructureName>_<KeyName>s")
             ok = true
         end
     end
@@ -537,9 +569,10 @@ proc
             if (%ssc_commit(a_dbchn,SSQL_TXOFF)==SSQL_FAILURE)
             begin
                 ok = false
-                if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+                if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE) then
                     errtxt="Failed to commit transaction"
-                xcall ThrowOnCommunicationError(dberror,errtxt)
+                else
+                    xcall ThrowOnCommunicationError("<StructureName>Index",dberror,errtxt)
             end
         end
         else
@@ -548,9 +581,10 @@ proc
             if (%ssc_rollback(a_dbchn,SSQL_TXOFF) == SSQL_FAILURE)
             begin
                 ok = false
-                if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+                if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE) then
                     errtxt="Failed to rollback transaction"
-                xcall ThrowOnCommunicationError(dberror,errtxt)
+                else
+                    xcall ThrowOnCommunicationError("<StructureName>Index",dberror,errtxt)
             end
         end
     end
@@ -558,7 +592,7 @@ proc
     ;;Set the database timeout back to the regular value
 
     now = %datetime
-    writelog(" - Resetting database timeout to " + %string(a_db_timeout) + " seconds")
+    writelog("Resetting database timeout to " + %string(a_db_timeout) + " seconds")
     if (%ssc_cmd(a_dbchn,,SSQL_TIMEOUT,%string(a_db_timeout))==SSQL_FAILURE)
         nop
 
@@ -579,8 +613,10 @@ open_cursor,
     if (%ssc_open(a_dbchn,cursor,(a)sql,SSQL_NONSEL)==SSQL_FAILURE)
     begin
         ok = false
-        if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+        if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE) then
             errtxt="Failed to open cursor"
+        else
+            xcall ThrowOnCommunicationError("<StructureName>Index",dberror,errtxt)
     end
 
     return
@@ -590,9 +626,10 @@ execute_cursor,
     if (%ssc_execute(a_dbchn,cursor,SSQL_STANDARD)==SSQL_FAILURE)
     begin
         ok = false
-        if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+        if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE) then
             errtxt="Failed to execute SQL statement"
-        xcall ThrowOnCommunicationError(dberror,errtxt)
+        else
+            xcall ThrowOnCommunicationError("<StructureName>Index",dberror,errtxt)
     end
 
     return
@@ -606,8 +643,10 @@ close_cursor,
             if (ok)
             begin
                 ok = false
-                if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+                if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE) then
                     errtxt="Failed to close cursor"
+                else
+                    xcall ThrowOnCommunicationError("<StructureName>Index",dberror,errtxt)
             end
         end
         clear cursor
@@ -660,9 +699,10 @@ proc
         else
         begin
             ok = false
-            if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+            if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE) then
                 errtxt="Failed to start transaction"
-            xcall ThrowOnCommunicationError(dberror,errtxt)
+            else
+                xcall ThrowOnCommunicationError("<StructureName>UnIndex",dberror,errtxt)
         end
     end
 
@@ -710,9 +750,10 @@ proc
             if (%ssc_commit(a_dbchn,SSQL_TXOFF)==SSQL_FAILURE)
             begin
                 ok = false
-                if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+                if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE) then
                     errtxt="Failed to commit transaction"
-                xcall ThrowOnCommunicationError(dberror,errtxt)
+                else
+                    xcall ThrowOnCommunicationError("<StructureName>UnIndex",dberror,errtxt)
             end
         end
         else
@@ -721,9 +762,10 @@ proc
             if (%ssc_rollback(a_dbchn,SSQL_TXOFF) == SSQL_FAILURE)
             begin
                 ok = false
-                if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+                if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE) then
                     errtxt="Failed to rollback transaction"
-                xcall ThrowOnCommunicationError(dberror,errtxt)
+                else
+                    xcall ThrowOnCommunicationError("<StructureName>UnIndex",dberror,errtxt)
             end
         end
     end
@@ -745,8 +787,10 @@ open_cursor,
     if (%ssc_open(a_dbchn,cursor,(a)sql,SSQL_NONSEL)==SSQL_FAILURE)
     begin
         ok = false
-        if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+        if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE) then
             errtxt="Failed to open cursor"
+        else
+            xcall ThrowOnCommunicationError("<StructureName>UnIndex",dberror,errtxt)
     end
 
     return
@@ -756,9 +800,10 @@ execute_cursor,
     if (%ssc_execute(a_dbchn,cursor,SSQL_STANDARD)==SSQL_FAILURE)
     begin
         ok = false
-        if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+        if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE) then
             errtxt="Failed to execute SQL statement"
-        xcall ThrowOnCommunicationError(dberror,errtxt)
+        else
+            xcall ThrowOnCommunicationError("<StructureName>UnIndex",dberror,errtxt)
     end
 
     return
@@ -772,8 +817,10 @@ close_cursor,
             if (ok)
             begin
                 ok = false
-                if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+                if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE) then
                     errtxt="Failed to close cursor"
+                else
+                    xcall ThrowOnCommunicationError("<StructureName>UnIndex",dberror,errtxt)
             end
         end
         clear cursor
@@ -875,6 +922,17 @@ function <StructureName>Insert, ^val
         c1<StructureName>, i4, 0
     endcommon
 
+;//If any fields have a custom data type, declare the functions that convert the value
+<COUNTER_1_RESET><FIELD_LOOP><IF CUSTOM_CONVERT_FUNCTION><COUNTER_1_INCREMENT></IF></FIELD_LOOP>
+<IF COUNTER_1>
+    external function
+  <FIELD_LOOP>
+    <IF CUSTOM_CONVERT_FUNCTION>
+        <FIELD_CUSTOM_CONVERT_FUNCTION>, <FIELD_CUSTOM_DBL_TYPE>
+    </IF>
+  </FIELD_LOOP>
+    endexternal
+</IF>
 proc
 
     init local_data
@@ -895,9 +953,10 @@ proc
         begin
             ok = false
             sts = 0
-            if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+            if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE) then
                 errtxt="Failed to start transaction"
-            xcall ThrowOnCommunicationError(dberror,errtxt)
+            else
+                xcall ThrowOnCommunicationError("<StructureName>Insert",dberror,errtxt)
         end
     end
 
@@ -909,8 +968,10 @@ proc
         begin
             ok = false
             sts = 0
-            if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+            if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE) then
                 errtxt="Failed to open cursor"
+            else
+                xcall ThrowOnCommunicationError("<StructureName>Insert",dberror,errtxt)
         end
     end
 
@@ -923,8 +984,10 @@ proc
         begin
             ok = false
             sts = 0
-            if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+            if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE) then
                 errtxt="Failed to bind variables"
+            else
+                xcall ThrowOnCommunicationError("<StructureName>Insert",dberror,errtxt)
         end
     end
 
@@ -963,8 +1026,10 @@ proc
         begin
             ok = false
             sts = 0
-            if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+            if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE) then
                 errtxt="Failed to bind variables"
+            else
+                xcall ThrowOnCommunicationError("<StructureName>Insert",dberror,errtxt)
         end
     end
       <COUNTER_1_RESET>
@@ -972,8 +1037,10 @@ proc
         begin
             ok = false
             sts = 0
-            if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+            if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE) then
                 errtxt="Failed to bind variables"
+            else
+                xcall ThrowOnCommunicationError("<StructureName>Insert",dberror,errtxt)
         end
     end
     </IF COUNTER_1_EQ_250>
@@ -1079,7 +1146,7 @@ proc
                 end
                 (),
                 begin
-                    nop
+                    xcall ThrowOnCommunicationError("<StructureName>Insert",dberror,errtxt)
                 end
                 endusing
             end
@@ -1087,7 +1154,6 @@ proc
             begin
                 errtxt="Failed to execute SQL statement"
             end
-            xcall ThrowOnCommunicationError(dberror,errtxt)
         end
     end
 
@@ -1102,9 +1168,10 @@ proc
             begin
                 ok = false
                 sts = 0
-                if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+                if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE) then
                     errtxt="Failed to commit transaction"
-                xcall ThrowOnCommunicationError(dberror,errtxt)
+                else
+                    xcall ThrowOnCommunicationError("<StructureName>Insert",dberror,errtxt)
             end
         end
         else
@@ -1113,9 +1180,10 @@ proc
             if (%ssc_rollback(a_dbchn,SSQL_TXOFF) == SSQL_FAILURE)
             begin
                 ok = false
-                if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+                if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE) then
                     errtxt="Failed to rollback transaction"
-                xcall ThrowOnCommunicationError(dberror,errtxt)
+                else
+                    xcall ThrowOnCommunicationError("<StructureName>Insert",dberror,errtxt)
             end
         end
     end
@@ -1232,6 +1300,16 @@ function <StructureName>InsertRows, ^val
         c2<StructureName>, i4
     endcommon
 
+;//If any fields have a custom data type, declare the functions that convert the value
+<COUNTER_1_RESET><FIELD_LOOP><IF CUSTOM_CONVERT_FUNCTION><COUNTER_1_INCREMENT></IF></FIELD_LOOP><IF COUNTER_1>
+    external function
+  <FIELD_LOOP>
+    <IF CUSTOM_CONVERT_FUNCTION>
+        <FIELD_CUSTOM_CONVERT_FUNCTION>, <FIELD_CUSTOM_DBL_TYPE>
+    </IF>
+  </FIELD_LOOP>
+    endexternal
+</IF>
 proc
 
     init local_data
@@ -1268,9 +1346,10 @@ proc
         else
         begin
             ok = false
-            if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+            if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE) then
                 errtxt="Failed to start transaction"
-            xcall ThrowOnCommunicationError(dberror,errtxt)
+            else
+                xcall ThrowOnCommunicationError("<StructureName>InsertRows",dberror,errtxt)
         end
     end
 
@@ -1281,8 +1360,10 @@ proc
         if (%ssc_open(a_dbchn,c2<StructureName>,sql,SSQL_NONSEL,SSQL_STANDARD)==SSQL_FAILURE)
         begin
             ok = false
-            if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+            if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE) then
                 errtxt="Failed to open cursor"
+            else
+                xcall ThrowOnCommunicationError("<StructureName>InsertRows",dberror,errtxt)
         end
     end
 
@@ -1294,8 +1375,10 @@ proc
         if (%ssc_bind(a_dbchn,c2<StructureName>,1,recordNumber)==SSQL_FAILURE)
         begin
             ok = false
-            if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+            if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE) then
                 errtxt="Failed to bind variables"
+            else
+                xcall ThrowOnCommunicationError("<StructureName>InsertRows",dberror,errtxt)
         end
     end
 
@@ -1331,16 +1414,20 @@ proc
     <IF COUNTER_1_EQ_250>
         begin
             ok = false
-            if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+            if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE) then
                 errtxt="Failed to bind variables"
+            else
+                xcall ThrowOnCommunicationError("<StructureName>InsertRows",dberror,errtxt)
         end
     end
       <COUNTER_1_RESET>
     <ELSE NOMORE>
         begin
             ok = false
-            if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+            if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE) then
                 errtxt="Failed to bind variables"
+            else
+                xcall ThrowOnCommunicationError("<StructureName>InsertRows",dberror,errtxt)
         end
     end
     </IF COUNTER_1_EQ_250>
@@ -1437,10 +1524,10 @@ proc
 
             if (%ssc_execute(a_dbchn,c2<StructureName>,SSQL_STANDARD)==SSQL_FAILURE)
             begin
-                if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+                if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE) then
                     errtxt="Failed to execute SQL statement"
-
-                xcall ThrowOnCommunicationError(dberror,errtxt)
+                else
+                    xcall ThrowOnCommunicationError("<StructureName>InsertRows",dberror,errtxt)
 
                 clear continue
 
@@ -1486,9 +1573,10 @@ proc
             if (%ssc_commit(a_dbchn,SSQL_TXOFF)==SSQL_FAILURE)
             begin
                 ok = false
-                if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+                if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE) then
                     errtxt="Failed to commit transaction"
-                xcall ThrowOnCommunicationError(dberror,errtxt)
+                else
+                    xcall ThrowOnCommunicationError("<StructureName>InsertRows",dberror,errtxt)
             end
         end
         else
@@ -1497,9 +1585,10 @@ proc
             if (%ssc_rollback(a_dbchn,SSQL_TXOFF) == SSQL_FAILURE)
             begin
                 ok = false
-                if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+                if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE) then
                     errtxt="Failed to rollback transaction"
-                xcall ThrowOnCommunicationError(dberror,errtxt)
+                else
+                    xcall ThrowOnCommunicationError("<StructureName>InsertRows",dberror,errtxt)
             end
         end
     end
@@ -1625,6 +1714,17 @@ function <StructureName>Update, ^val
     global common
         c3<StructureName>, i4
     endcommon
+
+;//If any fields have a custom data type, declare the functions that convert the value
+<COUNTER_1_RESET><FIELD_LOOP><IF CUSTOM_CONVERT_FUNCTION><COUNTER_1_INCREMENT></IF></FIELD_LOOP><IF COUNTER_1>
+    external function
+  <FIELD_LOOP>
+    <IF CUSTOM_CONVERT_FUNCTION>
+        <FIELD_CUSTOM_CONVERT_FUNCTION>, <FIELD_CUSTOM_DBL_TYPE>
+    </IF>
+  </FIELD_LOOP>
+    endexternal
+</IF>
 proc
 
     init local_data
@@ -1652,9 +1752,10 @@ proc
         else
         begin
             ok = false
-            if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+            if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE) then
                 errtxt="Failed to start transaction"
-            xcall ThrowOnCommunicationError(dberror,errtxt)
+            else
+                xcall ThrowOnCommunicationError("<StructureName>Update",dberror,errtxt)
         end
     end
 
@@ -1665,8 +1766,10 @@ proc
         if (%ssc_open(a_dbchn,c3<StructureName>,sql,SSQL_NONSEL,SSQL_STANDARD)==SSQL_FAILURE)
         begin
             ok = false
-            if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+            if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE) then
                 errtxt="Failed to open cursor"
+            else
+                xcall ThrowOnCommunicationError("<StructureName>Update",dberror,errtxt)
         end
     end
 
@@ -1703,16 +1806,20 @@ proc
     <IF COUNTER_1_EQ_250>
         begin
             ok = false
-            if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+            if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE) then
                 errtxt="Failed to bind variables"
+            else
+                xcall ThrowOnCommunicationError("<StructureName>Update",dberror,errtxt)
         end
     end
       <COUNTER_1_RESET>
     <ELSE NOMORE>
         begin
             ok = false
-            if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+            if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE) then
                 errtxt="Failed to bind variables"
+            else
+                xcall ThrowOnCommunicationError("<StructureName>Update",dberror,errtxt)
         end
     end
     </IF COUNTER_1_EQ_250>
@@ -1730,8 +1837,10 @@ proc
 </IF STRUCTURE_ISAM>
         begin
             ok = false
-            if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+            if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE) then
                 errtxt="Failed to bind key variables"
+            else
+                xcall ThrowOnCommunicationError("<StructureName>Update",dberror,errtxt)
         end
     end
 
@@ -1812,9 +1921,10 @@ proc
         else
         begin
             ok = false
-            if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+            if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE) then
                 errtxt="Failed to execute SQL statement"
-            xcall ThrowOnCommunicationError(dberror,errtxt)
+            else
+                xcall ThrowOnCommunicationError("<StructureName>Update",dberror,errtxt)
         end
     end
 
@@ -1828,9 +1938,10 @@ proc
             if (%ssc_commit(a_dbchn,SSQL_TXOFF)==SSQL_FAILURE)
             begin
                 ok = false
-                if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+                if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE) then
                     errtxt="Failed to commit transaction"
-                xcall ThrowOnCommunicationError(dberror,errtxt)
+                else
+                    xcall ThrowOnCommunicationError("<StructureName>Update",dberror,errtxt)
             end
         end
         else
@@ -1839,9 +1950,10 @@ proc
             if (%ssc_rollback(a_dbchn,SSQL_TXOFF) == SSQL_FAILURE)
             begin
                 ok = false
-                if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+                if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE) then
                     errtxt="Failed to rollback transaction"
-                xcall ThrowOnCommunicationError(dberror,errtxt)
+                else
+                    xcall ThrowOnCommunicationError("<StructureName>Update",dberror,errtxt)
             end
         end
     end
@@ -1917,9 +2029,10 @@ proc
         else
         begin
             ok = false
-            if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+            if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE) then
                 errtxt="Failed to start transaction"
-            xcall ThrowOnCommunicationError(dberror,errtxt)
+            else
+                xcall ThrowOnCommunicationError("<StructureName>Delete",dberror,errtxt)
         end
     end
 
@@ -1944,8 +2057,10 @@ proc
         if (%ssc_open(a_dbchn,cursor,(a)sql,SSQL_NONSEL)==SSQL_FAILURE)
         begin
             ok = false
-            if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+            if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE) then
                 errtxt="Failed to open cursor"
+            else
+                xcall ThrowOnCommunicationError("<StructureName>Delete",dberror,errtxt)
         end
     end
 
@@ -1956,9 +2071,10 @@ proc
         if (%ssc_execute(a_dbchn,cursor,SSQL_STANDARD)==SSQL_FAILURE)
         begin
             ok = false
-            if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+            if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE) then
                 errtxt="Failed to execute SQL statement"
-            xcall ThrowOnCommunicationError(dberror,errtxt)
+            else
+                xcall ThrowOnCommunicationError("<StructureName>Delete",dberror,errtxt)
         end
     end
 
@@ -1971,8 +2087,10 @@ proc
             if (ok)
             begin
                 ok = false
-                if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+                if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE) then
                     errtxt="Failed to close cursor"
+                else
+                    xcall ThrowOnCommunicationError("<StructureName>Delete",dberror,errtxt)
             end
         end
     end
@@ -1987,9 +2105,10 @@ proc
             if (%ssc_commit(a_dbchn,SSQL_TXOFF)==SSQL_FAILURE)
             begin
                 ok = false
-                if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+                if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE) then
                     errtxt="Failed to commit transaction"
-                xcall ThrowOnCommunicationError(dberror,errtxt)
+                else
+                    xcall ThrowOnCommunicationError("<StructureName>Delete",dberror,errtxt)
             end
         end
         else
@@ -1998,9 +2117,10 @@ proc
             if (%ssc_rollback(a_dbchn,SSQL_TXOFF) == SSQL_FAILURE)
             begin
                 ok = false
-                if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+                if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE) then
                     errtxt="Failed to rollback transaction"
-                xcall ThrowOnCommunicationError(dberror,errtxt)
+                else
+                    xcall ThrowOnCommunicationError("<StructureName>Delete",dberror,errtxt)
             end
         end
     end
@@ -2026,6 +2146,7 @@ endfunction
 ;;; </summary>
 ;;; <param name="a_dbchn">Connected database channel.</param>
 ;;; <param name="a_commit_mode">What commit mode are we using?</param>
+;;; <param name="a_temp_table">Use TEMP table?</param>
 ;;; <param name="a_errtxt">Returned error text.</param>
 ;;; <returns>Returns true on success, otherwise false.</returns>
 
@@ -2033,6 +2154,7 @@ function <StructureName>Clear, ^val
 
     required in  a_dbchn,  i
     required in  a_commit_mode, i
+    required in  a_temp_table, i
     optional out a_errtxt, a
     endparams
 
@@ -2062,9 +2184,10 @@ proc
         else
         begin
             ok = false
-            if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+            if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE) then
                 errtxt="Failed to start transaction"
-            xcall ThrowOnCommunicationError(dberror,errtxt)
+            else
+                xcall ThrowOnCommunicationError("<StructureName>Clear",dberror,errtxt)
         end
     end
 
@@ -2072,12 +2195,18 @@ proc
 
     if (ok)
     begin
-        sql = 'TRUNCATE TABLE "<StructureName>"'
+        if (a_temp_table) then
+            sql = 'TRUNCATE TABLE <StructureName>TEMP'
+        else
+            sql = 'TRUNCATE TABLE <StructureName>'
+
         if (%ssc_open(a_dbchn,cursor,(a)sql,SSQL_NONSEL)==SSQL_FAILURE)
         begin
             ok = false
-            if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+            if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE) then
                 errtxt="Failed to open cursor"
+            else
+                xcall ThrowOnCommunicationError("<StructureName>Clear",dberror,errtxt)
         end
     end
 
@@ -2088,9 +2217,10 @@ proc
         if (%ssc_execute(a_dbchn,cursor,SSQL_STANDARD)==SSQL_FAILURE)
         begin
             ok = false
-            if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+            if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE) then
                 errtxt="Failed to execute SQL statement"
-            xcall ThrowOnCommunicationError(dberror,errtxt)
+            else
+                xcall ThrowOnCommunicationError("<StructureName>Clear",dberror,errtxt)
         end
     end
 
@@ -2103,8 +2233,10 @@ proc
             if (ok)
             begin
                 ok = false
-                if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+                if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE) then
                     errtxt="Failed to close cursor"
+                else
+                    xcall ThrowOnCommunicationError("<StructureName>Clear",dberror,errtxt)
             end
         end
     end
@@ -2119,9 +2251,10 @@ proc
             if (%ssc_commit(a_dbchn,SSQL_TXOFF)==SSQL_FAILURE)
             begin
                 ok = false
-                if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+                if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE) then
                     errtxt="Failed to commit transaction"
-                xcall ThrowOnCommunicationError(dberror,errtxt)
+                else
+                    xcall ThrowOnCommunicationError("<StructureName>Clear",dberror,errtxt)
             end
         end
         else
@@ -2130,9 +2263,10 @@ proc
             if (%ssc_rollback(a_dbchn,SSQL_TXOFF) == SSQL_FAILURE)
             begin
                 ok = false
-                if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+                if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE) then
                     errtxt="Failed to rollback transaction"
-                xcall ThrowOnCommunicationError(dberror,errtxt)
+                else
+                    xcall ThrowOnCommunicationError("<StructureName>Clear",dberror,errtxt)
             end
         end
     end
@@ -2157,6 +2291,7 @@ endfunction
 ;;; </summary>
 ;;; <param name="a_dbchn">Connected database channel.</param>
 ;;; <param name="a_commit_mode">What commit mode are we using?</param>
+;;; <param name="a_temp_table">Use TEMP table?</param>
 ;;; <param name="a_errtxt">Returned error text.</param>
 ;;; <returns>Returns true on success, otherwise false.</returns>
 
@@ -2164,6 +2299,7 @@ function <StructureName>Drop, ^val
 
     required in  a_dbchn,  i
     required in  a_commit_mode, i
+    required in  a_temp_table, i
     optional out a_errtxt, a
     endparams
 
@@ -2171,6 +2307,7 @@ function <StructureName>Drop, ^val
 
     stack record local_data
         ok          ,boolean    ;;Return status
+        sql         ,string     ;;SQL statement
         dberror     ,int        ;;Database error number
         cursor      ,int        ;;Database cursor
         length      ,int        ;;Length of a string
@@ -2196,9 +2333,10 @@ proc
         else
         begin
             ok = false
-            if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+            if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE) then
                 errtxt="Failed to start transaction"
-            xcall ThrowOnCommunicationError(dberror,errtxt)
+            else
+                xcall ThrowOnCommunicationError("<StructureName>Drop",dberror,errtxt)
         end
     end
 
@@ -2206,11 +2344,18 @@ proc
 
     if (ok)
     begin
-        if (%ssc_open(a_dbchn,cursor,"DROP TABLE <StructureName>",SSQL_NONSEL)==SSQL_FAILURE)
+        sql = "DROP TABLE <StructureName>"
+
+        if (a_temp_table)
+            sql = sql + "TEMP"
+
+        if (%ssc_open(a_dbchn,cursor,sql,SSQL_NONSEL)==SSQL_FAILURE)
         begin
             ok = false
-            if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+            if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE) then
                 errtxt="Failed to open cursor"
+            else
+                xcall ThrowOnCommunicationError("<StructureName>Drop",dberror,errtxt)
         end
     end
 
@@ -2226,14 +2371,16 @@ proc
                 if (dberror==-3701) then
                     clear errtxt
                 else
+                begin
                     ok = false
+                    xcall ThrowOnCommunicationError("<StructureName>Drop",dberror,errtxt)
+                end
             end
             else
             begin
                 errtxt="Failed to execute SQL statement"
                 ok = false
             end
-            xcall ThrowOnCommunicationError(dberror,errtxt)
         end
     end
 
@@ -2246,8 +2393,10 @@ proc
             if (ok)
             begin
                 ok = false
-                if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+                if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE) then
                     errtxt="Failed to close cursor"
+                else
+                    xcall ThrowOnCommunicationError("<StructureName>Drop",dberror,errtxt)
             end
         end
     end
@@ -2262,9 +2411,10 @@ proc
             if (%ssc_commit(a_dbchn,SSQL_TXOFF)==SSQL_FAILURE)
             begin
                 ok = false
-                if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+                if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE) then
                     errtxt="Failed to commit transaction"
-                xcall ThrowOnCommunicationError(dberror,errtxt)
+                else
+                    xcall ThrowOnCommunicationError("<StructureName>Drop",dberror,errtxt)
             end
         end
         else
@@ -2273,9 +2423,10 @@ proc
             if (%ssc_rollback(a_dbchn,SSQL_TXOFF) == SSQL_FAILURE)
             begin
                 ok = false
-                if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+                if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE) then
                     errtxt="Failed to rollback transaction"
-                xcall ThrowOnCommunicationError(dberror,errtxt)
+                else
+                    xcall ThrowOnCommunicationError("<StructureName>Drop",dberror,errtxt)
             end
         end
     end
@@ -2553,7 +2704,7 @@ insert_data,
             ;;No exceptions
             ttl_added += attempted
             if ^passed(a_terminal) && a_terminal && ^passed(a_progress) && a_progress
-                writes(a_terminal," - " + %string(ttl_added) + " rows inserted")
+                writes(a_terminal,%string(ttl_added) + " rows inserted")
         end
     end
 
@@ -2570,7 +2721,9 @@ endfunction
 ;;; <param name="a_dbchn">Connected database channel.</param>
 ;;; <param name="a_commit_mode">What commit mode are we using?</param>
 ;;; <param name="a_localpath">Path to local export directory</param>
-;;; <param name="a_remotepath">Remote export directory or URL</param>
+;;; <param name="a_server">Server name or IP</param>
+;;; <param name="a_port">Server IP port</param>
+;;; <param name="a_temp_table">Use temp table</param>
 ;;; <param name="a_db_timeout">Database timeout in seconds.</param>
 ;;; <param name="a_bl_timeout">Bulk load timeout in seconds.</param>
 ;;; <param name="a_bl_batchsz">Bulk load batch size in rows.</param>
@@ -2587,6 +2740,7 @@ function <StructureName>BulkLoad, ^val
     required in  a_localpath,  a
     required in  a_server,     a
     required in  a_port,       i
+    required in  a_temp_table, n
     required in  a_db_timeout, n
     required in  a_bl_timeout, n
     required in  a_bl_batchsz, n
@@ -2742,9 +2896,10 @@ proc
             else
             begin
                 ok = false
-                if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+                if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE) then
                     errtxt="Failed to start transaction"
-                xcall ThrowOnCommunicationError(dberror,errtxt)
+                else
+                    xcall ThrowOnCommunicationError("<StructureName>BulkLoad",dberror,errtxt)
             end
         end
 
@@ -2757,11 +2912,16 @@ proc
 
             errorFile = fileToLoad + "_err"
 
-            sql = "BULK INSERT <StructureName> FROM '" + fileToLoad + "' WITH (FIRSTROW=2,FIELDTERMINATOR='|',ROWTERMINATOR='\n', MAXERRORS=100000000, ERRORFILE='" + errorFile + "'"
+            sql = "BULK INSERT <StructureName>"
+
+            if (a_temp_table)
+                sql = sql + "TEMP"
+
+            sql = sql + " FROM '" + fileToLoad + "' WITH (FIRSTROW=2,FIELDTERMINATOR='|',ROWTERMINATOR='\n',MAXERRORS=100000000,ERRORFILE='" + errorFile + "'"
 
             if (a_bl_batchsz > 0)
             begin
-                sql = sql + ", BATCHSIZE=" + %string(a_bl_batchsz)
+                sql = sql + ",BATCHSIZE=" + %string(a_bl_batchsz)
             end
 
            sql = sql + ")"
@@ -2771,8 +2931,10 @@ proc
             else
             begin
                 ok = false
-                if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+                if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE) then
                     errtxt="Failed to open cursor"
+                else
+                    xcall ThrowOnCommunicationError("<StructureName>BulkLoad",dberror,errtxt)
             end
         end
 
@@ -2786,8 +2948,10 @@ proc
             if (%ssc_cmd(a_dbchn,,SSQL_TIMEOUT,%string(a_bl_timeout))==SSQL_FAILURE)
             begin
                 ok = false
-                if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+                if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE) then
                     errtxt="Failed to set database timeout"
+                else
+                    xcall ThrowOnCommunicationError("<StructureName>BulkLoad",dberror,errtxt)
             end
         end
 
@@ -2802,7 +2966,7 @@ proc
             begin
                 if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_NORMAL) then
                 begin
-                    xcall ThrowOnCommunicationError(dberror,errtxt)
+                    xcall ThrowOnCommunicationError("<StructureName>BulkLoad",dberror,errtxt)
 
                     now = %datetime
                     writelog("Bulk insert error")
@@ -2867,10 +3031,11 @@ proc
                 writett("COMMIT")
                 if (%ssc_commit(a_dbchn,SSQL_TXOFF)==SSQL_FAILURE)
                 begin
-                    if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
-                        errtxt="Failed to commit transaction"
                     ok = false
-                    xcall ThrowOnCommunicationError(dberror,errtxt)
+                    if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE) then
+                        errtxt="Failed to commit transaction"
+                    else
+                        xcall ThrowOnCommunicationError("<StructureName>BulkLoad",dberror,errtxt)
                 end
             end
             else
@@ -2882,9 +3047,10 @@ proc
                 if (%ssc_rollback(a_dbchn,SSQL_TXOFF) == SSQL_FAILURE)
                 begin
                     ok = false
-                    if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+                    if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE) then
                         errtxt="Failed to rollback transaction"
-                    xcall ThrowOnCommunicationError(dberror,errtxt)
+                    else
+                        xcall ThrowOnCommunicationError("<StructureName>BulkLoad",dberror,errtxt)
                 end
             end
         end
@@ -2906,8 +3072,10 @@ proc
             writett("Closing cursor")
             if (%ssc_close(a_dbchn,cursor)==SSQL_FAILURE)
             begin
-                if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE)
+                if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE) then
                     errtxt="Failed to close cursor"
+                else
+                    xcall ThrowOnCommunicationError("<StructureName>BulkLoad",dberror,errtxt)
             end
         end
     end
@@ -2926,7 +3094,7 @@ proc
         a_errtxt = errtxt
 
       now = %datetime
-      writelog("BULK ULOAD COMPLETE")
+      writelog("BULK LOAD COMPLETE")
 
     freturn ok
 
@@ -3019,7 +3187,6 @@ GetExceptionDetails,
 
                     now = %datetime
                     writelog(%string(exceptionRecords.Length) + " items saved to " + localExceptionsLog)
-                    writelog(" - " + %string(exceptionRecords.Length) + " items saved to " + localExceptionsLog)
                 end
             end
             else
@@ -3200,6 +3367,17 @@ function <StructureName>Csv, boolean
 .align
         errtxt,                         a512        ;;Error message text
     endrecord
+
+;//If any fields have a custom data type, declare the functions that convert the value to a string
+;//<COUNTER_1_RESET><FIELD_LOOP><IF CUSTOM_STRING_FUNCTION><COUNTER_1_INCREMENT></IF></FIELD_LOOP><IF COUNTER_1>
+;//    external function
+;//  <FIELD_LOOP>
+;//    <IF CUSTOM_STRING_FUNCTION>
+;//        <FIELD_CUSTOM_STRING_FUNCTION>, string
+;//    </IF>
+;//  </FIELD_LOOP>
+;//    endexternal
+;//</IF>
 proc
 
     ok = true
@@ -3593,9 +3771,9 @@ endfunction
 
 ;;*****************************************************************************
 ;;; <summary>
-;;; 
+;;; Return the number of columns in the <StructureName> table
 ;;; </summary>
-;;; <returns></returns>
+;;; <returns>Number of columns</returns>
 
 function <StructureName>Cols ,^val
 proc

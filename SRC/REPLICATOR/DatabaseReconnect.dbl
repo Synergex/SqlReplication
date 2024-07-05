@@ -12,9 +12,11 @@
 ;;
 
 import replicator
+import ReplicationLibrary
 import System.Collections
 
 function DatabaseReconnect, boolean
+    required in theException, @DatabaseCommunicationException
 
     .include "CONNECTDIR:ssql.def"
     .include "DBLDIR:namspc.def"
@@ -33,7 +35,8 @@ function DatabaseReconnect, boolean
 proc
     reconnected = false
 
-    Logger.Log("Cleaning up after failed database connection...")
+    Logger.Log("ERROR: Database connection failed!")
+    Logger.Log("Routine " + theException.FailingRoutine + " detected error " + %string(theException.DatabaseErrorNumber) + " " + theException.DatabaseErrorMessage )
 
     ;;Get a list of all replicated tables
 
@@ -41,7 +44,7 @@ proc
 
     ;;Attempt to close any open cursors - no errors will be generated regardless of what happens
 
-    Logger.Log(" - Attempting to close cursors")
+    Logger.Log("Closing database cursors...")
 
     foreach tableName in replicatedTables
     begin
@@ -57,11 +60,11 @@ proc
     if (Settings.RetryMaxAttempts < 1)
     begin
         ;;Re-connect has been disabled!
-        Logger.Log("Database re-connect has been disabled!")
+        Logger.Log("Database re-connect disabled by RetryMaxAttempts")
         freturn false
     end
 
-    Logger.Log("Attempting database reconnect (max " + %string(Settings.RetryMaxAttempts) + " attempts with a " + %string(Settings.RetryDelaySeconds) + " second interval)")
+    Logger.Log("Attempting reconnect (" + %string(Settings.RetryMaxAttempts) + " attempts, " + %string(Settings.RetryDelaySeconds) + "s interval)")
 
     for connectionAttempt from 1 thru Settings.RetryMaxAttempts
     begin
@@ -70,11 +73,11 @@ proc
             sleep Settings.RetryDelaySeconds
         end
             
-        Logger.Log(" - Attempt " + %string(connectionAttempt) + "...")
+        Logger.Log("Attempt " + %string(connectionAttempt) + "...")
 
         if (reconnected = %DatabaseConnect) then
         begin
-            Logger.Log(" - Reconnected")
+            Logger.Log("Reconnected")
 
             ;;Send email notification re re-connect success
             if (Settings.CanSendEmail())
@@ -93,7 +96,7 @@ proc
 
     if (!reconnected)
     begin
-        Logger.ErrorLog("Failed to reconnect to database!")
+        Logger.ErrorLog("ERROR: Failed to reconnect to database!")
         if (Settings.CanSendEmail())
         begin
             ;;Send email notification re re-connect failure

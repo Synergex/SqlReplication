@@ -1,13 +1,13 @@
  
 ;  SYNERGY DATA LANGUAGE OUTPUT
 ;
-;  REPOSITORY     : D:\SqlReplication\RPS\rpsmain.ism
-;                 : D:\SqlReplication\RPS\rpstext.ism
-;                 : Version 11.1.1b
+;  REPOSITORY     : C:\DEV_SYNERGEX\SqlReplication\RPS\rpsmain.ism
+;                 : C:\DEV_SYNERGEX\SqlReplication\RPS\rpstext.ism
+;                 : Version 12.4.1
 ;
-;  GENERATED      : 30-JAN-2020, 18:12:04
-;                 : Version 11.1.1c
-;  EXPORT OPTIONS : [ALL-K-R-A] 
+;  GENERATED      : 04-JUL-2024, 16:11:31
+;                 : Version 12.3.1
+;  EXPORT OPTIONS : [ALL] 
  
  
 Format PHONE   Type NUMERIC   "(XXX) XXX-XXXX"   Justify LEFT
@@ -18,7 +18,8 @@ Enumeration REPLICATION_INSTRUCTION
           LOAD_TABLE 5, CREATE_AND_LOAD_TABLE 6, DELETE_ALL_ROWS 7,
           DELETE_TABLE 8, SHUTDOWN 9, INSERT_RELATIVE 10,
           UPDATE_RELATIVE 11, ADD_INDEXES 12, DELETE_INDEXES 13,
-          BULK_LOAD_TABLE 14, BULK_LOAD_FIRST_1000,
+          BULK_LOAD_TABLE 14, BULK_LOAD_FIRST_1000 15,
+          BULK_LOAD_TO_TEMP_TABLE 16, DELETE_TEMP_TABLE 17,
           DELETE_ALL_INSTRUCTIONS 20, CLOSE_FILE 21, CHANGE_INTERVAL 22,
           CREATE_CSV 23, CYCLE_LOG 24, OPEN_FILE 25,
           DELETE_FIRST_INSTRUCTION 26
@@ -34,7 +35,7 @@ Template DEPARTMENT_NAME   Type ALPHA   Size 50
    Description "Department name"
    Required
  
-Template EMPLOYEE_ID   Type DECIMAL   Size 6
+Template EMPLOYEE_ID   Type DECIMAL   Size 8
    Description "Employee ID"
    Prompt "Employee ID"
    Required
@@ -169,7 +170,7 @@ Field EMP_ADDRESS_ZIP   Type DECIMAL   Size 5
    Prompt "Zip code"   Info Line "What is the employees home ZIP code?"
    ODBC Name ZIP_CODE
  
-Field NONAME_001   Type ALPHA   Size 78   Language Noview   Script Noview
+Field NONAME_001   Type ALPHA   Size 76   Language Noview   Script Noview
    Report Noview   Nonamelink
    Description "Spare space"
    ODBC Name SPARE_SPACE_1

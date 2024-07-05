@@ -494,16 +494,19 @@ proc
         else
         begin
             ;;Environment variable?
-            data tmpval, a3
+            data tmpval, a4
             xcall getlog("REPLICATOR_DATA_COMPRESSION",tmpval,length)
-            using ((string)tmpval(1:length)).ToUpper() select
-            ("ROW"),
-                Settings.DataCompressionMode = DatabaseDataCompression.Row
-            ("PAGE"),
-                Settings.DataCompressionMode = DatabaseDataCompression.Page
-            (),
-                Settings.DataCompressionMode = DatabaseDataCompression.None
-            endusing
+            if (length)
+            begin
+                using ((string)tmpval(1:length)).ToUpper() select
+                ("ROW"),
+                    Settings.DataCompressionMode = DatabaseDataCompression.Row
+                ("PAGE"),
+                    Settings.DataCompressionMode = DatabaseDataCompression.Page
+                (),
+                    Settings.DataCompressionMode = DatabaseDataCompression.None
+                endusing
+            end
         end
     end
 
@@ -811,7 +814,7 @@ proc
             begin
                 try
                 begin
-                    Settings.CommitBatchRows = %integer(%atrim(tmpval))
+                    Settings.CommitBatchRows = %integer(tmpval(1:length))
 
                     if (Settings.CommitBatchRows<2)
                     begin
