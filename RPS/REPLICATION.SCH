@@ -5,7 +5,7 @@
 ;                 : C:\DEV_SYNERGEX\SqlReplication\RPS\rpstext.ism
 ;                 : Version 12.4.1
 ;
-;  GENERATED      : 04-JUL-2024, 16:11:31
+;  GENERATED      : 05-JUL-2024, 14:29:23
 ;                 : Version 12.3.1
 ;  EXPORT OPTIONS : [ALL] 
  
@@ -75,7 +75,7 @@ Key DEPT_ID   ACCESS   Order ASCENDING   Dups NO
 Key DEPT_MANAGER   ACCESS   Order ASCENDING   Dups YES   Insert END
    Modifiable YES   Krf 001
    Description "Department manager"
-   Segment FIELD   DEPT_MANAGER  SegType ALPHA
+   Segment FIELD   DEPT_MANAGER  SegType DECIMAL  SegOrder ASCENDING
  
 Structure EMPLOYEE   DBL ISAM
    Description "Employee Master File"
@@ -176,7 +176,7 @@ Field NONAME_001   Type ALPHA   Size 76   Language Noview   Script Noview
    ODBC Name SPARE_SPACE_1
  
 Key EMP_ID   ACCESS   Order ASCENDING   Dups NO
-   Segment FIELD   EMP_ID  SegType ALPHA
+   Segment FIELD   EMP_ID  SegType DECIMAL  SegOrder ASCENDING
  
 Key EMP_DEPT   ACCESS   Order ASCENDING   Dups YES   Insert END
    Modifiable YES   Krf 001
@@ -196,7 +196,7 @@ Key STATE_CODE   ACCESS   Order ASCENDING   Dups YES   Insert END
 Key ZIP_CODE   ACCESS   Order ASCENDING   Dups YES   Insert END
    Modifiable YES   Krf 004
    Description "Zip code"
-   Segment FIELD   EMP_ADDRESS_ZIP  SegType ALPHA  SegOrder ASCENDING
+   Segment FIELD   EMP_ADDRESS_ZIP  SegType DECIMAL  SegOrder ASCENDING
  
 Structure RELSTR   RELATIVE
    Description "Relative structure"
