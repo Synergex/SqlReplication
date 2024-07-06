@@ -3349,22 +3349,15 @@ function <StructureName>Csv, boolean
 </IF DEFINED_ASA_TIREMAX>
     endexternal
 
+.align
     stack record local_data
-.align
         ok,                             boolean     ;Return status
-.align
         filechn,                        int         ;Data file channel
-.align
         outchn,                         int         ;CSV file channel
-.align
         outrec,                         string      ;A CSV file record
-.align
         records,                        int         ;Number of records exported
-.align
         pos,                            int         ;Position in a string
-.align
         recordsMax,                     int         ;Max # or records to export
-.align
         errtxt,                         a512        ;Error message text
     endrecord
 
