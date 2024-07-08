@@ -170,6 +170,9 @@ namespace ReplicationLibrary
                 end
             end
 
+            ;;Increment the error count
+            Counters.Errors += 1
+
             ;;Stop processing?
             if (Settings.StopOnError)
             begin
@@ -221,6 +224,9 @@ namespace ReplicationLibrary
                     xcall SendEmail("ERROR: Replicator " + Settings.InstanceName + " encountered an error but will CONTINUE processing.",body,false,^null)
                 end
             end
+
+            ;;Increment the error count
+            Counters.Errors += 1
 
             ;;Stop processing?
             if (Settings.StopOnError)
