@@ -643,9 +643,17 @@ CommitTransaction,
     end
     else
     begin
-        ;TODO: ENHANCEMENT: Commit failed - now what?
-
-
+        ;Batch commit failed
+        data length = 0
+        if (%ssc_getemsg(Settings.DatabaseChannel,dberrtxt,length)==SSQL_FAILURE) then
+        begin
+            dberrtxt="Batch commit failed"
+        end
+        else
+        begin
+            dberrtxt="Batch commit failed: " + dberrtxt(1:length)
+        end
+        Logger.ErrorLog(dberrtxt)
     end
 
     return
@@ -1043,12 +1051,16 @@ DoInsert,
         end
         catch (ex, @SynException)
         begin
-            ok = Logger.LogFunctionFail(functionName,ex.Errno,ex.Message)
+            functionName = %atrim(instruction.structure_name) + "KeyVal"
+            status = %xsubr(functionName,instruction.record,keyValue,keyLength)
+            ok = Logger.LogFunctionFail(functionName,ex.Errno,ex.Message,keyValue(1:keyLength))
             doReturn = true ;Can't return from a TRY in .NET
         end
         catch (ex, @Exception)
         begin
-            ok = Logger.LogFunctionFail(functionName,0,ex.Message)
+            functionName = %atrim(instruction.structure_name) + "KeyVal"
+            status = %xsubr(functionName,instruction.record,keyValue,keyLength)
+            ok = Logger.LogFunctionFail(functionName,0,ex.Message,keyValue(1:keyLength))
             doReturn = true ;Can't return from a TRY in .NET
         end
         endtry
@@ -1060,7 +1072,9 @@ DoInsert,
     using status select
     (0),
     begin
-        Logger.LogFunctionError(functionName,status,dberrtxt)
+        functionName = %atrim(instruction.structure_name) + "KeyVal"
+        status = %xsubr(functionName,instruction.record,keyValue,keyLength)
+        Logger.LogFunctionError(functionName,status,dberrtxt,keyValue(1:keyLength))
     end
     (1),
     begin
@@ -1216,12 +1230,16 @@ DoUpdate,
         end
         catch (ex, @SynException)
         begin
-            ok = Logger.LogFunctionFail(functionName,ex.Errno,ex.Message)
+            functionName = %atrim(instruction.structure_name) + "KeyVal"
+            status = %xsubr(functionName,instruction.record,keyValue,keyLength)
+            ok = Logger.LogFunctionFail(functionName,ex.Errno,ex.Message,keyValue(1:keyLength))
             doReturn = true ;Can't return from a TRY in .NET
         end
         catch (ex, @Exception)
         begin
-            ok = Logger.LogFunctionFail(functionName,0,ex.Message)
+            functionName = %atrim(instruction.structure_name) + "KeyVal"
+            status = %xsubr(functionName,instruction.record,keyValue,keyLength)
+            ok = Logger.LogFunctionFail(functionName,0,ex.Message,keyValue(1:keyLength))
             doReturn = true ;Can't return from a TRY in .NET
         end
         endtry
@@ -1254,7 +1272,9 @@ DoUpdate,
     end
     else
     begin
-        Logger.LogFunctionError(functionName,status,dberrtxt)
+        functionName = %atrim(instruction.structure_name) + "KeyVal"
+        status = %xsubr(functionName,instruction.record,keyValue,keyLength)
+        Logger.LogFunctionError(functionName,status,dberrtxt,keyValue(1:keyLength))
     end
 
     return
@@ -1374,7 +1394,7 @@ DoDelete,
             else
             begin
                 Logger.VerboseLog(dberrtxt)
-                Logger.LogFunctionError(functionName,status,dberrtxt)
+                Logger.LogFunctionError(functionName,status,dberrtxt,keyValue(1:keyLength))
             end
             exitloop
         end
@@ -1393,12 +1413,12 @@ DoDelete,
         end
         catch (ex, @SynException)
         begin
-            ok = Logger.LogFunctionFail(functionName,ex.Errno,ex.Message)
+            ok = Logger.LogFunctionFail(functionName,ex.Errno,ex.Message,keyValue(1:keyLength))
             exitloop
         end
         catch (ex, @Exception)
         begin
-            ok = Logger.LogFunctionFail(functionName,0,ex.Message)
+            ok = Logger.LogFunctionFail(functionName,0,ex.Message,keyValue(1:keyLength))
             exitloop
         end
         endtry
