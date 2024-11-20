@@ -30,10 +30,12 @@
     <Prefer32Bit>False</Prefer32Bit>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Synergex.SynergyDE.Build" Version="23.*" />
+    <PackageReference Include="Synergex.SynergyDE.Build">
+      <Version>24.10.2239</Version>
+    </PackageReference>
     <PackageReference Include="Synergex.SynergyDE.synrnt" Version="12.*" />
     <PackageReference Include="System.Text.Json">
-      <Version>6.0.8</Version>
+      <Version>6.0.11</Version>
     </PackageReference>
   </ItemGroup>
   <ItemGroup>
@@ -84,6 +86,7 @@
     <Compile Include="..\..\SRC\LIBRARY\StringTools.dbl" />
     <Compile Include="..\..\SRC\LIBRARY\ThrowOnCommunicationError.dbl" />
     <Compile Include="..\..\SRC\LIBRARY\TimeNow.dbl" />
+    <Compile Include="..\..\SRC\LIBRARY\Timer.dbl" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="..\..\SRC\LIBRARY\SmtpMail.def">

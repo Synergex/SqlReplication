@@ -1,39 +1,39 @@
-;;*****************************************************************************
-;;
-;; File:        Replicate.dbl
-;;
-;; Description: Adds new instructions to the replication servers instruction file.
-;;
-;; Author:      Steve Ives, Synergex Professional Services Group
-;;
-;;*****************************************************************************
-;;
-;; Copyright (c) 2009, Synergex International, Inc.
-;; All rights reserved.
-;;
-;; Redistribution and use in source and binary forms, with or without
-;; modification, are permitted provided that the following conditions are met:
-;;
-;; * Redistributions of source code must retain the above copyright notice,
-;;   this list of conditions and the following disclaimer.
-;;
-;; * Redistributions in binary form must reproduce the above copyright notice,
-;;   this list of conditions and the following disclaimer in the documentation
-;;   and/or other materials provided with the distribution.
-;;
-;; THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-;; AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-;; IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-;; ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
-;; LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-;; CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-;; SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-;; INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-;; CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
-;; ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-;; POSSIBILITY OF SUCH DAMAGE.
-;;
-;;*****************************************************************************
+;*****************************************************************************
+;
+; File:         Replicate.dbl
+;
+; Description:  Adds new instructions to the replication servers instruction file.
+;
+; Author:       Steve Ives, Synergex Professional Services Group
+;
+;*****************************************************************************
+;
+; Copyright (c) 2009, Synergex International, Inc.
+; All rights reserved.
+;
+; Redistribution and use in source and binary forms, with or without
+; modification, are permitted provided that the following conditions are met:
+;
+; * Redistributions of source code must retain the above copyright notice,
+;   this list of conditions and the following disclaimer.
+;
+; * Redistributions in binary form must reproduce the above copyright notice,
+;   this list of conditions and the following disclaimer in the documentation
+;   and/or other materials provided with the distribution.
+;
+; THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+; AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+; IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+; ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+; LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+; CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+; SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+; INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+; CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+; ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+; POSSIBILITY OF SUCH DAMAGE.
+;
+;*****************************************************************************
 
 import ReplicationLibrary
 
@@ -65,8 +65,8 @@ subroutine Replicate
 proc
     instanceName = aInstanceName
 
-    ;;-----------------------------------------------------------------------------------------------------------------------
-    ;; Make sure we have the queue file open for the current instance
+    ;-----------------------------------------------------------------------------------------------------------------------
+    ; Make sure we have the queue file open for the current instance
 
     ;;Do we need to create the StringDictionary?
     if (instances == ^null)
@@ -74,27 +74,27 @@ proc
         instances = new StringDictionary()
     end
 
-    ;;Are we already tracking this instance?
+    ;Are we already tracking this instance?
     if (instances.TryGet(instanceName,instanceObj)) then
     begin
-        ;;Yes, record the additional channel associated with the instance.
+        ;Yes, record the additional channel associated with the instance.
         instanceData = (@InstanceInfo)instanceObj
         instanceData.ReferenceCount += 1
     end
     else
     begin
-        ;;Not currently tracking this instance
+        ;Not currently tracking this instance
         data instanceQueueFile, string, "REPLICATOR_DATA:REPLICATION_" + instanceName + ".ISM"
         data instanceChannel, int
         data errorMessage, string
 
-        ;;Open the instance queue file
+        ;Open the instance queue file
         if (!%OpenOrCreateQueueFile(instanceQueueFile,instanceChannel,errorMessage))
         begin
             throw new ApplicationException("Failed to open or create replication queue file " + instanceQueueFile + ". Error was " + errorMessage)
         end
 
-        ;;Create and track the instance data
+        ;Create and track the instance data
         instanceData = new InstanceInfo() { QueueFile=instanceQueueFile, Channel=instanceChannel, ReferenceCount=1 }
         instances.Add(instanceName,instanceData)
     end
@@ -112,14 +112,14 @@ proc
 
     (REPLICATION_INSTRUCTION.CLOSE_FILE),
     begin
-        ;;Get the instance data
+        ;Get the instance data
         instanceData = (@InstanceInfo)(instances.Get(instanceName))
-        ;;Record one less channel associated with the instance.
+        ;Record one less channel associated with the instance.
         instanceData.ReferenceCount -= 1
-        ;;If there are no more channels associated with the instance, remove the instance data.
+        ;If there are no more channels associated with the instance, remove the instance data.
         if (instanceData.ReferenceCount == 0)
         begin
-            ;;Close the instances queue file
+            ;Close the instances queue file
             if (instanceData.Channel && %chopen(instanceData.Channel))
             begin
                 close instanceData.Channel
@@ -129,8 +129,8 @@ proc
             instanceData = ^null
         end
 
-        ;;If we are no longer tracking any instances, remove the StringDictionary
-        if (instances.Count == 0)
+        ;If we are no longer tracking any instances, remove the StringDictionary
+        if (instances.Items().Length == 0)
         begin
             instances = ^null
         end
@@ -138,7 +138,7 @@ proc
 
     (REPLICATION_INSTRUCTION.DELETE_FIRST_INSTRUCTION),
     begin
-        ;;Get the instance data
+        ;Get the instance data
         instanceData = (@InstanceInfo)(instances.Get(instanceName))
 
         ;Delete first pending instruction only
@@ -160,7 +160,7 @@ proc
 
     (REPLICATION_INSTRUCTION.DELETE_ALL_INSTRUCTIONS),
     begin
-        ;;Get the instance data
+        ;Get the instance data
         instanceData = (@InstanceInfo)(instances.Get(instanceName))
 
         ;Delete pending instructions
@@ -168,11 +168,11 @@ proc
         begin
             data sts, d1
             close instanceData.Channel
-            ;;This seems really strange, but it is a work-around for a bug in ISCLR in All
-            ;;versions prior to 10.3.3e that would cause any subsequent OPEN(CHN=0 to fail
-            ;;following a failed XCALL ISCLR until a successful XCALL ISCLR had taken place.
-            ;;The workaround is to open the file for exclusive access, and if that fails,
-            ;;don't try to do the XCALL ISCLR
+            ;This seems really strange, but it is a work-around for a bug in ISCLR in All
+            ;versions prior to 10.3.3e that would cause any subsequent OPEN(CHN=0 to fail
+            ;following a failed XCALL ISCLR until a successful XCALL ISCLR had taken place.
+            ;The workaround is to open the file for exclusive access, and if that fails,
+            ;don't try to do the XCALL ISCLR
             open(instanceData.Channel=0,"U:I",instanceData.QueueFile,SHARE:Q_EXCL_RW)
             close instanceData.Channel
             xcall isclr(instanceData.QueueFile,sts)
@@ -204,10 +204,10 @@ proc
 
     (),
     begin
-        ;;Get the instance data
+        ;Get the instance data
         instanceData = (@InstanceInfo)(instances.Get(instanceName))
 
-        ;;Configure the new instruction
+        ;Configure the new instruction
 
         init instruction
 
@@ -223,7 +223,7 @@ proc
             instruction.record = aRecord
         end
 
-        ;;And add it to the queue
+        ;And add it to the queue
 
 .ifdef OS_VMS
         ;On VMS we don't have auto sequence keys so we need to allocate a %DATETIME value as the

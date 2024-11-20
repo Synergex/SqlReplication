@@ -42,6 +42,7 @@ import System.Collections
 main replicator
 
     .include "CONNECTDIR:ssql.def"
+    .include "DBLDIR:windows.def"
     .include "REPLICATOR_INCLUDE:SmtpMail.def"
 .ifdef D_VMS
     .include "REPLICATION_VMS" repository, record="instruction", end
@@ -88,6 +89,21 @@ proc
         if (Settings.CommitMode == DatabaseCommitMode.Batch)
         begin
             uncommittedInstructions = new ArrayList()
+        end
+
+        if (Settings.RunningOnTerminal)
+        begin
+            data system, i4
+            data runtime, i4
+            xcall envrn(system,runtime)
+            using runtime select
+            (101,104),
+            begin
+                xcall w_init(1,Settings.TerminalChannel,5)
+                xcall w_caption(WC_SET,"SQL Replicator")
+                xcall w_exit
+            end
+            endusing
         end
 
         ;;Main processing loop
@@ -217,7 +233,7 @@ proc
                 ;;If this is a routine request (create/update/delete) then do
                 ;;file and table checks to ensure we have the file open and the
                 ;;database table exists
-                if    ((instruction.action==(i)REPLICATION_INSTRUCTION.CREATE_ROW)
+                if     ((instruction.action==(i)REPLICATION_INSTRUCTION.CREATE_ROW)
                 &    || (instruction.action==(i)REPLICATION_INSTRUCTION.UPDATE_ROW)
                 &    || (instruction.action==(i)REPLICATION_INSTRUCTION.DELETE_ROW)
                 &    || (instruction.action==(i)REPLICATION_INSTRUCTION.INSERT_RELATIVE)
@@ -243,35 +259,30 @@ proc
 
                 (REPLICATION_INSTRUCTION.CREATE_ROW),
                 begin
-                    Logger.VerboseLog("Insert row in table " + %atrim(instruction.structure_name))
                     call DoInsert
                     doCheckCommit = true
                 end
 
                 (REPLICATION_INSTRUCTION.UPDATE_ROW),
                 begin
-                    Logger.VerboseLog("Update row in table " + %atrim(instruction.structure_name))
                     call DoUpdate
                     doCheckCommit = true
                 end
 
                 (REPLICATION_INSTRUCTION.DELETE_ROW),
                 begin
-                    Logger.VerboseLog("Delete row from table " + %atrim(instruction.structure_name))
                     call DoDelete
                     doCheckCommit = true
                 end
 
                 (REPLICATION_INSTRUCTION.INSERT_RELATIVE),
                 begin
-                    Logger.VerboseLog("Insert row in table " + %atrim(instruction.structure_name))
                     call DoInsertRelative
                     doCheckCommit = true
                 end
 
                 (REPLICATION_INSTRUCTION.UPDATE_RELATIVE),
                 begin
-                    Logger.VerboseLog("Update row in table " + %atrim(instruction.structure_name))
                     call DoUpdateRelative
                     doCheckCommit = true
                 end
@@ -305,7 +316,10 @@ proc
                 (REPLICATION_INSTRUCTION.BULK_LOAD_TABLE),
                 begin
                     if (bulkLoad = Settings.CanBulkLoad()) then
+                    begin
+                        Logger.Log("------------------------------------------------------------")
                         Logger.Log("Bulk load table " + %atrim(instruction.structure_name))
+                    end
                     else
                     begin
                         Logger.Log("Bulk load requested but unavailable!")
@@ -316,6 +330,7 @@ proc
                     call DoLoadTable
                     bulkLoad = false
                     doForceCommit = true
+                    Logger.Log("------------------------------------------------------------")
                 end
 
                 (REPLICATION_INSTRUCTION.BULK_LOAD_FIRST_1000),
@@ -344,8 +359,8 @@ proc
                         useTempTable = 1
                         call DoBulkLoadToTempTable
                         useTempTable = 0
-                    doForceCommit = true
-                end
+                        doForceCommit = true
+                    end
                     else
                     begin
                         Logger.Log("Bulk load unavailable!")
@@ -361,7 +376,7 @@ proc
 
                 (REPLICATION_INSTRUCTION.CREATE_CSV),
                 begin
-                    Logger.Log("Export table " + %atrim(instruction.structure_name) + " to delimited file")
+                    Logger.Log("Exporting " + %atrim(instruction.structure_name) + " to delimited file")
                     call DoCreateCsv
                     doForceCommit = true
                 end
@@ -598,9 +613,9 @@ proc
     ;;All done
     stop
 
-    ;;-----------------------------------------------------------------------------
-    ;; Commit the current transaction and start a new one (only used in batch transaction mode)
-    ;;
+;;-----------------------------------------------------------------------------
+;; Commit the current transaction and start a new one (only used in batch transaction mode)
+;;
 CommitTransaction,
 
     Logger.VerboseLog("Committing transaction with " + %string(Counters.BatchCounter) + " change(s)")
@@ -658,9 +673,9 @@ CommitTransaction,
 
     return
 
-    ;;-----------------------------------------------------------------------------
-    ;; Check if we have already opened this file in this process
-    ;;
+;;-----------------------------------------------------------------------------
+;; Check if we have already opened this file in this process
+;;
 CheckFileTable,
 
     ;;If there is an entry for the file in our namespace then we're good to go
@@ -686,12 +701,44 @@ CheckFileTable,
     end
 
     ;;Get the record size of the file
-    functionName = %atrim(instruction.structure_name) + "Length"
-    structure_data.structure_size = %xsubr(functionName)
 
-    ;;Get the type of the file
-    functionName = %atrim(instruction.structure_name) + "Type"
-    xcall xsubr(functionName,structure_data.structure_type)
+    begin
+        data doReturn, boolean, false
+
+        try
+        begin
+            functionName = %atrim(instruction.structure_name) + "Length"
+            structure_data.structure_size = %xsubr(functionName)
+        end
+        catch (ex, @SynException)
+        begin
+            ok = Logger.LogFunctionFail(functionName,ex.Errno,ex.Message,^null)
+            doReturn = true
+        end
+        endtry
+
+        if (doReturn)
+            return
+
+        ;;Get the type of the file
+
+        doReturn = false
+
+        try
+        begin
+            functionName = %atrim(instruction.structure_name) + "Type"
+            xcall xsubr(functionName,structure_data.structure_type)
+        end
+        catch (ex, @SynException)
+        begin
+            ok = Logger.LogFunctionFail(functionName,ex.Errno,ex.Message,^null)
+            doReturn = false
+        end
+        endtry
+
+        if (doReturn)
+            return
+    end
 
     using structure_data.structure_type select
 
@@ -703,7 +750,7 @@ CheckFileTable,
         structure_data.structure_keynum = %xsubr(functionName)
 
         ;;Report the key that will be used
-            Logger.VerboseLog("Key " + %string(structure_data.structure_keynum) + " will be used to synchronize data")
+        Logger.VerboseLog("Key " + %string(structure_data.structure_keynum) + " will be used to synchronize data")
 
         ;;And save the structure name
         structure_data.structure_name = instruction.structure_name
@@ -744,7 +791,7 @@ CheckTable,
         try
         begin
             functionName = %atrim(instruction.structure_name) + "Exists"
-            status = %xsubr(functionName,(i)(Settings.DatabaseChannel),(i)(Settings.CommitMode),useTempTable,dberrtxt)
+            status = %xsubr(functionName,Settings.DatabaseChannel,(i)(Settings.CommitMode),useTempTable,dberrtxt)
             exitloop
         end
         catch (ex, @DatabaseCommunicationException)
@@ -762,12 +809,12 @@ CheckTable,
         end
         catch (ex, @SynException)
         begin
-            ok = Logger.LogFunctionFail(functionName,ex.Errno,ex.Message)
+            ok = Logger.LogFunctionFail(functionName,ex.Errno,ex.Message,^null)
             doReturn = true ;Can't return out of a try in .NET
         end
         catch (ex, @Exception)
         begin
-            ok = Logger.LogFunctionFail(functionName,0,ex.Message)
+            ok = Logger.LogFunctionFail(functionName,0,ex.Message,^null)
             doReturn = true ;Can't return out of a try in .NET
         end
         endtry
@@ -788,18 +835,18 @@ CheckTable,
     end
     (<0),
     begin
-        Logger.LogFunctionError(functionName,status,dberrtxt)
+        Logger.LogFunctionError(functionName,status,dberrtxt,^null)
     end
     endusing
 
     return
 
-    ;;-----------------------------------------------------------------------------
-    ;; Create and load a new table in the SQL database
-    ;; This code is only used when doing an initial check for a table because of
-    ;; a first replication instruction. Explicit CREATE_TABLE instructions are
-    ;; handled by DoCreateTable.
-    ;;
+;-----------------------------------------------------------------------------
+; Create and load a new table in the SQL database
+; This code is only used when doing an initial check for a table because of
+; a first replication instruction. Explicit CREATE_TABLE instructions are
+; handled by DoCreateTable.
+;
 CreateTable,
 
     Logger.Log("Creating table")
@@ -828,12 +875,12 @@ CreateTable,
         end
         catch (ex, @SynException)
         begin
-            ok = Logger.LogFunctionFail(functionName,ex.Errno,ex.Message)
+            ok = Logger.LogFunctionFail(functionName,ex.Errno,ex.Message,^null)
             doReturn = true ;Can't return from a TRY in .NET
         end
         catch (ex, @Exception)
         begin
-            ok = Logger.LogFunctionFail(functionName,0,ex.Message)
+            ok = Logger.LogFunctionFail(functionName,0,ex.Message,^null)
             doReturn = true ;Can't return from a TRY in .NET
         end
         endtry
@@ -846,27 +893,27 @@ CreateTable,
     begin
         if (!noLoadOnCreate)
         begin
-        ;;Now do an initial load of the data
-        if (Settings.CanBulkLoad()) then
-        begin
-            call BulkLoadTable
-        end
-        else
-        begin
-            call LoadTable
+            ;;Now do an initial load of the data
+            if (Settings.CanBulkLoad()) then
+            begin
+                call BulkLoadTable
+            end
+            else
+            begin
+                call LoadTable
             end
         end
     end
     else
     begin
-        Logger.LogFunctionError(functionName,status,dberrtxt)
+        Logger.LogFunctionError(functionName,status,dberrtxt,^null)
     end
 
     return
 
-    ;;-----------------------------------------------------------------------------
-    ;; Perform an initial load of a new table in the SQL database
-    ;;
+;-----------------------------------------------------------------------------
+; Perform an initial load of a new table in the SQL database
+;
 LoadTable,
 
     Logger.Log("Load starting at " + %TimeNow)
@@ -900,7 +947,7 @@ LoadTable,
             end
             else
             begin
-                Logger.LogFunctionError(functionName,status,dberrtxt)
+                Logger.LogFunctionError(functionName,status,dberrtxt,^null)
             end
             exitloop
         end
@@ -919,7 +966,7 @@ LoadTable,
         end
         catch (ex, @SynException)
         begin
-            ok = Logger.LogFunctionFail(functionName,ex.Errno,ex.Message)
+            ok = Logger.LogFunctionFail(functionName,ex.Errno,ex.Message,^null)
             exitloop
         end
         endtry
@@ -933,9 +980,9 @@ LoadTable,
 
     return
 
-    ;;-----------------------------------------------------------------------------
-    ;; Perform a bulk load of a table from a delimited text file.
-    ;;
+;-----------------------------------------------------------------------------
+; Perform a bulk load of a table from a delimited text file.
+;
 BulkLoadTable,
 
     Logger.Log("Bulk load starting at " + %TimeNow)
@@ -954,13 +1001,18 @@ BulkLoadTable,
 
             if (status) then
             begin
-                Logger.Log("Bulk load complete. " + %string(totalRows) + " records processed, " + %string(failRows) + " failed.")
+                Logger.Log("Bulk load processed " + %string(totalRows) + " rows")
                 Counters.Inserts += totalRows - failRows
                 Counters.Errors  += failRows
+
+                if (failRows)
+                begin
+                    Logger.WarningLog(%string(failRows) + " rows failed during BULK INSERT phase!")
+                end
             end
             else
             begin
-                Logger.LogFunctionError(functionName,status,dberrtxt)
+                Logger.LogFunctionError(functionName,status,dberrtxt,^null)
             end
             exitloop
         end
@@ -979,12 +1031,12 @@ BulkLoadTable,
         end
         catch (ex, @SynException)
         begin
-            ok = Logger.LogFunctionFail(functionName,ex.Errno,ex.Message)
+            ok = Logger.LogFunctionFail(functionName,ex.Errno,ex.Message,^null)
             exitloop
         end
         catch (ex, @Exception)
         begin
-            ok = Logger.LogFunctionFail(functionName,0,ex.Message)
+            ok = Logger.LogFunctionFail(functionName,0,ex.Message,^null)
             exitloop
         end
         endtry
@@ -1007,24 +1059,25 @@ BulkLoadTable,
 
     return
 
-    ;;-----------------------------------------------------------------------------
-    ;; Add a new row (ISAM)
-    ;;
+;-----------------------------------------------------------------------------
+; Add a new row (ISAM)
+;
 DoInsert,
 
-    if (switchMode) then
+    if (switchMode)
     begin
-        Logger.VerboseLog("Insert row in table " + %atrim(instruction.structure_name))
         switchMode = false
+    end
+
+    if (Settings.LogKeys) then
+    begin
+        functionName = %atrim(instruction.structure_name) + "KeyVal"
+        status = %xsubr(functionName,instruction.record,keyValue,keyLength)
+        Logger.VerboseLog("Insert " + %atrim(instruction.structure_name) + " key " + keyValue(1:keyLength))
     end
     else
     begin
-        if (Settings.LogKeys)
-        begin
-            functionName = %atrim(instruction.structure_name) + "KeyVal"
-            status = %xsubr(functionName,instruction.record,keyValue,keyLength)
-            Logger.VerboseLog("Key: " + keyValue(1:keyLength))
-        end
+        Logger.VerboseLog("Insert " + %atrim(instruction.structure_name))
     end
 
     repeat
@@ -1078,7 +1131,6 @@ DoInsert,
     end
     (1),
     begin
-        Logger.VerboseLog("Row inserted")
         Counters.Inserts += 1
     end
     (2),
@@ -1099,25 +1151,27 @@ DoInsert,
 
     return
 
-    ;;-----------------------------------------------------------------------------
-    ;; Add a new row (RELATIVE)
-    ;;
+;-----------------------------------------------------------------------------
+; Add a new row (RELATIVE)
+;
 DoInsertRelative,
 
-    if (switchMode) then
+    if (switchMode)
     begin
         Logger.VerboseLog("Insert row in table " + %atrim(instruction.structure_name))
         switchMode = false
     end
+
+    if (Settings.LogKeys) then
+    begin
+        data pos, i4, %instr(1,instruction.record,":")
+        recordNumber = instruction.record(1:pos-1)
+        instruction.record = instruction.record(pos+1:structure_data.structure_size)
+        Logger.VerboseLog("Insert " + %atrim(instruction.structure_name) + " record " + %string(recordNumber))
+    end
     else
     begin
-        if (Settings.LogKeys)
-        begin
-            data pos, i4, %instr(1,instruction.record,":")
-            recordNumber = instruction.record(1:pos-1)
-            instruction.record = instruction.record(pos+1:structure_data.structure_size)
-            Logger.VerboseLog("Record #: " + %string(recordNumber))
-        end
+        Logger.VerboseLog("Insert " + %atrim(instruction.structure_name))
     end
 
     repeat
@@ -1144,12 +1198,12 @@ DoInsertRelative,
         end
         catch (ex, @SynException)
         begin
-            ok = Logger.LogFunctionFail(functionName,ex.Errno,ex.Message)
+            ok = Logger.LogFunctionFail(functionName,ex.Errno,ex.Message,^null)
             doReturn = true ;Can't return from a TRY in .NET
         end
         catch (ex, @Exception)
         begin
-            ok = Logger.LogFunctionFail(functionName,0,ex.Message)
+            ok = Logger.LogFunctionFail(functionName,0,ex.Message,^null)
             doReturn = true ;Can't return from a TRY in .NET
         end
         endtry
@@ -1161,11 +1215,10 @@ DoInsertRelative,
     using status select
     (0),
     begin
-        Logger.LogFunctionError(functionName,status,dberrtxt)
+        Logger.LogFunctionError(functionName,status,dberrtxt,^null)
     end
     (1),
     begin
-        Logger.VerboseLog("Row inserted")
         Counters.Inserts += 1
     end
     (2),
@@ -1186,24 +1239,25 @@ DoInsertRelative,
 
     return
 
-    ;;-----------------------------------------------------------------------------
-    ;; Update an existing row (ISAM)
-    ;;
+;-----------------------------------------------------------------------------
+; Update an existing row (ISAM)
+;
 DoUpdate,
     
-    if (switchMode) then
+    if (switchMode)
     begin
-        Logger.VerboseLog("Update row in table " + %atrim(instruction.structure_name))
         switchMode = false
+    end
+
+    if (Settings.LogKeys) then
+    begin
+        functionName = %atrim(instruction.structure_name) + "KeyVal"
+        status = %xsubr(functionName,instruction.record,keyValue,keyLength)
+        Logger.VerboseLog("Update " + %atrim(instruction.structure_name) + " key " + keyValue(1:keyLength))
     end
     else
     begin
-        if (Settings.LogKeys)
-        begin
-            functionName = %atrim(instruction.structure_name) + "KeyVal"
-            status = %xsubr(functionName,instruction.record,keyValue,keyLength)
-            Logger.VerboseLog("Key: " + keyValue(1:keyLength))
-        end
+        Logger.VerboseLog("Update " + %atrim(instruction.structure_name))
     end
 
     repeat
@@ -1252,7 +1306,6 @@ DoUpdate,
     begin
         if (rows) then
         begin
-            Logger.VerboseLog("Row updated")
             Counters.Updates += 1
         end
         else
@@ -1279,25 +1332,26 @@ DoUpdate,
 
     return
 
-    ;;-----------------------------------------------------------------------------
-    ;; Update an existing row (RELATIVE)
-    ;;
+;-----------------------------------------------------------------------------
+; Update an existing row (RELATIVE)
+;
 DoUpdateRelative,
 
-    if (switchMode) then
+    if (switchMode)
     begin
-        Logger.VerboseLog("Update row in table " + %atrim(instruction.structure_name))
         switchMode = false
+    end
+    
+    if (Settings.LogKeys) then
+    begin
+        data pos, i4, %instr(1,instruction.record,":")
+        recordNumber = instruction.record(1:pos-1)
+        instruction.record = instruction.record(pos+1:structure_data.structure_size)
+        Logger.VerboseLog("Update " + %atrim(instruction.structure_name) + " record " + %string(recordNumber))
     end
     else
     begin
-        if (Settings.LogKeys)
-        begin
-            data pos, i4, %instr(1,instruction.record,":")
-            recordNumber = instruction.record(1:pos-1)
-            instruction.record = instruction.record(pos+1:structure_data.structure_size)
-            Logger.VerboseLog("Record #: " + %string(recordNumber))
-        end
+        Logger.VerboseLog("Update " + %atrim(instruction.structure_name))
     end
 
     repeat
@@ -1324,12 +1378,12 @@ DoUpdateRelative,
         end
         catch (ex, @SynException)
         begin
-            ok = Logger.LogFunctionFail(functionName,ex.Errno,ex.Message)
+            ok = Logger.LogFunctionFail(functionName,ex.Errno,ex.Message,^null)
             doReturn = true ;Can't return from a TRY in .NET
         end
         catch (ex, @Exception)
         begin
-            ok = Logger.LogFunctionFail(functionName,0,ex.Message)
+            ok = Logger.LogFunctionFail(functionName,0,ex.Message,^null)
             doReturn = true ;Can't return from a TRY in .NET
         end
         endtry
@@ -1342,7 +1396,6 @@ DoUpdateRelative,
     begin
         if (rows) then
         begin
-            Logger.VerboseLog("Row updated")
             Counters.Updates += 1
         end
         else
@@ -1362,7 +1415,7 @@ DoUpdateRelative,
     end
     else
     begin
-        Logger.LogFunctionError(functionName,status,dberrtxt)
+        Logger.LogFunctionError(functionName,status,dberrtxt,^null)
     end
 
     return
@@ -1375,9 +1428,13 @@ DoDelete,
     functionName = %atrim(instruction.structure_name) + "KeyVal"
     status = %xsubr(functionName,instruction.record,keyValue,keyLength)
 
-    if (Settings.LogKeys)
+    if (Settings.LogKeys) then
     begin
-        Logger.VerboseLog("Key: " + keyValue(1:keyLength))
+        Logger.VerboseLog("Delete " + %atrim(instruction.structure_name) + " key " + keyValue(1:keyLength))
+    end
+    else
+    begin
+        Logger.VerboseLog("Delete " + %atrim(instruction.structure_name))
     end
 
     repeat
@@ -1388,7 +1445,6 @@ DoDelete,
             status = %xsubr(functionName,(i)(Settings.DatabaseChannel),(i)(Settings.CommitMode),keyValue(1:keyLength),dberrtxt)
             if (status) then
             begin
-                Logger.VerboseLog("Row deleted")
                 Counters.Deletes += 1
             end
             else
@@ -1426,9 +1482,9 @@ DoDelete,
 
     return
 
-    ;;-----------------------------------------------------------------------------
-    ;; Create a new table
-    ;;
+;-----------------------------------------------------------------------------
+; Create a new table
+;
 DoCreateTable,
 
     ;;Create a new table (only)
@@ -1467,7 +1523,7 @@ DoCreateTable,
                         end
                         else
                         begin
-                            Logger.LogFunctionError(functionName,status,dberrtxt)
+                            Logger.LogFunctionError(functionName,status,dberrtxt,^null)
                         end
                     end
                     catch (ex, @DatabaseCommunicationException)
@@ -1485,7 +1541,7 @@ DoCreateTable,
                     end
                     catch (ex, @SynException)
                     begin
-                        ok = Logger.LogFunctionFail(functionName,ex.Errno,ex.Message)
+                        ok = Logger.LogFunctionFail(functionName,ex.Errno,ex.Message,^null)
                     end
                     endtry
                     exitloop
@@ -1494,7 +1550,7 @@ DoCreateTable,
             end
             (<0),
             begin
-                Logger.LogFunctionError(functionName,status,dberrtxt)
+                Logger.LogFunctionError(functionName,status,dberrtxt,^null)
                 exitloop
             end
             endusing
@@ -1514,12 +1570,12 @@ DoCreateTable,
         end
         catch (ex, @SynException)
         begin
-            ok = Logger.LogFunctionFail(functionName,ex.Errno,ex.Message)
+            ok = Logger.LogFunctionFail(functionName,ex.Errno,ex.Message,^null)
             exitloop
         end
         catch (ex, @Exception)
         begin
-            ok = Logger.LogFunctionFail(functionName,0,ex.Message)
+            ok = Logger.LogFunctionFail(functionName,0,ex.Message,^null)
             exitloop
         end
         endtry
@@ -1527,9 +1583,9 @@ DoCreateTable,
 
     return
 
-    ;;-----------------------------------------------------------------------------
-    ;; Load new data into existing table
-    ;;
+;-----------------------------------------------------------------------------
+; Load new data into existing table
+;
 DoLoadTable,
 
     ;;Do a full load of an existing table with new data
@@ -1560,12 +1616,12 @@ DoLoadTable,
         end
         catch (ex, @SynException)
         begin
-            ok = Logger.LogFunctionFail(functionName,ex.Errno,ex.Message)
+            ok = Logger.LogFunctionFail(functionName,ex.Errno,ex.Message,^null)
             doReturn = true ;Can't return from a TRY in .NET
         end
         catch (ex, @Exception)
         begin
-            ok = Logger.LogFunctionFail(functionName,0,ex.Message)
+            ok = Logger.LogFunctionFail(functionName,0,ex.Message,^null)
             doReturn = true ;Can't return from a TRY in .NET
         end
         endtry
@@ -1597,15 +1653,15 @@ DoLoadTable,
     end
     (<0),
     begin
-        Logger.LogFunctionError(functionName,status,dberrtxt)
+        Logger.LogFunctionError(functionName,status,dberrtxt,^null)
     end
     endusing
 
     return
 
-    ;;-----------------------------------------------------------------------------
-    ;; Create a new table and load new data into it
-    ;;
+;-----------------------------------------------------------------------------
+; Create a new table and load new data into it
+;
 DoCreateAndLoadTable,
     
     ;;Create a new table, do nothing if the table already exists
@@ -1614,9 +1670,9 @@ DoCreateAndLoadTable,
 
     return
 
-    ;;-----------------------------------------------------------------------------
-    ;; Export ISAM file to CSV file
-    ;;
+;-----------------------------------------------------------------------------
+; Export ISAM file to CSV file
+;
 DoCreateCsv,
 
     Logger.Log("Export starting at " + %TimeNow)
@@ -1632,24 +1688,24 @@ DoCreateCsv,
         end
         else
         begin
-            Logger.LogFunctionError(functionName,status,dberrtxt)
+            Logger.LogFunctionError(functionName,status,dberrtxt,^null)
         end
     end
     catch (ex, @SynException)
     begin
-        ok = Logger.LogFunctionFail(functionName,ex.Errno,ex.Message)
+        ok = Logger.LogFunctionFail(functionName,ex.Errno,ex.Message,^null)
     end
     catch (ex, @Exception)
     begin
-        ok = Logger.LogFunctionFail(functionName,0,ex.Message)
+        ok = Logger.LogFunctionFail(functionName,0,ex.Message,^null)
     end
     endtry
 
     return
 
-    ;;-----------------------------------------------------------------------------
-    ;; Delete all rows from an existing table
-    ;;
+;-----------------------------------------------------------------------------
+; Delete all rows from an existing table
+;
 DoDeleteAllRows,
 
     repeat
@@ -1669,7 +1725,7 @@ DoDeleteAllRows,
             end
             else
             begin
-                Logger.LogFunctionError(functionName,status,dberrtxt)
+                Logger.LogFunctionError(functionName,status,dberrtxt,^null)
             end
             exitloop
         end
@@ -1688,12 +1744,12 @@ DoDeleteAllRows,
         end
         catch (ex, @SynException)
         begin
-            ok = Logger.LogFunctionFail(functionName,ex.Errno,ex.Message)
+            ok = Logger.LogFunctionFail(functionName,ex.Errno,ex.Message,^null)
             exitloop
         end
         catch (ex, @Exception)
         begin
-            ok = Logger.LogFunctionFail(functionName,0,ex.Message)
+            ok = Logger.LogFunctionFail(functionName,0,ex.Message,^null)
             exitloop
         end
         endtry
@@ -1701,9 +1757,9 @@ DoDeleteAllRows,
 
     return
 
-    ;;-----------------------------------------------------------------------------
-    ;; Delete an existing table
-    ;;
+;-----------------------------------------------------------------------------
+; Delete an existing table
+;
 DoDeleteTable,
 
     if (!useTempTable)
@@ -1734,7 +1790,7 @@ DoDeleteTable,
             end
             else
             begin
-                Logger.LogFunctionError(functionName,status,dberrtxt)
+                Logger.LogFunctionError(functionName,status,dberrtxt,^null)
             end
             exitloop
         end
@@ -1753,12 +1809,12 @@ DoDeleteTable,
         end
         catch (ex, @SynException)
         begin
-            ok = Logger.LogFunctionFail(functionName,ex.Errno,ex.Message)
+            ok = Logger.LogFunctionFail(functionName,ex.Errno,ex.Message,^null)
             doReturn = true ;Can't return from a TRY in .NET
         end
         catch (ex, @Exception)
         begin
-            ok = Logger.LogFunctionFail(functionName,0,ex.Message)
+            ok = Logger.LogFunctionFail(functionName,0,ex.Message,^null)
             doReturn = true ;Can't return from a TRY in .NET
         end
         endtry
@@ -1769,9 +1825,9 @@ DoDeleteTable,
 
     return
 
-    ;;-----------------------------------------------------------------------------
-    ;; Add alternate key indexes to a table (if they don't already exist)
-    ;;
+;-----------------------------------------------------------------------------
+; Add alternate key indexes to a table (if they don't already exist)
+;
 DoAddIndexes,
 
     repeat
@@ -1791,7 +1847,7 @@ DoAddIndexes,
             end
             else
             begin
-                Logger.LogFunctionError(functionName,status,dberrtxt)
+                Logger.LogFunctionError(functionName,status,dberrtxt,^null)
             end
             exitloop
         end
@@ -1815,12 +1871,12 @@ DoAddIndexes,
         end
         catch (ex, @SynException)
         begin
-            ok = Logger.LogFunctionFail(functionName,ex.Errno,ex.Message)
+            ok = Logger.LogFunctionFail(functionName,ex.Errno,ex.Message,^null)
             exitloop
         end
         catch (ex, @Exception)
         begin
-            ok = Logger.LogFunctionFail(functionName,0,ex.Message)
+            ok = Logger.LogFunctionFail(functionName,0,ex.Message,^null)
             exitloop
         end
         endtry
@@ -1828,9 +1884,9 @@ DoAddIndexes,
 
     return
 
-    ;;-----------------------------------------------------------------------------
-    ;; Delete alternate key indexes from a table
-    ;;
+;-----------------------------------------------------------------------------
+; Delete alternate key indexes from a table
+;
 DoDeleteIndexes,
 
     repeat
@@ -1850,7 +1906,7 @@ DoDeleteIndexes,
             end
             else
             begin
-                Logger.LogFunctionError(functionName,status,dberrtxt)
+                Logger.LogFunctionError(functionName,status,dberrtxt,^null)
             end
             exitloop
         end
@@ -1874,12 +1930,12 @@ DoDeleteIndexes,
         end
         catch (ex, @SynException)
         begin
-            ok = Logger.LogFunctionFail(functionName,ex.Errno,ex.Message)
+            ok = Logger.LogFunctionFail(functionName,ex.Errno,ex.Message,^null)
             exitloop
         end
         catch (ex, @Exception)
         begin
-            ok = Logger.LogFunctionFail(functionName,0,ex.Message)
+            ok = Logger.LogFunctionFail(functionName,0,ex.Message,^null)
             exitloop
         end
         endtry

@@ -41,198 +41,181 @@ import System.Collections
 
 namespace ReplicationLibrary
 
-    public class StringDictionary
+	public class StringDictionary
+		public class KeyValuePair
+			public method KeyValuePair
+				key, @string
+				value, @object
+			proc
+				this.Key = key
+				this.Value = value
+			endmethod
 
-        public class KeyValuePair
-            public method KeyValuePair
-                key, @string
-                value, @object
-            proc
-                this.Key = key
-                this.Value = value
-            endmethod
+
+			public Key, @string
+			public Value, @Object
+		endclass
 
 
-            public Key, @string
+		private symbolTableId, i4
+		private objectStore, @ArrayList
+		private freeIndicies, @ArrayList
+		public method StringDictionary
+		proc
+			objectStore = new ArrayList()
+			freeIndicies = new ArrayList()
+			symbolTableId = nspc_open(D_NSPC_SPACE | D_NSPC_CASE, 4)
+		endmethod
 
-            public Value, @Object
+		method ~StringDictionary
+		proc
+			xcall nspc_close(symbolTableId)
+		endmethod
 
-        endclass
+		private method AddObjectInternal, i4
+			value, @object
+		proc
+			if(freeIndicies.Count > 0) then
+			begin
+				data freeIndex = (i4)freeIndicies[freeIndicies.Count - 1]
+				freeIndicies.RemoveAt(freeIndicies.Count - 1)
+				objectStore[freeIndex] = value
+				mreturn freeIndex
+			end
+			else
+				mreturn objectStore.Add(value)
+		endmethod
 
-        private symbolTableId, i4
-        private objectStore, @ArrayList
-        private freeIndicies, @ArrayList
+		private method RemoveObjectInternal, void
+			index, i4
+		proc
+			freeIndicies.Add((@i4)index)
+			;;cant just call removeAt because it would throw off all of the objects that are stored after it
+			;;so we just add to a free list and manage the slots that way
+			objectStore[index] = ^null
+		endmethod
 
-        public method StringDictionary
-        proc
-            objectStore = new ArrayList()
-            freeIndicies = new ArrayList()
-            symbolTableId = nspc_open(D_NSPC_SPACE | D_NSPC_CASE, 4)
-        endmethod
+		public method Add, void
+			req in key, @string
+			req in value, @object
+			record
+				existingId, i4
+				newObjectIndex, i4
+		proc
+			
+			if(nspc_find(symbolTableId, key,, existingId) == 0) then
+			begin
+				newObjectIndex = AddObjectInternal(new KeyValuePair(key, value))
+				nspc_add(symbolTableId, key, newObjectIndex)
+			end
+			else 
+				throw new Exception("duplicate key")
+		endmethod
 
-.ifndef OS_VMS
-        method ~StringDictionary
-        proc
-            xcall nspc_close(symbolTableId)
-        endmethod
+		public method TryGet, boolean
+			req in key, @string 
+			req out value, @object
+			record
+				objectIndex, i4
+				kvp, @object
+		proc
+			if(nspc_find(symbolTableId, key,objectIndex) != 0) then
+			begin
+				kvp = objectStore[objectIndex]
+				value = ((@KeyValuePair)kvp).Value
+				mreturn true
+			end
+			else
+			begin
+				value = ^null
+				mreturn false
+			end
+		endmethod
 
-.endc
-        private method AddObjectInternal, i4
-            value, @object
-        proc
-            if(freeIndicies.Count > 0) then
-            begin
-                data freeIndex = (i4)freeIndicies[freeIndicies.Count - 1]
-                freeIndicies.RemoveAt(freeIndicies.Count - 1)
-                objectStore[freeIndex] = value
-                mreturn freeIndex
-            end
-            else
-                mreturn objectStore.Add(value)
-        endmethod
+		public method Get, @object
+			req in key, @string 
+			record
+				objectIndex, i4
+				kvp, @Object
+		proc
+			if(nspc_find(symbolTableId, key,objectIndex) != 0) then
+			begin
+				kvp = objectStore[objectIndex]
+				mreturn ((@KeyValuePair)kvp).Value
+			end
+			else
+				throw new Exception("index not found")
 
-        private method RemoveObjectInternal, void
-            index, i4
-        proc
-            freeIndicies.Add((@i4)index)
-            ;;cant just call removeAt because it would throw off all of the objects that are stored after it
-            ;;so we just add to a free list and manage the slots that way
-            objectStore[index] = ^null
-        endmethod
+		endmethod
 
-        public method Add, void
-            req in key, @string
-            req in value, @object
-            record
-                existingId, i4
-                newObjectIndex, i4
-        proc
+		public method Set, void
+			req in key, @string 
+			req in value, @object
+			record
+				objectIndex, i4
+		proc
+			if(nspc_find(symbolTableId, key,objectIndex) != 0) then
+			begin
+				objectStore[objectIndex] = new KeyValuePair(key, value)
+			end
+			else
+				Add(key, value)
 
-            if(nspc_find(symbolTableId, key,, existingId) == 0) then
-            begin
-                newObjectIndex = AddObjectInternal(new KeyValuePair(key, value))
-                nspc_add(symbolTableId, key, newObjectIndex)
-            end
-            else 
-                throw new Exception("duplicate key")
-        endmethod
+		endmethod
 
-        public method TryGet, boolean
-            req in key, @string 
-            req out value, @object
-            record
-                objectIndex, i4
-                kvp, @object
-        proc
-            if(nspc_find(symbolTableId, key,objectIndex) != 0) then
-            begin
-                if (objectStore[objectIndex] == ^null)
-                begin
-                    value = ^null
-                    mreturn false
-                end
-                kvp = objectStore[objectIndex]
-                value = ((@KeyValuePair)kvp).Value
-                mreturn true
-            end
-            else
-            begin
-                value = ^null
-                mreturn false
-            end
-        endmethod
+		public method Remove, void
+			req in key, @string
+			record
+				objectAccesCode, i4
+				objectIndex, i4
+		proc
+			if((objectAccesCode=%nspc_find(symbolTableId,key,objectIndex)) != 0)
+			begin
+				nspc_delete(symbolTableId, objectAccesCode)
+				RemoveObjectInternal(objectIndex)
+			end
+		endmethod
 
-        public method Get, @object
-            req in key, @string 
-            record
-                objectIndex, i4
-                kvp, @Object
-        proc
-            if(nspc_find(symbolTableId, key,objectIndex) != 0) then
-            begin
-                kvp = objectStore[objectIndex]
-                mreturn ((@KeyValuePair)kvp).Value
-            end
-            else
-                throw new Exception("index not found")
+		public method Contains, boolean
+			req in key, @string
+		proc
+			mreturn (nspc_find(symbolTableId, key) != 0)
+		endmethod
 
-        endmethod
+		public method Clear, void
+		proc
+			nspc_reset(symbolTableId)
+			freeIndicies.Clear()
+			objectStore.Clear()
+		endmethod
 
-        public method Set, void
-            req in key, @string 
-            req in value, @object
-            record
-                objectIndex, i4
-        proc
-            if(nspc_find(symbolTableId, key,objectIndex) != 0) then
-            begin
-                objectStore[objectIndex] = new KeyValuePair(key, value)
-            end
-            else
-                Add(key, value)
+		public method Items, [#]@StringDictionary.KeyValuePair
+			record
+				itm, @StringDictionary.KeyValuePair
+				result, [#]@StringDictionary.KeyValuePair
+				itemCount, int
+				i, int
+		proc
+			itemCount = 0
+			foreach itm in objectStore
+			begin
+				if(itm != ^null)
+					incr itemCount
+			end
 
-        endmethod
+			result = new KeyValuePair[itemCount]
+			i = 1
+			foreach itm in objectStore
+			begin
+				if(itm != ^null)
+				begin
+					result[i] = itm
+					incr i
+				end
+			end
+			mreturn result
+		endmethod
 
-        public method Remove, void
-            req in key, @string
-            record
-                objectAccesCode, i4
-                objectIndex, i4
-        proc
-            if(nspc_find(symbolTableId, key,objectIndex, objectAccesCode) != 0)
-            begin
-                nspc_delete(symbolTableId, objectAccesCode)
-                RemoveObjectInternal(objectIndex)
-            end
-        endmethod
-
-        public method Contains, boolean
-            req in key, @string
-        proc
-            mreturn (nspc_find(symbolTableId, key) != 0)
-        endmethod
-
-        public method Clear, void
-        proc
-            nspc_reset(symbolTableId)
-            freeIndicies.Clear()
-            objectStore.Clear()
-        endmethod
-
-        public method Items, [#]@StringDictionary.KeyValuePair
-            record
-                itm, @StringDictionary.KeyValuePair
-                result, [#]@StringDictionary.KeyValuePair
-                itemCount, int
-                i, int
-        proc
-            itemCount = 0
-            foreach itm in objectStore
-            begin
-                if(itm != ^null)
-                    incr itemCount
-            end
-
-            result = new KeyValuePair[itemCount]
-            i = 1
-            foreach itm in objectStore
-            begin
-                if(itm != ^null)
-                begin
-                    result[i] = itm
-                    incr i
-                end
-            end
-            mreturn result
-        endmethod
-
-        public property Count, int
-            method get
-            proc
-                mreturn objectStore.Count - freeIndicies.Count
-            endmethod
-        endproperty
-
-    endclass
+	endclass
 
 endnamespace

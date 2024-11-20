@@ -92,6 +92,9 @@
     <Compile Include="..\..\SRC\TOOLS\EmployeeMaintenance.dbl">
       <Link>EmployeeMaintenance.dbl</Link>
     </Compile>
+    <Compile Include="..\..\SRC\TOOLS\EmployeeRandomIO.dbl">
+      <Link>EmployeeRandomIO.dbl</Link>
+    </Compile>
     <Compile Include="..\..\SRC\TOOLS\InstructionCount.dbl">
       <Link>InstructionCount.dbl</Link>
     </Compile>

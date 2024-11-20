@@ -1,28 +1,28 @@
-;;*****************************************************************************
-;;
-;; Routine:     OpenQueueFile
-;;
-;; Description: Open the queue file, creating it if it does not exist.
-;;
-;; Author:      Steve Ives, Synergex Professional Services Group
-;;
-;; Created:     30th December 2019
-;;
-;;*****************************************************************************
-;;
+;*****************************************************************************
+;
+; Routine:      OpenQueueFile
+;
+; Description:  Open the queue file, creating it if it does not exist.
+;
+; Author:       Steve Ives, Synergex Professional Services Group
+;
+; Created:      30th December 2019
+;
+;*****************************************************************************
+;
 
 import ReplicationLibrary
 import Synergex.SynergyDE
 
 function OpenQueueFile, boolean
 proc
-    ;;Does the instruction queue file exist?
+    ;Does the instruction queue file exist?
 
     repeat
     begin
         try
         begin
-            ;;Open the instruction queue file
+            ;Open the instruction queue file
             data tmpchn, i4, 0
             open(tmpchn,U:I,Settings.TransactionFile)
             Settings.InstructionChannel = tmpchn
@@ -35,7 +35,7 @@ proc
         end
         catch (e, @NoFileFoundException)
         begin
-            ;;The queue file does not exist so we'll try to create it
+            ;The queue file does not exist so we'll try to create it
             try
             begin
 .ifdef D_VMS
@@ -47,7 +47,7 @@ proc
             end
             catch (ex, @Exception)
             begin
-                ;;We can't create the file, we're dead!
+                ;We can't create the file, we're dead!
                 Logger.ErrorLog("Failed to create transaction log file " + Settings.TransactionFile + " Error was: " + e.Message)
                 freturn false
             end
@@ -55,7 +55,7 @@ proc
         end
         catch (e, @Exception)
         begin
-            ;;The file is present but we can't open it. We're dead!
+            ;The file is present but we can't open it. We're dead!
             Logger.ErrorLog("Failed to open transaction log file " + Settings.TransactionFile + " Error was: " + e.Message)
             freturn false
         end
