@@ -57,17 +57,20 @@ subroutine ThrowOnCommunicationError
     required in routine, string
     required in dberror, int
     required in errtxt, a
-
-.define MESSAGE_COUNT 5
     static record
-        messages, [MESSAGE_COUNT]a128,
+        messages, [#]string
+    endrecord
+proc
+    if (messages == ^null)
+    begin
+        messages = new string[#] {
         &    "Network connection lost (recv): errno: 10060",
         &    "Shared Memory Provider: No process is on the other end of the pipe",
-        &    "Network connection lost (send): An existing connection was forcibly closed by the remote host."
+        &    "Network connection lost (send): An existing connection was forcibly closed by the remote host.",
         &    "CONFIG: Expected a CONFIG call"
-    endrecord
+        &    }
+    end
 
-proc
     ;Turn off network adapter on server
     ;   dberror    -1
     ;   errtxt     Network connection lost (recv): errno: 10060
@@ -84,19 +87,21 @@ proc
     ;Interfere with network packets going to FileService. Produced with Clumsy using the "Tamper" function and the rule "inbound and tcp.DstPort == 8080"
     ;Not currently trapping this one because it could be caused by bad data in the delimited file that we send.
     ;   dberror    -4863
-    ;   errtxt     [Microsoft][ODBC Driver 17 for SQL Server][SQL Server]Bulk load data conversion error (truncation) for row 3, column 132 (Cusccall). [Microsoft][ODBC Driver 17 for SQL Server][SQL Server]Bulk load data conversion error (truncation) for row 6, column 92 (Cmiscf). [Microsoft][ODBC Driver 17 for SQL Server][SQL Server]Bulk load data conversion error (type mismatch or invalid character for the specified codepage) for row 75, column 113 (Fetmtd). [Microsoft][ODBC Driver 17 for SQL Server][SQL Server]Bulk load da
+    ;   errtxt     [Microsoft][ODBC Driver 17 for SQL Server][SQL Server]Bulk load data conversion error (truncation) for row 3, column 132 (Cusccall).
+
+    ;Caused by bad data, e.g. non-numeric characters in a numeric field
+    ;   dberror    -4864
+    ;   errtxt     [Microsoft][ODBC Driver 17 for SQL Server][SQL Server]Bulk load data conversion error (type mismatch or invalid character for the specified codepage) for row 51793, column 4 (Famt1).\0
 
     ;Shut down SQL Server host
     ;   dberror    ???
     ;   errtxt     ???
 
-
     if (errtxt)
     begin
-        data ix, i4
-        for ix from 1 thru MESSAGE_COUNT
+        foreach data message in messages
         begin
-            if (%instr(1,errtxt,%atrim(messages[ix])))
+            if (%instr(1,errtxt,(a)message))
             begin
                 throw new DatabaseCommunicationException(routine,dberror,%atrimtostring(errtxt))
             end

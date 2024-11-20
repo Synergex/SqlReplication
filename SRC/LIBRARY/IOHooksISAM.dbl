@@ -1,48 +1,49 @@
-;;*****************************************************************************
-;;
-;; File:        IoHooksISAM.dbl
-;;
-;; Description: I/O Hooks class to implement ISAM to SQL replication
-;;
-;; Author:      Steve Ives, Synergex Professional Services Group
-;;
-;;*****************************************************************************
-;;
-;; Copyright (c) 2015, Synergex International, Inc.
-;; All rights reserved.
-;;
-;; Redistribution and use in source and binary forms, with or without
-;; modification, are permitted provided that the following conditions are met:
-;;
-;; * Redistributions of source code must retain the above copyright notice,
-;;   this list of conditions and the following disclaimer.
-;;
-;; * Redistributions in binary form must reproduce the above copyright notice,
-;;   this list of conditions and the following disclaimer in the documentation
-;;   and/or other materials provided with the distribution.
-;;
-;; THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-;; AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-;; IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-;; ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
-;; LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-;; CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-;; SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-;; INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-;; CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
-;; ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-;; POSSIBILITY OF SUCH DAMAGE.
-;;
-;;*****************************************************************************
+;*****************************************************************************
+;
+; File:         IoHooksISAM.dbl
+;
+; Description:  I/O Hooks class to implement ISAM to SQL replication
+;
+; Author:       Steve Ives, Synergex Professional Services Group
+;
+;*****************************************************************************
+;
+; Copyright (c) 2015, Synergex International, Inc.
+; All rights reserved.
+;
+; Redistribution and use in source and binary forms, with or without
+; modification, are permitted provided that the following conditions are met:
+;
+; * Redistributions of source code must retain the above copyright notice,
+;   this list of conditions and the following disclaimer.
+;
+; * Redistributions in binary form must reproduce the above copyright notice,
+;   this list of conditions and the following disclaimer in the documentation
+;   and/or other materials provided with the distribution.
+;
+; THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+; AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+; IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+; ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+; LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+; CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+; SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+; INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+; CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+; ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+; POSSIBILITY OF SUCH DAMAGE.
+;
+;*****************************************************************************
 
+import System.Text
 import Synergex.SynergyDE.IOExtensions
 import Synergex.SynergyDE.Select
 
 namespace ReplicationLibrary
 
-    ;;-------------------------------------------------------------------------
-    ;;I/O hooks class that implements SQL Replication
-    ;;
+    ;-------------------------------------------------------------------------
+    ;I/O hooks class that implements SQL Replication
+    ;
     public class IoHooksISAM extends IOHooks
 
         protected mTableName,       string
@@ -53,8 +54,8 @@ namespace ReplicationLibrary
         protected mFillTimeStamp,   boolean,    false
         protected mTimeStampPos,    int,        0
 
-        ;;---------------------------------------------------------------------
-        ;;Constructor
+        ;---------------------------------------------------------------------
+        ;Constructor
 
         public method IoHooksISAM
             required in aChannel, n
@@ -82,7 +83,7 @@ namespace ReplicationLibrary
             .include "REPLICATION" repository, structure="strInstruction", end
 .endc
         proc
-            ;;Has SQL replication been suppressed via SQL_REPLICATION_DISABLED="YES"?
+            ;Has SQL replication been suppressed via SQL_REPLICATION_DISABLED="YES"?
             begin
                 data envvalue, a20
                 data envsts, i4
@@ -92,44 +93,44 @@ namespace ReplicationLibrary
                     mreturn
             end
 
-            ;;Make sure the channel is to an indexed file and open in update mode
+            ;Make sure the channel is to an indexed file and open in update mode
             xcall getfa(aChannel,"OMD",openMode)
             if (openMode=="U:I")
             begin
 
-                ;;Check that the record length is not over the maximum we can support
+                ;Check that the record length is not over the maximum we can support
                 data recLen, int
                 xcall getfa(aChannel,"RSZ",recLen)
                 if (recLen > ^size(strInstruction.record))
                     exit
 
-                ;;Search for a unique key
+                ;Search for a unique key
                 for thisKey from 0 thru %isinfo(aChannel,"NUMKEYS") - 1
                 begin
                     if (!%isinfo(aChannel,"DUPS",thisKey))
                     begin
-                        ;;Found one
+                        ;Found one
                         mActive = true
                         LastRecordCache.Init(aChannel)
 
-                        ;;Is it REPLICATION_KEY and 20 long? If so we will cause the PRE STORE hook
-                        ;;to fill the key with a timestamp value for new records.
+                        ;Is it REPLICATION_KEY and 20 long? If so we will cause the PRE STORE hook
+                        ;to fill the key with a timestamp value for new records.
                         xcall iskey(aChannel,thisKey,keyinfo)
                         upcase keyinfo.keynam
                         if ((mFillTimeStamp=(keyinfo.keynam=="REPLICATION_KEY"))&&(keylen==20))
                             mTimeStampPos = keypos
 
-                        ;;Good to go
+                        ;Good to go
                         exitloop
                     end
                 end
 
                 if (mActive)
                 begin
-                    ;;Record the channel number, table name and instance name
+                    ;Record the channel number, table name and instance name
                     mChannel = aChannel
 
-                    ;;Record the table name
+                    ;Record the table name
                     if (mMultiTable = aTableName.StartsWith("MULTI_")) then
                     begin
 .ifdef DBLNET
@@ -143,18 +144,18 @@ namespace ReplicationLibrary
                         mTableName = aTableName
                     end
 
-                    ;;Record the instance name
+                    ;Record the instance name
                     mInstanceName = aInstanceName.Trim().ToUpper()
 
-                    ;;Make sure we have the queue file open for this instance
+                    ;Make sure we have the queue file open for this instance
                     xcall Replicate(mInstanceName,REPLICATION_INSTRUCTION.OPEN_FILE)
                 end
 
             end
         endmethod
 
-        ;;---------------------------------------------------------------------
-        ;;READ hooks
+        ;---------------------------------------------------------------------
+        ;READ hooks
 
         public override method read_post_operation_hook, void
             required inout       aRecord, a
@@ -165,11 +166,27 @@ namespace ReplicationLibrary
             required inout       aError,  int
             endparams
         proc
-            if (mActive && !aError && !(aFlags&IOFlags.LOCK_NO_LOCK))
+            if (!mActive) then
             begin
-                ;;Record the record that was just read (to support delete)
+                mreturn
+            end
+            else if (!aError && !(aFlags&IOFlags.LOCK_NO_LOCK))
+            begin
+                ;Record the record that was just read (to support delete)
                 LastRecordCache.Update(mChannel,aRecord)
             end
+.ifndef DBLNET
+            if (aError && mStuckProcessActive)
+            begin
+                ;READ error
+                mStuckProcessErrorCount = mStuckProcessErrorCount + 1
+                if (!mStuckProcessLogged && (%datetime > mStuckProcessDeadline))
+                begin
+                    ;Tracking stuck processes, deadline has passed, haven't logged the issue
+                    IoHooksISAM.logStuckProcess()
+                end
+            end
+.endc
         endmethod
 
         public override method reads_post_operation_hook ,void
@@ -179,15 +196,31 @@ namespace ReplicationLibrary
             required inout aError,  int
             endparams
         proc
-            if (mActive && !aError && !(aFlags&IOFlags.LOCK_NO_LOCK))
+            if (!mActive) then
             begin
-                ;;Record the record that was just read (to support delete)
+                mreturn
+            end
+            else if (!aError && !(aFlags&IOFlags.LOCK_NO_LOCK))
+            begin
+                ;Record the record that was just read (to support delete)
                 LastRecordCache.Update(mChannel,aRecord)
             end
+.ifndef DBLNET
+            if (aError && mStuckProcessActive)
+            begin
+                ;READS error
+                mStuckProcessErrorCount = mStuckProcessErrorCount + 1
+                if (!mStuckProcessLogged && (%datetime > mStuckProcessDeadline))
+                begin
+                    ;Tracking stuck processes, deadline has passed, haven't logged the issue
+                    logStuckProcess()
+                end
+            end
+.endc
         endmethod
 
-        ;;---------------------------------------------------------------------
-        ;;WRITE hooks
+        ;---------------------------------------------------------------------
+        ;WRITE hooks
 
         public override method write_post_operation_hook, void
             required inout       aRecord, a
@@ -197,7 +230,7 @@ namespace ReplicationLibrary
             required inout       aError,  int
             endparams
         proc
-            ;;A record was just updated. If it changed then replicate the change.
+            ;A record was just updated. If it changed then replicate the change.
             if (mActive && !aError)
             begin
                 if (LastRecordCache.HasChanged(mChannel,aRecord))
@@ -209,18 +242,18 @@ namespace ReplicationLibrary
             end
         endmethod
 
-        ;;---------------------------------------------------------------------
-        ;;STORE hooks
+        ;---------------------------------------------------------------------
+        ;STORE hooks
 
         public override method store_pre_operation_hook, void
             required inout aRecord, a
             required in    aFlags,  IOFlags
             endparams
         proc
-            ;;If we're using REPLICATION_KEY, and the program has no populated it, then
-            ;;then add a timestamp value for the new record. This MAY NOT result in a
-            ;;unique value, which in that case will result in a duplicate key error from
-            ;; the STORE.
+            ;If we're using REPLICATION_KEY, and the program has no populated it, then
+            ;then add a timestamp value for the new record. This MAY NOT result in a
+            ;unique value, which in that case will result in a duplicate key error from
+            ; the STORE.
             if (mActive && mFillTimeStamp && !aRecord(mTimeStampPos:20))
                 aRecord(mTimeStampPos:20) = %datetime
         endmethod
@@ -232,7 +265,7 @@ namespace ReplicationLibrary
             required inout       aError,  int
             endparams
         proc
-            ;;A new record was just created. Replicate the change.
+            ;A new record was just created. Replicate the change.
             if (mActive && !aError)
             begin
                 data tableName, string, getTableName(aRecord)
@@ -241,14 +274,14 @@ namespace ReplicationLibrary
             end
         endmethod
 
-        ;;---------------------------------------------------------------------
-        ;;DELETE hooks
+        ;---------------------------------------------------------------------
+        ;DELETE hooks
 
         public override method delete_post_operation_hook, void
             required inout aError, int
             endparams
         proc
-            ;;A record was just deleted. Replicate the change.
+            ;A record was just deleted. Replicate the change.
             if (mActive && !aError)
             begin
                 data tableName, string, getTableName(LastRecordCache.Retrieve(mChannel))
@@ -257,8 +290,8 @@ namespace ReplicationLibrary
             end
         endmethod
 
-        ;;---------------------------------------------------------------------
-        ;;CLOSE hooks
+        ;---------------------------------------------------------------------
+        ;CLOSE hooks
 
         public override method close_pre_operation_hook, void
             required in aFlags, IOFlags
@@ -266,15 +299,15 @@ namespace ReplicationLibrary
         proc
             if (mActive)
             begin
-                ;;Clear the last record cache
+                ;Clear the last record cache
                 LastRecordCache.Clear(mChannel)
-                ;;Maybe close the queue file channel
+                ;Maybe close the queue file channel
                 xcall replicate(mInstanceName,REPLICATION_INSTRUCTION.CLOSE_FILE)
             end
         endmethod
 
-        ;;-------------------------------------------------------------------------------------
-        ;;Custom code for multi-record layout files
+        ;---------------------------------------------------------------------
+        ;Custom code for multi-record layout files
 
         private method getTableName, string
             required in aRecord, a
@@ -323,7 +356,107 @@ namespace ReplicationLibrary
 
         endmethod
 
-        ;;-------------------------------------------------------------------------------------
+.ifndef DBLNET
+
+        ;---------------------------------------------------------------------
+        ;Traditional Bridge stuck process tracking
+        ;
+        ; This feature is designed to detect potentially "stuck" Harmony Core
+        ; Traditional Bridge processes. By stuck we generally mean "stuck in
+        ; an I/O loop for an extended and unreasonable amount of time. This is
+        ; because this is a pattern that we have seen many times in TireMax
+        ; code, usually as a result of poor error handling code, frequently
+        ; but not exclusively around record lock processing.
+        ; The feature is enabled via settings in the appsettings.Environment.json
+        ; file, and when active causes the routine dispatcher code to call
+        ; a subroutine called BridgeMethodStart which is in the TireMax SUB
+        ; library. That routine in turn calls the BeginStuckProcessTracking
+        ; method below. When this method is called, a "deadline time" is
+        ; calculated by adding a configurable number of seconds to the
+        ; current time. After that, each time an I/O error is detected the
+        ; deadline time is checked against the then current time, and if the
+        ; deadline has passed a message is logged to the system log indicating
+        ; that a possible stuck process was detected, and including the name
+        ; of the currently running bridge method as well as a full stack trace
+        ; to make it easy to identify the exact location of the runnig code.
+        ; An stuck process scenario will only be logged once for the process,
+        ; and the process will continue to operate.
+
+        private static readwrite property mStuckProcessActive, boolean
+        private static readwrite property mStuckProcessMethod, string
+        private static readwrite property mStuckProcessSeconds, i4
+        private static readwrite property mStuckProcessDeadline, a20
+        private static readwrite property mStuckProcessErrorCount, i4
+        private static readwrite property mStuckProcessLogged, boolean
+
+        ;;; <summary>
+        ;;; Called from SUB/BridgeMethodStart to indicate the beginning of an executing method
+        ;;; </summary>
+        ;;; <param name="methodName">Name of metod being executed</param>
+        ;;; <param name="stuckProcessSeconds">Number of seconds before determining stuck process</param>
+        public static method BeginStuckProcessTracking, void
+            required in methodName, string
+            required in stuckProcessSeconds, n
+        proc
+            mStuckProcessActive = true
+            mStuckProcessMethod = methodName
+            mStuckProcessSeconds = stuckProcessSeconds
+            mStuckProcessDeadline = %datetime_from_i8(%datetime_to_i8(%datetime)+(mStuckProcessSeconds*1000000))
+            mStuckProcessErrorCount = 0
+            mStuckProcessLogged = false
+        endmethod
+
+        ;;; <summary>
+        ;;; Called from SUB/BridgeMethodEnd to indicate the end execution of the method
+        ;;; </summary>
+        public static method EndStuckProcessTracking, void
+        proc
+            mStuckProcessActive = false
+            mStuckProcessMethod = ""
+            mStuckProcessSeconds = 0
+            mStuckProcessDeadline = ""
+            mStuckProcessErrorCount = 0
+            mStuckProcessLogged = false
+        endmethod
+
+        ;;; <summary>
+        ;;; Record a "stuck process" message and call stack in the system log
+        ;;; </summary>
+        private static method logStuckProcess, void
+            record
+                moduleNumber, i4
+                lineNumber, i4
+                moduleName, a80
+                sb, @StringBuilder
+            endrecord
+        proc
+            ;Construct a log message
+            sb = new StringBuilder()
+            sb.Append("HARMONY CORE: Possible stuck method. " + mStuckProcessMethod + ". Run time " + %string(mStuckProcessSeconds) + " seconds. Error count " + %string(mStuckProcessErrorCount) + ". Call stack follows:")
+
+            ;Add the current call stack
+            xcall modname(moduleNumber=2,moduleName,lineNumber)
+            sb.Append(" At line " + %string(lineNumber) + " in " + %atrimtostring(moduleName))
+
+            repeat
+            begin
+                xcall modname(moduleNumber+=1,moduleName,lineNumber)
+                if (!moduleName || %instr(1,moduleName,"TRADITIONALBRIDGE.DISPATCHERS"))
+                    exitloop
+                sb.Append(" | At line " + %string(lineNumber) + " in " + %atrimtostring(moduleName))
+            end
+
+            ;And log it
+            xcall syn_reportevent(D_EVENTLOG_ERROR_TYPE, sb.ToString())
+
+            ;And don't do it again
+            mStuckProcessLogged = true
+
+            mreturn
+
+        endmethod
+
+.endc
 
     endclass
 

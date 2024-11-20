@@ -237,6 +237,9 @@
     <Compile Include="..\..\SRC\LIBRARY\TimeNow.dbl">
       <Link>TimeNow.dbl</Link>
     </Compile>
+    <Compile Include="..\..\SRC\LIBRARY\Timer.dbl">
+      <Link>Timer.dbl</Link>
+    </Compile>
   </ItemGroup>
   <ItemGroup>
     <Content Include="..\..\SRC\LIBRARY\SmtpMail.def">

@@ -1,0 +1,287 @@
+;*****************************************************************************
+;
+; File:         Timer.dbl
+;
+; Description:  A simple timer class that works in Traditional DBL and .NET
+;
+; Author:       Steve Ives, Synergex Professional Services Group
+;
+; © 2024 Synergex International, Inc. All rights reserved.
+;
+;*****************************************************************************
+
+import System.Collections
+
+namespace ReplicationLibrary
+
+    ;;; <summary>
+    ;;; A simple timer class that works in Traditional DBL and .NET
+    ;;; </summary>
+    public class Timer
+
+        private mRunning, boolean, false
+        private mStarted, boolean, false
+        private mStartTime, i8, 0
+        private mStopTime, i8, 0
+        private mStartDateTime, a20
+        private mEndDateTime, a20
+
+        ;;; <summary>
+        ;;; Starts the timer.
+        ;;; Throws an exception if the timer is already running.
+        ;;; </summary>
+        public method Start, void
+        proc
+            if (mRunning)
+            begin
+                throw new ApplicationException("Timer is already running!")
+            end
+            mStarted = true
+            mRunning = true
+            mStartTime = %datetime_to_i8(mStartDateTime=%datetime)
+        endmethod
+
+        ;;; <summary>
+        ;;; Stops the timer.
+        ;;; Throws an exception if the timer has not been started.
+        ;;; </summary>
+        public method Stop, void
+        proc
+            if (!mRunning)
+            begin
+                throw new ApplicationException("Timer is not running!")
+            end
+            mStopTime = %datetime_to_i8(mEndDateTime=%datetime)
+            mRunning = false
+        endmethod
+
+        ;;; <summary>
+        ;;; Reports the elapsed time in microseconds between the timer being started and stopped.
+        ;;; Throws an exception if the timer has not been started or is still running.
+        ;;; </summary>
+        public property MicroSeconds, long
+            method get
+            proc
+                if (!mStarted) then
+                begin
+                    throw new ApplicationException("Timer has not been started!")
+                end
+                else if (mRunning) then
+                begin
+                    throw new ApplicationException("Timer is still running!")
+                end
+                else
+                begin
+                    mreturn mStopTime - mStartTime
+                end
+            endmethod
+        endproperty
+
+        ;;; <summary>
+        ;;; Reports the elapsed time in milliseconds between the timer being started and stopped.
+        ;;; Throws an exception if the timer has not been started or is still running.
+        ;;; </summary>
+        public property MilliSeconds, long
+            method get
+            proc
+                if (!mStarted) then
+                begin
+                    throw new ApplicationException("Timer has not been started!")
+                end
+                else if (mRunning) then
+                begin
+                    throw new ApplicationException("Timer is still running!")
+                end
+                else
+                begin
+                    mreturn (mStopTime - mStartTime) / 1000
+                end
+            endmethod
+        endproperty
+
+        ;;; <summary>
+        ;;; Reports the elapsed time in seconds between the timer being started and stopped.
+        ;;; Throws an exception if the timer has not been started or is still running.
+        ;;; </summary>
+        public property Seconds, int
+            method get
+            proc
+                if (!mStarted) then
+                begin
+                    throw new ApplicationException("Timer has not been started!")
+                end
+                else if (mRunning) then
+                begin
+                    throw new ApplicationException("Timer is still running!")
+                end
+                else
+                begin
+                    mreturn (mStopTime - mStartTime) / 1000000
+                end
+            endmethod
+        endproperty
+
+        ;;; <summary>
+        ;;; Reports the elapsed time in minutes between the timer being started and stopped.
+        ;;; Throws an exception if the timer has not been started or is still running.
+        ;;; </summary>
+        public property Minutes, int
+            method get
+            proc
+                if (!mStarted) then
+                begin
+                    throw new ApplicationException("Timer has not been started!")
+                end
+                else if (mRunning) then
+                begin
+                    throw new ApplicationException("Timer is still running!")
+                end
+                else
+                begin
+                    mreturn (mStopTime - mStartTime) / 60000000
+                end
+            endmethod
+        endproperty
+
+        ;;; <summary>
+        ;;; Reports the elapsed time between the timer being started and stopped in H:MM:SS format.
+        ;;; Throws an exception if the timer has not been started or is still running.
+        ;;; </summary>
+        public property ElapsedTimeHMS, string
+            method get
+            proc
+                if (!mStarted) then
+                begin
+                    throw new ApplicationException("Timer has not been started!")
+                end
+                else if (mRunning) then
+                begin
+                    throw new ApplicationException("Timer is still running!")
+                end
+                else
+                begin
+                    data totalSeconds = this.Seconds
+                    data hours = totalSeconds / 3600
+                    data remainingSeconds = totalSeconds - (hours * 3600)
+                    data minutes = remainingSeconds / 60
+                    remainingSeconds = remainingSeconds - (minutes * 60)
+                    mreturn %string(hours) + ":" + %string(minutes,"XX") + ":" + %string(remainingSeconds,"XX")
+                end
+            endmethod
+        endproperty
+
+        ;;; <summary>
+        ;;; Reports the elapsed time between the timer being started and stopped as a descriptive string.
+        ;;; Throws an exception if the timer has not been started or is still running.
+        ;;; </summary>
+        public property ElapsedTimeString, string
+            method get
+            proc
+                if (!mStarted) then
+                begin
+                    throw new ApplicationException("Timer has not been started!")
+                end
+                else if (mRunning) then
+                begin
+                    throw new ApplicationException("Timer is still running!")
+                end
+                else
+                begin
+                    data value, string, ""
+                    data totalSeconds = this.Seconds
+                    data hours = totalSeconds / 3600
+                    data remainingSeconds = totalSeconds - (hours * 3600)
+                    data minutes = remainingSeconds / 60
+                    remainingSeconds = remainingSeconds - (minutes * 60)
+
+                    if (hours>1) then
+                    begin
+                        value = %string(hours) + " hours "
+                    end
+                    else if (hours==1)
+                    begin
+                        value = "1 hour "
+                    end
+
+                    if (minutes==0 && hours==0) then
+                    begin
+                        nop
+                    end
+                    else
+                    begin
+                        if (minutes == 0 || minutes > 1) then
+                        begin
+                            value = value + %string(minutes) + " minutes "
+                        end
+                        else
+                        begin
+                            value = value + " 1 minute "
+                        end
+                    end
+
+                    if (remainingSeconds >= 1)
+                    begin
+                        if (remainingSeconds > 1) then
+                        begin
+                            value = value + %string(remainingSeconds) + " seconds"
+                        end
+                        else
+                        begin
+                            value = value + " 1 second"
+                        end
+                        remainingSeconds = 0
+                    end
+
+                    if (String.IsNullOrWhiteSpace(value))
+                    begin
+                        value = %string(MilliSeconds) + " ms"
+                    end
+
+                    mreturn value
+                end
+            endmethod
+        endproperty
+
+        ;;; <summary>
+        ;;; Reports the date and time the timer was last started in YYYY-MM-DD HH:MM:SS format
+        ;;; Throws an exception if the timer has not been started.
+        ;;; </summary>
+        public property StartDateTime, string
+            method get
+            proc
+                if (!mStarted) then
+                begin
+                    throw new ApplicationException("Timer has not been started!")
+                end
+                else
+                begin
+                    mreturn %string(^d(mStartDateTime(1:14)),"XXXX-XX-XX XX:XX:XX")
+                end
+            endmethod
+        endproperty
+
+        ;;; <summary>
+        ;;; Reports the date and time the timer was stopped in YYYY-MM-DD HH:MM:SS format
+        ;;; Throws an exception if the timer has not been started or is still running.
+        ;;; </summary>
+        public property EndDateTime, string
+            method get
+            proc
+                if (!mStarted) then
+                begin
+                    throw new ApplicationException("Timer has not been started!")
+                end
+                else if (mRunning==true) then
+                begin
+                    throw new ApplicationException("Timer is still running!")
+                end
+                else
+                begin
+                    mreturn %string(^d(mEndDateTime(1:14)),"XXXX-XX-XX XX:XX:XX")
+                end
+            endmethod
+        endproperty
+
+    endclass
+
+endnamespace

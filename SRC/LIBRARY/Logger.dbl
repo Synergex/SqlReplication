@@ -26,7 +26,7 @@ namespace ReplicationLibrary
                 end
                 catch (ex, @ServerNotRunningException)
                 begin
-                    ;;If we get here then logging has been configured to use a remote (xfServer) connection, which is not recommended
+                    ;If we get here then logging has been configured to use a remote (xfServer) connection, which is not recommended
                     data tmpmsg, string, "Replicator is configured for remote logging and xfServer is not running!"
                     if (Settings.RunningOnTerminal) then
                         writes(Settings.TerminalChannel,tmpmsg)
@@ -70,7 +70,7 @@ namespace ReplicationLibrary
         ;;; </summary>
         public static method CycleLog, void
         proc
-            ;;Open the log file
+            ;Open the log file
             if (Settings.LogFileChannel!=0)
             begin
                 data now, a20, %datetime
@@ -93,12 +93,73 @@ namespace ReplicationLibrary
         public static method Log, void
             required in message, string
         proc
-            ;;Log the message
+            ;Log the message
             if (Settings.LogFileChannel!=0)
-                writes(Settings.LogFileChannel,%TimeNow + message)
-            ;;If running on the terminal, also display the message
+                writes(Settings.LogFileChannel,%DateTimeNow + message.Trim())
+            ;If running on the terminal, also display the message
             if (Settings.RunningOnTerminal)
-                writes(Settings.TerminalChannel,%TimeNow + message)
+                writes(Settings.TerminalChannel,%TimeNow + message.Trim())
+        endmethod
+
+        ;;; <summary>
+        ;;; Write a message to the log.
+        ;;; </summary>
+        ;;; <param name="message">Message to write</param>
+        public static method StartLine, void
+            required in message, string
+        proc
+            ;Log the message
+            if (Settings.LogFileChannel!=0)
+                display(Settings.LogFileChannel,%DateTimeNow + message.Trim())
+            ;If running on the terminal, also display the message
+            if (Settings.RunningOnTerminal)
+                display(Settings.TerminalChannel,%TimeNow + message.Trim())
+        endmethod
+
+        ;;; <summary>
+        ;;; Write a message to the log.
+        ;;; </summary>
+        ;;; <param name="message">Message to write</param>
+        public static method AppendToLine, void
+            required in message, string
+        proc
+            ;Log the message
+            if (Settings.LogFileChannel!=0)
+                display(Settings.LogFileChannel,message.Trim())
+            ;If running on the terminal, also display the message
+            if (Settings.RunningOnTerminal)
+                display(Settings.TerminalChannel,message.Trim())
+        endmethod
+
+        ;;; <summary>
+        ;;; Write a message to the log.
+        ;;; </summary>
+        ;;; <param name="message">Message to write</param>
+        public static method EndLine, void
+        proc
+            ;Log the message
+            if (Settings.LogFileChannel!=0)
+                writes(Settings.LogFileChannel,"")
+            ;If running on the terminal, also display the message
+            if (Settings.RunningOnTerminal)
+                writes(Settings.TerminalChannel,"")
+        endmethod
+
+        ;;; <summary>
+        ;;; Write a warning message to the log.
+        ;;; </summary>
+        ;;; <param name="message">Warning message to write</param>
+        public static method WarningLog, void
+            required in message, string
+        proc
+            Logger.Log("WARNING: " + message)
+            ;Are we also logging to the system log?
+            if (Settings.SystemLog)
+.ifdef DBLNET
+                nop
+.else
+                xcall syn_reportevent(D_EVENTLOG_ERROR_TYPE,"WARNING: " + message.Trim())
+.endc
         endmethod
 
         ;;; <summary>
@@ -109,12 +170,12 @@ namespace ReplicationLibrary
             required in message, string
         proc
             Logger.Log("ERROR: " + message)
-            ;;Are we also logging to the system log?
+            ;Are we also logging to the system log?
             if (Settings.SystemLog)
 .ifdef DBLNET
-            nop
+                nop
 .else
-            xcall syn_reportevent(D_EVENTLOG_ERROR_TYPE,"ERROR: " + message)
+                xcall syn_reportevent(D_EVENTLOG_ERROR_TYPE,"ERROR: " + message.Trim())
 .endc
         endmethod
 
@@ -139,6 +200,7 @@ namespace ReplicationLibrary
             required in functionName,   string
             required in errorNumber,    int
             required in errorMessage,   string
+            required in keyValue,       string
             endparams
             .include "REPLICATOR_INCLUDE:SmtpMail.def"
             stack record
@@ -147,10 +209,15 @@ namespace ReplicationLibrary
         proc
             errorText = "Function " + functionName + " returned error " + %string(errorNumber) + ": " + %atrim(errorMessage)
 
-            ;;Log the error
+            if (!String.IsNullOrWhitespace(keyValue))
+            begin
+                errorText = errorText + " Key: " + keyValue
+            end
+
+            ;Log the error
             Logger.ErrorLog(errorText)
 
-            ;;Email the error?
+            ;Email the error?
             if (Settings.CanSendEmail())
             begin
                 data body = new string[3]
@@ -170,32 +237,16 @@ namespace ReplicationLibrary
                 end
             end
 
-            ;;Increment the error count
+            ;Increment the error count
             Counters.Errors += 1
 
-            ;;Stop processing?
+            ;Stop processing?
             if (Settings.StopOnError)
             begin
                 xcall ReplicatorShutdown
                 stop
             end
 
-        endmethod
-
-        ;;; <summary>
-        ;;; Log an error from a database function.
-        ;;; </summary>
-        ;;; <param name="functionName">Name of failing function</param>
-        ;;; <param name="errorNumber">Database error number</param>
-        ;;; <param name="errorMessage">Database error message</param>
-        ;;; <param name="keyValue">Key value of failing record</param>
-        public static method LogFunctionError, void
-            required in functionName,   string
-            required in errorNumber,    int
-            required in errorMessage,   string
-            required in keyValue,       string
-        proc
-            LogFunctionError(functionName,errorNumber,errorMessage.Trim() + " Key: [" + keyValue + "]")
         endmethod
 
         ;;; <summary>
@@ -206,9 +257,10 @@ namespace ReplicationLibrary
         ;;; <param name="errorMessage">Database error message</param>
         ;;; <returns></returns>
         public static method LogFunctionFail, boolean
-            required in functionName,   string
-            required in errorNumber,    int
-            required in errorMessage,   string
+            required in functionName,	string
+            required in errorNumber,	int
+            required in errorMessage,	string
+            required in keyValue,       string
             endparams
             .include "REPLICATOR_INCLUDE:SmtpMail.def"
             stack record
@@ -218,10 +270,15 @@ namespace ReplicationLibrary
 
             errorText = "Function " + functionName + " failed with error " + %string(errorNumber) + ": " + %atrim(errorMessage)
 
-            ;;Log the error
+            if (!String.IsNullOrWhitespace(keyValue))
+            begin
+                errorText = errorText + " Key: " + keyValue
+            end
+
+            ;Log the error
             Logger.ErrorLog(errorText)
 
-            ;;Email the error?
+            ;Email the error?
             if (Settings.CanSendEmail())
             begin
                 data body = new string[3]
@@ -241,10 +298,10 @@ namespace ReplicationLibrary
                 end
             end
 
-            ;;Increment the error count
+            ;Increment the error count
             Counters.Errors += 1
 
-            ;;Stop processing?
+            ;Stop processing?
             if (Settings.StopOnError)
             begin
                 xcall ReplicatorShutdown
@@ -253,23 +310,6 @@ namespace ReplicationLibrary
 
             mreturn false
 
-        endmethod
-
-        ;;; <summary>
-        ;;; Log the failure of a database function
-        ;;; </summary>
-        ;;; <param name="functionName">Nam of failing function</param>
-        ;;; <param name="errorNumber">Database error number</param>
-        ;;; <param name="errorMessage">Database error message</param>
-        ;;; <param name="keyValue">Key value of failing record</param>
-        ;;; <returns></returns>
-        public static method LogFunctionFail, boolean
-            required in functionName,   string
-            required in errorNumber,    int
-            required in errorMessage,   string
-            required in keyValue,       string
-        proc
-            mreturn LogFunctionFail(functionName,errorNumber,errorMessage.Trim() + " Key: [" + keyValue + "]")
         endmethod
 
     endclass

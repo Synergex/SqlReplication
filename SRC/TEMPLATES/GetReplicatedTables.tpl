@@ -8,7 +8,7 @@
 ;//
 ;// Author:     Steve Ives, Synergex Professional Services Group
 ;//
-;// Copyright   ï¿½ 2018 Synergex International Corporation.  All rights reserved.
+;// Copyright   © 2018 Synergex International Corporation.  All rights reserved.
 ;//
 ;;*****************************************************************************
 ;;

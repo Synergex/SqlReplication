@@ -90,9 +90,15 @@ proc
     xcall w_proc(WP_CREATE,mainwnd,"MAINWND",24,80)
     xcall w_proc(WP_PLACE,mainwnd,1,1)
 
-.ifdef D_GUI
-    xcall w_caption(WC_SET,"SQL Replicator")
-.endc
+    begin
+        data system, i4
+        data runtime, i4
+        xcall envrn(system,runtime)
+        using runtime select
+        (101,104),
+            xcall w_caption(WC_SET,"SQL Replicator Menu")
+        endusing
+    end
 
 .ifndef DBLNET
     try
@@ -206,14 +212,14 @@ proc
         xcall w_disp(mainwnd,WD_POS,13,2,"S.  Change sleep interval")
         xcall w_disp(mainwnd,WD_POS,14,2,"R.  Restart log file")
 
-        xcall w_disp(mainwnd,WD_POS,16,2,"IN. Instance Names")
-        xcall w_disp(mainwnd,WD_POS,17,2,"I.  Select Instance")
-        xcall w_disp(mainwnd,WD_POS,18,2,"TN. Table names")
+        xcall w_disp(mainwnd,WD_POS,16,2,"I.  Select Instance")
+        xcall w_disp(mainwnd,WD_POS,17,2,"IN. Instance Names")
+        xcall w_disp(mainwnd,WD_POS,18,2,"IT. Instance Tables")
         xcall w_disp(mainwnd,WD_POS,19,2,"T.  Select table")
 
         xcall w_disp(mainwnd,WD_POS,21,2,"E.  Exit")
 
-        if (tableName)
+        if (tableName) then
         begin
             xcall w_disp(mainwnd,WD_POS, 3,40,"C.  Create table")
             xcall w_disp(mainwnd,WD_POS, 4,40,"L.  Load table")
@@ -228,8 +234,26 @@ proc
             xcall w_disp(mainwnd,WD_POS,13,40,"DT. Delete TEMP table")
             xcall w_disp(mainwnd,WD_POS,14,40,"X.  Export to CSV")
 
-            if (windows && (tableName=="Employee" || tableName=="Department"))
+            if (tableName=="Employee")
+            begin
                 xcall w_disp(mainwnd,WD_POS,16,40,"M.  Maintainance")
+                xcall w_disp(mainwnd,WD_POS,17,40,"RI. Random IO")
+            end
+
+            if (tableName=="Department")
+            begin
+                xcall w_disp(mainwnd,WD_POS,16,40,"M.  Maintainance")
+            end
+        end
+        else
+        begin
+            xcall w_disp(mainwnd,WD_POS, 3,40,"CA. Create all tables")
+            xcall w_disp(mainwnd,WD_POS, 4,40,"BA. Bulk load all tables")
+            xcall w_disp(mainwnd,WD_POS, 5,40,"IA. Add all indexes")
+            xcall w_disp(mainwnd,WD_POS, 6,40,"RA. Remove all indexes")
+            xcall w_disp(mainwnd,WD_POS, 7,40,"TA. Truncate all tables")
+            xcall w_disp(mainwnd,WD_POS, 8,40,"DA. Delete all tables")
+            xcall w_disp(mainwnd,WD_POS, 9,40,"XA. Export all tables")
         end
 
         xcall w_disp(mainwnd,WD_POS,23,2,WD_CLR,WDC_EOW,"Select an option: ")
@@ -237,21 +261,28 @@ proc
 
         using option select
 
+        ("RI"),
+        begin
+            using tableName select
+            ("Employee"),
+            begin
+                xcall spawn("dbr REPLICATOR_EXE:EmployeeRandomIO.dbr",D_NOWINDOW|D_NOWAIT)
+            end
+            endusing
+        end
+
         ("M "),
         begin
-            if (windows)
+            using tableName select
+            ("Department"),
             begin
-                using tableName select
-                ("Department"),
-                begin
-                    xcall spawn("dbr REPLICATOR_EXE:DepartmentMaintenance.dbr",D_NOWINDOW|D_NOWAIT)
-                end
-                ("Employee"),
-                begin
-                    xcall spawn("dbr REPLICATOR_EXE:EmployeeMaintenance.dbr",D_NOWINDOW|D_NOWAIT)
-                end
-                endusing
+                xcall spawn("dbr REPLICATOR_EXE:DepartmentMaintenance.dbr",D_NOWINDOW|D_NOWAIT)
             end
+            ("Employee"),
+            begin
+                xcall spawn("dbr REPLICATOR_EXE:EmployeeMaintenance.dbr",D_NOWINDOW|D_NOWAIT)
+            end
+            endusing
         end
 
         ("SR"),
@@ -298,7 +329,7 @@ proc
 .else
                     while (%ttsts)
 .endc
-                    xcall w_disp(mainwnd,WD_ACCEPT,tmpvar)
+                        xcall w_disp(mainwnd,WD_ACCEPT,tmpvar)
                 end
 
             end
@@ -426,7 +457,7 @@ proc
 .else
                     while (%ttsts)
 .endc
-                    xcall w_disp(mainwnd,WD_ACCEPT,tmpvar)
+                        xcall w_disp(mainwnd,WD_ACCEPT,tmpvar)
                 end
 
                 if (tmpvar=="M") then
@@ -453,7 +484,7 @@ proc
 .else
                     while (%ttsts)
 .endc
-                    xcall w_disp(mainwnd,WD_ACCEPT,tmpvar)
+                        xcall w_disp(mainwnd,WD_ACCEPT,tmpvar)
                 end
             end
             nextloop
@@ -552,13 +583,13 @@ proc
             end
         end
 
-        ("TN"),
+        ("IT"),
         begin
             data row, i4, 4
             data col, i4, 2
             data name, string
 
-            xcall w_disp(mainwnd,WD_POS,3,1,WD_CLR,WDC_EOW,"Table Names")
+            xcall w_disp(mainwnd,WD_POS,3,1,WD_CLR,WDC_EOW,"Instance Tables")
 
             foreach name in validTables
             begin
@@ -566,7 +597,7 @@ proc
                 if (row==21)
                 begin
                     row=4
-                    col+=18
+                    col+=12
                 end
             end
 
@@ -664,21 +695,21 @@ proc
 
                     xcall GetReplicatedTables(instanceName,validTables)
 
-                clear tmpInstanceName
-                xcall w_disp(mainwnd,WD_POS,23,2,WD_CLR,WDC_EOW,WD_POS,1,35,tmpInstanceName,WD_POS,1,35,instanceName)
+                    clear tmpInstanceName
+                    xcall w_disp(mainwnd,WD_POS,23,2,WD_CLR,WDC_EOW,WD_POS,1,35,tmpInstanceName,WD_POS,1,35,instanceName)
 
-                ;;Set the queue file name for the instance
-                queueFileName = "REPLICATOR_DATA:REPLICATION_" + instanceName + ".ISM"
+                    ;;Set the queue file name for the instance
+                    queueFileName = "REPLICATOR_DATA:REPLICATION_" + instanceName + ".ISM"
 .ifdef D_GUI
                     xcall w_caption(WC_SET,"SQL Replicator: Instance " + instanceName)
 .endc
-            end
+                end
                 else
                 begin
                     instanceName = oldInstanceName
                     xcall w_disp(mainwnd,WD_POS,23,2,WD_CLR,WDC_EOL,"Invalid instance name!")
                 end
-        end
+            end
         end
 
         ("R "),
@@ -736,7 +767,6 @@ proc
             if (tableName) then
             begin
                 xcall Replicate(instanceName,REPLICATION_INSTRUCTION.BULK_LOAD_FIRST_1000,tableName)
-                xcall w_disp(mainwnd,WD_POS,23,2,WD_CLR,WDC_EOL,"Command queued")
                 xcall w_disp(mainwnd,WD_POS,23,2,WD_CLR,WDC_EOL,"Command queued")
             end
             else
@@ -821,6 +851,38 @@ proc
                 xcall w_disp(mainwnd,WD_POS,23,2,WD_CLR,WDC_EOL,"Invalid option!")
         end
 
+        ("CA","BA","IA","RA","TA","DA","XA"),
+        begin
+            if (tableName) then
+            begin
+                xcall w_disp(mainwnd,WD_POS,23,2,WD_CLR,WDC_EOL,"Invalid option!")
+            end
+            else
+            begin
+                if (%AreYouSure(mainwnd)) then
+                begin
+                    data name, string
+                    foreach name in validTables
+                    begin
+                        using option select
+                        ("CA"), xcall Replicate(instanceName,REPLICATION_INSTRUCTION.CREATE_TABLE,name)
+                        ("BA"), xcall Replicate(instanceName,REPLICATION_INSTRUCTION.BULK_LOAD_TABLE,name)
+                        ("IA"), xcall Replicate(instanceName,REPLICATION_INSTRUCTION.ADD_INDEXES,name)
+                        ("RA"), xcall Replicate(instanceName,REPLICATION_INSTRUCTION.DELETE_INDEXES,name)
+                        ("TA"), xcall Replicate(instanceName,REPLICATION_INSTRUCTION.DELETE_ALL_ROWS,name)
+                        ("DA"), xcall Replicate(instanceName,REPLICATION_INSTRUCTION.DELETE_TABLE,name)
+                        ("XA"), xcall Replicate(instanceName,REPLICATION_INSTRUCTION.CREATE_CSV,name)
+                        endusing
+                    end
+                    xcall w_disp(mainwnd,WD_POS,23,2,WD_CLR,WDC_EOL,"Commands queued")
+                end
+                else
+                begin
+                    xcall w_disp(mainwnd,WD_POS,23,2,WD_CLR,WDC_EOL,"Commands NOT queued")
+                end
+            end
+        end
+
         ("E "),
             exitloop
 
@@ -839,3 +901,13 @@ proc
 
 endmain
 
+function AreYouSure, boolean
+    required in mainwnd, n
+    record
+        response, a3
+    endrecord
+proc
+    xcall w_disp(mainwnd,WD_POS,23,2,WD_CLR,WDC_EOW,"Are you sure? (YES/NO) [NO]: ",WD_READS,response,WD_POS,23,2,WD_CLR,WDC_EOW)
+    upcase response
+    freturn (response.eqs."YES")
+endfunction

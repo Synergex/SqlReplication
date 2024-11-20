@@ -56,7 +56,7 @@ Field <FIELD_NAME> may not be excluded via REPLICATOR_EXCLUDE because it is a ke
 ;//
 ;*****************************************************************************
 ;
-; File:         <StructureName>SqlIO.dbl
+; File:        <StructureName>SqlIO.dbl
 ;
 ; Description: Various functions that performs SQL I/O for <STRUCTURE_NAME>
 ;
@@ -71,9 +71,6 @@ import Synergex.SynergyDE.Select
 .ifndef str<StructureName>
 .include "<STRUCTURE_NOALIAS>" repository, structure="str<StructureName>", end
 .endc
-
-.define writelog(x) if ^passed(a_logchannel) && a_logchannel && %chopen(a_logchannel) writes(a_logchannel,%string(^d(now(1:14)),"XXXX-XX-XX XX:XX:XX ") + x)
-.define writett(x)  if ^passed(a_ttchannel) && a_ttchannel writes(a_ttchannel,%string(^d(now(1:14)),"XXXX-XX-XX XX:XX:XX ") + x)
 
 ;*****************************************************************************
 ;;; <summary>
@@ -475,7 +472,7 @@ proc
     if (ok)
     begin
         now = %datetime
-        writelog("Setting database timeout to " + %string(a_bl_timeout) + " seconds")
+        Logger.VerboseLog("Setting database timeout to " + %string(a_bl_timeout) + " seconds")
         if (%ssc_cmd(a_dbchn,,SSQL_TIMEOUT,%string(a_bl_timeout))==SSQL_FAILURE)
         begin
             ok = false
@@ -512,11 +509,11 @@ proc
 
         if (ok) then
         begin
-            writelog("Added index IX_<StructureName>_<PRIMARY_KEY><KeyName></PRIMARY_KEY>")
+            Logger.VerboseLog("Added index IX_<StructureName>_<PRIMARY_KEY><KeyName></PRIMARY_KEY>")
         end
         else
         begin
-            writelog("ERROR: Failed to add index IX_<StructureName>_<PRIMARY_KEY><KeyName></PRIMARY_KEY>")
+            Logger.ErrorLog("Failed to add index IX_<StructureName>_<PRIMARY_KEY><KeyName></PRIMARY_KEY>")
             ok = true
         end
     end
@@ -548,11 +545,11 @@ proc
 
         if (ok) then
         begin
-            writelog("Added index IX_<StructureName>_<KeyName>")
+            Logger.VerboseLog("Added index IX_<StructureName>_<KeyName>")
         end
         else
         begin
-            writelog("ERROR: Failed to add index IX_<StructureName>_<KeyName>s")
+            Logger.ErrorLog("Failed to add index IX_<StructureName>_<KeyName>s")
             ok = true
         end
     end
@@ -592,7 +589,7 @@ proc
     ;Set the database timeout back to the regular value
 
     now = %datetime
-    writelog("Resetting database timeout to " + %string(a_db_timeout) + " seconds")
+    Logger.VerboseLog("Resetting database timeout to " + %string(a_db_timeout) + " seconds")
     if (%ssc_cmd(a_dbchn,,SSQL_TIMEOUT,%string(a_db_timeout))==SSQL_FAILURE)
         nop
 
@@ -2789,15 +2786,11 @@ proc
     begin
         fsc = new FileServiceClient(a_server,a_port)
 
-        now = %datetime
-        writelog("Verifying FileService connection")
-        writett("Verifying FileService connection")
+        Logger.VerboseLog("Verifying FileService connection")
 
         if (!fsc.Ping(errtxt))
         begin
-            now = %datetime
-            writelog(errtxt = "No response from FileService, bulk upload cancelled")
-            writett(errtxt = "No response from FileService, bulk upload cancelled")
+            Logger.ErrorLog(errtxt = "No response from FileService, bulk upload cancelled")
             ok = false
         end
     end
@@ -2829,9 +2822,7 @@ proc
 
         ;Delete local files
 
-        now = %datetime
-        writelog("Deleting local files")
-        writett("Deleting local files")
+        Logger.VerboseLog("Deleting local files")
 
         xcall delet(localCsvFile)
         xcall delet(localExceptionsFile)
@@ -2841,9 +2832,7 @@ proc
 
         if (remoteBulkLoad)
         begin
-            now = %datetime
-            writelog("Deleting remote files")
-            writett("Deleting remote files")
+            Logger.VerboseLog("Deleting remote files")
 
             fsc.Delete(remoteCsvFile)
             fsc.Delete(remoteExceptionsFile)
@@ -2856,11 +2845,10 @@ proc
 
         ;And export the data
 
-        now = %datetime
-        writelog("Exporting delimited file")
-        writett("Exporting delimited file")
+        Logger.Log("Exporting <StructureName> to delimited file")
 
         ok = %<StructureName>Csv(localCsvFile,recordCount,errtxt)
+
     end
 
     if (ok)
@@ -2869,9 +2857,7 @@ proc
 
         if (remoteBulkLoad) then
         begin
-            now = %datetime
-            writelog("Uploading delimited file to database host")
-            writett("Uploading delimited file to database host")
+            Logger.VerboseLog("Uploading delimited file to database host")
             ok = fsc.UploadChunked(localCsvFile,remoteCsvFile,320,fileToLoad,errtxt)
         end
         else
@@ -2888,8 +2874,7 @@ proc
 
         if (a_commit_mode==3)
         begin
-            now = %datetime
-            writelog("Starting transaction")
+            Logger.VerboseLog("Starting transaction")
 
             if (%ssc_commit(a_dbchn,SSQL_TXON)==SSQL_NORMAL) then
                 transaction = true
@@ -2907,8 +2892,7 @@ proc
 
         if (ok)
         begin
-            now = %datetime
-            writelog("Opening cursor")
+            Logger.VerboseLog("Opening cursor")
 
             errorFile = fileToLoad + "_err"
 
@@ -2942,9 +2926,8 @@ proc
 
         if (ok)
         begin
-            now = %datetime
-            writelog("Setting database timeout to " + %string(a_bl_timeout) + " seconds")
-            writett("Setting database timeout to " + %string(a_bl_timeout) + " seconds")
+            Logger.VerboseLog("Setting database timeout to " + %string(a_bl_timeout) + " seconds")
+
             if (%ssc_cmd(a_dbchn,,SSQL_TIMEOUT,%string(a_bl_timeout))==SSQL_FAILURE)
             begin
                 ok = false
@@ -2959,25 +2942,20 @@ proc
 
         if (ok)
         begin
-            now = %datetime
-            writelog("Executing BULK INSERT")
-            writett("Executing BULK INSERT")
+            Logger.VerboseLog("Executing BULK INSERT")
             if (%ssc_execute(a_dbchn,cursor,SSQL_STANDARD)==SSQL_FAILURE)
             begin
                 if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_NORMAL) then
                 begin
                     xcall ThrowOnCommunicationError("<StructureName>BulkLoad",dberror,errtxt)
 
-                    now = %datetime
-                    writelog("Bulk insert error")
-                    writett("Bulk insert error")
+                    Logger.ErrorLog("Bulk insert error")
+
                     using dberror select
                     (-4864),
                     begin
                         ;Bulk load data conversion error
-                        now = %datetime
-                        writelog("Data conversion errors were reported")
-                        writett("Data conversion errors were reported")
+                        Logger.ErrorLog("Data conversion errors were reported")
                         clear dberror, errtxt
                         call GetExceptionDetails
                     end
@@ -2999,9 +2977,7 @@ proc
 ;
 ;            ;Delete local files
 ;
-;            now = %datetime
-;            writelog("Deleting local files")
-;            writett(Deleting local files")
+;            Logger.VerboseLog(Deleting local files")
 ;
 ;            xcall delet(localCsvFile)
 ;            xcall delet(localExceptionsFile)
@@ -3011,9 +2987,7 @@ proc
 ;
 ;            if (remoteBulkLoad)
 ;            begin
-;                now = %datetime
-;                writelog("Deleting remote files")
-;                writett("Deleting remote files")
+;                Logger.VerboseLog("Deleting remote files")
 ;                fsc.Delete(remoteCsvFile)
 ;                fsc.Delete(remoteExceptionsFile)
 ;                fsc.Delete(remoteExceptionsLog)
@@ -3026,9 +3000,7 @@ proc
         begin
             if (ok) then
             begin
-                now = %datetime
-                writelog("COMMIT")
-                writett("COMMIT")
+                Logger.VerboseLog("Commiting transaction")
                 if (%ssc_commit(a_dbchn,SSQL_TXOFF)==SSQL_FAILURE)
                 begin
                     ok = false
@@ -3041,9 +3013,7 @@ proc
             else
             begin
                 ;There was an error, rollback the transaction
-                now = %datetime
-                writelog("ROLLBACK")
-                writett("ROLLBACK")
+                Logger.VerboseLog("Rolling back transaction")
                 if (%ssc_rollback(a_dbchn,SSQL_TXOFF) == SSQL_FAILURE)
                 begin
                     ok = false
@@ -3057,9 +3027,7 @@ proc
 
         ;Set the database timeout back to the regular value
 
-        now = %datetime
-        writelog("Resetting database timeout to " + %string(a_db_timeout) + " seconds")
-        writett("Resetting database timeout to " + %string(a_db_timeout) + " seconds")
+        Logger.VerboseLog("Resetting database timeout to " + %string(a_db_timeout) + " seconds")
         if (%ssc_cmd(a_dbchn,,SSQL_TIMEOUT,%string(a_db_timeout))==SSQL_FAILURE)
             nop
 
@@ -3067,9 +3035,7 @@ proc
 
         if (cursorOpen)
         begin
-            now = %datetime
-            writelog("Closing cursor")
-            writett("Closing cursor")
+            Logger.VerboseLog("Closing cursor")
             if (%ssc_close(a_dbchn,cursor)==SSQL_FAILURE)
             begin
                 if (%ssc_getemsg(a_dbchn,errtxt,length,,dberror)==SSQL_FAILURE) then
@@ -3080,7 +3046,7 @@ proc
         end
     end
 
-    ;Return the record count
+    ;Return the record and cleared field counts
 
     if (^passed(a_records))
         a_records = recordCount
@@ -3093,9 +3059,6 @@ proc
     if (^passed(a_errtxt))
         a_errtxt = errtxt
 
-      now = %datetime
-      writelog("BULK LOAD COMPLETE")
-
     freturn ok
 
 GetExceptionDetails,
@@ -3103,9 +3066,7 @@ GetExceptionDetails,
     ;If we get here then the bulk load reported one or more "data conversion error" issues
     ;There should be two files on the server
 
-    now = %datetime
-    writelog("Data conversion errors, processing exceptions")
-    writett("Data conversion errors, processing exceptions")
+    Logger.ErrorLog("Data conversion errors, processing exceptions")
 
     if (remoteBulkLoad) then
     begin
@@ -3120,9 +3081,7 @@ GetExceptionDetails,
                 data exceptionRecords, [#]string
                 data errorMessage, string
 
-                now = %datetime
-                writelog("Downloading remote exceptions data file")
-                writett("Downloading remote exceptions data file")
+                Logger.Log("Downloading remote exceptions data file")
 
                 if (fsc.DownloadText(remoteExceptionsFile,exceptionRecords,errorMessage))
                 begin
@@ -3138,25 +3097,19 @@ GetExceptionDetails,
 
                     exceptionCount = exceptionRecords.Length
 
-                    now = %datetime
-                    writelog(%string(exceptionCount) + " items saved to " + localExceptionsFile)
-                    writett(%string(exceptionCount) + " items saved to " + localExceptionsFile)
+                    Logger.Log(%string(exceptionCount) + " items saved to " + localExceptionsFile)
                 end
             end
             else
             begin
                 ;Error file does not exist! In theory this should not happen, because we got here due to "data conversion error" being reported
-                now = %datetime
-                writelog("Remote exceptions data file not found!")
-                writett("Remote exceptions data file not found!")
+                Logger.ErrorLog("Remote exceptions data file not found!")
             end
         end
         else
         begin
             ;Failed to determine if file exists
-            now = %datetime
-            writelog("Failed to determine if remote exceptions data file exists. Error was " + tmpmsg)
-            writett("Failed to determine if remote exceptions data file exists. Error was " + tmpmsg)
+            Logger.ErrorLog("Failed to determine if remote exceptions data file exists. Error was " + tmpmsg)
         end
 
         ;Now check for and retrieve the associated exceptions log
@@ -3169,9 +3122,7 @@ GetExceptionDetails,
                 data exceptionRecords, [#]string
                 data errorMessage, string
 
-                now = %datetime
-                writelog("Downloading remote exceptions log file")
-                writett("Downloading remote exceptions log file")
+                Logger.VerboseLog("Downloading remote exceptions log file")
 
                 if (fsc.DownloadText(remoteExceptionsLog,exceptionRecords,errorMessage))
                 begin
@@ -3185,23 +3136,19 @@ GetExceptionDetails,
 
                     close ex_ch
 
-                    now = %datetime
-                    writelog(%string(exceptionRecords.Length) + " items saved to " + localExceptionsLog)
+                    Logger.VerboseLog(%string(exceptionRecords.Length) + " items saved to " + localExceptionsLog)
                 end
             end
             else
             begin
                 ;Error file does not exist! In theory this should not happen, because we got here due to "data conversion error" being reported
-                now = %datetime
-                writelog("Remote exceptions file not found!")
-                writett("Remote exceptions file not found!")
+                Logger.ErrorLog("Remote exceptions file not found!")
             end
         end
         else
         begin
             ;Failed to determine if file exists
-            now = %datetime
-            writelog("Failed to determine if remote exceptions log file exists. Error was " + tmpmsg)
+            Logger.ErrorLog("Failed to determine if remote exceptions log file exists. Error was " + tmpmsg)
         end
     end
     else
@@ -3219,14 +3166,12 @@ GetExceptionDetails,
                 exceptionCount += 1
             end
 eof,        close ex_ch
-            now = %datetime
-            writelog(%string(exceptionCount) + " exception items found in " + localExceptionsFile)
+            Logger.Log(%string(exceptionCount) + " exception items are in " + localExceptionsFile)
         end
         else
         begin
             ;Error file does not exist! In theory this should not happen, because we got here due to "data conversion error" being reported
-            now = %datetime
-            writelog("Exceptions data file not found!")
+            Logger.ErrorLog("Exceptions data file not found!")
         end
     end
 
@@ -3337,9 +3282,7 @@ function <StructureName>Csv, boolean
 
     external function
         IsDecimalNo,                    boolean
-<IF NOT_DEFINED_DBLV11>
         MakeDateForCsv,                 a
-</IF NOT_DEFINED_DBLV11>
         MakeDecimalForCsvNegatives,     a
         MakeDecimalForCsvNoNegatives,   a
         MakeTimeForCsv,                 a
