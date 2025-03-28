@@ -53,8 +53,11 @@ proc
         if (defaultTables == ^null)
         begin
             defaultTables = new ArrayList()
+
             defaultTables.Add((string)"Employee")
+
             defaultTables.Add((string)"Department")
+
         end
         tables = defaultTables
     end
