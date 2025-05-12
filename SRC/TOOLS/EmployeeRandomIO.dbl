@@ -93,7 +93,7 @@ proc
                         try
                         begin
                             employee = makeNewEmployee(ch)
-                            writes(tt,%string(ix) + " creating " + %string(employee.emp_id))
+                            ;writes(tt,%string(ix) + " creating " + %string(employee.emp_id))
                             store(ch,employee)
                             records += 1
                             inserts += 1
@@ -131,7 +131,7 @@ proc
                         endtry
                     end
                     employee.emp_last_name = %randomLastName
-                    writes(tt,%string(ix) + " updating " + %string(employee.emp_id))
+                    ;writes(tt,%string(ix) + " updating " + %string(employee.emp_id))
                     write(ch,employee)
                     updates += 1
                 end
@@ -159,7 +159,7 @@ proc
                         end
                         endtry
                     end
-                    writes(tt,%string(ix) + " deleting " + %string(employee.emp_id))
+                    ;writes(tt,%string(ix) + " deleting " + %string(employee.emp_id))
                     delete(ch)
                     deletes += 1
                     records -= 1
@@ -209,10 +209,10 @@ function randomOperation, string
     endliteral
     static record
         randomNumber, i4, 137496739
+        seed1, i4, 1623984712
+        seed2, i4, 2014395627
     endrecord
     stack record
-        seed1, i4
-        seed2, i4
         index, i4
     endrecord
 proc

@@ -1,39 +1,39 @@
-;;*****************************************************************************
-;;
-;; File:        FileServiceClient.dbl
-;;
-;; Description: A client to the FileService RESTful web API
-;;
-;; Author:      Steve Ives (Synergex Professional Services Group)
-;;
-;;*****************************************************************************
-;;
-;; Copyright (c) 2018, Synergex International, Inc.
-;; All rights reserved.
-;;
-;; Redistribution and use in source and binary forms, with or without
-;; modification, are permitted provided that the following conditions are met:
-;;
-;; * Redistributions of source code must retain the above copyright notice,
-;;   this list of conditions and the following disclaimer.
-;;
-;; * Redistributions in binary form must reproduce the above copyright notice,
-;;   this list of conditions and the following disclaimer in the documentation
-;;   and/or other materials provided with the distribution.
-;;
-;; THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-;; AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-;; IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-;; ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
-;; LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-;; CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-;; SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-;; INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-;; CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
-;; ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-;; POSSIBILITY OF SUCH DAMAGE.
-;;
-;;*****************************************************************************
+;*****************************************************************************
+;
+; File:         FileServiceClient.dbl
+;
+; Description:  A client to the FileService RESTful web API
+;
+; Author:       Steve Ives (Synergex Professional Services Group)
+;
+;*****************************************************************************
+;
+; Copyright (c) 2018, Synergex International, Inc.
+; All rights reserved.
+;
+; Redistribution and use in source and binary forms, with or without
+; modification, are permitted provided that the following conditions are met:
+;
+; * Redistributions of source code must retain the above copyright notice,
+;   this list of conditions and the following disclaimer.
+;
+; * Redistributions in binary form must reproduce the above copyright notice,
+;   this list of conditions and the following disclaimer in the documentation
+;   and/or other materials provided with the distribution.
+;
+; THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+; AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+; IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+; ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+; LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+; CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+; SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+; INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+; CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+; ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+; POSSIBILITY OF SUCH DAMAGE.
+;
+;*****************************************************************************
 
 .ifdef DBLNET
 import System.Collections.Generic
@@ -190,7 +190,7 @@ namespace ReplicationLibrary
             ok = true
             errtxt = ""
 
-            ;;Get the FileChunkReader up and running
+            ;Get the FileChunkReader up and running
             try
             begin
                 chunkReader = new FileChunkReader(localFileSpec,blockCount)
@@ -204,12 +204,12 @@ namespace ReplicationLibrary
             end
             endtry
 
-            ;;Read the first chunk
+            ;Read the first chunk
             if (ok)
             begin
                 moreChunks = chunkReader.ReadChunk(chunkData)
 
-                ;;Upload the first chunk
+                ;Upload the first chunk
                 data theUri = new System.Uri(getURI("chunked/start/"+serverFileName))
                 disposable data client = new HttpClient()
                 disposable data request = new HttpRequestMessage() { RequestUri=theUri, Method=HttpMethod.Post }
@@ -217,17 +217,17 @@ namespace ReplicationLibrary
                 disposable data response, @HttpResponseMessage, client.SendAsync(request).Result
                 ok = response.IsSuccessStatusCode
 
-                ;;Was the entire file in the first chunk?
+                ;Was the entire file in the first chunk?
                 if (!moreChunks)
                     clear chunkData
             end
 
-            ;;Process subsequent chunks until there are no more
+            ;Process subsequent chunks until there are no more
             if (ok && moreChunks)
             begin
                 while (moreChunks = chunkReader.ReadChunk(chunkData))
                 begin
-                    ;;Upload the next chunk
+                    ;Upload the next chunk
                     data theUri = new System.Uri(getURI("chunked/continue/"+serverFileName))
                     disposable data client = new HttpClient()
                     disposable data request = new HttpRequestMessage() { RequestUri=theUri, Method=HttpMethod.Post }
@@ -237,12 +237,12 @@ namespace ReplicationLibrary
                 end
             end
 
-            ;;Process the final chunk 
+            ;Process the final chunk 
             if (ok)
             begin
-                ;;If chunkData > 0 then there is final data to be uploaded
+                ;If chunkData > 0 then there is final data to be uploaded
 
-                ;;Complete the chunked upload
+                ;Complete the chunked upload
                 data theUri = new System.Uri(getURI("chunked/finish/"+serverFileName))
                 disposable data client = new HttpClient()
                 disposable data request = new HttpRequestMessage() { RequestUri=theUri, Method=HttpMethod.Post }
@@ -259,11 +259,11 @@ namespace ReplicationLibrary
                 end
             end
 
-            ;;Clean up
+            ;Clean up
             if (doCleanup)
                 chunkReader.Cleanup()
 
-            ;;Return any error message
+            ;Return any error message
             if (^passed(errorText))
                 errorText = errtxt
 
@@ -306,7 +306,7 @@ namespace ReplicationLibrary
             ok = true
             errtxt = ""
 
-            ;;Get the FileChunkReader up and running
+            ;Get the FileChunkReader up and running
             try
             begin
                 chunkReader = new FileChunkReader(localFileSpec,blockCount)
@@ -320,7 +320,7 @@ namespace ReplicationLibrary
             end
             endtry
 
-            ;;Prepare the HTTP environment
+            ;Prepare the HTTP environment
             if (ok)
             begin
                 requestHeaders = new String[3]
@@ -328,12 +328,12 @@ namespace ReplicationLibrary
                 requestHeaders[2] = "Content-Type: text/plain"
             end
 
-            ;;Read the first chunk
+            ;Read the first chunk
             if (ok)
             begin
                 moreChunks = chunkReader.ReadChunk(chunkData)
 
-                ;;Upload the first chunk
+                ;Upload the first chunk
                 requestBody = %string_from_handle(chunkData)
                 requestHeaders[3] = "Content-Length: " + %string(requestBody.Length)
 
@@ -350,17 +350,17 @@ namespace ReplicationLibrary
                 end
                 endusing
 
-                ;;Was the entire file in the first chunk?
+                ;Was the entire file in the first chunk?
                 if (!moreChunks)
                     clear chunkData
             end
 
-            ;;Process subsequent chunks until there are no more
+            ;Process subsequent chunks until there are no more
             if (ok && moreChunks)
             begin
                 while (moreChunks = chunkReader.ReadChunk(chunkData))
                 begin
-                    ;;Upload the first chunk
+                    ;Upload the first chunk
                     requestBody = %string_from_handle(chunkData)
                     requestHeaders[3] = "Content-Length: " + %string(requestBody.Length)
                     using httpError = %http_post(getURI("chunked/continue/"+serverFileName),,requestBody,responseBody,errtxt,requestHeaders,responseHeaders,,,,,,,"1.1") select
@@ -377,16 +377,16 @@ namespace ReplicationLibrary
                 end
             end
 
-            ;;Process the final chunk 
+            ;Process the final chunk 
             if (ok)
             begin
-                ;;If chunkData != 0 then there is final data to be uploaded
+                ;If chunkData != 0 then there is final data to be uploaded
                 if (chunkData) then
                     requestBody = %string_from_handle(chunkData)
                 else
                     requestBody = ""
 
-                ;;Complete the chunked upload
+                ;Complete the chunked upload
                 requestHeaders[3] = "Content-Length: " + %string(requestBody.Length)
                 using httpError = %http_post(getURI("chunked/finish/"+serverFileName),,requestBody,responseBody,errtxt,requestHeaders,responseHeaders,,,,,,,"1.1") select
                 (201),
@@ -401,11 +401,11 @@ namespace ReplicationLibrary
 
             end
 
-            ;;Clean up
+            ;Clean up
             if (doCleanup)
                 chunkReader.Cleanup()
 
-            ;;Return any error message
+            ;Return any error message
             if (^passed(errorText))
                 errorText = errtxt
 

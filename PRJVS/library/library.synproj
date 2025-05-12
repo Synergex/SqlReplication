@@ -21,6 +21,7 @@
     <EnableCommonProperties>True</EnableCommonProperties>
     <CommonPropertiesFileLocation>$(SolutionDir)Common.props</CommonPropertiesFileLocation>
     <RootNamespace>ReplicationLibrary</RootNamespace>
+    <ProjEnvVars />
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|x86' ">
     <IncludeDebugInformation>true</IncludeDebugInformation>
@@ -224,6 +225,9 @@
     </Compile>
     <Compile Include="..\..\SRC\LIBRARY\SmtpMail.dbl">
       <Link>SmtpMail.dbl</Link>
+    </Compile>
+    <Compile Include="..\..\SRC\LIBRARY\StopWatch.dbl">
+      <Link>StopWatch.dbl</Link>
     </Compile>
     <Compile Include="..\..\SRC\LIBRARY\StringDictionary.dbl">
       <Link>StringDictionary.dbl</Link>

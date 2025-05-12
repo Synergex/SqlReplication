@@ -1,0 +1,90 @@
+;;*****************************************************************************
+;;
+;; File:        StopWatch.dbl
+;;
+;; Description: A simple stopwatch class to measure elapsed time.
+;;
+;; Author:      Steve Ives, Synergex Professional Services Group
+;;
+;;*****************************************************************************
+;;
+;; Copyright (c) 2025, Synergex International, Inc.
+;; All rights reserved.
+;;
+;; Redistribution and use in source and binary forms, with or without
+;; modification, are permitted provided that the following conditions are met:
+;;
+;; * Redistributions of source code must retain the above copyright notice,
+;;   this list of conditions and the following disclaimer.
+;;
+;; * Redistributions in binary form must reproduce the above copyright notice,
+;;   this list of conditions and the following disclaimer in the documentation
+;;   and/or other materials provided with the distribution.
+;;
+;; THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+;; AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+;; IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+;; ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+;; LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+;; CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+;; SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+;; INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+;; CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+;; ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+;; POSSIBILITY OF SUCH DAMAGE.
+;;
+;;*****************************************************************************
+
+namespace ReplicationLibrary
+
+    public class StopWatch
+
+        private mRunning, boolean
+        private mStartTime, i8
+        private mStopTime, i8
+
+        public method Start, void
+        proc
+            mRunning = true
+            mStartTime = %datetime_to_i8(%datetime)
+        endmethod
+
+        public method Stop, void
+        proc
+            mStopTime = %datetime_to_i8(%datetime)
+            mRunning = false
+        endmethod
+
+        public method GetElapsedTime, string
+            record
+                elapsedTimeMs, i8
+                hours, i4
+                minutes, i4
+                seconds, i4
+                millis, i4
+                timestr, string
+            endrecord
+        proc
+            elapsedTimeMs = (mStopTime - mStartTime) / 1000
+
+            hours   = (elapsedTimeMs / 3600000)
+            elapsedTimeMs = elapsedTimeMs - (hours * 3600000)
+
+            minutes = (elapsedTimeMs / 60000)
+            elapsedTimeMs = elapsedTimeMs - (minutes * 60000)
+
+            seconds = (elapsedTimeMs / 1000)
+            elapsedTimeMs = elapsedTimeMs - (seconds * 1000)
+
+            timestr = %string(hours,"XX") + ":" +
+            &    %string(minutes,"XX") + ":" +
+            &    %string(seconds,"XX") + "." +
+            &    %string(elapsedTimeMs)
+
+            mreturn timestr
+
+        endmethod
+
+    endclass
+
+endnamespace
