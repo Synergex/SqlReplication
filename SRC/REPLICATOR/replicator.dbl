@@ -1045,7 +1045,7 @@ BulkLoadTable,
     ;;If the bulk load worked, and we're in batch commit mode, commit the bulk
     ;;load before adding indexex. This will ensure that the bulk loaded data
     ;;will remain in the table even if errors occur during indexing.
-    if (ok && status && Settings.CommitMode==DatabaseCommitMode.Batch)
+    if (ok && status && Settings.CommitMode!=DatabaseCommitMode.Automatic)
     begin
         Counters.BatchCounter = Counters.Inserts
         call CommitTransaction
