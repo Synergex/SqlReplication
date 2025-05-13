@@ -35,15 +35,27 @@
 ;;
 ;;*****************************************************************************
 
+import ReplicationLibrary
+
 main QueueMonitor
+    .include "WND:windows.def"
     record
         tt,             int
         qfile,          int
         tmpInstance,    a40
         instanceName,   string
         status,         i4
+        system,	        i4
+        runtime,        i4
+        numrecs,        i4
+        clock,          @StopWatch
     endrecord
 proc
+    xcall flags(7004000,1)
+    open(tt=0,i,"tt:")
+    xcall w_init(1,tt,5)
+    xcall envrn(system,runtime)
+
     ;;Get the instance name, default to "DEFAULT"
     xcall getlog("REPLICATOR_INSTANCE",tmpInstance,status)
 
@@ -53,20 +65,43 @@ proc
         instanceName = %atrimtostring(tmpInstance)
     end
     else
-    begin
         instanceName = "DEFAULT"
-    end
 
-    xcall flags(7004000,1)
+    using runtime select
+    (101,104),
+        xcall w_caption(WC_SET,"SQL Replicator Queue Monitor: " + instanceName)
+    (),
+        display(tt,$scr_clr(SCREEN),"SQL Replicator Queue Monitor: " + instanceName)
+    endusing
 
-    open(tt=0,i,"tt:")
-    display(tt,$scr_clr(SCREEN),"Replicator Queue Monitor")
-
+    clock = new StopWatch()
 
     repeat
     begin
         open(qfile=0,"I:I","REPLICATOR_DATA:REPLICATION_" + instanceName + ".ISM")
-        display(tt,$scr_pos(3,1),$scr_clr(EOL),"Queue length: " + %string(%isinfo(qfile,"NUMRECS")))
+
+        numrecs = %isinfo(qfile,"NUMRECS")
+
+        if (!clock.IsRunning) then
+        begin
+            ;Should we start the clock?
+            if (numrecs > 0)
+            begin
+                display(tt,$scr_pos(5,1),$scr_clr(EOL),"Timer started")
+                clock.Start()
+            end
+        end
+        else
+        begin
+            ;Should we stop the clock?
+            if (numrecs == 0)
+            begin
+                clock.Stop()
+                display(tt,$scr_pos(5,1),$scr_clr(EOL),"Timer stopped, queue empty at " + clock.GetElapsedTime())
+            end
+        end
+        
+        display(tt,$scr_pos(3,1),$scr_clr(EOL),"Queue length: " + %string(numrecs))
         close qfile
         sleep 1
     end

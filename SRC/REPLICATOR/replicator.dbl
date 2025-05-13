@@ -100,7 +100,7 @@ proc
             (101,104),
             begin
                 xcall w_init(1,Settings.TerminalChannel,5)
-                xcall w_caption(WC_SET,"SQL Replicator")
+                xcall w_caption(WC_SET,"SQL Replicator: " + Settings.InstanceName)
                 xcall w_exit
             end
             endusing

@@ -35,11 +35,11 @@ main EmployeeRandomIO
         system,	    i4
         runtime,    i4
         tmpa,       a8
+        clock,      @StopWatch
     endrecord
 
 proc
     xcall flags(7004020,1)
-
     xcall envrn(system,runtime)
 
     open(tt=0,i,"tt:")
@@ -47,14 +47,9 @@ proc
 
     using runtime select
     (101,104),
-        xcall w_caption(WC_SET,"IO Generator: EMPLOYEE")
-    endusing
-
-    using runtime select
-    (101,104),
-        nop
+        xcall w_caption(WC_SET,"Random IO Generator: EMPLOYEE")
     (),
-        display(tt,$SCR_POS(1,1),$SCR_CLR(SCREEN),"IO Generator: EMPLOYEE")
+        display(tt,$SCR_POS(1,1),$SCR_CLR(SCREEN),"Random IO Generator: EMPLOYEE")
     endusing
 
     open(ch=0,u:i,"REPLICATOR_DATA:EMPLOYEE.ISM")
@@ -82,6 +77,10 @@ proc
             display(tt,$SCR_POS(3,1),"Generating " + %string(iterations) + " operations",13,10)
 
             clear inserts, updates, deletes, total
+
+            clock = new StopWatch()
+            clock.Start()
+            display(tt,$SCR_POS(5,1),"Timer started")
 
             for ix from 1 thru iterations
             begin
@@ -169,8 +168,14 @@ proc
 
             total = inserts + updates + deletes
 
-            writes(tt,"")
-            display(tt,%string(inserts) + " inserts, " + %string(updates) + " updates, " + %string(deletes) + " deletes, " + %string(total) + " total. Press ENTER: ")
+            clock.Stop()
+            display(tt,$SCR_POS(5,1),"Timer stopped, elapsed time: " + clock.GetElapsedTime())
+
+            display(tt,$scr_pos(7,1),"Inserts: ",%string(inserts))
+            display(tt,$scr_pos(8,1),"Updates: ",%string(updates))
+            display(tt,$scr_pos(9,1),"Deletes: ",%string(deletes))
+
+            display(tt,$scr_pos(11,1),"Press ENTER: ")
             reads(tt,tmpa)
 
             grandTotal += total

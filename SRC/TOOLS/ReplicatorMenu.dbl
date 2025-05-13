@@ -122,7 +122,7 @@ proc
 .endc
     ;;Clear screen and display title and instance name
 
-    xcall w_disp(mainwnd,WD_POS,1,1,WD_CLR,WDC_WND,"Replicator Menu")
+    xcall w_disp(mainwnd,WD_POS,1,1,WD_CLR,WDC_WND,"SQL Replicator Menu")
 
 .ifdef OS_UNIX
     ;;Get the default user name
@@ -161,7 +161,7 @@ proc
     if (instanceOk) then
     begin
 .ifdef D_GUI
-        xcall w_caption(WC_SET,"SQL Replicator: Instance " + instanceName)
+        xcall w_caption(WC_SET,"SQL Replicator Menu: " + instanceName)
 .else
         nop
 .endc

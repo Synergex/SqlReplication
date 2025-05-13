@@ -39,20 +39,20 @@ namespace ReplicationLibrary
 
     public class StopWatch
 
-        private mRunning, boolean
+        public IsRunning, boolean
         private mStartTime, i8
         private mStopTime, i8
 
         public method Start, void
         proc
-            mRunning = true
+            IsRunning = true
             mStartTime = %datetime_to_i8(%datetime)
         endmethod
 
         public method Stop, void
         proc
             mStopTime = %datetime_to_i8(%datetime)
-            mRunning = false
+            IsRunning = false
         endmethod
 
         public method GetElapsedTime, string
