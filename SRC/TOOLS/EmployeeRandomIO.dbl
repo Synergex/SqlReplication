@@ -58,127 +58,20 @@ proc
 
     repeat
     begin
-        display(tt,$SCR_POS(2,1),$SCR_CLR(SCREEN),"How many operations [E or ENTER to EXIT] ? ")
+        display(tt,$SCR_POS(2,1),$SCR_CLR(SCREEN),"How many operations or ENTER to EXIT: ")
 
         reads(tt,tmpa,nomore)
         entry = %atrimtostring(tmpa)
 
-        if (String.IsNullOrWhitespace(entry) || entry.ToUpper().StartsWith("E"))
+        if (String.IsNullOrWhitespace(entry))
             exitloop
 
         try
         begin
-            if ((iterations = %integer(entry)) < 1)
-            begin
-                Console.WriteLine("Bad value!")
-                nextloop
-            end
-
-            display(tt,$SCR_POS(3,1),"Generating " + %string(iterations) + " operations",13,10)
-
-            clear inserts, updates, deletes, total
-
-            clock = new StopWatch()
-            clock.Start()
-            display(tt,$SCR_POS(5,1),"Timer started")
-
-            for ix from 1 thru iterations
-            begin
-                using %randomOperation select
-                ("CREATE"),
-                begin
-                    repeat
-                    begin
-                        try
-                        begin
-                            employee = makeNewEmployee(ch)
-                            ;writes(tt,%string(ix) + " creating " + %string(employee.emp_id))
-                            store(ch,employee)
-                            records += 1
-                            inserts += 1
-                            exitloop
-                        end
-                        catch (e, @Exception)
-                        begin
-                            nextloop
-                        end
-                        endtry
-                    end
-                end
-                ("UPDATE"),
-                begin
-                    repeat
-                    begin
-                        lastName = %randomLastName()
-                        try
-                        begin
-                            read(ch,employee,%atrim(lastName),KEYNUM:2,LOCK:Q_AUTO_LOCK)
-                            exitloop
-                        end
-                        catch (e, @RecordLockedException)
-                        begin
-                            nextloop
-                        end
-                        catch (e, @EndOfFileException)
-                        begin
-                            nextloop
-                        end
-                        catch (e, @KeyNotSameException)
-                        begin
-                            exitloop
-                        end
-                        endtry
-                    end
-                    employee.emp_last_name = %randomLastName
-                    ;writes(tt,%string(ix) + " updating " + %string(employee.emp_id))
-                    write(ch,employee)
-                    updates += 1
-                end
-                ("DELETE"),
-                begin
-                    repeat
-                    begin
-                        lastName = %randomLastName()
-                        try
-                        begin
-                            read(ch,employee,%atrim(lastName),KEYNUM:2,LOCK:Q_AUTO_LOCK)
-                            exitloop
-                        end
-                        catch (e, @RecordLockedException)
-                        begin
-                            nextloop
-                        end
-                        catch (e, @EndOfFileException)
-                        begin
-                            nextloop
-                        end
-                        catch (e, @KeyNotSameException)
-                        begin
-                            exitloop
-                        end
-                        endtry
-                    end
-                    ;writes(tt,%string(ix) + " deleting " + %string(employee.emp_id))
-                    delete(ch)
-                    deletes += 1
-                    records -= 1
-                end
-                endusing
-            end
-
-            total = inserts + updates + deletes
-
-            clock.Stop()
-            display(tt,$SCR_POS(5,1),"Timer stopped, elapsed time: " + clock.GetElapsedTime())
-
-            display(tt,$scr_pos(7,1),"Inserts: ",%string(inserts))
-            display(tt,$scr_pos(8,1),"Updates: ",%string(updates))
-            display(tt,$scr_pos(9,1),"Deletes: ",%string(deletes))
-
-            display(tt,$scr_pos(11,1),"Press ENTER: ")
-            reads(tt,tmpa)
-
-            grandTotal += total
+            if ((iterations = %integer(entry)) > 0)
+                exit
+            Console.WriteLine("Bad value!")
+            nextloop
         end
         catch (e, @Exception)
         begin
@@ -186,6 +79,112 @@ proc
             nextloop
         end
         endtry
+
+        display(tt,$SCR_POS(3,1),"Generating " + %string(iterations) + " operations",13,10)
+
+        clear inserts, updates, deletes, total
+
+        clock = new StopWatch()
+        clock.Start()
+        display(tt,$SCR_POS(5,1),"Timer started")
+
+        for ix from 1 thru iterations
+        begin
+            using %randomOperation select
+            ("CREATE"),
+            begin
+                repeat
+                begin
+                    employee = makeNewEmployee(ch)
+                    try
+                    begin
+                        ;writes(tt,%string(ix) + " creating " + %string(employee.emp_id))
+                        store(ch,employee)
+                        records += 1
+                        inserts += 1
+                        exitloop
+                    end
+                    catch (e, @Exception)
+                    begin
+                        nextloop
+                    end
+                    endtry
+                end
+            end
+            ("UPDATE"),
+            begin
+                repeat
+                begin
+                    lastName = %randomLastName()
+                    try
+                    begin
+                        read(ch,employee,%atrim(lastName),KEYNUM:2,LOCK:Q_AUTO_LOCK)
+                        exitloop
+                    end
+                    catch (e, @RecordLockedException)
+                    begin
+                        nextloop
+                    end
+                    catch (e, @EndOfFileException)
+                    begin
+                        nextloop
+                    end
+                    catch (e, @KeyNotSameException)
+                    begin
+                        exitloop
+                    end
+                    endtry
+                end
+                employee.emp_last_name = %randomLastName
+                ;writes(tt,%string(ix) + " updating " + %string(employee.emp_id))
+                write(ch,employee)
+                updates += 1
+            end
+            ("DELETE"),
+            begin
+                repeat
+                begin
+                    lastName = %randomLastName()
+                    try
+                    begin
+                        read(ch,employee,%atrim(lastName),KEYNUM:2,LOCK:Q_AUTO_LOCK)
+                        exitloop
+                    end
+                    catch (e, @RecordLockedException)
+                    begin
+                        nextloop
+                    end
+                    catch (e, @EndOfFileException)
+                    begin
+                        nextloop
+                    end
+                    catch (e, @KeyNotSameException)
+                    begin
+                        exitloop
+                    end
+                    endtry
+                end
+                ;writes(tt,%string(ix) + " deleting " + %string(employee.emp_id))
+                delete(ch)
+                deletes += 1
+                records -= 1
+            end
+            endusing
+        end
+
+        total = inserts + updates + deletes
+
+        clock.Stop()
+        display(tt,$SCR_POS(5,1),"Timer stopped, elapsed time: " + clock.GetElapsedTime())
+
+        display(tt,$scr_pos(7,1),"Inserts: ",%string(inserts))
+        display(tt,$scr_pos(8,1),"Updates: ",%string(updates))
+        display(tt,$scr_pos(9,1),"Deletes: ",%string(deletes))
+
+        display(tt,$scr_pos(11,1),"Press ENTER: ")
+        reads(tt,tmpa)
+
+        grandTotal += total
     end
 
     if (grandTotal)
@@ -204,9 +203,9 @@ nomore,
 endmain
 
 ;;; <summary>
-;;; 
+;;; Returns a random operation
 ;;; </summary>
-;;; <returns></returns>
+;;; <returns>Returned operation CREATE, UPDATE, or DELETE</returns>
 function randomOperation, string
     literal
         itemCount, i4, 3
@@ -221,17 +220,17 @@ function randomOperation, string
         index, i4
     endrecord
 proc
-    getSeeds(randomNumber,seed1,seed2)
+    ;getSeeds(randomNumber,seed1,seed2)
     xcall randm(randomNumber,seed1,seed2)
     index = %rnd(randomNumber/(32767.0/(itemCount-1)))+1
     freturn %atrim(operation[index])
 endfunction
 
 ;;; <summary>
-;;; 
+;;; Returns an emplyee record containing random data
 ;;; </summary>
-;;; <param name="channel"></param>
-;;; <returns></returns>
+;;; <param name="channel">Channel to employee file</param>
+;;; <returns>Employee record</returns>
 function makeNewEmployee, strEmployee
     required in channel, n
     record
@@ -239,7 +238,15 @@ function makeNewEmployee, strEmployee
     endrecord
 proc
     init employee
-    read(channel,employee,^LAST,LOCK:Q_NO_LOCK)
+    try
+    begin
+        read(channel,employee,^LAST,LOCK:Q_NO_LOCK)
+    end
+    catch (e, @EndOfFileException)
+    begin
+        init employee
+    end
+    endtry
     employee.emp_id += 1
     employee.emp_first_name = %randomFirstName
     employee.emp_last_name = %randomLastName
@@ -281,7 +288,7 @@ proc
 endsubroutine
 
 ;;; <summary>
-;;; 
+;;; Returns a random first name
 ;;; </summary>
 ;;; <returns></returns>
 function randomFirstName, string
@@ -390,21 +397,21 @@ function randomFirstName, string
     endliteral
     static record
         randomNumber, i4, 283674762
+        seed1, i4, 1623984712
+        seed2, i4, 2014395627
     endrecord
     stack record
-        seed1, i4
-        seed2, i4
         index, i4
     endrecord
 proc
-    getSeeds(randomNumber,seed1,seed2)
+    ;getSeeds(randomNumber,seed1,seed2)
     xcall randm(randomNumber,seed1,seed2)
     index = %rnd(randomNumber/(32767.0/(itemCount-1)))+1
     freturn %atrim(name[index])
 endfunction
 
 ;;; <summary>
-;;; 
+;;; Returns a random last name
 ;;; </summary>
 ;;; <returns></returns>
 function randomLastName, string
@@ -423,32 +430,32 @@ function randomLastName, string
     endliteral
     static record
         randomNumber, i4, 125478762
+        seed1, i4, 1623984712
+        seed2, i4, 2014395627
     endrecord
     stack record
-        seed1, i4
-        seed2, i4
         index, i4
     endrecord
 proc
-    getSeeds(randomNumber,seed1,seed2)
+    ;getSeeds(randomNumber,seed1,seed2)
     xcall randm(randomNumber,seed1,seed2)
     index = %rnd(randomNumber/(32767.0/(itemCount-1)))+1
     freturn %atrim(name[index])
 endfunction
 
 ;;; <summary>
-;;; 
+;;; Returns a random department code
 ;;; </summary>
 ;;; <returns></returns>
 function randomDepartment, string
     static record
         departments, @ArrayList
         randomNumber, i4, 25476532
+        seed1, i4, 1623984712
+        seed2, i4, 2014395627
     endrecord
     stack record
         department, strDepartment
-        seed1, i4
-        seed2, i4
         index, i4
     endrecord
 proc
@@ -458,24 +465,24 @@ proc
         foreach department in new Select(new From("REPLICATOR_DATA:DEPARTMENT.ISM",department))
             departments.Add((string)%atrim(department.dept_id))
     end
-    getSeeds(randomNumber,seed1,seed2)
+    ;getSeeds(randomNumber,seed1,seed2)
     xcall randm(randomNumber,seed1,seed2)
     index = %rnd(randomNumber/(32767.0/(departments.Count-1)))
     freturn (string)departments[index]
 endfunction
 
 ;;; <summary>
-;;; 
+;;; Returns a random date of birth
 ;;; </summary>
 ;;; <returns></returns>
 function randomDateOfBirth, d8
     static record
         randomNumber, i4, 89544452
+        seed1, i4, 1623984712
+        seed2, i4, 2014395627
     endrecord
     stack record
         now, a20
-        seed1, i4
-        seed2, i4
         julianNow, i4
         julianAge18, i4
         julianAge65, i4
@@ -489,7 +496,7 @@ proc
     julianAge18 = julianNow-(18*365)
     julianAge65 = julianNow-(65*365)
     daysRange = julianAge18 - julianAge65
-    getSeeds(randomNumber,seed1,seed2)
+    ;getSeeds(randomNumber,seed1,seed2)
     xcall randm(randomNumber,seed1,seed2)
     randomDaysOver18 = %rnd(randomNumber/(32767.0/(daysRange-1)))+1
     randomDate = %ndate(julianAge18-randomDaysOver18)
@@ -497,7 +504,7 @@ proc
 endfunction
 
 ;;; <summary>
-;;; 
+;;; Returns a random hire date appropriate for the date of birth
 ;;; </summary>
 ;;; <param name="aDateOfBirth"></param>
 ;;; <returns></returns>
@@ -506,11 +513,11 @@ function randomHireDate, d8
 
     static record
         randomNumber, i4, 45211145
+        seed1, i4, 1623984712
+        seed2, i4, 2014395627
     endrecord
     stack record
         now, a20
-        seed1, i4
-        seed2, i4
         julianDateOfBirth, i4
         julianBirthday18, i4
         julianYesterday, i4
@@ -525,7 +532,9 @@ proc
     julianBirthday18 = julianDateOfBirth+(18*365)
     julianYesterday = %jperiod(^d(now(1:8))) - 1
     daysRange = julianYesterday - julianBirthday18
-    getSeeds(randomNumber,seed1,seed2)
+    if (daysRange < 2)
+        daysRange = 2
+    ;getSeeds(randomNumber,seed1,seed2)
     xcall randm(randomNumber,seed1,seed2)
     randomDaysOver18 = %rnd(randomNumber/(32767.0/(daysRange-1)))+1
     randomDate = %ndate(julianBirthday18+randomDaysOver18)
@@ -533,7 +542,7 @@ proc
 endfunction
 
 ;;; <summary>
-;;; 
+;;; Returns a random boolean value
 ;;; </summary>
 ;;; <returns></returns>
 function randomBoolean, boolean
@@ -542,21 +551,21 @@ function randomBoolean, boolean
     endliteral
     static record
         randomNumber, i4, 56642154
+        seed1, i4, 1623984712
+        seed2, i4, 2014395627
     endrecord
     stack record
-        seed1, i4
-        seed2, i4
         index, i4
     endrecord
 proc
-    getSeeds(randomNumber,seed1,seed2)
+    ;getSeeds(randomNumber,seed1,seed2)
     xcall randm(randomNumber,seed1,seed2)
     index = %rnd(randomNumber/(32767.0/(itemCount-1)))+1
     freturn (index==2)
 endfunction
 
 ;;; <summary>
-;;; 
+;;; Returns a random phone number in (XXX) XXX-XXXX format
 ;;; </summary>
 ;;; <returns></returns>
 function randomPhone, string
@@ -566,25 +575,25 @@ function randomPhone, string
     endliteral
     static record
         randomNumber, i4, 45225877
+        seed1, i4, 1623984712
+        seed2, i4, 2014395627
     endrecord
     stack record
-        seed1, i4
-        seed2, i4
         part1, i4
         part2, i4
     endrecord
 proc
-    getSeeds(randomNumber,seed1,seed2)
+    ;getSeeds(randomNumber,seed1,seed2)
     xcall randm(randomNumber,seed1,seed2)
     part1 = %rnd(randomNumber/(32767.0/(part1Count-1)))+1
-    getSeeds(randomNumber,seed1,seed2)
+    ;getSeeds(randomNumber,seed1,seed2)
     xcall randm(randomNumber,seed1,seed2)
     part2 = %rnd(randomNumber/(32767.0/(part2Count-1)))+1
     freturn "(555) " + %string(part1,"XXX") + "-" + %string(part2,"XXXX")
 endfunction
 
 ;;; <summary>
-;;; 
+;;; Returns a random email address based on a persons name
 ;;; </summary>
 ;;; <param name="aFirstName"></param>
 ;;; <param name="aLastName"></param>
@@ -598,16 +607,16 @@ function randomEmail, string
     endliteral
     static record
         randomNumber, i4, 78445214
+        seed1, i4, 1623984712
+        seed2, i4, 2014395627
     endrecord
     stack record
-        seed1, i4
-        seed2, i4
         index, i4
         firstName, string
         lastName, string
     endrecord
 proc
-    getSeeds(randomNumber,seed1,seed2)
+    ;getSeeds(randomNumber,seed1,seed2)
     xcall randm(randomNumber,seed1,seed2)
     index = %rnd(randomNumber/(32767.0/(itemCount-1)))+1
     firstName = %atrim(aFirstName)
@@ -616,7 +625,7 @@ proc
 endfunction
 
 ;;; <summary>
-;;; 
+;;; Returns a random street address
 ;;; </summary>
 ;;; <returns></returns>
 function randomStreet, string
@@ -636,29 +645,29 @@ function randomStreet, string
     endliteral
     static record
         randomNumber, i4, 138209537
+        seed1, i4, 1623984712
+        seed2, i4, 2014395627
     endrecord
     stack record
-        seed1, i4
-        seed2, i4
         part1, i4
         part2, i4
         part3, i4
     endrecord
 proc
-    getSeeds(randomNumber,seed1,seed2)
+    ;getSeeds(randomNumber,seed1,seed2)
     xcall randm(randomNumber,seed1,seed2)
     part1 = %rnd(randomNumber/(32767.0/(part1Count-1)))+1
-    getSeeds(randomNumber,seed1,seed2)
+    ;getSeeds(randomNumber,seed1,seed2)
     xcall randm(randomNumber,seed1,seed2)
     part2 = %rnd(randomNumber/(32767.0/(part2Count-1)))+1
-    getSeeds(randomNumber,seed1,seed2)
+    ;getSeeds(randomNumber,seed1,seed2)
     xcall randm(randomNumber,seed1,seed2)
     part3 = %rnd(randomNumber/(32767.0/(part3Count-1)))+1
     freturn %string(part1) + " " + %atrim(prefix[part2]) + " " + %atrim(suffix[part3])
 endfunction
 
 ;;; <summary>
-;;; 
+;;; City and US state
 ;;; </summary>
 ;;; <param name="city"></param>
 ;;; <param name="state"></param>
@@ -668,321 +677,44 @@ subroutine randomCityAndState
 
     literal
         itemCount, i4, 304
-        item, [itemcount]a30,   "Abilene,TX",
-        &    "Akron,OH",
-        &    "Albuquerque,NM",
-        &    "Alexandria,VA",
-        &    "Allentown,PA",
-        &    "Amarillo,TX",
-        &    "Anaheim,CA",
-        &    "Anchorage,AK",
-        &    "Ann Arbor,MI",
-        &    "Antioch,CA",
-        &    "Arlington,TX",
-        &    "Arvada,CO",
-        &    "Athens,GA",
-        &    "Atlanta,GA",
-        &    "Augusta,GA",
-        &    "Aurora,CO",
-        &    "Aurora,IL",
-        &    "Austin,TX",
-        &    "Bakersfield,CA",
-        &    "Baltimore,MD",
-        &    "Baton Rouge,LA",
-        &    "Beaumont,TX",
-        &    "Bellevue,WA",
-        &    "Berkeley,CA",
-        &    "Billings,MT",
-        &    "Birmingham,AL",
-        &    "Boise,ID",
-        &    "Boston,MA",
-        &    "Boulder,CO",
-        &    "Bridgeport,CT",
-        &    "Broken Arrow,OK",
-        &    "Brownsville,TX",
-        &    "Buffalo,NY",
-        &    "Burbank,CA",
-        &    "Cambridge,MA",
-        &    "Cape Coral,FL",
-        &    "Carlsbad,CA",
-        &    "Carrollton,TX",
-        &    "Cary,NC",
-        &    "Cedar Rapids,IA",
-        &    "Centennial,CO",
-        &    "Chandler,AZ",
-        &    "Charleston,SC",
-        &    "Charlotte,NC",
-        &    "Chattanooga,TN",
-        &    "Chesapeake,VA",
-        &    "Chicago,IL",
-        &    "Chula Vista,CA",
-        &    "Cincinnati,OH",
-        &    "Clarksville,TN",
-        &    "Clearwater,FL",
-        &    "Cleveland,OH",
-        &    "Clovis,CA",
-        &    "College Station,TX",
-        &    "Colorado Springs,CO",
-        &    "Columbia,MO",
-        &    "Columbia,SC",
-        &    "Columbus,GA",
-        &    "Columbus,OH",
-        &    "Concord,CA",
-        &    "Coral Springs,FL",
-        &    "Corona,CA",
-        &    "Corpus Christi,TX",
-        &    "Costa Mesa,CA",
-        &    "Dallas,TX",
-        &    "Daly City,CA",
-        &    "Davenport,IA",
-        &    "Davie,FL",
-        &    "Dayton,OH",
-        &    "Denton,TX",
-        &    "Denver,CO",
-        &    "Des Moines,IA",
-        &    "Detroit,MI",
-        &    "Downey,CA",
-        &    "Durham,NC",
-        &    "Edison,NJ",
-        &    "El Cajon,CA",
-        &    "El Monte,CA",
-        &    "El Paso,TX",
-        &    "Elgin,IL",
-        &    "Elizabeth,NJ",
-        &    "Elk Grove,CA",
-        &    "Escondido,CA",
-        &    "Eugene,OR",
-        &    "Evansville,IN",
-        &    "Everett,WA",
-        &    "Fairfield,CA",
-        &    "Fargo,ND",
-        &    "Fayetteville,NC",
-        &    "Fontana,CA",
-        &    "Fort Collins,CO",
-        &    "Fort Lauderdale,FL",
-        &    "Fort Wayne,IN",
-        &    "Fort Worth,TX",
-        &    "Fremont,CA",
-        &    "Fresno,CA",
-        &    "Frisco,TX",
-        &    "Fullerton,CA",
-        &    "Gainesville,FL",
-        &    "Garden Grove,CA",
-        &    "Garland,TX",
-        &    "Gilbert,AZ",
-        &    "Glendale,AZ",
-        &    "Glendale,CA",
-        &    "Grand Prairie,TX",
-        &    "Grand Rapids,MI",
-        &    "Greeley,CO",
-        &    "Green Bay,WI",
-        &    "Greensboro,NC",
-        &    "Gresham,OR",
-        &    "Hampton,VA",
-        &    "Hartford,CT",
-        &    "Hayward,CA",
-        &    "Henderson,NV",
-        &    "Hialeah,FL",
-        &    "High Point,NC",
-        &    "Hillsboro,OR",
-        &    "Hollywood,FL",
-        &    "Honolulu,HI",
-        &    "Houston,TX",
-        &    "Huntington Beach,CA",
-        &    "Huntsville,AL",
-        &    "Independence,MO",
-        &    "Indianapolis,IN",
-        &    "Inglewood,CA",
-        &    "Irvine,CA",
-        &    "Irving,TX",
-        &    "Jackson,MS",
-        &    "Jacksonville,FL",
-        &    "Jersey City,NJ",
-        &    "Joliet,IL",
-        &    "Jurupa Valley,CA",
-        &    "Kansas City,KS",
-        &    "Kansas City,MO",
-        &    "Kent,WA",
-        &    "Killeen,TX",
-        &    "Knoxville,TN",
-        &    "Lafayette,LA",
-        &    "Lakeland,FL",
-        &    "Lakewood,CO",
-        &    "Lancaster,CA",
-        &    "Lansing,MI",
-        &    "Laredo,TX",
-        &    "Las Cruces,NM",
-        &    "Las Vegas,NV",
-        &    "Lewisville,TX",
-        &    "Lexington,KY",
-        &    "Lincoln,NE",
-        &    "Little Rock,AR",
-        &    "Long Beach,CA",
-        &    "Los Angeles,CA",
-        &    "Louisville,KY",
-        &    "Lowell,MA",
-        &    "Lubbock,TX",
-        &    "Macon,GA",
-        &    "Madison,WI",
-        &    "Manchester,NH",
-        &    "McAllen,TX",
-        &    "McKinney,TX",
-        &    "Memphis,TN",
-        &    "Mesa,AZ",
-        &    "Mesquite,TX",
-        &    "Miami,FL",
-        &    "Miami Gardens,FL",
-        &    "Midland,TX",
-        &    "Milwaukee,WI",
-        &    "Minneapolis,MN",
-        &    "Miramar,FL",
-        &    "Mobile,AL",
-        &    "Modesto,CA",
-        &    "Montgomery,AL",
-        &    "Moreno Valley,CA",
-        &    "Murfreesboro,TN",
-        &    "Murrieta,CA",
-        &    "Naperville,IL",
-        &    "Nashville,TN",
-        &    "New Haven,CT",
-        &    "New Orleans,LA",
-        &    "New York,NY",
-        &    "Newark,NJ",
-        &    "Newport,News,VA",
-        &    "Norfolk,VA",
-        &    "Norman,OK",
-        &    "North Charleston,SC",
-        &    "North Las Vegas,NV",
-        &    "Norwalk,CA",
-        &    "Oakland,CA",
-        &    "Oceanside,CA",
-        &    "Odessa,TX",
-        &    "Oklahoma City,OK",
-        &    "Olathe,KS",
-        &    "Omaha,NE",
-        &    "Ontario,CA",
-        &    "Orange,CA",
-        &    "Orlando,FL",
-        &    "Overland Park,KS",
-        &    "Oxnard,CA",
-        &    "Palm Bay,FL",
-        &    "Palmdale,CA",
-        &    "Pasadena,CA",
-        &    "Pasadena,TX",
-        &    "Paterson,NJ",
-        &    "Pearland,TX",
-        &    "Pembroke Pines,FL",
-        &    "Peoria,AZ",
-        &    "Peoria,IL",
-        &    "Philadelphia,PA",
-        &    "Phoenix,AZ",
-        &    "Pittsburgh,PA",
-        &    "Plano,TX",
-        &    "Pomona,CA",
-        &    "Pompano Beach,FL",
-        &    "Port St. Lucie,FL",
-        &    "Portland,OR",
-        &    "Providence,RI",
-        &    "Provo,UT",
-        &    "Pueblo,CO",
-        &    "Raleigh,NC",
-        &    "Rancho Cucamonga,CA",
-        &    "Reno,NV",
-        &    "Renton,WA",
-        &    "Rialto,CA",
-        &    "Richardson,TX",
-        &    "Richmond,CA",
-        &    "Richmond,VA",
-        &    "Riverside,CA",
-        &    "Rochester,MN",
-        &    "Rochester,NY",
-        &    "Rockford,IL",
-        &    "Roseville,CA",
-        &    "Round RockTX",
-        &    "Sacramento,CA",
-        &    "Saint Paul,MN",
-        &    "Salem,OR",
-        &    "Salinas,CA",
-        &    "Salt Lake City,UT",
-        &    "San Angelo,TX",
-        &    "San Antonio,TX",
-        &    "San Bernardino,CA",
-        &    "San Diego,CA",
-        &    "San Francisco,CA",
-        &    "San Jose,CA",
-        &    "San Mateo,CA",
-        &    "Sandy Springs,GA",
-        &    "Santa Ana,CA",
-        &    "Santa Clara,CA",
-        &    "Santa Clarita,CA",
-        &    "Santa Maria,CA",
-        &    "Santa Rosa,CA",
-        &    "Savannah,GA",
-        &    "Scottsdale,AZ",
-        &    "Seattle,WA",
-        &    "Shreveport,LA",
-        &    "Simi Valley,CA",
-        &    "Sioux Falls,SD",
-        &    "South Bend,IN",
-        &    "Spokane,WA",
-        &    "Springfield,IL",
-        &    "Springfield,MA",
-        &    "Springfield,MO",
-        &    "St. Louis,MO",
-        &    "St. Petersburg,FL",
-        &    "Stamford,CT",
-        &    "Sterling Heights,MI",
-        &    "Stockton,CA",
-        &    "Sunnyvale,CA",
-        &    "Surprise,AZ",
-        &    "Syracuse,NY",
-        &    "Tacoma,WA",
-        &    "Tallahassee,FL",
-        &    "Tampa,FL",
-        &    "Temecula,CA",
-        &    "Tempe,AZ",
-        &    "Thornton,CO",
-        &    "Thousand Oaks,CA",
-        &    "Toledo,OH",
-        &    "Topeka,KS",
-        &    "Torrance,CA",
-        &    "Tucson,AZ",
-        &    "Tulsa,OK",
-        &    "Tyler,TX",
-        &    "Vallejo,CA",
-        &    "Vancouver,WA",
-        &    "Ventura,CA",
-        &    "Victorville,CA",
-        &    "Virginia Beach,VA",
-        &    "Visalia,CA",
-        &    "Vista,CA",
-        &    "Waco,TX",
-        &    "Warren,MI",
-        &    "Washington,DC",
-        &    "Waterbury,CT",
-        &    "West Covina,CA",
-        &    "West Jordan,UT",
-        &    "West Palm Beach,FL",
-        &    "West Valley City,UT",
-        &    "Westminster,CO",
-        &    "Wichita,KS",
-        &    "Wichita Falls,TX",
-        &    "Wilmington,NC",
-        &    "Winston?Salem,NC",
-        &    "Woodbridge,NJ",
-        &    "Worcester,MA",
-        &    "Yonkers,NY"
+        item, [itemcount]a30,   "Abilene,TX","Akron,OH","Albuquerque,NM","Alexandria,VA","Allentown,PA","Amarillo,TX","Anaheim,CA","Anchorage,AK","Ann Arbor,MI","Antioch,CA",
+        &    "Arlington,TX","Arvada,CO","Athens,GA","Atlanta,GA","Augusta,GA","Aurora,CO","Aurora,IL","Austin,TX","Bakersfield,CA","Baltimore,MD","Baton Rouge,LA","Beaumont,TX",
+        &    "Bellevue,WA","Berkeley,CA","Billings,MT","Birmingham,AL","Boise,ID","Boston,MA","Boulder,CO","Bridgeport,CT","Broken Arrow,OK","Brownsville,TX","Buffalo,NY","Burbank,CA",
+        &    "Cambridge,MA","Cape Coral,FL","Carlsbad,CA","Carrollton,TX","Cary,NC","Cedar Rapids,IA","Centennial,CO","Chandler,AZ","Charleston,SC","Charlotte,NC","Chattanooga,TN",
+        &    "Chesapeake,VA","Chicago,IL","Chula Vista,CA","Cincinnati,OH","Clarksville,TN","Clearwater,FL","Cleveland,OH","Clovis,CA","College Station,TX","Colorado Springs,CO",
+        &    "Columbia,MO","Columbia,SC","Columbus,GA","Columbus,OH","Concord,CA","Coral Springs,FL","Corona,CA","Corpus Christi,TX","Costa Mesa,CA","Dallas,TX","Daly City,CA",
+        &    "Davenport,IA","Davie,FL","Dayton,OH","Denton,TX","Denver,CO","Des Moines,IA","Detroit,MI","Downey,CA","Durham,NC","Edison,NJ","El Cajon,CA","El Monte,CA","El Paso,TX",
+        &    "Elgin,IL","Elizabeth,NJ","Elk Grove,CA","Escondido,CA","Eugene,OR","Evansville,IN","Everett,WA","Fairfield,CA","Fargo,ND","Fayetteville,NC","Fontana,CA","Fort Collins,CO",
+        &    "Fort Lauderdale,FL","Fort Wayne,IN","Fort Worth,TX","Fremont,CA","Fresno,CA","Frisco,TX","Fullerton,CA","Gainesville,FL","Garden Grove,CA","Garland,TX","Gilbert,AZ",
+        &    "Glendale,AZ","Glendale,CA","Grand Prairie,TX","Grand Rapids,MI","Greeley,CO","Green Bay,WI","Greensboro,NC","Gresham,OR","Hampton,VA","Hartford,CT","Hayward,CA",
+        &    "Henderson,NV","Hialeah,FL","High Point,NC","Hillsboro,OR","Hollywood,FL","Honolulu,HI","Houston,TX","Huntington Beach,CA","Huntsville,AL","Independence,MO",
+        &    "Indianapolis,IN","Inglewood,CA","Irvine,CA","Irving,TX","Jackson,MS","Jacksonville,FL","Jersey City,NJ","Joliet,IL","Jurupa Valley,CA","Kansas City,KS","Kansas City,MO",
+        &    "Kent,WA","Killeen,TX","Knoxville,TN","Lafayette,LA","Lakeland,FL","Lakewood,CO","Lancaster,CA","Lansing,MI","Laredo,TX","Las Cruces,NM","Las Vegas,NV","Lewisville,TX",
+        &    "Lexington,KY","Lincoln,NE","Little Rock,AR","Long Beach,CA","Los Angeles,CA","Louisville,KY","Lowell,MA","Lubbock,TX","Macon,GA","Madison,WI","Manchester,NH","McAllen,TX",
+        &    "McKinney,TX","Memphis,TN","Mesa,AZ","Mesquite,TX","Miami,FL","Miami Gardens,FL","Midland,TX","Milwaukee,WI","Minneapolis,MN","Miramar,FL","Mobile,AL","Modesto,CA",
+        &    "Montgomery,AL","Moreno Valley,CA","Murfreesboro,TN","Murrieta,CA","Naperville,IL","Nashville,TN","New Haven,CT","New Orleans,LA","New York,NY","Newark,NJ","Newport,News,VA",
+        &    "Norfolk,VA","Norman,OK","North Charleston,SC","North Las Vegas,NV","Norwalk,CA","Oakland,CA","Oceanside,CA","Odessa,TX","Oklahoma City,OK","Olathe,KS","Omaha,NE",
+        &    "Ontario,CA","Orange,CA","Orlando,FL","Overland Park,KS","Oxnard,CA","Palm Bay,FL","Palmdale,CA","Pasadena,CA","Pasadena,TX","Paterson,NJ","Pearland,TX","Pembroke Pines,FL",
+        &    "Peoria,AZ","Peoria,IL","Philadelphia,PA","Phoenix,AZ","Pittsburgh,PA","Plano,TX","Pomona,CA","Pompano Beach,FL","Port St. Lucie,FL","Portland,OR","Providence,RI","Provo,UT",
+        &    "Pueblo,CO","Raleigh,NC","Rancho Cucamonga,CA","Reno,NV","Renton,WA","Rialto,CA","Richardson,TX","Richmond,CA","Richmond,VA","Riverside,CA","Rochester,MN","Rochester,NY",
+        &    "Rockford,IL","Roseville,CA","Round RockTX","Sacramento,CA","Saint Paul,MN","Salem,OR","Salinas,CA","Salt Lake City,UT","San Angelo,TX","San Antonio,TX","San Bernardino,CA",
+        &    "San Diego,CA","San Francisco,CA","San Jose,CA","San Mateo,CA","Sandy Springs,GA","Santa Ana,CA","Santa Clara,CA","Santa Clarita,CA","Santa Maria,CA","Santa Rosa,CA",
+        &    "Savannah,GA","Scottsdale,AZ","Seattle,WA","Shreveport,LA","Simi Valley,CA","Sioux Falls,SD","South Bend,IN","Spokane,WA","Springfield,IL","Springfield,MA","Springfield,MO",
+        &    "St. Louis,MO","St. Petersburg,FL","Stamford,CT","Sterling Heights,MI","Stockton,CA","Sunnyvale,CA","Surprise,AZ","Syracuse,NY","Tacoma,WA","Tallahassee,FL","Tampa,FL",
+        &    "Temecula,CA","Tempe,AZ","Thornton,CO","Thousand Oaks,CA","Toledo,OH","Topeka,KS","Torrance,CA","Tucson,AZ","Tulsa,OK","Tyler,TX","Vallejo,CA","Vancouver,WA","Ventura,CA",
+        &    "Victorville,CA","Virginia Beach,VA","Visalia,CA","Vista,CA","Waco,TX","Warren,MI","Washington,DC","Waterbury,CT","West Covina,CA","West Jordan,UT","West Palm Beach,FL",
+        &    "West Valley City,UT","Westminster,CO","Wichita,KS","Wichita Falls,TX","Wilmington,NC","Winston?Salem,NC","Woodbridge,NJ","Worcester,MA","Yonkers,NY"
     endliteral
     static record
         randomNumber, i4, 178638639
+        seed1, i4, 1623984712
+        seed2, i4, 2014395627
     endrecord
     stack record
-        seed1, i4
-        seed2, i4
         index, i4
     endrecord
 proc
-    getSeeds(randomNumber,seed1,seed2)
+    ;getSeeds(randomNumber,seed1,seed2)
     xcall randm(randomNumber,seed1,seed2)
     index = %rnd(randomNumber/(32767.0/(itemCount-1)))+1
     city  = item[index](1:%instr(1,item[index],",")-1)
@@ -991,7 +723,7 @@ proc
 endsubroutine
 
 ;;; <summary>
-;;; 
+;;; Returns a random zip code
 ;;; </summary>
 ;;; <param name="state"></param>
 ;;; <returns></returns>
@@ -1002,12 +734,12 @@ function randomZipCode, i4
     endliteral
     static record
         randomNumber, i4, 53887541
+        seed1, i4, 1623984712
+        seed2, i4, 2014395627
     endrecord
     stack record
         stateMinZip, i4
         stateMaxZip, i4
-        seed1, i4
-        seed2, i4
         part1, i4
     endrecord
 proc
@@ -1277,10 +1009,11 @@ proc
     end
     endusing
 
-    getSeeds(randomNumber,seed1,seed2)
+    ;getSeeds(randomNumber,seed1,seed2)
     xcall randm(randomNumber,seed1,seed2)
     part1 = %rnd(randomNumber/(32767.0/(part1Count-1))) + 1001
 
     freturn part1
 
 endfunction
+
